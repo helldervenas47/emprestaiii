@@ -36,7 +36,7 @@ import { Progress } from "@/components/ui/progress";
 import { CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOpenings";
-import { readPaidOverride, writePaidOverride, listPaidInvoicesInRange, isCreditCardExpense, type PaidInvoiceEntry } from "@/lib/creditCardInvoiceTotals";
+import { readPaidOverride, writePaidOverride, listPaidInvoicesInRange, isCreditCardExpense, creditCardLedgerHandled, type PaidInvoiceEntry } from "@/lib/creditCardInvoiceTotals";
 import { expandCreditCardExpenses, type ExpandedExpense } from "@/lib/creditCardInstallments";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { getBank, brandLabel } from "@/lib/creditCardBanks";
@@ -159,6 +159,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
       // Limpa marcadores [PAID:xxx], [PAGA] e [LEDGER]; restaura o saldo inicial.
       const cleaned = (op?.notes ?? "")
         .replace(/\[PAID:[0-9]+(?:\.[0-9]+)?\]/gi, "")
+        .replace(/\[PAID_DATE:\d{4}-\d{2}-\d{2}\]/gi, "")
         .replace(/\[PAGA\]/gi, "")
         .replace(/\[LEDGER\]/gi, "")
         .replace(/\s+/g, " ")
@@ -268,7 +269,14 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const total = transactionsTotal + openingAmount;
   const prevTotal = sumItems(prevItems) + (prevOpening?.openingAmount ?? 0);
   const paidOverride = readPaidOverride(opening?.notes);
-  const paidTotal = paidOverride ?? sumItems(items.filter((e) => e.paid));
+  const openingPaidFlag = /\[PAGA\]/i.test(opening?.notes ?? "");
+  const ledgerHandled = creditCardLedgerHandled(opening?.notes);
+  const paidItemsTotal = sumItems(items.filter((e) => e.paid));
+  const paidTotal = paidOverride ?? Number((paidItemsTotal + (openingPaidFlag ? openingAmount : 0)).toFixed(2));
+  const remainingTotal = Math.max(0, Number((total - paidTotal).toFixed(2)));
+  // Se ainda não há lançamento no extrato, o pagamento precisa regularizar o total pago da fatura,
+  // incluindo saldos antigos já marcados como pagos apenas no cartão.
+  const paymentRemaining = ledgerHandled ? remainingTotal : total;
 
   // Limite disponível = limite total - (despesas pendentes do cartão + saldos iniciais de
   // faturas em aberto). Reflete tudo que ainda foi gasto e não pago neste cartão.
@@ -286,7 +294,11 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
       .reduce((s, e) => s + e.amount, 0);
     const openingsPending = openings
       .filter((o) => o.cardId === card.id)
-      .reduce((s, o) => s + (o.openingAmount ?? 0), 0);
+      .reduce((s, o) => {
+        const paid = readPaidOverride(o.notes) ?? (/\[PAGA\]/i.test(o.notes ?? "") ? Number(o.openingAmount ?? 0) : 0);
+        const pending = Math.max(0, Number(o.openingAmount ?? 0) - Math.min(Number(o.openingAmount ?? 0), paid));
+        return s + pending;
+      }, 0);
     return expensesPending + openingsPending;
   }, [expandedExpenses, openings, cardTag, card.id]);
 
@@ -306,9 +318,8 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   // Fatura quitada: existe ao menos um item ou saldo inicial registrado, todos pagos.
   // Usamos uma marca "[PAGA]" no campo notes do opening para preservar a informação
   // de "fatura quitada" mesmo após zerar o saldo inicial.
-  const openingPaidFlag = /\[PAGA\]/i.test(opening?.notes ?? "");
-  const cycleHasPending = items.some((e) => !e.paid) || openingAmount > 0;
-  const cycleEverHadValue = items.length > 0 || openingAmount > 0 || openingPaidFlag;
+  const cycleHasPending = remainingTotal > 0.005;
+  const cycleEverHadValue = items.length > 0 || openingAmount > 0 || openingPaidFlag || paidOverride !== null;
   const isPaid = cycleEverHadValue && !cycleHasPending;
 
   // Histórico de pagamentos: faturas pagas deste cartão nos últimos 24 meses,
@@ -631,7 +642,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
 
           {/* Pagar fatura */}
           {(() => {
-            const remaining = Math.max(0, Number((total - paidTotal).toFixed(2)));
+            const remaining = paymentRemaining;
             if (remaining <= 0.005) return null;
             return (
               <Button
@@ -1038,7 +1049,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
           </DialogHeader>
 
           {(() => {
-            const remaining = Math.max(0, Number((total - paidTotal).toFixed(2)));
+            const remaining = paymentRemaining;
             return (
               <div className="space-y-4 py-2">
                 <div className="rounded-xl bg-muted/40 p-3 grid grid-cols-3 gap-2 text-center">
@@ -1120,8 +1131,9 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
               onClick={async () => {
                 setPaying(true);
                 try {
-                  const remaining = Math.max(0, Number((total - paidTotal).toFixed(2)));
-                  const amount = Math.max(0, Number(Number(payAmount).toFixed(2)));
+                  const remaining = paymentRemaining;
+                  const parsedAmount = Number(payAmount.replace(",", "."));
+                  const amount = Math.max(0, Number(parsedAmount.toFixed(2)));
                   if (amount <= 0) {
                     toast.error("Informe um valor válido");
                     setPaying(false);
@@ -1137,37 +1149,53 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                       await updateExpense(e.id, { paid: true, paidDate: payDate });
                     }
                     const baseNotes = writePaidOverride(
-                      (opening?.notes ?? "").replace(/\[PAGA\]/gi, "").replace(/\[LEDGER\]/gi, "").trim(),
+                      (opening?.notes ?? "")
+                        .replace(/\[PAGA\]/gi, "")
+                        .replace(/\[LEDGER\]/gi, "")
+                        .replace(/\[PAID_DATE:\d{4}-\d{2}-\d{2}\]/gi, "")
+                        .trim(),
                       Number(total.toFixed(2)),
                     );
-                    const newNotes = `${baseNotes ? baseNotes + " " : ""}[PAGA] [LEDGER]`.trim();
-                    await upsertOpening(card.id, cycleKey, 0, newNotes);
+                    const newNotes = `${baseNotes ? baseNotes + " " : ""}[PAGA] [LEDGER] [PAID_DATE:${payDate}]`.trim();
+                    await upsertOpening(card.id, cycleKey, openingAmount, newNotes);
                   } else {
                     // Pagamento parcial: atualiza override [PAID:xxx] e marca como ledger-handled.
                     const cleaned = (opening?.notes ?? "")
                       .replace(/\[PAGA\]/gi, "")
                       .replace(/\[LEDGER\]/gi, "")
+                      .replace(/\[PAID_DATE:\d{4}-\d{2}-\d{2}\]/gi, "")
                       .trim();
                     const baseNotes = writePaidOverride(cleaned, newPaidTotal);
-                    const newNotes = `${baseNotes ? baseNotes + " " : ""}[LEDGER]`.trim();
+                    const newNotes = `${baseNotes ? baseNotes + " " : ""}[LEDGER] [PAID_DATE:${payDate}]`.trim();
                     await upsertOpening(card.id, cycleKey, openingAmount, newNotes);
                   }
 
-                  // Lança no extrato (debita a carteira selecionada).
-                  await recordLedger({
-                    direction: "out",
-                    category: "expense",
-                    amount,
-                    description: `Pagamento fatura ${card.nickname || brandLabel(card.bank)}`,
-                    occurred_on: payDate,
-                    source: "auto",
-                    wallet: payWallet,
-                    metadata: {
-                      credit_card_id: card.id,
-                      cycle_key: cycleKey,
-                      kind: "credit_card_invoice_payment",
-                    },
-                  });
+                  // Lança no extrato o total efetivamente pago da fatura ainda não registrado,
+                  // incluindo saldo inicial/anterior e compras já marcadas como pagas no cartão.
+                  const { data: ledgerRows } = await supabase
+                    .from("account_ledger")
+                    .select("amount")
+                    .eq("metadata->>credit_card_id", card.id)
+                    .eq("metadata->>cycle_key", cycleKey)
+                    .eq("metadata->>kind", "credit_card_invoice_payment");
+                  const ledgerPaid = ((ledgerRows as any[]) ?? []).reduce((s, r) => s + (Number(r.amount) || 0), 0);
+                  const ledgerAmount = Number(Math.max(0, newPaidTotal - ledgerPaid).toFixed(2));
+                  if (ledgerAmount > 0.005) {
+                    await recordLedger({
+                      direction: "out",
+                      category: "expense",
+                      amount: ledgerAmount,
+                      description: `Pagamento fatura ${card.nickname || brandLabel(card.bank)}`,
+                      occurred_on: payDate,
+                      source: "auto",
+                      wallet: payWallet,
+                      metadata: {
+                        credit_card_id: card.id,
+                        cycle_key: cycleKey,
+                        kind: "credit_card_invoice_payment",
+                      },
+                    });
+                  }
 
                   toast.success(
                     isFull
