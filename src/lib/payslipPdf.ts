@@ -269,7 +269,37 @@ export async function generatePayslipPdf(
     { align: "center" },
   );
 
-  doc.save(
-    `contracheque-${employee.name.replace(/\s+/g, "_")}-${payroll.competence}.pdf`,
-  );
+  const filename = `contracheque-${employee.name.replace(/\s+/g, "_")}-${payroll.competence}.pdf`;
+  const blob = doc.output("blob");
+
+  // Detect standalone PWA (iOS/Android) — doc.save() opens a tab that can't be closed
+  const isStandalone =
+    (typeof window !== "undefined" &&
+      (window.matchMedia?.("(display-mode: standalone)").matches ||
+        (navigator as any).standalone === true));
+
+  // Try Web Share API with file (best UX on iOS PWA)
+  try {
+    const nav = navigator as any;
+    if (isStandalone && nav.canShare && typeof File !== "undefined") {
+      const file = new File([blob], filename, { type: "application/pdf" });
+      if (nav.canShare({ files: [file] })) {
+        await nav.share({ files: [file], title: filename });
+        return;
+      }
+    }
+  } catch {
+    /* fall through to download */
+  }
+
+  // Fallback: trigger a regular download via anchor
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
