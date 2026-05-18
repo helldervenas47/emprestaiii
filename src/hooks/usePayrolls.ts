@@ -162,11 +162,27 @@ export function usePayrolls(enabled = true) {
     // 3. Composição opcional na aba Receitas (não toca em saldo/extrato)
     let incomeId: string | null = null;
     if (employee?.addToIncomes) {
+      // Resolve a categoria de receita reutilizando a categoria já cadastrada
+      // pelo usuário (ex.: "Salário"), evitando criar duplicata "Salários".
+      const norm = (s: string) =>
+        s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+      const { data: cats } = await supabase
+        .from("income_categories" as any)
+        .select("name")
+        .eq("user_id", dataOwnerId);
+      const existing = ((cats as any[]) ?? [])
+        .map((c) => c.name as string)
+        .find((n) => {
+          const k = norm(n);
+          return k === "salario" || k === "salarios";
+        });
+      const incomeCategory = existing ?? "Salários";
+
       const { data: incomeRow } = await supabase.from("incomes").insert({
         user_id: dataOwnerId,
         description: baseDesc,
         amount,
-        category: "Salários",
+        category: incomeCategory,
         source: "salary",
         received_date: date,
         actual_received_date: date,
