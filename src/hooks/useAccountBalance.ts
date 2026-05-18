@@ -6,7 +6,7 @@ import { usePiggyBanks } from "@/hooks/usePiggyBanks";
 import { useExternalAccountSources } from "@/hooks/useExternalAccountSources";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
-import { creditCardInvoiceExtraPaid } from "@/lib/creditCardInvoiceTotals";
+import { creditCardInvoiceExtraPaid, creditCardLedgerHandled, cycleKeyForDate, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
 import type { Sale } from "@/types/loan";
 
 /**
@@ -47,8 +47,36 @@ export function useAccountBalance() {
       (s, sale) => s + saleReceivedTotal(sale),
       0,
     );
+    // Ciclos de cartão cujo pagamento já está lançado no extrato (ledger).
+    // Para esses, o débito ocorre via external.total — não somar de novo via expense.paid.
+    const ledgerCycles = new Set(
+      openings
+        .filter((o) => creditCardLedgerHandled(o.notes))
+        .map((o) => `${o.cardId}:${o.cycleKey}`),
+    );
+    const cardByTag = new Map<string, typeof cards[number]>();
+    for (const c of cards) {
+      const tag = (c.nickname || c.lastFour || "").toLowerCase();
+      if (tag) cardByTag.set(tag, c);
+    }
+    const expenseInLedgerCycle = (e: any): boolean => {
+      if (!isCreditCardExpense(e)) return false;
+      const n = (e.notes ?? "").toLowerCase();
+      // Tenta casar pelo tag do cartão nas notas; senão, varre todos os cartões.
+      let matchedCards: typeof cards = [];
+      for (const [tag, card] of cardByTag) {
+        if (n.includes(tag)) { matchedCards = [card]; break; }
+      }
+      if (matchedCards.length === 0) matchedCards = cards;
+      for (const card of matchedCards) {
+        const ck = cycleKeyForDate(e.dueDate, card.closingDay);
+        if (ledgerCycles.has(`${card.id}:${ck}`)) return true;
+      }
+      return false;
+    };
     const totalExpensePaid = expenses
       .filter((e: any) => e.paid && (e.scope ?? "business") === "personal")
+      .filter((e: any) => !expenseInLedgerCycle(e))
       .reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
     const totalPiggyManualDeposits = piggyDeposits
       .filter((d) => !d.expenseId)

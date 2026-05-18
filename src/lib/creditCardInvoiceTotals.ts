@@ -21,6 +21,23 @@ export function writePaidOverride(notes: string | null | undefined, value: numbe
   return base ? `${base} [PAID:${value.toFixed(2)}]` : `[PAID:${value.toFixed(2)}]`;
 }
 
+/** Detecta se o pagamento da fatura já foi lançado no extrato (ledger). */
+export function creditCardLedgerHandled(notes: string | null | undefined): boolean {
+  return /\[LEDGER\]/i.test(notes ?? "");
+}
+
+/** Retorna o cycleKey (YYYY-MM do fechamento) ao qual uma data pertence para um dado cartão. */
+export function cycleKeyForDate(dueDateISO: string, closingDay: number): string {
+  const d = new Date(dueDateISO + "T00:00:00");
+  const y = d.getFullYear();
+  const m = d.getMonth();
+  const day = d.getDate();
+  // Despesas com dueDate >= closingDay pertencem ao próximo ciclo (fechamento no próximo mês).
+  const cy = day >= closingDay ? (m === 11 ? y + 1 : y) : y;
+  const cm = day >= closingDay ? (m === 11 ? 0 : m + 1) : m;
+  return `${cy}-${String(cm + 1).padStart(2, "0")}`;
+}
+
 /** Reconstrói o ciclo (from, to, dueDate) ancorado em uma data de referência. */
 function getCycleForRef(ref: Date, closingDay: number, dueDay: number) {
   const y = ref.getFullYear();
@@ -275,6 +292,9 @@ export function creditCardInvoiceExtraPaid(
   for (const opening of openings) {
     const card = cards.find((c) => c.id === opening.cardId);
     if (!card) continue;
+    // Quando o pagamento já foi lançado no extrato (ledger), o débito real ocorre
+    // via external.total (balance table). Não somar ccExtra para evitar dupla saída.
+    if (creditCardLedgerHandled(opening.notes)) continue;
     const override = readPaidOverride(opening.notes);
     const openingPaidFlag = /\[PAGA\]/i.test(opening.notes ?? "");
     // Só conta quando há saldo inicial pago (override OU [PAGA] com opening_amount original).
