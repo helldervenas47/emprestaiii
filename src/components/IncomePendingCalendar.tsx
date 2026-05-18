@@ -165,15 +165,16 @@ export function IncomePendingCalendar({
   // - "paid": todos os lançamentos do dia (receitas, despesas e faturas) estão pagos/recebidos
   // - "pending": existe ao menos 1 lançamento pendente no dia
   // - "none": nenhum lançamento
-  const getDayStatus = (
-    info?: DayInfo,
-    dateStr?: string,
-  ): "paid" | "overdue" | "pending" | "none" => {
-    if (!info || info.incomes.length === 0) return "none";
-    const hasPending = info.incomes.some((i) => i.status !== "received");
-    if (!hasPending) return "paid";
-    if (dateStr && dateStr < todayStr) return "overdue";
-    return "pending";
+  const getDayStatus = (info?: DayInfo): "paid" | "pending" | "none" => {
+    if (!info) return "none";
+    const total =
+      info.incomes.length + info.expenses.length + info.cardInvoices.length;
+    if (total === 0) return "none";
+    const hasPending =
+      info.incomes.some((i) => i.status !== "received") ||
+      info.expenses.some((e) => !e.paid) ||
+      info.cardInvoices.some((c) => !c.paid);
+    return hasPending ? "pending" : "paid";
   };
 
   const calendarDays = useMemo(() => {
@@ -880,13 +881,13 @@ export function IncomePendingCalendar({
 
 
 
-        {/* Legenda de status das receitas */}
+        {/* Legenda de status dos lançamentos */}
         <div className="flex items-center gap-3 mb-3 text-[11px] text-muted-foreground flex-wrap">
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-emerald-500" /> Pago&nbsp;
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-rose-500" /> Atrasado&nbsp;
+            <span className="h-2 w-2 rounded-full bg-rose-500" /> Pendente&nbsp;
           </span>
         </div>
 
@@ -922,8 +923,8 @@ export function IncomePendingCalendar({
                     if (day === null) return <div key={`empty-${idx}`} />;
                     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                     const info = dayMap[dateStr];
-                    const status = getDayStatus(info, dateStr);
-                    const hasMovement = status === "paid" || status === "overdue";
+                    const status = getDayStatus(info);
+                    const hasMovement = status !== "none";
                     const isToday = dateStr === todayStr;
                     const isSelected = dateStr === selectedDate;
 
@@ -935,8 +936,8 @@ export function IncomePendingCalendar({
                           ${isSelected ? "bg-primary text-primary-foreground ring-2 ring-primary" : ""}
                           ${isToday && !isSelected ? "bg-accent font-bold" : ""}
                           ${!isSelected && !isToday && status === "paid" ? "bg-emerald-500/10" : ""}
-                          ${!isSelected && !isToday && status === "overdue" ? "bg-rose-500/10" : ""}
-                          ${!isSelected && !isToday && (status === "none" || status === "pending") ? "bg-background hover:bg-muted" : ""}
+                          ${!isSelected && !isToday && status === "pending" ? "bg-rose-500/10" : ""}
+                          ${!isSelected && !isToday && status === "none" ? "bg-background hover:bg-muted" : ""}
                         `}
                       >
                         {adjustments[dateStr] && (
@@ -966,7 +967,7 @@ export function IncomePendingCalendar({
                     <span className="h-2 w-2 rounded-full bg-emerald-500" /> Pago
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-rose-500" /> Atrasado
+                    <span className="h-2 w-2 rounded-full bg-rose-500" /> Pendente
                   </div>
                   <div className="ml-auto">
                     Saldo mês: <span className={`font-semibold ${monthEndProjectedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>{formatCurrency(monthEndProjectedBalance)}</span>
@@ -983,8 +984,8 @@ export function IncomePendingCalendar({
                   {weekDays.map((d) => {
                     const dateStr = formatLocalDate(d);
                     const info = dayMap[dateStr];
-                    const status = getDayStatus(info, dateStr);
-                    const hasMovement = status === "paid" || status === "overdue";
+                    const status = getDayStatus(info);
+                    const hasMovement = status !== "none";
                     const isToday = dateStr === todayStr;
                     const isSelected = dateStr === selectedDate;
                     return (
@@ -995,8 +996,8 @@ export function IncomePendingCalendar({
                           ${isSelected ? "bg-primary text-primary-foreground ring-2 ring-primary" : ""}
                           ${isToday && !isSelected ? "bg-accent font-bold" : ""}
                           ${!isSelected && !isToday && status === "paid" ? "bg-emerald-500/10" : ""}
-                          ${!isSelected && !isToday && status === "overdue" ? "bg-rose-500/10" : ""}
-                          ${!isSelected && !isToday && (status === "none" || status === "pending") ? "bg-background hover:bg-muted" : ""}
+                          ${!isSelected && !isToday && status === "pending" ? "bg-rose-500/10" : ""}
+                          ${!isSelected && !isToday && status === "none" ? "bg-background hover:bg-muted" : ""}
                         `}
                       >
                         <span className={`text-[10px] uppercase ${isSelected ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
