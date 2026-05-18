@@ -880,13 +880,13 @@ export function IncomePendingCalendar({
 
 
 
-        {/* Legenda de status dos lançamentos */}
+        {/* Legenda de status das receitas */}
         <div className="flex items-center gap-3 mb-3 text-[11px] text-muted-foreground flex-wrap">
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-emerald-500" /> Pago&nbsp;
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-rose-500" /> Pendente&nbsp;
+            <span className="h-2 w-2 rounded-full bg-rose-500" /> Atrasado&nbsp;
           </span>
         </div>
 
