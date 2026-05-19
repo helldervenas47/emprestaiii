@@ -86,31 +86,55 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     () => Object.values(cardInvoicePaidByMonth).reduce((s, v) => s + v, 0),
     [cardInvoicePaidByMonth],
   );
+  // Aportes (positivos) e resgates (negativos) dos cofrinhos.
+  // Aporte sai do "Saldo em Conta"; resgate retorna ao "Saldo em Conta".
+  const [piggyNetByMonth, setPiggyNetByMonth] = useState<Record<string, number>>({});
+  const piggyNetTotal = useMemo(
+    () => Object.values(piggyNetByMonth).reduce((s, v) => s + v, 0),
+    [piggyNetByMonth],
+  );
 
   useEffect(() => {
     if (!ownerId) return;
     let cancelled = false;
     const load = async () => {
-      const { data } = await supabase
-        .from("account_ledger")
-        .select("amount, occurred_on, metadata")
-        .eq("user_id", ownerId)
-        .eq("direction", "out")
-        .eq("metadata->>kind", "credit_card_invoice_payment");
+      const [{ data: ledger }, { data: piggy }] = await Promise.all([
+        supabase
+          .from("account_ledger")
+          .select("amount, occurred_on, metadata")
+          .eq("user_id", ownerId)
+          .eq("direction", "out")
+          .eq("metadata->>kind", "credit_card_invoice_payment"),
+        supabase
+          .from("piggy_bank_deposits" as any)
+          .select("amount, deposit_date")
+          .eq("user_id", ownerId),
+      ]);
       if (cancelled) return;
-      const byMonth: Record<string, number> = {};
-      for (const r of (data as any[]) ?? []) {
-        const d = (r.occurred_on as string) || "";
-        const mk = d.slice(0, 7);
+      const cardByMonth: Record<string, number> = {};
+      for (const r of (ledger as any[]) ?? []) {
+        const mk = ((r.occurred_on as string) || "").slice(0, 7);
         if (!mk) continue;
-        byMonth[mk] = (byMonth[mk] ?? 0) + (Number(r.amount) || 0);
+        cardByMonth[mk] = (cardByMonth[mk] ?? 0) + (Number(r.amount) || 0);
       }
-      setCardInvoicePaidByMonth(byMonth);
+      setCardInvoicePaidByMonth(cardByMonth);
+      const piggyByMonth: Record<string, number> = {};
+      for (const r of (piggy as any[]) ?? []) {
+        const mk = ((r.deposit_date as string) || "").slice(0, 7);
+        if (!mk) continue;
+        piggyByMonth[mk] = (piggyByMonth[mk] ?? 0) + (Number(r.amount) || 0);
+      }
+      setPiggyNetByMonth(piggyByMonth);
     };
     load();
     const handler = () => load();
     window.addEventListener("ledger:changed", handler);
-    return () => { cancelled = true; window.removeEventListener("ledger:changed", handler); };
+    window.addEventListener("balance:changed", handler);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("ledger:changed", handler);
+      window.removeEventListener("balance:changed", handler);
+    };
   }, [ownerId]);
 
   const now = new Date();
@@ -129,7 +153,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     const totalExpensePaid = expenses
       .filter((e) => e.paid && (e.scope ?? "business") === "personal" && !isCreditCardExpense(e))
       .reduce((s, e) => s + e.amount, 0);
-    const balance = totalIncomeReceived + totalSalesReceived - totalExpensePaid - cardInvoicePaidTotal;
+    const balance = totalIncomeReceived + totalSalesReceived - totalExpensePaid - cardInvoicePaidTotal - piggyNetTotal;
 
     // Movimentação do mês vigente — alinhada ao total exibido em MonthTransactionsSheet
     // (Entradas/Saídas do mês), considerando todas as ocorrências do mês (pagas + pendentes).
@@ -142,6 +166,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     }, 0);
     const monthInSales = sales.reduce((s, sale) => s + saleReceivedInMonth(sale, monthKey), 0);
     const monthIn = monthInIncomes + monthInSales;
+    // Will be adjusted with piggy withdrawals below.
     // Saídas do mês: despesas pessoais pagas (exceto itens de cartão, que entram pelo
     // pagamento real da fatura registrado no extrato) + pagamentos de fatura no mês.
     const monthOutExpenses = expenses.reduce((s, e) => {
@@ -155,7 +180,9 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
         : e.amount;
       return s + amt;
     }, 0);
-    const monthOut = monthOutExpenses + (cardInvoicePaidByMonth[monthKey] ?? 0);
+    const piggyMonth = piggyNetByMonth[monthKey] ?? 0;
+    const monthOut = monthOutExpenses + (cardInvoicePaidByMonth[monthKey] ?? 0) + Math.max(0, piggyMonth);
+    const piggyMonthIn = Math.max(0, -piggyMonth);
 
     // Futuras do mês selecionado (pendentes/agendadas, não canceladas).
     // Receitas recorrentes são materializadas como lançamentos mensais separados;
@@ -227,8 +254,8 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .filter((i) => i.status === "received" && i.receivedDate.startsWith(prevKey))
       .reduce((s, i) => s + i.amount, 0);
 
-    return { balance, monthIn, monthOut, futureIn, futureOut, projected, projectedDiff, prevIn, pendingInCount };
-  }, [incomes, expenses, monthKey, prevKey, cards, openings, sales, cardInvoicePaidByMonth, cardInvoicePaidTotal]);
+    return { balance, monthIn: monthIn + piggyMonthIn, monthOut, futureIn, futureOut, projected, projectedDiff, prevIn, pendingInCount };
+  }, [incomes, expenses, monthKey, prevKey, cards, openings, sales, cardInvoicePaidByMonth, cardInvoicePaidTotal, piggyNetByMonth, piggyNetTotal]);
 
   const diff = calc.monthIn - calc.prevIn;
   const pct = calc.prevIn > 0 ? (diff / calc.prevIn) * 100 : 0;
