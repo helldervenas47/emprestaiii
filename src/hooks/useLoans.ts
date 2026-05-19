@@ -128,6 +128,68 @@ async function applyPaymentBalanceOffline(amount: number, paymentMethodId: strin
   await adjustBalanceOffline(amount * multiplier, wallet);
 }
 
+/**
+ * Records an "in" payment in the ledger. When a split is provided, creates ONE
+ * entry per split part (each with its own payment_method_id/wallet) so that the
+ * extrato/histórico mostra corretamente os dois meios de pagamento utilizados.
+ * All entries compartilham o mesmo payment_id (o índice único permite isso pois
+ * passou a incluir payment_method_id na chave).
+ */
+async function recordPaymentLedgerSplit(args: {
+  amount: number;
+  description: string;
+  occurred_on: string;
+  loan_id: string;
+  payment_id: string;
+  paymentMethodId: string | null;
+  split: PaymentSplit | null;
+  extraMetadata?: Record<string, any>;
+}) {
+  const { amount, description, occurred_on, loan_id, payment_id, paymentMethodId, split, extraMetadata } = args;
+  if (split?.parts?.length) {
+    const total = split.parts.reduce((s, p) => s + (Number(p.amount) || 0), 0) || amount;
+    for (let i = 0; i < split.parts.length; i++) {
+      const part = split.parts[i];
+      const partAmount = Number(part.amount) || 0;
+      if (partAmount <= 0) continue;
+      const ratio = total > 0 ? partAmount / total : 0;
+      const partMeta: Record<string, any> = {
+        ...(extraMetadata ?? {}),
+        payment_method_id: part.paymentMethodId ?? null,
+        split_part: true,
+        split_index: i,
+        split_count: split.parts.length,
+        total_amount: Math.round(total * 100) / 100,
+      };
+      // Distribui valores extras (principal/juros) proporcionalmente, se houver
+      if (extraMetadata?.principal_amount != null) {
+        partMeta.principal_amount = Math.round(Number(extraMetadata.principal_amount) * ratio * 100) / 100;
+      }
+      if (extraMetadata?.interest_amount != null) {
+        partMeta.interest_amount = Math.round(Number(extraMetadata.interest_amount) * ratio * 100) / 100;
+      }
+      if (extraMetadata?.fees_amount != null) {
+        partMeta.fees_amount = Math.round(Number(extraMetadata.fees_amount) * ratio * 100) / 100;
+      }
+      await recordLedger({
+        direction: "in", category: "payment", amount: partAmount,
+        description, occurred_on, loan_id, payment_id,
+        source: "auto", syncBalance: false,
+        payment_method_id: part.paymentMethodId ?? null,
+        metadata: partMeta,
+      });
+    }
+    return;
+  }
+  await recordLedger({
+    direction: "in", category: "payment", amount,
+    description, occurred_on, loan_id, payment_id,
+    source: "auto", syncBalance: false,
+    payment_method_id: paymentMethodId ?? null,
+    metadata: { payment_method_id: paymentMethodId ?? null, ...(extraMetadata ?? {}) },
+  });
+}
+
 export function useLoans() {
   const { user, dataOwnerId } = useAuth();
   const [loans, setLoans] = useState<Loan[]>([]);
@@ -501,11 +563,12 @@ export function useLoans() {
 
     try {
       await applyPaymentBalance(installmentAmount, paymentMethodId ?? null, normalizedSplit);
-      await recordLedger({
-        direction: "in", category: "payment", amount: installmentAmount,
+      await recordPaymentLedgerSplit({
+        amount: installmentAmount,
         description: `Parcela ${newPaid}/${loan.installments} recebida - ${loan.borrowerName}`,
-        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
-        metadata: { payment_method_id: paymentMethodId ?? null },
+        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId,
+        paymentMethodId: paymentMethodId ?? null,
+        split: normalizedSplit,
       });
     } catch (balanceError: any) {
       console.error("[addPayment] adjust balance failed:", balanceError);
@@ -588,11 +651,12 @@ export function useLoans() {
 
     try {
       await applyPaymentBalance(amount, paymentMethodId ?? null, normalizedSplit);
-      await recordLedger({
-        direction: "in", category: "payment", amount,
+      await recordPaymentLedgerSplit({
+        amount,
         description: `Pagamento parcial - ${loan.borrowerName}`,
-        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
-        metadata: { payment_method_id: paymentMethodId ?? null },
+        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId,
+        paymentMethodId: paymentMethodId ?? null,
+        split: normalizedSplit,
       });
     } catch (balanceError: any) {
       console.error("[addPartialPayment] adjust balance failed:", balanceError);
@@ -697,12 +761,13 @@ export function useLoans() {
         .reduce((sum, p) => sum + Math.min(Number(p.amount) || 0, Math.max(0, loan.amount - sum)), 0);
       const principalPortion = Math.min(payAmount, Math.max(0, loan.amount - principalPaidBefore));
       const interestPortion = Math.max(0, Math.round((payAmount - principalPortion) * 100) / 100);
-      await recordLedger({
-        direction: "in", category: "payment", amount: payAmount,
+      await recordPaymentLedgerSplit({
+        amount: payAmount,
         description: `Quitação - ${loan.borrowerName}`,
-        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
-        metadata: {
-          payment_method_id: paymentMethodId ?? null,
+        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId,
+        paymentMethodId: paymentMethodId ?? null,
+        split: normalizedSplit,
+        extraMetadata: {
           principal_amount: Math.round(principalPortion * 100) / 100,
           interest_amount: interestPortion,
         },
@@ -1026,11 +1091,13 @@ export function useLoans() {
       const ledgerDescription = feesExtra > 0
         ? `Pagamento de empréstimo (juros + multa) - ${loan.borrowerName}`
         : `Juros mensal - ${loan.borrowerName}`;
-      await recordLedger({
-        direction: "in", category: "payment", amount: totalReceived,
+      await recordPaymentLedgerSplit({
+        amount: totalReceived,
         description: ledgerDescription,
-        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
-        metadata: { payment_method_id: paymentMethodId ?? null, ...(feesExtra > 0 ? { interest_amount: interestAmount, fees_amount: feesExtra } : {}) },
+        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId,
+        paymentMethodId: paymentMethodId ?? null,
+        split: normalizedSplit,
+        extraMetadata: feesExtra > 0 ? { interest_amount: interestAmount, fees_amount: feesExtra } : undefined,
       });
     } catch (balanceError: any) {
       console.error("[addInterestOnlyPayment] adjust balance failed:", balanceError);
@@ -1259,11 +1326,12 @@ export function useLoans() {
 
     try {
       await applyPaymentBalance(amortizeAmount, paymentMethodId ?? null, normalizedSplit);
-      await recordLedger({
-        direction: "in", category: "payment", amount: amortizeAmount,
+      await recordPaymentLedgerSplit({
+        amount: amortizeAmount,
         description: `Amortização - ${loan.borrowerName}`,
-        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
-        metadata: { payment_method_id: paymentMethodId ?? null },
+        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId,
+        paymentMethodId: paymentMethodId ?? null,
+        split: normalizedSplit,
       });
     } catch (balErr: any) {
       // reverter
