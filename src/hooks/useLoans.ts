@@ -1091,11 +1091,13 @@ export function useLoans() {
       const ledgerDescription = feesExtra > 0
         ? `Pagamento de empréstimo (juros + multa) - ${loan.borrowerName}`
         : `Juros mensal - ${loan.borrowerName}`;
-      await recordLedger({
-        direction: "in", category: "payment", amount: totalReceived,
+      await recordPaymentLedgerSplit({
+        amount: totalReceived,
         description: ledgerDescription,
-        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
-        metadata: { payment_method_id: paymentMethodId ?? null, ...(feesExtra > 0 ? { interest_amount: interestAmount, fees_amount: feesExtra } : {}) },
+        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId,
+        paymentMethodId: paymentMethodId ?? null,
+        split: normalizedSplit,
+        extraMetadata: feesExtra > 0 ? { interest_amount: interestAmount, fees_amount: feesExtra } : undefined,
       });
     } catch (balanceError: any) {
       console.error("[addInterestOnlyPayment] adjust balance failed:", balanceError);
