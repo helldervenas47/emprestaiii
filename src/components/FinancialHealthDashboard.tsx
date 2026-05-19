@@ -139,16 +139,34 @@ function saleReceivedInMonth(sale: Sale, monthKey: string): number {
   return (sale.date || "").startsWith(monthKey) ? saleReceivedTotal(sale) : 0;
 }
 
-function computeMonthMetrics(incomes: Income[], expenses: Expense[], sales: Sale[], key: string): MonthMetrics {
+function computeMonthMetrics(
+  incomes: Income[],
+  expenses: Expense[],
+  sales: Sale[],
+  cards: ReturnType<typeof useCreditCards>["cards"],
+  openings: ReturnType<typeof useCreditCardOpenings>["openings"],
+  key: string,
+): MonthMetrics {
   const incomeFromIncomes = incomes
     .filter((i) => i.status === "received" && i.receivedDate.startsWith(key))
     .reduce((s, i) => s + i.amount, 0);
   const incomeFromSales = sales.reduce((s, sale) => s + saleReceivedInMonth(sale, key), 0);
   const income = incomeFromIncomes + incomeFromSales;
   const personal = expenses.filter((e) => (e.scope ?? "business") === "personal");
-  const expense = personal
-    .filter((e) => e.paid && (e.paidDate || "").startsWith(key))
+  // Saídas do mês = despesas pessoais pagas (exceto itens de cartão) + faturas de cartão quitadas no mês.
+  const expensePaidNonCard = personal
+    .filter((e) => e.paid && (e.paidDate || "").startsWith(key) && !isCreditCardExpense(e))
     .reduce((s, e) => s + monthlyExpenseAmount(e), 0);
+  const [yy, mm] = key.split("-").map(Number);
+  let invoicesPaid = 0;
+  if (yy && mm) {
+    const lastDay = new Date(yy, mm, 0).getDate();
+    const fromISO = `${key}-01`;
+    const toISO = `${key}-${String(lastDay).padStart(2, "0")}`;
+    invoicesPaid = listPaidInvoicesInRange(expenses, cards, openings, fromISO, toISO)
+      .reduce((s, inv) => s + inv.paidTotal, 0);
+  }
+  const expense = expensePaidNonCard + invoicesPaid;
   const pendingExpense = personal
     .filter((e) => !e.paid && (e.dueDate || "").startsWith(key))
     .reduce((s, e) => s + monthlyExpenseAmount(e), 0);
