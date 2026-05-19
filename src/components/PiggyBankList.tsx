@@ -42,19 +42,8 @@ export function PiggyBankList({ readOnly = false }: Props) {
   const [transferring, setTransferring] = useState(false);
   const [pulseId, setPulseId] = useState<string | null>(null);
 
-  // Saldo em conta — mesma fórmula do card "Saldo em Conta" da aba Receitas e Despesas:
-  // receitas recebidas − despesas pessoais pagas.
-  const { incomes } = useIncomes(true);
-  const { expenses } = useExpenses(true);
-  const accountBalance = useMemo(() => {
-    const totalIncomeReceived = incomes
-      .filter((i) => i.status === "received")
-      .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-    const totalExpensePaid = expenses
-      .filter((e: any) => e.paid && (e.scope ?? "business") === "personal")
-      .reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
-    return totalIncomeReceived - totalExpensePaid;
-  }, [incomes, expenses]);
+  // Saldo em conta — base unificada com o card "Saldo em Conta" da aba Receitas.
+  const accountBalance = useUnifiedAccountBalance();
 
   const openTransfer = (pb: PiggyBankType, mode: "store" | "withdraw") => {
     setTransferTarget(pb);
