@@ -37,7 +37,7 @@ import { CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOpenings";
 import { useDataOwner } from "@/hooks/useDataOwner";
-import { readPaidOverride, writePaidOverride, listPaidInvoicesInRange, isCreditCardExpense, creditCardLedgerHandled, type PaidInvoiceEntry } from "@/lib/creditCardInvoiceTotals";
+import { readPaidOverride, writePaidOverride, listPaidInvoicesInRange, isCreditCardExpense, type PaidInvoiceEntry } from "@/lib/creditCardInvoiceTotals";
 import { expandCreditCardExpenses, type ExpandedExpense } from "@/lib/creditCardInstallments";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { getBank, brandLabel } from "@/lib/creditCardBanks";
@@ -277,7 +277,6 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const prevTotal = sumItems(prevItems) + (prevOpening?.openingAmount ?? 0);
   const paidOverride = readPaidOverride(opening?.notes);
   const openingPaidFlag = /\[PAGA\]/i.test(opening?.notes ?? "");
-  const ledgerHandled = creditCardLedgerHandled(opening?.notes);
   const paidItemsTotal = sumItems(items.filter((e) => e.paid));
   const paidTotal = paidOverride ?? Number((paidItemsTotal + (openingPaidFlag ? openingAmount : 0)).toFixed(2));
   const remainingTotal = Math.max(0, Number((total - paidTotal).toFixed(2)));
