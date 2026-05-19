@@ -142,10 +142,15 @@ export function ConsolidatedBalanceCards() {
     return sum;
   }, [piggyBanks, piggyBalances]);
 
-  // "Saldo Total em Mãos" = soma de todos os saldos exibidos no detalhamento
-  // (Conta + Dinheiro em mãos + Saldo em Conta (Receitas) + Cofrinhos + Veículos).
+  // "Saldo Total em Mãos" = soma dos saldos visíveis no detalhamento
+  // (Conta + Dinheiro em mãos + Saldo em Conta (Receitas) + Cofrinhos + Veículos),
+  // respeitando os toggles de visibilidade em Configurações.
   const totalEmMaos =
-    dashboardAccount + dashboardCash + incomesBalance + piggyTotal + vehicleBalance;
+    (visibility.account ? dashboardAccount : 0) +
+    (visibility.cash ? dashboardCash : 0) +
+    (visibility.incomes ? incomesBalance : 0) +
+    (visibility.piggy ? piggyTotal : 0) +
+    (visibility.vehicle ? vehicleBalance : 0);
 
   const Row = ({ label, value }: { label: string; value: number }) => (
     <div className="flex items-center justify-between py-2 border-b border-border/40 last:border-0">
