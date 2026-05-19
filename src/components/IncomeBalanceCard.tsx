@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditC
 import { isPiggyExpense } from "@/hooks/usePiggyBanks";
 import { useProducts } from "@/hooks/useProducts";
 import { Sale } from "@/types/loan";
+import { supabase } from "@/integrations/supabase/client";
+import { useDataOwner } from "@/hooks/useDataOwner";
 
 /** Total efetivamente recebido de uma venda (não os lançamentos previstos). */
 function saleReceivedTotal(sale: Sale): number {
@@ -75,6 +77,41 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
   const [target, setTarget] = useState("");
   const [saving, setSaving] = useState(false);
   const [projInfoOpen, setProjInfoOpen] = useState(false);
+  const ownerId = useDataOwner();
+  // Pagamentos de fatura de cartão registrados no extrato (account_ledger).
+  // Usados para debitar o "Saldo em Conta" exatamente pelo valor pago da fatura,
+  // independente do escopo dos itens (pessoais/empresa) ou do saldo inicial.
+  const [cardInvoicePaidByMonth, setCardInvoicePaidByMonth] = useState<Record<string, number>>({});
+  const cardInvoicePaidTotal = useMemo(
+    () => Object.values(cardInvoicePaidByMonth).reduce((s, v) => s + v, 0),
+    [cardInvoicePaidByMonth],
+  );
+
+  useEffect(() => {
+    if (!ownerId) return;
+    let cancelled = false;
+    const load = async () => {
+      const { data } = await supabase
+        .from("account_ledger")
+        .select("amount, occurred_on, metadata")
+        .eq("user_id", ownerId)
+        .eq("direction", "out")
+        .eq("metadata->>kind", "credit_card_invoice_payment");
+      if (cancelled) return;
+      const byMonth: Record<string, number> = {};
+      for (const r of (data as any[]) ?? []) {
+        const d = (r.occurred_on as string) || "";
+        const mk = d.slice(0, 7);
+        if (!mk) continue;
+        byMonth[mk] = (byMonth[mk] ?? 0) + (Number(r.amount) || 0);
+      }
+      setCardInvoicePaidByMonth(byMonth);
+    };
+    load();
+    const handler = () => load();
+    window.addEventListener("ledger:changed", handler);
+    return () => { cancelled = true; window.removeEventListener("ledger:changed", handler); };
+  }, [ownerId]);
 
   const now = new Date();
   const monthKey = monthKeyProp ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -83,16 +120,16 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
   const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
 
   const calc = useMemo(() => {
-    // Saldo em Conta (aba Receitas) = receitas recebidas + vendas recebidas − despesas pessoais pagas.
-    // Inclui vendas para manter consistência com o Saldo em Conta da Dashboard.
+    // Saldo em Conta (aba Receitas) = receitas recebidas + vendas recebidas − despesas pessoais pagas
+    // (exceto itens de cartão, que são contabilizados pelo pagamento real da fatura no extrato).
     const totalIncomeReceived = incomes
       .filter((i) => i.status === "received")
       .reduce((s, i) => s + i.amount, 0);
     const totalSalesReceived = sales.reduce((s, sale) => s + saleReceivedTotal(sale), 0);
     const totalExpensePaid = expenses
-      .filter((e) => e.paid && (e.scope ?? "business") === "personal")
+      .filter((e) => e.paid && (e.scope ?? "business") === "personal" && !isCreditCardExpense(e))
       .reduce((s, e) => s + e.amount, 0);
-    const balance = totalIncomeReceived + totalSalesReceived - totalExpensePaid;
+    const balance = totalIncomeReceived + totalSalesReceived - totalExpensePaid - cardInvoicePaidTotal;
 
     // Movimentação do mês vigente — alinhada ao total exibido em MonthTransactionsSheet
     // (Entradas/Saídas do mês), considerando todas as ocorrências do mês (pagas + pendentes).
@@ -105,10 +142,12 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     }, 0);
     const monthInSales = sales.reduce((s, sale) => s + saleReceivedInMonth(sale, monthKey), 0);
     const monthIn = monthInIncomes + monthInSales;
-    // Saídas do mês: apenas despesas pessoais pagas, considerando a data de pagamento.
-    const monthOut = expenses.reduce((s, e) => {
+    // Saídas do mês: despesas pessoais pagas (exceto itens de cartão, que entram pelo
+    // pagamento real da fatura registrado no extrato) + pagamentos de fatura no mês.
+    const monthOutExpenses = expenses.reduce((s, e) => {
       if ((e.scope ?? "business") !== "personal") return s;
       if (!e.paid) return s;
+      if (isCreditCardExpense(e)) return s;
       const d = e.paidDate || e.dueDate || "";
       if (!d.startsWith(monthKey)) return s;
       const amt = e.type === "recorrente" && e.installments && e.installments > 1
@@ -116,6 +155,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
         : e.amount;
       return s + amt;
     }, 0);
+    const monthOut = monthOutExpenses + (cardInvoicePaidByMonth[monthKey] ?? 0);
 
     // Futuras do mês selecionado (pendentes/agendadas, não canceladas).
     // Receitas recorrentes são materializadas como lançamentos mensais separados;
@@ -188,7 +228,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .reduce((s, i) => s + i.amount, 0);
 
     return { balance, monthIn, monthOut, futureIn, futureOut, projected, projectedDiff, prevIn, pendingInCount };
-  }, [incomes, expenses, monthKey, prevKey, cards, openings, sales]);
+  }, [incomes, expenses, monthKey, prevKey, cards, openings, sales, cardInvoicePaidByMonth, cardInvoicePaidTotal]);
 
   const diff = calc.monthIn - calc.prevIn;
   const pct = calc.prevIn > 0 ? (diff / calc.prevIn) * 100 : 0;
