@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle, ArrowUpRight, ArrowDownRight, PieChart } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Settings2, TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle, ArrowUpRight, ArrowDownRight, PieChart } from "lucide-react";
 import { useLoans } from "@/hooks/useLoans";
 import { useProducts } from "@/hooks/useProducts";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
@@ -12,6 +13,22 @@ import { useUnifiedAccountBalance } from "@/hooks/useUnifiedAccountBalance";
 import { getBalances } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
 import type { Sale } from "@/types/loan";
+
+type MaosVisibility = {
+  account: boolean;
+  cash: boolean;
+  incomes: boolean;
+  piggy: boolean;
+  vehicle: boolean;
+};
+const VIS_STORAGE_KEY = "balanceMaos.visibility.v1";
+const DEFAULT_VIS: MaosVisibility = {
+  account: true,
+  cash: true,
+  incomes: true,
+  piggy: true,
+  vehicle: true,
+};
 
 const formatBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -54,6 +71,22 @@ export function ConsolidatedBalanceCards() {
   const [vehicleBalance, setVehicleBalance] = useState(0);
   const [openRua, setOpenRua] = useState(false);
   const [openMaos, setOpenMaos] = useState(false);
+  const [openSettings, setOpenSettings] = useState(false);
+  const [visibility, setVisibility] = useState<MaosVisibility>(() => {
+    if (typeof window === "undefined") return DEFAULT_VIS;
+    try {
+      const raw = localStorage.getItem(VIS_STORAGE_KEY);
+      if (!raw) return DEFAULT_VIS;
+      return { ...DEFAULT_VIS, ...JSON.parse(raw) };
+    } catch {
+      return DEFAULT_VIS;
+    }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(VIS_STORAGE_KEY, JSON.stringify(visibility)); } catch {}
+  }, [visibility]);
+  const toggleVis = (key: keyof MaosVisibility) =>
+    setVisibility((v) => ({ ...v, [key]: !v[key] }));
 
   const reloadExternalBalances = useCallback(async () => {
     const [b, { data: { session } }] = await Promise.all([
@@ -109,10 +142,15 @@ export function ConsolidatedBalanceCards() {
     return sum;
   }, [piggyBanks, piggyBalances]);
 
-  // "Saldo Total em Mãos" = soma de todos os saldos exibidos no detalhamento
-  // (Conta + Dinheiro em mãos + Saldo em Conta (Receitas) + Cofrinhos + Veículos).
+  // "Saldo Total em Mãos" = soma dos saldos visíveis no detalhamento
+  // (Conta + Dinheiro em mãos + Saldo em Conta (Receitas) + Cofrinhos + Veículos),
+  // respeitando os toggles de visibilidade em Configurações.
   const totalEmMaos =
-    dashboardAccount + dashboardCash + incomesBalance + piggyTotal + vehicleBalance;
+    (visibility.account ? dashboardAccount : 0) +
+    (visibility.cash ? dashboardCash : 0) +
+    (visibility.incomes ? incomesBalance : 0) +
+    (visibility.piggy ? piggyTotal : 0) +
+    (visibility.vehicle ? vehicleBalance : 0);
 
   const Row = ({ label, value }: { label: string; value: number }) => (
     <div className="flex items-center justify-between py-2 border-b border-border/40 last:border-0">
@@ -175,9 +213,19 @@ export function ConsolidatedBalanceCards() {
           className="!p-0 overflow-hidden border-border/60 bg-gradient-to-br from-background via-background to-muted/30 backdrop-blur-xl max-sm:!fixed max-sm:!inset-0 max-sm:!left-0 max-sm:!top-0 max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!max-w-none max-sm:!w-screen max-sm:!h-screen max-sm:!max-h-screen max-sm:!rounded-none max-sm:!flex max-sm:!flex-col max-sm:!gap-0 sm:max-w-md"
         >
           <DialogHeader className="px-5 pt-5 pb-3" style={{ paddingTop: "calc(1.25rem + env(safe-area-inset-top))" }}>
-            <DialogTitle className="flex items-center gap-2 text-base">
+            <DialogTitle className="flex items-center gap-2 text-base pr-20">
               <Wallet className="h-4 w-4 text-success" /> Saldo Total em Mãos
             </DialogTitle>
+            <button
+              type="button"
+              onClick={() => setOpenSettings(true)}
+              aria-label="Configurações do saldo"
+              title="Configurações do saldo"
+              className="absolute right-12 top-4 inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/80 hover:text-foreground hover:bg-accent/60 transition-colors focus:outline-none focus:ring-2 focus:ring-ring/40"
+              style={{ top: "calc(1rem + env(safe-area-inset-top))" }}
+            >
+              <Settings2 className="h-4 w-4" />
+            </button>
             <div className="mt-3 rounded-2xl border border-border/60 bg-gradient-to-br from-success/10 via-success/5 to-transparent p-4 shadow-sm">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total consolidado</p>
               <p className={`text-3xl font-bold tabular-nums leading-tight mt-1 ${totalEmMaos < 0 ? "text-destructive" : "text-foreground"}`}>
@@ -225,57 +273,39 @@ export function ConsolidatedBalanceCards() {
                 </div>
               );
 
+              const contasItems = [
+                visibility.account && (
+                  <Item key="account" icon={Landmark} label="Conta" hint="Saldo bancário (Dashboard)" value={dashboardAccount} tint="bg-primary/15 text-primary" />
+                ),
+                visibility.cash && (
+                  <Item key="cash" icon={Banknote} label="Dinheiro em mãos" hint="Carteira (Dashboard)" value={dashboardCash} tint="bg-success/15 text-success" />
+                ),
+                visibility.incomes && (
+                  <Item key="incomes" icon={ArrowDownCircle} label="Saldo em Conta (Receitas)" hint="Receitas − Despesas pessoais" value={baseReceitas} tint="bg-warning/15 text-warning" />
+                ),
+              ].filter(Boolean);
+              const reservasItems = [
+                visibility.piggy && (
+                  <Item key="piggy" icon={PiggyBank} label="Total dos Cofrinhos" hint={`${piggyBanks.length} ${piggyBanks.length === 1 ? "cofrinho" : "cofrinhos"}`} value={piggyTotal} tint="bg-pink-500/15 text-pink-500" />
+                ),
+                visibility.vehicle && (
+                  <Item key="vehicle" icon={Car} label="Saldo de Veículos" hint="Reserva vinculada a veículos" value={vehicleBalance} tint="bg-blue-500/15 text-blue-500" />
+                ),
+              ].filter(Boolean);
+
               return (
                 <div className="space-y-4">
-                  <Section title="Contas">
-                    <Item
-                      icon={Landmark}
-                      label="Conta"
-                      hint="Saldo bancário (Dashboard)"
-                      value={dashboardAccount}
-                      tint="bg-primary/15 text-primary"
-                    />
-                    <Item
-                      icon={Banknote}
-                      label="Dinheiro em mãos"
-                      hint="Carteira (Dashboard)"
-                      value={dashboardCash}
-                      tint="bg-success/15 text-success"
-                    />
-                    <Item
-                      icon={ArrowDownCircle}
-                      label="Saldo em Conta (Receitas)"
-                      hint="Receitas − Despesas pessoais"
-                      value={baseReceitas}
-                      tint="bg-warning/15 text-warning"
-                    />
-                  </Section>
-
-                  <Section title="Reservas">
-                    <Item
-                      icon={PiggyBank}
-                      label="Total dos Cofrinhos"
-                      hint={`${piggyBanks.length} ${piggyBanks.length === 1 ? "cofrinho" : "cofrinhos"}`}
-                      value={piggyTotal}
-                      tint="bg-pink-500/15 text-pink-500"
-                    />
-                    <Item
-                      icon={Car}
-                      label="Saldo de Veículos"
-                      hint="Reserva vinculada a veículos"
-                      value={vehicleBalance}
-                      tint="bg-blue-500/15 text-blue-500"
-                    />
-                  </Section>
+                  {contasItems.length > 0 && <Section title="Contas">{contasItems}</Section>}
+                  {reservasItems.length > 0 && <Section title="Reservas">{reservasItems}</Section>}
 
                   {(() => {
-                    const parts = [
-                      { label: "Conta", value: Math.max(0, dashboardAccount), color: "bg-primary" },
-                      { label: "Dinheiro", value: Math.max(0, dashboardCash), color: "bg-success" },
-                      { label: "Receitas", value: Math.max(0, baseReceitas), color: "bg-warning" },
-                      { label: "Cofrinhos", value: Math.max(0, piggyTotal), color: "bg-pink-500" },
-                      { label: "Veículos", value: Math.max(0, vehicleBalance), color: "bg-blue-500" },
-                    ];
+                    const parts = ([
+                      visibility.account && { label: "Conta", value: Math.max(0, dashboardAccount), color: "bg-primary" },
+                      visibility.cash && { label: "Dinheiro", value: Math.max(0, dashboardCash), color: "bg-success" },
+                      visibility.incomes && { label: "Receitas", value: Math.max(0, baseReceitas), color: "bg-warning" },
+                      visibility.piggy && { label: "Cofrinhos", value: Math.max(0, piggyTotal), color: "bg-pink-500" },
+                      visibility.vehicle && { label: "Veículos", value: Math.max(0, vehicleBalance), color: "bg-blue-500" },
+                    ].filter(Boolean)) as { label: string; value: number; color: string }[];
                     const sum = parts.reduce((s, p) => s + p.value, 0);
                     if (sum <= 0) return null;
                     return (
@@ -374,6 +404,46 @@ export function ConsolidatedBalanceCards() {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={openSettings} onOpenChange={setOpenSettings}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Settings2 className="h-4 w-4 text-muted-foreground" /> Configurações do saldo
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground pb-2">
+              Escolha quais saldos compõem o "Saldo Total em Mãos" e aparecem no detalhamento.
+            </p>
+            {([
+              { key: "account", label: "Conta", hint: "Saldo bancário (Dashboard)" },
+              { key: "cash", label: "Dinheiro em mãos", hint: "Carteira (Dashboard)" },
+              { key: "incomes", label: "Saldo em Conta (Receitas)", hint: "Receitas − Despesas pessoais" },
+              { key: "piggy", label: "Cofrinhos", hint: "Reserva dos cofrinhos" },
+              { key: "vehicle", label: "Saldo de Veículos", hint: "Reserva vinculada a veículos" },
+            ] as { key: keyof MaosVisibility; label: string; hint: string }[]).map((row) => (
+              <div key={row.key} className="flex items-center justify-between gap-3 py-2.5 border-b border-border/40 last:border-0">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{row.label}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{row.hint}</p>
+                </div>
+                <Switch checked={visibility[row.key]} onCheckedChange={() => toggleVis(row.key)} />
+              </div>
+            ))}
+            <div className="flex justify-end pt-3">
+              <button
+                type="button"
+                onClick={() => setVisibility(DEFAULT_VIS)}
+                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+              >
+                Restaurar padrão
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
+
   );
 }
