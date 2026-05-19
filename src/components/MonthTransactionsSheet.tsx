@@ -4,9 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Income, IncomeStatus } from "@/hooks/useIncomes";
 import { Expense, Sale } from "@/types/loan";
-import { ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertTriangle, Repeat } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertTriangle, Repeat, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
+import { useCreditCards } from "@/hooks/useCreditCards";
+import { useDataOwner } from "@/hooks/useDataOwner";
+import { supabase } from "@/integrations/supabase/client";
 
 function fmt(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -54,9 +58,40 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
   const [filter, setFilter] = useState<string>(initialFilter ?? "all");
   const [sortBy, setSortBy] = useState<"date_desc" | "date_asc" | "amount">("date_desc");
 
+  const ownerId = useDataOwner();
+  const { cards } = useCreditCards();
+  const [invoicePayments, setInvoicePayments] = useState<
+    { id: string; date: string; amount: number; cardId?: string; cycleKey?: string }[]
+  >([]);
+
   useEffect(() => {
     if (open) setFilter(initialFilter ?? "all");
   }, [open, initialFilter]);
+
+  useEffect(() => {
+    if (!open || type !== "expenses" || !ownerId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("account_ledger")
+        .select("id, amount, occurred_on, metadata")
+        .eq("user_id", ownerId)
+        .eq("direction", "out")
+        .eq("metadata->>kind", "credit_card_invoice_payment");
+      if (cancelled) return;
+      const rows = ((data as any[]) ?? []).map((r) => ({
+        id: String(r.id),
+        date: String(r.occurred_on || ""),
+        amount: Number(r.amount) || 0,
+        cardId: r.metadata?.credit_card_id,
+        cycleKey: r.metadata?.cycle_key,
+      }));
+      setInvoicePayments(rows);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, type, ownerId]);
 
   const rows = useMemo<Row[]>(() => {
     if (type === "incomes") {
@@ -119,10 +154,13 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
       }
       return out;
     }
-    return expenses
+    const exp: Row[] = expenses
       .filter((e) => {
         if ((e.scope ?? "business") !== "personal") return false;
         if (!e.paid) return false;
+        // Itens individuais vinculados ao cartão entram pelo pagamento consolidado
+        // da fatura (account_ledger) — não contar de novo aqui para evitar duplicidade.
+        if (isCreditCardExpense(e)) return false;
         const d = e.paidDate || e.dueDate || "";
         return d.startsWith(monthKey);
       })
@@ -137,7 +175,21 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
           status: "paid" as Row["status"],
         };
       });
-  }, [type, incomes, expenses, sales, monthKey]);
+    // Pagamentos de fatura de cartão registrados no extrato, no mês selecionado.
+    for (const p of invoicePayments) {
+      if (!p.date.startsWith(monthKey)) continue;
+      const card = cards.find((c) => c.id === p.cardId);
+      exp.push({
+        id: `card-invoice-${p.id}`,
+        date: p.date,
+        title: `Fatura ${card?.nickname ?? card?.bank ?? "Cartão"}`,
+        subtitle: p.cycleKey ? `Ciclo ${p.cycleKey}` : "Pagamento de fatura",
+        amount: p.amount,
+        status: "paid",
+      });
+    }
+    return exp;
+  }, [type, incomes, expenses, sales, monthKey, invoicePayments, cards]);
 
   const filtered = useMemo(() => {
     let arr = rows;
