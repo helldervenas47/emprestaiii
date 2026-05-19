@@ -296,13 +296,13 @@ export function ConsolidatedBalanceCards() {
                   {reservasItems.length > 0 && <Section title="Reservas">{reservasItems}</Section>}
 
                   {(() => {
-                    const parts = ([
-                      visibility.account && { label: "Conta", value: Math.max(0, dashboardAccount), color: "bg-primary" },
-                      visibility.cash && { label: "Dinheiro", value: Math.max(0, dashboardCash), color: "bg-success" },
-                      visibility.incomes && { label: "Receitas", value: Math.max(0, baseReceitas), color: "bg-warning" },
-                      visibility.piggy && { label: "Cofrinhos", value: Math.max(0, piggyTotal), color: "bg-pink-500" },
-                      visibility.vehicle && { label: "Veículos", value: Math.max(0, vehicleBalance), color: "bg-blue-500" },
-                    ].filter(Boolean)) as { label: string; value: number; color: string }[];
+                    const parts = [
+                      { label: "Conta", value: Math.max(0, dashboardAccount), color: "bg-primary" },
+                      { label: "Dinheiro", value: Math.max(0, dashboardCash), color: "bg-success" },
+                      { label: "Receitas", value: Math.max(0, baseReceitas), color: "bg-warning" },
+                      { label: "Cofrinhos", value: Math.max(0, piggyTotal), color: "bg-pink-500" },
+                      { label: "Veículos", value: Math.max(0, vehicleBalance), color: "bg-blue-500" },
+                    ];
                     const sum = parts.reduce((s, p) => s + p.value, 0);
                     if (sum <= 0) return null;
                     return (
