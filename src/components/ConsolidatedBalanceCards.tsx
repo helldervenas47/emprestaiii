@@ -669,7 +669,7 @@ export function ConsolidatedBalanceCards() {
       </Dialog>
 
       <Dialog open={openSettings} onOpenChange={setOpenSettings}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               <Settings2 className="h-4 w-4 text-muted-foreground" /> Configurações do saldo
@@ -694,10 +694,31 @@ export function ConsolidatedBalanceCards() {
                 <Switch checked={visibility[row.key]} onCheckedChange={() => toggleVis(row.key)} />
               </div>
             ))}
-            <div className="flex justify-end pt-3">
+
+            <div className="pt-5">
+              <p className="text-sm font-semibold text-foreground">Cards extras</p>
+              <p className="text-[11px] text-muted-foreground pb-2">
+                Escolha 2 cards para exibir abaixo dos valores. ({extraCards.length}/2 selecionados)
+              </p>
+              {EXTRA_CARDS_META.map((row) => {
+                const checked = extraCards.includes(row.key);
+                const disabled = !checked && extraCards.length >= 2;
+                return (
+                  <div key={row.key} className="flex items-center justify-between gap-3 py-2.5 border-b border-border/40 last:border-0">
+                    <div className="min-w-0">
+                      <p className={`text-sm font-medium truncate ${disabled ? "text-muted-foreground" : "text-foreground"}`}>{row.label}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{row.hint}</p>
+                    </div>
+                    <Switch checked={checked} disabled={disabled} onCheckedChange={() => toggleExtra(row.key)} />
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-end pt-3 gap-3">
               <button
                 type="button"
-                onClick={() => setVisibility(DEFAULT_VIS)}
+                onClick={() => { setVisibility(DEFAULT_VIS); setExtraCards(DEFAULT_EXTRA); }}
                 className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
               >
                 Restaurar padrão
