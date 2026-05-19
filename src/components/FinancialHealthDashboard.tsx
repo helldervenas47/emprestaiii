@@ -493,9 +493,9 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
       <div className={`${expanded ? "grid" : "hidden"} sm:grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6`}>
         <InsightCard
           icon={<Wallet className="h-4 w-4" />}
-          accent={data.current.income >= data.current.expense ? COLOR_GREEN : COLOR_RED}
-          title={data.current.income >= data.current.expense ? "Você gastou menos do que ganhou" : "Você gastou mais do que ganhou"}
-          value={fmtBRL(data.current.income - data.current.expense, hidden)}
+          accent={monthFlow.monthIn >= monthFlow.monthOut ? COLOR_GREEN : COLOR_RED}
+          title={monthFlow.monthIn >= monthFlow.monthOut ? "Você gastou menos do que ganhou" : "Você gastou mais do que ganhou"}
+          value={fmtBRL(monthFlow.monthIn - monthFlow.monthOut, hidden)}
         />
         <InsightCard
           icon={<PiggyBank className="h-4 w-4" />}
