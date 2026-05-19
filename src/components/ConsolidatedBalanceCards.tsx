@@ -404,6 +404,46 @@ export function ConsolidatedBalanceCards() {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={openSettings} onOpenChange={setOpenSettings}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Settings2 className="h-4 w-4 text-muted-foreground" /> Configurações do saldo
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground pb-2">
+              Escolha quais saldos compõem o "Saldo Total em Mãos" e aparecem no detalhamento.
+            </p>
+            {([
+              { key: "account", label: "Conta", hint: "Saldo bancário (Dashboard)" },
+              { key: "cash", label: "Dinheiro em mãos", hint: "Carteira (Dashboard)" },
+              { key: "incomes", label: "Saldo em Conta (Receitas)", hint: "Receitas − Despesas pessoais" },
+              { key: "piggy", label: "Cofrinhos", hint: "Reserva dos cofrinhos" },
+              { key: "vehicle", label: "Saldo de Veículos", hint: "Reserva vinculada a veículos" },
+            ] as { key: keyof MaosVisibility; label: string; hint: string }[]).map((row) => (
+              <div key={row.key} className="flex items-center justify-between gap-3 py-2.5 border-b border-border/40 last:border-0">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{row.label}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{row.hint}</p>
+                </div>
+                <Switch checked={visibility[row.key]} onCheckedChange={() => toggleVis(row.key)} />
+              </div>
+            ))}
+            <div className="flex justify-end pt-3">
+              <button
+                type="button"
+                onClick={() => setVisibility(DEFAULT_VIS)}
+                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+              >
+                Restaurar padrão
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
+
   );
 }
