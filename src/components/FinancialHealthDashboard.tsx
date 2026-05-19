@@ -112,10 +112,36 @@ function monthlyExpenseAmount(e: Expense): number {
   return isRec ? Number(e.amount) / Number(e.installments) : Number(e.amount);
 }
 
-function computeMonthMetrics(incomes: Income[], expenses: Expense[], key: string): MonthMetrics {
-  const income = incomes
+function saleReceivedTotal(sale: Sale): number {
+  const history = sale.paymentHistory || [];
+  const historyTotal = history.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  const iv = sale.installmentValue ?? (sale.installments > 0 ? sale.total / sale.installments : sale.total);
+  const legacyTotal = (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
+  return Math.max(historyTotal, legacyTotal);
+}
+
+function saleReceivedInMonth(sale: Sale, monthKey: string): number {
+  const history = sale.paymentHistory || [];
+  if (history.length > 0) {
+    const historyMonthSum = history
+      .filter((p) => (p.date || "").startsWith(monthKey))
+      .reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    const historyTotal = history.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    const iv = sale.installmentValue ?? (sale.installments > 0 ? sale.total / sale.installments : sale.total);
+    const legacyTotal = (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
+    if (historyTotal >= legacyTotal) return historyMonthSum;
+    const missing = legacyTotal - historyTotal;
+    return historyMonthSum + ((sale.date || "").startsWith(monthKey) ? missing : 0);
+  }
+  return (sale.date || "").startsWith(monthKey) ? saleReceivedTotal(sale) : 0;
+}
+
+function computeMonthMetrics(incomes: Income[], expenses: Expense[], sales: Sale[], key: string): MonthMetrics {
+  const incomeFromIncomes = incomes
     .filter((i) => i.status === "received" && i.receivedDate.startsWith(key))
     .reduce((s, i) => s + i.amount, 0);
+  const incomeFromSales = sales.reduce((s, sale) => s + saleReceivedInMonth(sale, key), 0);
+  const income = incomeFromIncomes + incomeFromSales;
   const personal = expenses.filter((e) => (e.scope ?? "business") === "personal");
   const expense = personal
     .filter((e) => e.paid && (e.paidDate || "").startsWith(key))
