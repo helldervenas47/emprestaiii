@@ -14,8 +14,6 @@ import { useHideValues } from "@/contexts/HideValuesContext";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { isCreditCardExpense, listPaidInvoicesInRange } from "@/lib/creditCardInvoiceTotals";
-import type { CreditCard } from "@/hooks/useCreditCards";
-import type { CreditCardOpening } from "@/hooks/useCreditCardOpenings";
 import {
   ResponsiveContainer,
   RadialBarChart,
