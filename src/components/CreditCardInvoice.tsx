@@ -761,17 +761,87 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
             const remaining = paymentRemaining;
             if (remaining <= 0.005) return null;
             return (
-              <Button
-                onClick={() => {
-                  setPayAmount(remaining.toFixed(2));
-                  setPayDialogOpen(true);
-                }}
-                className="w-full h-11 text-sm font-semibold shadow-md"
-                size="lg"
-              >
-                <Wallet className="h-4 w-4 mr-2" />
-                Pagar fatura · {mask(fmt(remaining))}
-              </Button>
+              <div className="space-y-3">
+                <Button
+                  onClick={() => {
+                    setPayAmount(remaining.toFixed(2));
+                    setPayDialogOpen((open) => !open);
+                  }}
+                  className="w-full h-11 text-sm font-semibold shadow-md"
+                  size="lg"
+                >
+                  <Wallet className="h-4 w-4 mr-2" />
+                  Pagar fatura · {mask(fmt(remaining))}
+                </Button>
+
+                {payDialogOpen && (
+                  <div className="rounded-xl border bg-card p-4 space-y-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Pagar fatura</p>
+                        <p className="text-xs text-muted-foreground">Debita a conta e registra no histórico.</p>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPayDialogOpen(false)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    <div className="rounded-lg bg-muted/40 p-3 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Compras do ciclo</span>
+                        <span className="font-medium text-foreground">{mask(fmt(transactionsTotal))}</span>
+                      </div>
+                      {openingAmount > 0 && (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Saldo inicial</span>
+                          <span className="font-medium text-foreground">{mask(fmt(openingAmount))}</span>
+                        </div>
+                      )}
+                      <div className="h-px bg-border/60 my-1" />
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium text-foreground">Total da fatura</span>
+                        <span className="font-semibold text-foreground">{mask(fmt(total))}</span>
+                      </div>
+                      {paidTotal > 0.005 && (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Já pago</span>
+                          <span className="font-medium text-success">{mask(fmt(paidTotal))}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium text-foreground">Restante</span>
+                        <span className="font-semibold text-primary">{mask(fmt(remaining))}</span>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="pay-amount-inline">Valor a pagar (R$)</Label>
+                        <Input id="pay-amount-inline" type="number" step="0.01" min="0.01" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="pay-date-inline">Data do pagamento</Label>
+                        <Input id="pay-date-inline" type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label>Conta de origem</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button type="button" variant={payWallet === "account" ? "default" : "outline"} size="sm" onClick={() => setPayWallet("account")} className="h-9">Conta</Button>
+                        <Button type="button" variant={payWallet === "cash" ? "default" : "outline"} size="sm" onClick={() => setPayWallet("cash")} className="h-9">Dinheiro</Button>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="outline" onClick={() => setPayDialogOpen(false)} disabled={paying}>Cancelar</Button>
+                      <Button disabled={paying || !payDate || !payAmount || Number(payAmount) <= 0} onClick={handleConfirmInvoicePayment}>
+                        {paying ? "Pagando..." : "Confirmar pagamento"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             );
           })()}
           {prevTotal > 0 && (
