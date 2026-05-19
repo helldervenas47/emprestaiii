@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { Settings2, TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle, ArrowUpRight, ArrowDownRight, PieChart } from "lucide-react";
+import { Settings2, TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle, ArrowUpRight, ArrowDownRight, PieChart, Percent, Hourglass, BarChart3, Trophy, CalendarClock, CalendarX, LineChart } from "lucide-react";
 import { useLoans } from "@/hooks/useLoans";
 import { useProducts } from "@/hooks/useProducts";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
@@ -29,6 +29,33 @@ const DEFAULT_VIS: MaosVisibility = {
   piggy: true,
   vehicle: true,
 };
+
+// Cards extras (escolha 2) — aparecem abaixo dos cards de valores
+type ExtraCardKey =
+  | "composicao"
+  | "projecao30"
+  | "savingsRate"
+  | "runway"
+  | "topCategories"
+  | "biggest"
+  | "nextIncomes7"
+  | "nextBills7"
+  | "piggySummary"
+  | "monthCompare";
+const EXTRA_STORAGE_KEY = "balanceMaos.extraCards.v1";
+const DEFAULT_EXTRA: ExtraCardKey[] = ["composicao", "projecao30"];
+const EXTRA_CARDS_META: { key: ExtraCardKey; label: string; hint: string }[] = [
+  { key: "composicao", label: "Composição do saldo", hint: "Distribuição % por carteira" },
+  { key: "projecao30", label: "Projeção em 30 dias", hint: "Saldo projetado com previstos" },
+  { key: "savingsRate", label: "Taxa de poupança do mês", hint: "(Entradas − Saídas) / Entradas" },
+  { key: "runway", label: "Fôlego financeiro", hint: "Meses cobertos pelo saldo atual" },
+  { key: "topCategories", label: "Top 3 categorias do mês", hint: "Maiores categorias de despesa" },
+  { key: "biggest", label: "Maior entrada e saída", hint: "Destaques do mês" },
+  { key: "nextIncomes7", label: "Próximos recebimentos (7d)", hint: "Receitas pendentes da semana" },
+  { key: "nextBills7", label: "Contas a vencer (7d)", hint: "Despesas pessoais da semana" },
+  { key: "piggySummary", label: "Resumo dos cofrinhos", hint: "Total guardado e quantidade" },
+  { key: "monthCompare", label: "Comparativo mês a mês", hint: "Atual vs mês anterior" },
+];
 
 const formatBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -87,6 +114,30 @@ export function ConsolidatedBalanceCards() {
   }, [visibility]);
   const toggleVis = (key: keyof MaosVisibility) =>
     setVisibility((v) => ({ ...v, [key]: !v[key] }));
+
+  const [extraCards, setExtraCards] = useState<ExtraCardKey[]>(() => {
+    if (typeof window === "undefined") return DEFAULT_EXTRA;
+    try {
+      const raw = localStorage.getItem(EXTRA_STORAGE_KEY);
+      if (!raw) return DEFAULT_EXTRA;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return DEFAULT_EXTRA;
+      const valid = parsed.filter((k: any) => EXTRA_CARDS_META.some((m) => m.key === k)) as ExtraCardKey[];
+      return valid.slice(0, 2);
+    } catch {
+      return DEFAULT_EXTRA;
+    }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(EXTRA_STORAGE_KEY, JSON.stringify(extraCards)); } catch {}
+  }, [extraCards]);
+  const toggleExtra = (key: ExtraCardKey) => {
+    setExtraCards((cur) => {
+      if (cur.includes(key)) return cur.filter((k) => k !== key);
+      if (cur.length >= 2) return [cur[1], key];
+      return [...cur, key];
+    });
+  };
 
   const reloadExternalBalances = useCallback(async () => {
     const [b, { data: { session } }] = await Promise.all([
@@ -296,100 +347,315 @@ export function ConsolidatedBalanceCards() {
                   {reservasItems.length > 0 && <Section title="Reservas">{reservasItems}</Section>}
 
                   {(() => {
-                    const parts = [
-                      { label: "Conta", value: Math.max(0, dashboardAccount), color: "bg-primary" },
-                      { label: "Dinheiro", value: Math.max(0, dashboardCash), color: "bg-success" },
-                      { label: "Receitas", value: Math.max(0, baseReceitas), color: "bg-warning" },
-                      { label: "Cofrinhos", value: Math.max(0, piggyTotal), color: "bg-pink-500" },
-                      { label: "Veículos", value: Math.max(0, vehicleBalance), color: "bg-blue-500" },
-                    ];
-                    const sum = parts.reduce((s, p) => s + p.value, 0);
-                    if (sum <= 0) return null;
-                    return (
+                    const now = new Date();
+                    const pad = (n: number) => String(n).padStart(2, "0");
+                    const monthKey = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+                    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    const prevMonthKey = `${prevDate.getFullYear()}-${pad(prevDate.getMonth() + 1)}`;
+                    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+                    const horizon = new Date(now);
+                    horizon.setDate(horizon.getDate() + 7);
+                    const horizon7 = `${horizon.getFullYear()}-${pad(horizon.getMonth() + 1)}-${pad(horizon.getDate())}`;
+                    const horizon30Date = new Date(now);
+                    horizon30Date.setDate(horizon30Date.getDate() + 30);
+                    const horizon30 = `${horizon30Date.getFullYear()}-${pad(horizon30Date.getMonth() + 1)}-${pad(horizon30Date.getDate())}`;
+
+                    const isPersonalPaid = (e: any) => e.paid && (e.scope ?? "business") === "personal";
+                    const monthIncomes = incomes.filter((i: any) => i.status === "received" && (i.receivedDate || "").startsWith(monthKey));
+                    const monthOutExp = expenses.filter((e: any) => isPersonalPaid(e) && ((e.paidDate || e.dueDate || "").startsWith(monthKey)));
+                    const prevMonthIncomes = incomes.filter((i: any) => i.status === "received" && (i.receivedDate || "").startsWith(prevMonthKey));
+                    const prevMonthOutExp = expenses.filter((e: any) => isPersonalPaid(e) && ((e.paidDate || e.dueDate || "").startsWith(prevMonthKey)));
+                    const monthIn = monthIncomes.reduce((s: number, i: any) => s + (Number(i.amount) || 0), 0);
+                    const monthOut = monthOutExp.reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
+                    const prevIn = prevMonthIncomes.reduce((s: number, i: any) => s + (Number(i.amount) || 0), 0);
+                    const prevOut = prevMonthOutExp.reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
+
+                    const CardBox = ({ icon: Icon, title, children }: { icon: typeof TrendingUp; title: string; children: React.ReactNode }) => (
                       <div className="space-y-2">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1 flex items-center gap-1">
-                          <PieChart className="h-3 w-3" /> Composição do saldo
+                          <Icon className="h-3 w-3" /> {title}
                         </p>
-                        <div className="rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm p-3 space-y-3">
-                          <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
-                            {parts.map((p) =>
-                              p.value > 0 ? (
-                                <div
-                                  key={p.label}
-                                  className={p.color}
-                                  style={{ width: `${(p.value / sum) * 100}%` }}
-                                  title={`${p.label}: ${formatBRL(p.value)}`}
-                                />
-                              ) : null,
-                            )}
-                          </div>
-                          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                            {parts.map((p) => {
-                              const pct = sum > 0 ? (p.value / sum) * 100 : 0;
-                              return (
-                                <div key={p.label} className="flex items-center gap-1.5 min-w-0">
-                                  <span className={`h-2 w-2 rounded-full shrink-0 ${p.color}`} />
-                                  <span className="text-[11px] text-muted-foreground truncate flex-1">{p.label}</span>
-                                  <span className="text-[11px] font-semibold tabular-nums">{pct.toFixed(0)}%</span>
+                        <div className="rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm p-3">
+                          {children}
+                        </div>
+                      </div>
+                    );
+
+                    const renderCard = (key: ExtraCardKey) => {
+                      switch (key) {
+                        case "composicao": {
+                          const parts = [
+                            { label: "Conta", value: Math.max(0, dashboardAccount), color: "bg-primary" },
+                            { label: "Dinheiro", value: Math.max(0, dashboardCash), color: "bg-success" },
+                            { label: "Receitas", value: Math.max(0, baseReceitas), color: "bg-warning" },
+                            { label: "Cofrinhos", value: Math.max(0, piggyTotal), color: "bg-pink-500" },
+                            { label: "Veículos", value: Math.max(0, vehicleBalance), color: "bg-blue-500" },
+                          ];
+                          const sum = parts.reduce((s, p) => s + p.value, 0);
+                          if (sum <= 0) return null;
+                          return (
+                            <CardBox key={key} icon={PieChart} title="Composição do saldo">
+                              <div className="space-y-3">
+                                <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                                  {parts.map((p) =>
+                                    p.value > 0 ? (
+                                      <div key={p.label} className={p.color} style={{ width: `${(p.value / sum) * 100}%` }} title={`${p.label}: ${formatBRL(p.value)}`} />
+                                    ) : null,
+                                  )}
                                 </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {(() => {
-                    const today = new Date();
-                    const todayStr = today.toISOString().slice(0, 10);
-                    const horizon = new Date(today);
-                    horizon.setDate(horizon.getDate() + 30);
-                    const horizonStr = horizon.toISOString().slice(0, 10);
-                    const inRange = (d?: string | null) => !!d && d >= todayStr && d <= horizonStr;
-
-                    const expectedIn = incomes
-                      .filter((i: any) => i.status !== "received" && inRange(i.receivedDate))
-                      .reduce((s: number, i: any) => s + (Number(i.amount) || 0), 0);
-                    const expectedOut = expenses
-                      .filter((e: any) => !e.paid && (e.scope ?? "business") === "personal" && inRange(e.dueDate))
-                      .reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
-                    const projected = totalEmMaos + expectedIn - expectedOut;
-                    const delta = projected - totalEmMaos;
-                    return (
-                      <div className="space-y-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1 flex items-center gap-1">
-                          <TrendingUp className="h-3 w-3" /> Projeção em 30 dias
-                        </p>
-                        <div className="rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm p-3 space-y-2.5">
-                          <div className="flex items-end justify-between">
-                            <div className="min-w-0">
-                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Saldo projetado</p>
-                              <p className={`text-xl font-bold tabular-nums leading-tight ${projected < 0 ? "text-destructive" : "text-foreground"}`}>
-                                {formatBRL(projected)}
-                              </p>
-                            </div>
-                            <span className={`text-xs font-semibold tabular-nums flex items-center gap-0.5 ${delta < 0 ? "text-destructive" : "text-success"}`}>
-                              {delta >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
-                              {delta >= 0 ? "+" : ""}{formatBRL(delta)}
+                                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                                  {parts.map((p) => {
+                                    const pct = sum > 0 ? (p.value / sum) * 100 : 0;
+                                    return (
+                                      <div key={p.label} className="flex items-center gap-1.5 min-w-0">
+                                        <span className={`h-2 w-2 rounded-full shrink-0 ${p.color}`} />
+                                        <span className="text-[11px] text-muted-foreground truncate flex-1">{p.label}</span>
+                                        <span className="text-[11px] font-semibold tabular-nums">{pct.toFixed(0)}%</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </CardBox>
+                          );
+                        }
+                        case "projecao30": {
+                          const inRange = (d?: string | null) => !!d && d >= todayStr && d <= horizon30;
+                          const expectedIn = incomes.filter((i: any) => i.status !== "received" && inRange(i.receivedDate)).reduce((s: number, i: any) => s + (Number(i.amount) || 0), 0);
+                          const expectedOut = expenses.filter((e: any) => !e.paid && (e.scope ?? "business") === "personal" && inRange(e.dueDate)).reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
+                          const projected = totalEmMaos + expectedIn - expectedOut;
+                          const delta = projected - totalEmMaos;
+                          return (
+                            <CardBox key={key} icon={TrendingUp} title="Projeção em 30 dias">
+                              <div className="space-y-2.5">
+                                <div className="flex items-end justify-between">
+                                  <div className="min-w-0">
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Saldo projetado</p>
+                                    <p className={`text-xl font-bold tabular-nums leading-tight ${projected < 0 ? "text-destructive" : "text-foreground"}`}>{formatBRL(projected)}</p>
+                                  </div>
+                                  <span className={`text-xs font-semibold tabular-nums flex items-center gap-0.5 ${delta < 0 ? "text-destructive" : "text-success"}`}>
+                                    {delta >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
+                                    {delta >= 0 ? "+" : ""}{formatBRL(delta)}
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 pt-1">
+                                  <div className="rounded-lg bg-success/10 p-2">
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Entradas previstas</p>
+                                    <p className="text-sm font-bold text-success tabular-nums">{formatBRL(expectedIn)}</p>
+                                  </div>
+                                  <div className="rounded-lg bg-destructive/10 p-2">
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Saídas previstas</p>
+                                    <p className="text-sm font-bold text-destructive tabular-nums">{formatBRL(expectedOut)}</p>
+                                  </div>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground">Considera receitas pendentes e despesas pessoais a vencer nos próximos 30 dias.</p>
+                              </div>
+                            </CardBox>
+                          );
+                        }
+                        case "savingsRate": {
+                          const diff = monthIn - monthOut;
+                          const rate = monthIn > 0 ? (diff / monthIn) * 100 : 0;
+                          return (
+                            <CardBox key={key} icon={Percent} title="Taxa de poupança do mês">
+                              <div className="space-y-2.5">
+                                <div className="flex items-end justify-between">
+                                  <div>
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">% economizado</p>
+                                    <p className={`text-2xl font-bold tabular-nums leading-tight ${rate < 0 ? "text-destructive" : "text-success"}`}>{rate.toFixed(1)}%</p>
+                                  </div>
+                                  <span className={`text-xs font-semibold tabular-nums ${diff < 0 ? "text-destructive" : "text-success"}`}>{diff >= 0 ? "+" : ""}{formatBRL(diff)}</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="rounded-lg bg-success/10 p-2">
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Entradas</p>
+                                    <p className="text-sm font-bold text-success tabular-nums">{formatBRL(monthIn)}</p>
+                                  </div>
+                                  <div className="rounded-lg bg-destructive/10 p-2">
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Saídas</p>
+                                    <p className="text-sm font-bold text-destructive tabular-nums">{formatBRL(monthOut)}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardBox>
+                          );
+                        }
+                        case "runway": {
+                          // média dos últimos 3 meses de saídas pessoais pagas
+                          const sums: Record<string, number> = {};
+                          for (let k = 1; k <= 3; k++) {
+                            const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
+                            sums[`${d.getFullYear()}-${pad(d.getMonth() + 1)}`] = 0;
+                          }
+                          expenses.forEach((e: any) => {
+                            if (!isPersonalPaid(e)) return;
+                            const mk = (e.paidDate || e.dueDate || "").slice(0, 7);
+                            if (mk in sums) sums[mk] += Number(e.amount) || 0;
+                          });
+                          const vals = Object.values(sums);
+                          const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+                          const months = avg > 0 ? totalEmMaos / avg : 0;
+                          return (
+                            <CardBox key={key} icon={Hourglass} title="Fôlego financeiro">
+                              <div className="space-y-2">
+                                <div className="flex items-end justify-between">
+                                  <div>
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Meses cobertos</p>
+                                    <p className={`text-2xl font-bold tabular-nums leading-tight ${months < 1 ? "text-destructive" : months < 3 ? "text-warning" : "text-success"}`}>
+                                      {avg <= 0 ? "—" : months.toFixed(1)}
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Gasto médio/mês</p>
+                                    <p className="text-sm font-semibold tabular-nums">{formatBRL(avg)}</p>
+                                  </div>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground">Saldo total em mãos ÷ média de saídas dos últimos 3 meses.</p>
+                              </div>
+                            </CardBox>
+                          );
+                        }
+                        case "topCategories": {
+                          const byCat: Record<string, number> = {};
+                          monthOutExp.forEach((e: any) => {
+                            const cat = (e.category || "Sem categoria").toString();
+                            byCat[cat] = (byCat[cat] || 0) + (Number(e.amount) || 0);
+                          });
+                          const top = Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 3);
+                          const totalMonth = monthOut || 1;
+                          return (
+                            <CardBox key={key} icon={BarChart3} title="Top 3 categorias do mês">
+                              {top.length === 0 ? (
+                                <p className="text-xs text-muted-foreground">Sem despesas pessoais no mês.</p>
+                              ) : (
+                                <div className="space-y-2">
+                                  {top.map(([cat, val]) => {
+                                    const pct = (val / totalMonth) * 100;
+                                    return (
+                                      <div key={cat} className="space-y-1">
+                                        <div className="flex items-center justify-between gap-2">
+                                          <span className="text-[11px] text-foreground truncate">{cat}</span>
+                                          <span className="text-[11px] font-semibold tabular-nums">{formatBRL(val)}</span>
+                                        </div>
+                                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                                          <div className="h-full bg-warning" style={{ width: `${Math.min(100, pct)}%` }} />
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </CardBox>
+                          );
+                        }
+                        case "biggest": {
+                          const bigIn = monthIncomes.reduce((m: any, i: any) => (!m || (Number(i.amount) || 0) > (Number(m.amount) || 0) ? i : m), null as any);
+                          const bigOut = monthOutExp.reduce((m: any, e: any) => (!m || (Number(e.amount) || 0) > (Number(m.amount) || 0) ? e : m), null as any);
+                          return (
+                            <CardBox key={key} icon={Trophy} title="Maior entrada e saída do mês">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="rounded-lg bg-success/10 p-2">
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Entrada</p>
+                                  <p className="text-sm font-bold text-success tabular-nums leading-tight">{bigIn ? formatBRL(Number(bigIn.amount) || 0) : "—"}</p>
+                                  <p className="text-[10px] text-muted-foreground truncate">{bigIn?.source || bigIn?.description || ""}</p>
+                                </div>
+                                <div className="rounded-lg bg-destructive/10 p-2">
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Saída</p>
+                                  <p className="text-sm font-bold text-destructive tabular-nums leading-tight">{bigOut ? formatBRL(Number(bigOut.amount) || 0) : "—"}</p>
+                                  <p className="text-[10px] text-muted-foreground truncate">{bigOut?.category || bigOut?.description || ""}</p>
+                                </div>
+                              </div>
+                            </CardBox>
+                          );
+                        }
+                        case "nextIncomes7": {
+                          const list = incomes.filter((i: any) => i.status !== "received" && (i.receivedDate || "") >= todayStr && (i.receivedDate || "") <= horizon7);
+                          const total = list.reduce((s: number, i: any) => s + (Number(i.amount) || 0), 0);
+                          return (
+                            <CardBox key={key} icon={CalendarClock} title="Próximos recebimentos (7 dias)">
+                              <div className="flex items-end justify-between">
+                                <div>
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total previsto</p>
+                                  <p className="text-xl font-bold text-success tabular-nums leading-tight">{formatBRL(total)}</p>
+                                </div>
+                                <span className="text-xs text-muted-foreground">{list.length} {list.length === 1 ? "lançamento" : "lançamentos"}</span>
+                              </div>
+                            </CardBox>
+                          );
+                        }
+                        case "nextBills7": {
+                          const list = expenses.filter((e: any) => !e.paid && (e.scope ?? "business") === "personal" && (e.dueDate || "") >= todayStr && (e.dueDate || "") <= horizon7);
+                          const total = list.reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
+                          return (
+                            <CardBox key={key} icon={CalendarX} title="Contas a vencer (7 dias)">
+                              <div className="flex items-end justify-between">
+                                <div>
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total a pagar</p>
+                                  <p className="text-xl font-bold text-destructive tabular-nums leading-tight">{formatBRL(total)}</p>
+                                </div>
+                                <span className="text-xs text-muted-foreground">{list.length} {list.length === 1 ? "conta" : "contas"}</span>
+                              </div>
+                            </CardBox>
+                          );
+                        }
+                        case "piggySummary": {
+                          const count = piggyBanks.length;
+                          const avg = count > 0 ? piggyTotal / count : 0;
+                          return (
+                            <CardBox key={key} icon={PiggyBank} title="Resumo dos cofrinhos">
+                              <div className="grid grid-cols-3 gap-2">
+                                <div className="rounded-lg bg-pink-500/10 p-2">
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</p>
+                                  <p className="text-sm font-bold text-pink-500 tabular-nums">{formatBRL(piggyTotal)}</p>
+                                </div>
+                                <div className="rounded-lg bg-muted/40 p-2">
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cofrinhos</p>
+                                  <p className="text-sm font-bold tabular-nums">{count}</p>
+                                </div>
+                                <div className="rounded-lg bg-muted/40 p-2">
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Média</p>
+                                  <p className="text-sm font-bold tabular-nums">{formatBRL(avg)}</p>
+                                </div>
+                              </div>
+                            </CardBox>
+                          );
+                        }
+                        case "monthCompare": {
+                          const dIn = prevIn > 0 ? ((monthIn - prevIn) / prevIn) * 100 : 0;
+                          const dOut = prevOut > 0 ? ((monthOut - prevOut) / prevOut) * 100 : 0;
+                          const Pill = ({ v }: { v: number }) => (
+                            <span className={`text-[10px] font-semibold tabular-nums ${v >= 0 ? "text-success" : "text-destructive"}`}>
+                              {v >= 0 ? "+" : ""}{v.toFixed(0)}%
                             </span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 pt-1">
-                            <div className="rounded-lg bg-success/10 p-2">
-                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Entradas previstas</p>
-                              <p className="text-sm font-bold text-success tabular-nums">{formatBRL(expectedIn)}</p>
-                            </div>
-                            <div className="rounded-lg bg-destructive/10 p-2">
-                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Saídas previstas</p>
-                              <p className="text-sm font-bold text-destructive tabular-nums">{formatBRL(expectedOut)}</p>
-                            </div>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground">
-                            Considera receitas pendentes e despesas pessoais a vencer nos próximos 30 dias.
-                          </p>
-                        </div>
-                      </div>
-                    );
+                          );
+                          return (
+                            <CardBox key={key} icon={LineChart} title="Comparativo mês a mês">
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[11px] text-muted-foreground">Entradas</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-bold text-success tabular-nums">{formatBRL(monthIn)}</span>
+                                    {prevIn > 0 && <Pill v={dIn} />}
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[11px] text-muted-foreground">Saídas</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-bold text-destructive tabular-nums">{formatBRL(monthOut)}</span>
+                                    {prevOut > 0 && <Pill v={-dOut} />}
+                                  </div>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground pt-1">Mês anterior: {formatBRL(prevIn)} entradas / {formatBRL(prevOut)} saídas.</p>
+                              </div>
+                            </CardBox>
+                          );
+                        }
+                        default:
+                          return null;
+                      }
+                    };
+
+                    return <>{extraCards.map((k) => renderCard(k))}</>;
                   })()}
 
                   <p className="text-[10px] text-muted-foreground text-center pt-1">
@@ -403,7 +669,7 @@ export function ConsolidatedBalanceCards() {
       </Dialog>
 
       <Dialog open={openSettings} onOpenChange={setOpenSettings}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               <Settings2 className="h-4 w-4 text-muted-foreground" /> Configurações do saldo
@@ -428,10 +694,31 @@ export function ConsolidatedBalanceCards() {
                 <Switch checked={visibility[row.key]} onCheckedChange={() => toggleVis(row.key)} />
               </div>
             ))}
-            <div className="flex justify-end pt-3">
+
+            <div className="pt-5">
+              <p className="text-sm font-semibold text-foreground">Cards extras</p>
+              <p className="text-[11px] text-muted-foreground pb-2">
+                Escolha 2 cards para exibir abaixo dos valores. ({extraCards.length}/2 selecionados)
+              </p>
+              {EXTRA_CARDS_META.map((row) => {
+                const checked = extraCards.includes(row.key);
+                const disabled = !checked && extraCards.length >= 2;
+                return (
+                  <div key={row.key} className="flex items-center justify-between gap-3 py-2.5 border-b border-border/40 last:border-0">
+                    <div className="min-w-0">
+                      <p className={`text-sm font-medium truncate ${disabled ? "text-muted-foreground" : "text-foreground"}`}>{row.label}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{row.hint}</p>
+                    </div>
+                    <Switch checked={checked} disabled={disabled} onCheckedChange={() => toggleExtra(row.key)} />
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-end pt-3 gap-3">
               <button
                 type="button"
-                onClick={() => setVisibility(DEFAULT_VIS)}
+                onClick={() => { setVisibility(DEFAULT_VIS); setExtraCards(DEFAULT_EXTRA); }}
                 className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
               >
                 Restaurar padrão
