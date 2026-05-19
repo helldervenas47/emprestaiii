@@ -142,15 +142,12 @@ export function ConsolidatedBalanceCards() {
     return sum;
   }, [piggyBanks, piggyBalances]);
 
-  // "Saldo Total em Mãos" = soma dos saldos visíveis no detalhamento
-  // (Conta + Dinheiro em mãos + Saldo em Conta (Receitas) + Cofrinhos + Veículos),
-  // respeitando os toggles de visibilidade em Configurações.
+  // "Saldo Total em Mãos" = soma de todos os saldos
+  // (Conta + Dinheiro em mãos + Saldo em Conta (Receitas) + Cofrinhos + Veículos).
+  // Os toggles em Configurações afetam apenas os cards do detalhamento,
+  // não alteram o total nem a composição.
   const totalEmMaos =
-    (visibility.account ? dashboardAccount : 0) +
-    (visibility.cash ? dashboardCash : 0) +
-    (visibility.incomes ? incomesBalance : 0) +
-    (visibility.piggy ? piggyTotal : 0) +
-    (visibility.vehicle ? vehicleBalance : 0);
+    dashboardAccount + dashboardCash + incomesBalance + piggyTotal + vehicleBalance;
 
   const Row = ({ label, value }: { label: string; value: number }) => (
     <div className="flex items-center justify-between py-2 border-b border-border/40 last:border-0">
@@ -299,13 +296,13 @@ export function ConsolidatedBalanceCards() {
                   {reservasItems.length > 0 && <Section title="Reservas">{reservasItems}</Section>}
 
                   {(() => {
-                    const parts = ([
-                      visibility.account && { label: "Conta", value: Math.max(0, dashboardAccount), color: "bg-primary" },
-                      visibility.cash && { label: "Dinheiro", value: Math.max(0, dashboardCash), color: "bg-success" },
-                      visibility.incomes && { label: "Receitas", value: Math.max(0, baseReceitas), color: "bg-warning" },
-                      visibility.piggy && { label: "Cofrinhos", value: Math.max(0, piggyTotal), color: "bg-pink-500" },
-                      visibility.vehicle && { label: "Veículos", value: Math.max(0, vehicleBalance), color: "bg-blue-500" },
-                    ].filter(Boolean)) as { label: string; value: number; color: string }[];
+                    const parts = [
+                      { label: "Conta", value: Math.max(0, dashboardAccount), color: "bg-primary" },
+                      { label: "Dinheiro", value: Math.max(0, dashboardCash), color: "bg-success" },
+                      { label: "Receitas", value: Math.max(0, baseReceitas), color: "bg-warning" },
+                      { label: "Cofrinhos", value: Math.max(0, piggyTotal), color: "bg-pink-500" },
+                      { label: "Veículos", value: Math.max(0, vehicleBalance), color: "bg-blue-500" },
+                    ];
                     const sum = parts.reduce((s, p) => s + p.value, 0);
                     if (sum <= 0) return null;
                     return (
@@ -414,7 +411,7 @@ export function ConsolidatedBalanceCards() {
           </DialogHeader>
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground pb-2">
-              Escolha quais saldos compõem o "Saldo Total em Mãos" e aparecem no detalhamento.
+              Escolha quais cards aparecem no detalhamento abaixo do total. Não altera o valor do "Saldo Total em Mãos".
             </p>
             {([
               { key: "account", label: "Conta", hint: "Saldo bancário (Dashboard)" },
