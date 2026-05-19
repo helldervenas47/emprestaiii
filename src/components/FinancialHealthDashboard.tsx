@@ -216,9 +216,7 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
     const monthsMetrics = months.map((k) => {
       const m = computeMonthMetrics(incomes, expenses, sales, cards, openings, k);
       const piggyIn = Math.max(0, -(piggyNetByMonth[k] ?? 0));
-      const out = { ...m, income: m.income + piggyIn };
-      if (k === monthKey) console.log("[Health] month", k, "income", out.income, "expense", out.expense, "diff", out.income - out.expense, "piggyIn", piggyIn);
-      return out;
+      return { ...m, income: m.income + piggyIn };
     });
     const avgExpense =
       monthsMetrics.reduce((s, m) => s + m.expense, 0) / Math.max(1, monthsMetrics.filter((m) => m.expense > 0).length);
