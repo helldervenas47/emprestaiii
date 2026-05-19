@@ -1148,7 +1148,6 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
               onClick={async () => {
                 setPaying(true);
                 try {
-                  const remaining = paymentRemaining;
                   const parsedAmount = Number(payAmount.replace(",", "."));
                   const amount = Math.max(0, Number(parsedAmount.toFixed(2)));
                   if (!Number.isFinite(parsedAmount) || amount <= 0) {
@@ -1159,8 +1158,70 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                   const newPaidTotal = Number(Math.min(total, paidTotal + amount).toFixed(2));
                   const isFull = newPaidTotal + 0.005 >= total;
 
+                  // 1) Calcular ledger já lançado para este ciclo (escopado por owner)
+                  //    e debitar PRIMEIRO. Se falhar, nada é marcado como pago.
+                  const { data: sess } = await supabase.auth.getSession();
+                  const authedId = sess.session?.user?.id ?? null;
+                  let ownerId: string | null = authedId;
+                  if (authedId) {
+                    const { data: ownerRow } = await supabase
+                      .from("user_owner" as any)
+                      .select("owner_id")
+                      .eq("user_id", authedId)
+                      .maybeSingle();
+                    ownerId = (ownerRow as any)?.owner_id || authedId;
+                  }
+                  let ledgerPaid = 0;
+                  if (ownerId) {
+                    const { data: ledgerRows } = await supabase
+                      .from("account_ledger")
+                      .select("amount, metadata")
+                      .eq("user_id", ownerId)
+                      .eq("category", "expense");
+                    ledgerPaid = ((ledgerRows as any[]) ?? [])
+                      .filter((r) => {
+                        const m = r.metadata || {};
+                        return (
+                          m.credit_card_id === card.id &&
+                          m.cycle_key === cycleKey &&
+                          m.kind === "credit_card_invoice_payment"
+                        );
+                      })
+                      .reduce((s, r) => s + (Number(r.amount) || 0), 0);
+                  }
+                  let ledgerAmount = Number(Math.max(0, newPaidTotal - ledgerPaid).toFixed(2));
+                  // Quando estamos quitando totalmente e o opening ainda não foi debitado
+                  // em nenhum lançamento anterior, garante que o saldo inicial entra no débito.
+                  if (isFull && openingAmount > 0 && !openingPaidFlag) {
+                    const missingOpening = Number(Math.max(0, openingAmount - Math.max(0, ledgerPaid - paidItemsTotal)).toFixed(2));
+                    if (missingOpening > ledgerAmount) ledgerAmount = missingOpening;
+                  }
+
+                  if (ledgerAmount > 0.005) {
+                    try {
+                      await recordLedger({
+                        direction: "out",
+                        category: "expense",
+                        amount: ledgerAmount,
+                        description: `Pagamento fatura ${card.nickname || brandLabel(card.bank)}`,
+                        occurred_on: payDate,
+                        source: "auto",
+                        wallet: payWallet,
+                        metadata: {
+                          credit_card_id: card.id,
+                          cycle_key: cycleKey,
+                          kind: "credit_card_invoice_payment",
+                        },
+                      });
+                    } catch {
+                      toast.error("Não foi possível debitar a conta. Pagamento cancelado.");
+                      setPaying(false);
+                      return;
+                    }
+                  }
+
+                  // 2) Marcar itens / opening como pagos só após o débito ter sucesso.
                   if (isFull) {
-                    // Pagamento total: marca itens em aberto como pagos e quita o saldo inicial.
                     const unpaid = items.filter((e) => !e.paid);
                     for (const e of unpaid) {
                       await updateExpense(e.id, { paid: true, paidDate: payDate });
@@ -1176,7 +1237,6 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                     const newNotes = `${baseNotes ? baseNotes + " " : ""}[PAGA] [LEDGER] [PAID_DATE:${payDate}]`.trim();
                     await upsertOpening(card.id, cycleKey, openingAmount, newNotes);
                   } else {
-                    // Pagamento parcial: atualiza override [PAID:xxx] e marca como ledger-handled.
                     const cleaned = (opening?.notes ?? "")
                       .replace(/\[PAGA\]/gi, "")
                       .replace(/\[LEDGER\]/gi, "")
@@ -1185,33 +1245,6 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                     const baseNotes = writePaidOverride(cleaned, newPaidTotal);
                     const newNotes = `${baseNotes ? baseNotes + " " : ""}[LEDGER] [PAID_DATE:${payDate}]`.trim();
                     await upsertOpening(card.id, cycleKey, openingAmount, newNotes);
-                  }
-
-                  // Lança no extrato o total efetivamente pago da fatura ainda não registrado,
-                  // incluindo saldo inicial/anterior e compras já marcadas como pagas no cartão.
-                  const { data: ledgerRows } = await supabase
-                    .from("account_ledger")
-                    .select("amount")
-                    .eq("metadata->>credit_card_id", card.id)
-                    .eq("metadata->>cycle_key", cycleKey)
-                    .eq("metadata->>kind", "credit_card_invoice_payment");
-                  const ledgerPaid = ((ledgerRows as any[]) ?? []).reduce((s, r) => s + (Number(r.amount) || 0), 0);
-                  const ledgerAmount = Number(Math.max(0, newPaidTotal - ledgerPaid).toFixed(2));
-                  if (ledgerAmount > 0.005) {
-                    await recordLedger({
-                      direction: "out",
-                      category: "expense",
-                      amount: ledgerAmount,
-                      description: `Pagamento fatura ${card.nickname || brandLabel(card.bank)}`,
-                      occurred_on: payDate,
-                      source: "auto",
-                      wallet: payWallet,
-                      metadata: {
-                        credit_card_id: card.id,
-                        cycle_key: cycleKey,
-                        kind: "credit_card_invoice_payment",
-                      },
-                    });
                   }
 
                   toast.success(
