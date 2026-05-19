@@ -45,6 +45,9 @@ export function ConsolidatedBalanceCards() {
   // Espelha EXATAMENTE o "Saldo em Conta" da aba Receitas (IncomeBalanceCard)
   // via hook unificado — mantém os dois cards sempre sincronizados.
   const incomesBalance = useUnifiedAccountBalance();
+  // Necessário para a projeção de 30 dias abaixo.
+  const { incomes } = useIncomes(true);
+  const { expenses } = useExpenses(true);
 
   const [dashboardAccount, setDashboardAccount] = useState(0);
   const [dashboardCash, setDashboardCash] = useState(0);
