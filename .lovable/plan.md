@@ -1,85 +1,60 @@
-## Buscador de Boletos
+## Diagnóstico
 
-Criar uma nova seção **Boletos** no app com duas funções:
+Para o Nubank (final 9982), ciclo `2026-05`:
 
-1. **Consulta por linha digitável / código de barras** — funciona offline, sem API externa.
-2. **Importação de boletos a pagar de uma plataforma externa** — estrutura pronta, pendente de você confirmar qual plataforma (Asaas, Cora, Iugu, Banco Inter PJ, BB API, etc.).
+- `opening_amount` = R$ 1.796,94 (saldo inicial / fatura anterior).
+- 2 despesas no ciclo (R$ 424,00 + R$ 181,86 = R$ 605,86).
+- `total` esperado da fatura = **R$ 2.402,80**.
+- Nenhum lançamento `account_ledger` com `kind = credit_card_invoice_payment` para esse cartão.
 
-Em ambos os casos os boletos aparecem **apenas para consulta** — nada é gravado automaticamente em Despesas. Um botão "Salvar como despesa" fica disponível para o usuário decidir caso a caso.
+Lendo `src/components/CreditCardInvoice.tsx`, a lógica de pagamento já calcula `paymentRemaining = total` (compras + opening) quando o ciclo ainda não foi lançado no extrato, e o `recordLedger` é chamado com `ledgerAmount = newPaidTotal − ledgerPaid`. Em teoria deveria debitar os R$ 2.402,80.
 
----
+Existem 3 fragilidades que explicam o sintoma "saldo inicial não é debitado":
 
-### 1. Parser de linha digitável (offline)
+1. **Consulta do ledger já existente usa `metadata->>credit_card_id` sem `user_id`** — em alguns ambientes PostgREST devolve 0 linhas e o cálculo de `ledgerAmount` fica certo por acidente; em outros pode somar valores de outros usuários/cartões. A consulta deve ser escopada por `user_id` e ainda usar `kind` correto.
 
-Tela com um campo grande onde o usuário cola/digita a linha digitável (47 dígitos para boleto bancário, 48 para arrecadação/concessionária). O app decodifica localmente e mostra:
+2. **Quando o usuário marca itens como pagos antes** (manualmente, ou via app de despesas) e depois abre "Pagar fatura", `paidTotal = paidItemsTotal` (sem opening), mas o input vem pré-preenchido com `total`. Se o usuário ajustar manualmente para o valor que aparece como "Restante" (que é o `total` inteiro só quando `!ledgerHandled`), o resultado é certo. Mas hoje o diálogo mostra três blocos confusos (Total / Já pago / Restante) sem explicitar o componente "Saldo inicial". Visualmente o usuário acredita estar pagando só as compras.
 
-- **Banco emissor** (ex: 341 → Itaú, 001 → BB, 237 → Bradesco…) via tabela local + fallback BrasilAPI para nomes não conhecidos.
-- **Vencimento** (calculado a partir do fator de vencimento).
-- **Valor** (últimas 10 posições do código).
-- **Tipo**: cobrança bancária ou arrecadação (água, luz, tributo…).
-- **Validade dos dígitos verificadores** (módulo 10 / 11) — alerta vermelho se inválido.
-- **Código de barras** (44 dígitos) reconstruído, com botão "Copiar".
+3. **Quando `isFull`, o `upsertOpening` mantém `[PAGA]` + `[LEDGER]`, mas a lista de cartões em outros componentes (`useAccountBalance` → `creditCardInvoiceExtraPaid`) só desconsidera ciclos que têm `[LEDGER]`.** Se o `recordLedger` falhar silenciosamente (rede, RLS), o opening fica marcado como `[LEDGER]` sem o débito ter sido lançado — e o saldo "some" sem nunca ter sido debitado. Hoje o `try/catch` engole o erro do `recordLedger`.
 
-Tudo isso roda no frontend, sem custos e sem chamadas externas (exceto opcionalmente o nome do banco).
+## Mudanças propostas
 
-> Importante: a linha digitável **não contém** o nome do beneficiário nem o status (pago/em aberto). Essa informação só existe no sistema do banco emissor — por isso a parte 2.
+### 1. Tornar o pagamento atômico e à prova de falha silenciosa
+Em `src/components/CreditCardInvoice.tsx`, no handler do botão "Confirmar pagamento":
 
-### 2. Importação de boletos de plataforma externa
+- Lançar primeiro o `recordLedger` (débito na conta). Só depois aplicar `updateExpense` nos itens e `upsertOpening` com `[PAGA] [LEDGER] [PAID_DATE]`.
+- Se o `recordLedger` falhar, abortar com toast e **não** marcar o opening como `[LEDGER]`, evitando o estado fantasma.
+- Escopar a consulta de ledger anterior por `user_id` (via `get_data_owner_id` / hook `useDataOwner`) e por `category = 'expense'` para evitar colisão.
 
-Tela "Meus boletos a pagar" lista boletos pendentes vindos de uma API externa, com filtros por status (pendente / pago / vencido) e busca por beneficiário/valor.
+### 2. Deixar explícito que o saldo inicial está sendo pago
+Reformatar o resumo no `Dialog` de pagamento para mostrar o detalhamento:
 
-Como não existe uma API única que retorna "qualquer boleto do Brasil", a integração é por plataforma. A arquitetura é genérica: uma edge function `boletos-import` recebe o nome do provedor e devolve uma lista normalizada `{id, beneficiary, dueDate, amount, status, barcode, payLink}`. Adapters por provedor ficam isolados.
-
-**Provedores prontos para plugar** (decidir 1 e me dizer qual):
-- **Asaas** — só API key, mais simples.
-- **Cora** — OAuth2 + client_id/secret.
-- **Iugu** — API key.
-- **Banco Inter PJ** — exige certificado mTLS (mais complexo, edge function precisa de variáveis extras).
-- **BB API** — exige cadastro no portal do desenvolvedor + OAuth.
-
-Enquanto você não escolher, a tela mostra estado vazio com botão "Configurar provedor".
-
-### 3. Integração com o app
-
-- Novo item no menu/abas principais: **Boletos** (logo após Despesas).
-- Mesmo padrão visual das outras abas (Card, Badge, MoneyInput, dialog em pt-BR).
-- Botão secundário em cada boleto consultado: **"Salvar como despesa"** → abre o `ExpenseForm` pré-preenchido (descrição = beneficiário, valor, vencimento, categoria sugerida "Boletos"). Salvar só acontece se o usuário confirmar — sem duplicidade.
-- Histórico local (Lovable Cloud) das últimas linhas digitáveis consultadas, para reabertura rápida.
-
----
-
-### Detalhes técnicos
-
-**Arquivos novos:**
-- `src/lib/boleto/parseLinhaDigitavel.ts` — parser puro (banco, vencimento, valor, DV, código de barras).
-- `src/lib/boleto/banks.ts` — dicionário código→nome dos principais bancos brasileiros.
-- `src/components/boletos/BoletoSearchTab.tsx` — tela principal com 2 sub-abas: "Consultar" e "A pagar".
-- `src/components/boletos/BoletoParserCard.tsx` — input + resultado decodificado.
-- `src/components/boletos/BoletoImportList.tsx` — lista vinda da edge function.
-- `src/hooks/useBoletoHistory.ts` — histórico das consultas recentes.
-- `supabase/migrations/...` — tabela `boleto_lookups` (id, user_id, raw_line, parsed_json, created_at) com RLS por `get_data_owner_id(auth.uid())`.
-- `supabase/functions/boletos-import/index.ts` — edge function genérica com adapter pattern (`adapters/asaas.ts`, etc.). Inicialmente só o esqueleto + um adapter de exemplo (Asaas, se você confirmar).
-
-**Arquivos alterados:**
-- `src/lib/appTabs.ts` — adicionar a aba "Boletos".
-- `src/pages/Index.tsx` — registrar a aba (provavelmente atrás de `SubscriptionGate` Tier 1 ou 2, igual ao padrão atual).
-- `src/components/ExpenseForm.tsx` — aceitar `initialValues` opcionais via props para o atalho "Salvar como despesa".
-
-**Algoritmo do parser** (resumo):
 ```text
-Linha digitável (47 dígitos) → reordena para código de barras (44 dígitos):
-  posições 1-4 banco, 5 moeda, 33 DV geral,
-  34-37 fator de vencimento (dias desde 07/10/1997),
-  38-47 valor em centavos,
-  18-44 campo livre do banco.
-Vencimento = 1997-10-07 + fator dias.
-Cada um dos 3 campos da linha tem DV módulo 10.
+Compras do ciclo   R$ 605,86
+Saldo inicial      R$ 1.796,94
+─────────────────────────────
+Total da fatura    R$ 2.402,80
+Já pago            R$ 0,00
+Restante           R$ 2.402,80
 ```
 
-**Custos/limites:** parser é grátis. Importação externa depende da plataforma escolhida — algumas têm tier gratuito (Asaas), outras só PJ pago.
+Mantém o input com o valor restante já preenchido.
 
----
+### 3. Garantir que o débito sempre cobre o opening quando `isFull`
+Ao calcular `ledgerAmount`, usar `Math.max(ledgerAmount, openingAmount − openingAlreadyInLedger)` quando `openingPaidFlag` está sendo marcado pela primeira vez. Isso protege casos em que `paidItemsTotal` foi marcado em outro fluxo e o `newPaidTotal − ledgerPaid` daria um valor que ignora o opening.
 
-### Próximo passo
+### 4. Pequeno ajuste em `creditCardInvoiceTotals.ts`
+Adicionar guard em `creditCardInvoiceExtraPaid`: se `[LEDGER]` está presente mas **não existe nenhum** `account_ledger` correspondente (verificação opcional via prop futura), continuar somando o extra — fora do escopo desta task, mas deixar nota no código para investigação.
 
-Me confirme **qual plataforma** você quer usar na importação (ou se prefere começar só com o parser e adicionar a integração externa depois). Depois disso eu implemento.
+## Resultado esperado
+
+- Botão "Pagar fatura" do Nubank 05/2026 mostra `R$ 2.402,80` com breakdown.
+- Ao confirmar, é criado **1 lançamento no extrato** de `R$ 2.402,80` (categoria `expense`, wallet escolhida).
+- Saldo em Conta cai exatamente R$ 2.402,80.
+- Histórico de Pagamentos do cartão registra a fatura paga com valor total correto.
+- Se a inserção falhar, o opening permanece em aberto e o usuário vê o erro.
+
+## Arquivos a alterar
+
+- `src/components/CreditCardInvoice.tsx` — reordenar o fluxo de pagamento, ajustar consulta de ledger, redesenhar o resumo do diálogo.
+- (Opcional) `src/lib/creditCardInvoiceTotals.ts` — comentário/guard sobre estado fantasma.
