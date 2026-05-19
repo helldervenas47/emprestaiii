@@ -281,9 +281,42 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const paidItemsTotal = sumItems(items.filter((e) => e.paid));
   const paidTotal = paidOverride ?? Number((paidItemsTotal + (openingPaidFlag ? openingAmount : 0)).toFixed(2));
   const remainingTotal = Math.max(0, Number((total - paidTotal).toFixed(2)));
-  // Se ainda não há lançamento no extrato, o pagamento precisa regularizar o total pago da fatura,
-  // incluindo saldos antigos já marcados como pagos apenas no cartão.
-  const paymentRemaining = ledgerHandled ? remainingTotal : total;
+  const totalRounded = Number(total.toFixed(2));
+  // O saldo da conta deve ser regularizado pelo que já está marcado como pago na fatura,
+  // mas ainda não foi efetivamente lançado no extrato. Isso cobre o saldo inicial/anterior.
+  const paymentRemaining = Math.max(
+    0,
+    Number((Math.max(remainingTotal, paidTotal - invoiceLedgerPaid, totalRounded - invoiceLedgerPaid)).toFixed(2)),
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadInvoiceLedgerPaid = async () => {
+      if (!ownerId) {
+        if (!cancelled) setInvoiceLedgerPaid(0);
+        return;
+      }
+      const { data } = await supabase
+        .from("account_ledger")
+        .select("amount, metadata")
+        .eq("user_id", ownerId)
+        .eq("category", "expense");
+      const paid = ((data as any[]) ?? [])
+        .filter((r) => {
+          const m = r.metadata || {};
+          return m.credit_card_id === card.id && m.cycle_key === cycleKey && m.kind === "credit_card_invoice_payment";
+        })
+        .reduce((s, r) => s + (Number(r.amount) || 0), 0);
+      if (!cancelled) setInvoiceLedgerPaid(Number(paid.toFixed(2)));
+    };
+    loadInvoiceLedgerPaid();
+    const onChanged = () => loadInvoiceLedgerPaid();
+    window.addEventListener("ledger:changed", onChanged);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("ledger:changed", onChanged);
+    };
+  }, [ownerId, card.id, cycleKey]);
 
   // Limite disponível = limite total - (despesas pendentes do cartão + saldos iniciais de
   // faturas em aberto). Reflete tudo que ainda foi gasto e não pago neste cartão.
