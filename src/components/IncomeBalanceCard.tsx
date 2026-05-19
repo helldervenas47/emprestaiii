@@ -10,7 +10,7 @@ import { useHideValues } from "@/contexts/HideValuesContext";
 import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight, Settings2, Receipt, Info } from "lucide-react";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
-import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
+import { getCardInvoiceTotalsForMonth, isCreditCardExpense, listPaidInvoicesInRange } from "@/lib/creditCardInvoiceTotals";
 import { isPiggyExpense } from "@/hooks/usePiggyBanks";
 import { useProducts } from "@/hooks/useProducts";
 import { Sale } from "@/types/loan";
@@ -172,8 +172,9 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     const monthInSales = sales.reduce((s, sale) => s + saleReceivedInMonth(sale, monthKey), 0);
     const monthIn = monthInIncomes + monthInSales;
     // Will be adjusted with piggy withdrawals below.
-    // Saídas do mês: despesas pessoais pagas (exceto itens de cartão, que entram pelo
-    // pagamento real da fatura registrado no extrato) + pagamentos de fatura no mês.
+    // Saídas do mês: despesas pessoais pagas (exceto itens de cartão, que entram
+    // pelo total consolidado da fatura quitada no mês) + faturas de cartão quitadas
+    // dentro do mês. Mesma base usada no detalhamento "Saídas do mês" (sheet).
     const monthOutExpenses = expenses.reduce((s, e) => {
       if ((e.scope ?? "business") !== "personal") return s;
       if (!e.paid) return s;
@@ -185,8 +186,19 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
         : e.amount;
       return s + amt;
     }, 0);
+    const [mY, mM] = monthKey.split("-").map(Number);
+    const lastDay = new Date(mY, mM, 0).getDate();
+    const monthFromISO = `${monthKey}-01`;
+    const monthToISO = `${monthKey}-${String(lastDay).padStart(2, "0")}`;
+    const monthInvoicesPaid = listPaidInvoicesInRange(
+      expenses,
+      cards,
+      openings,
+      monthFromISO,
+      monthToISO,
+    ).reduce((s, inv) => s + inv.paidTotal, 0);
     const piggyMonth = piggyNetByMonth[monthKey] ?? 0;
-    const monthOut = monthOutExpenses + (cardInvoicePaidByMonth[monthKey] ?? 0) + Math.max(0, piggyMonth);
+    const monthOut = monthOutExpenses + monthInvoicesPaid;
     const piggyMonthIn = Math.max(0, -piggyMonth);
 
     // Futuras do mês selecionado (pendentes/agendadas, não canceladas).
