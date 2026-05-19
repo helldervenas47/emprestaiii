@@ -71,6 +71,22 @@ export function ConsolidatedBalanceCards() {
   const [vehicleBalance, setVehicleBalance] = useState(0);
   const [openRua, setOpenRua] = useState(false);
   const [openMaos, setOpenMaos] = useState(false);
+  const [openSettings, setOpenSettings] = useState(false);
+  const [visibility, setVisibility] = useState<MaosVisibility>(() => {
+    if (typeof window === "undefined") return DEFAULT_VIS;
+    try {
+      const raw = localStorage.getItem(VIS_STORAGE_KEY);
+      if (!raw) return DEFAULT_VIS;
+      return { ...DEFAULT_VIS, ...JSON.parse(raw) };
+    } catch {
+      return DEFAULT_VIS;
+    }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(VIS_STORAGE_KEY, JSON.stringify(visibility)); } catch {}
+  }, [visibility]);
+  const toggleVis = (key: keyof MaosVisibility) =>
+    setVisibility((v) => ({ ...v, [key]: !v[key] }));
 
   const reloadExternalBalances = useCallback(async () => {
     const [b, { data: { session } }] = await Promise.all([
