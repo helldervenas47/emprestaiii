@@ -166,6 +166,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     }, 0);
     const monthInSales = sales.reduce((s, sale) => s + saleReceivedInMonth(sale, monthKey), 0);
     const monthIn = monthInIncomes + monthInSales;
+    // Will be adjusted with piggy withdrawals below.
     // Saídas do mês: despesas pessoais pagas (exceto itens de cartão, que entram pelo
     // pagamento real da fatura registrado no extrato) + pagamentos de fatura no mês.
     const monthOutExpenses = expenses.reduce((s, e) => {
