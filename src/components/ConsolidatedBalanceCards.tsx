@@ -213,9 +213,19 @@ export function ConsolidatedBalanceCards() {
           className="!p-0 overflow-hidden border-border/60 bg-gradient-to-br from-background via-background to-muted/30 backdrop-blur-xl max-sm:!fixed max-sm:!inset-0 max-sm:!left-0 max-sm:!top-0 max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!max-w-none max-sm:!w-screen max-sm:!h-screen max-sm:!max-h-screen max-sm:!rounded-none max-sm:!flex max-sm:!flex-col max-sm:!gap-0 sm:max-w-md"
         >
           <DialogHeader className="px-5 pt-5 pb-3" style={{ paddingTop: "calc(1.25rem + env(safe-area-inset-top))" }}>
-            <DialogTitle className="flex items-center gap-2 text-base">
+            <DialogTitle className="flex items-center gap-2 text-base pr-20">
               <Wallet className="h-4 w-4 text-success" /> Saldo Total em Mãos
             </DialogTitle>
+            <button
+              type="button"
+              onClick={() => setOpenSettings(true)}
+              aria-label="Configurações do saldo"
+              title="Configurações do saldo"
+              className="absolute right-12 top-4 inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/80 hover:text-foreground hover:bg-accent/60 transition-colors focus:outline-none focus:ring-2 focus:ring-ring/40"
+              style={{ top: "calc(1rem + env(safe-area-inset-top))" }}
+            >
+              <Settings2 className="h-4 w-4" />
+            </button>
             <div className="mt-3 rounded-2xl border border-border/60 bg-gradient-to-br from-success/10 via-success/5 to-transparent p-4 shadow-sm">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total consolidado</p>
               <p className={`text-3xl font-bold tabular-nums leading-tight mt-1 ${totalEmMaos < 0 ? "text-destructive" : "text-foreground"}`}>
