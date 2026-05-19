@@ -57,40 +57,24 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
   const [filter, setFilter] = useState<string>(initialFilter ?? "all");
   const [sortBy, setSortBy] = useState<"date_desc" | "date_asc" | "amount">("date_desc");
 
-  const ownerId = useDataOwner();
   const { cards } = useCreditCards();
-  const [invoicePayments, setInvoicePayments] = useState<
-    { id: string; date: string; amount: number; cardId?: string; cycleKey?: string }[]
-  >([]);
+  const { openings } = useCreditCardOpenings();
 
   useEffect(() => {
     if (open) setFilter(initialFilter ?? "all");
   }, [open, initialFilter]);
 
-  useEffect(() => {
-    if (!open || type !== "expenses" || !ownerId) return;
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase
-        .from("account_ledger")
-        .select("id, amount, occurred_on, metadata")
-        .eq("user_id", ownerId)
-        .eq("direction", "out")
-        .eq("metadata->>kind", "credit_card_invoice_payment");
-      if (cancelled) return;
-      const rows = ((data as any[]) ?? []).map((r) => ({
-        id: String(r.id),
-        date: String(r.occurred_on || ""),
-        amount: Number(r.amount) || 0,
-        cardId: r.metadata?.credit_card_id,
-        cycleKey: r.metadata?.cycle_key,
-      }));
-      setInvoicePayments(rows);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [open, type, ownerId]);
+  // Faturas de cartão pagas dentro do mês selecionado — derivadas das despesas
+  // pagas + openings (mesma lógica usada no extrato financeiro).
+  const paidInvoices = useMemo(() => {
+    if (type !== "expenses") return [];
+    const [yy, mm] = monthKey.split("-").map(Number);
+    if (!yy || !mm) return [];
+    const lastDay = new Date(yy, mm, 0).getDate();
+    const fromISO = `${monthKey}-01`;
+    const toISO = `${monthKey}-${String(lastDay).padStart(2, "0")}`;
+    return listPaidInvoicesInRange(expenses, cards, openings, fromISO, toISO);
+  }, [type, monthKey, expenses, cards, openings]);
 
   const rows = useMemo<Row[]>(() => {
     if (type === "incomes") {
