@@ -276,7 +276,7 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
         stability: Math.round(stability),
       },
     };
-  }, [incomes, expenses, sales, monthKey, deposits]);
+  }, [incomes, expenses, sales, cards, openings, monthKey, deposits]);
 
   const generateReport = async () => {
     setReportOpen(true);
