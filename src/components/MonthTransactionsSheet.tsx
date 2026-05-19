@@ -4,13 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Income, IncomeStatus } from "@/hooks/useIncomes";
 import { Expense, Sale } from "@/types/loan";
-import { ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertTriangle, Repeat, CreditCard } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertTriangle, Repeat } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
+import { isCreditCardExpense, listPaidInvoicesInRange } from "@/lib/creditCardInvoiceTotals";
 import { useCreditCards } from "@/hooks/useCreditCards";
-import { useDataOwner } from "@/hooks/useDataOwner";
-import { supabase } from "@/integrations/supabase/client";
+import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 
 function fmt(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -58,40 +57,24 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
   const [filter, setFilter] = useState<string>(initialFilter ?? "all");
   const [sortBy, setSortBy] = useState<"date_desc" | "date_asc" | "amount">("date_desc");
 
-  const ownerId = useDataOwner();
   const { cards } = useCreditCards();
-  const [invoicePayments, setInvoicePayments] = useState<
-    { id: string; date: string; amount: number; cardId?: string; cycleKey?: string }[]
-  >([]);
+  const { openings } = useCreditCardOpenings();
 
   useEffect(() => {
     if (open) setFilter(initialFilter ?? "all");
   }, [open, initialFilter]);
 
-  useEffect(() => {
-    if (!open || type !== "expenses" || !ownerId) return;
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase
-        .from("account_ledger")
-        .select("id, amount, occurred_on, metadata")
-        .eq("user_id", ownerId)
-        .eq("direction", "out")
-        .eq("metadata->>kind", "credit_card_invoice_payment");
-      if (cancelled) return;
-      const rows = ((data as any[]) ?? []).map((r) => ({
-        id: String(r.id),
-        date: String(r.occurred_on || ""),
-        amount: Number(r.amount) || 0,
-        cardId: r.metadata?.credit_card_id,
-        cycleKey: r.metadata?.cycle_key,
-      }));
-      setInvoicePayments(rows);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [open, type, ownerId]);
+  // Faturas de cartão pagas dentro do mês selecionado — derivadas das despesas
+  // pagas + openings (mesma lógica usada no extrato financeiro).
+  const paidInvoices = useMemo(() => {
+    if (type !== "expenses") return [];
+    const [yy, mm] = monthKey.split("-").map(Number);
+    if (!yy || !mm) return [];
+    const lastDay = new Date(yy, mm, 0).getDate();
+    const fromISO = `${monthKey}-01`;
+    const toISO = `${monthKey}-${String(lastDay).padStart(2, "0")}`;
+    return listPaidInvoicesInRange(expenses, cards, openings, fromISO, toISO);
+  }, [type, monthKey, expenses, cards, openings]);
 
   const rows = useMemo<Row[]>(() => {
     if (type === "incomes") {
@@ -175,21 +158,20 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
           status: "paid" as Row["status"],
         };
       });
-    // Pagamentos de fatura de cartão registrados no extrato, no mês selecionado.
-    for (const p of invoicePayments) {
-      if (!p.date.startsWith(monthKey)) continue;
-      const card = cards.find((c) => c.id === p.cardId);
+    // Faturas de cartão quitadas dentro do mês selecionado — entram como uma
+    // única saída consolidada (substituem os lançamentos individuais filtrados acima).
+    for (const inv of paidInvoices) {
       exp.push({
-        id: `card-invoice-${p.id}`,
-        date: p.date,
-        title: `Fatura ${card?.nickname ?? card?.bank ?? "Cartão"}`,
-        subtitle: p.cycleKey ? `Ciclo ${p.cycleKey}` : "Pagamento de fatura",
-        amount: p.amount,
+        id: `card-invoice-${inv.card.id}-${inv.cycleKey}`,
+        date: inv.paidDate,
+        title: `Fatura ${inv.card.nickname || inv.card.bank || "Cartão"}`,
+        subtitle: `Ciclo ${inv.cycleKey}`,
+        amount: inv.paidTotal,
         status: "paid",
       });
     }
     return exp;
-  }, [type, incomes, expenses, sales, monthKey, invoicePayments, cards]);
+  }, [type, incomes, expenses, sales, monthKey, paidInvoices]);
 
   const filtered = useMemo(() => {
     let arr = rows;
