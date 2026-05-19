@@ -761,12 +761,13 @@ export function useLoans() {
         .reduce((sum, p) => sum + Math.min(Number(p.amount) || 0, Math.max(0, loan.amount - sum)), 0);
       const principalPortion = Math.min(payAmount, Math.max(0, loan.amount - principalPaidBefore));
       const interestPortion = Math.max(0, Math.round((payAmount - principalPortion) * 100) / 100);
-      await recordLedger({
-        direction: "in", category: "payment", amount: payAmount,
+      await recordPaymentLedgerSplit({
+        amount: payAmount,
         description: `Quitação - ${loan.borrowerName}`,
-        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
-        metadata: {
-          payment_method_id: paymentMethodId ?? null,
+        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId,
+        paymentMethodId: paymentMethodId ?? null,
+        split: normalizedSplit,
+        extraMetadata: {
           principal_amount: Math.round(principalPortion * 100) / 100,
           interest_amount: interestPortion,
         },
