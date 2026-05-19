@@ -485,6 +485,83 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
     };
   }, []);
 
+  async function handleConfirmInvoicePayment() {
+    setPaying(true);
+    try {
+      const parsedAmount = Number(payAmount.replace(",", "."));
+      const amount = Math.max(0, Number(parsedAmount.toFixed(2)));
+      if (!Number.isFinite(parsedAmount) || amount <= 0) {
+        toast.error("Informe um valor válido");
+        setPaying(false);
+        return;
+      }
+      const newPaidTotal = Number(Math.min(total, paidTotal + amount).toFixed(2));
+      const isFull = newPaidTotal + 0.005 >= total;
+
+      let ledgerPaid = invoiceLedgerPaid;
+      if (ownerId) {
+        const { data: ledgerRows } = await supabase
+          .from("account_ledger")
+          .select("amount, metadata")
+          .eq("user_id", ownerId)
+          .eq("category", "expense");
+        ledgerPaid = ((ledgerRows as any[]) ?? [])
+          .filter((r) => {
+            const m = r.metadata || {};
+            return m.credit_card_id === card.id && m.cycle_key === cycleKey && m.kind === "credit_card_invoice_payment";
+          })
+          .reduce((s, r) => s + (Number(r.amount) || 0), 0);
+      }
+      let ledgerAmount = Number(Math.max(0, newPaidTotal - ledgerPaid).toFixed(2));
+      if (ledgerAmount + 0.005 < amount) ledgerAmount = amount;
+      if (isFull && openingAmount > 0 && !openingPaidFlag) {
+        const missingOpening = Number(Math.max(0, openingAmount - Math.max(0, ledgerPaid - paidItemsTotal)).toFixed(2));
+        if (missingOpening > ledgerAmount) ledgerAmount = missingOpening;
+      }
+
+      if (ledgerAmount > 0.005) {
+        try {
+          await recordLedger({
+            direction: "out",
+            category: "expense",
+            amount: ledgerAmount,
+            description: `Pagamento fatura ${card.nickname || brandLabel(card.bank)}`,
+            occurred_on: payDate,
+            source: "auto",
+            wallet: payWallet,
+            metadata: { credit_card_id: card.id, cycle_key: cycleKey, kind: "credit_card_invoice_payment" },
+          });
+          setInvoiceLedgerPaid(Number((ledgerPaid + ledgerAmount).toFixed(2)));
+        } catch {
+          toast.error("Não foi possível debitar a conta. Pagamento cancelado.");
+          setPaying(false);
+          return;
+        }
+      }
+
+      if (isFull) {
+        const unpaid = items.filter((e) => !e.paid);
+        for (const e of unpaid) await updateExpense(e.id, { paid: true, paidDate: payDate });
+        const baseNotes = writePaidOverride(
+          (opening?.notes ?? "").replace(/\[PAGA\]/gi, "").replace(/\[LEDGER\]/gi, "").replace(/\[PAID_DATE:\d{4}-\d{2}-\d{2}\]/gi, "").trim(),
+          Number(total.toFixed(2)),
+        );
+        await upsertOpening(card.id, cycleKey, openingAmount, `${baseNotes ? baseNotes + " " : ""}[PAGA] [LEDGER] [PAID_DATE:${payDate}]`.trim());
+      } else {
+        const cleaned = (opening?.notes ?? "").replace(/\[PAGA\]/gi, "").replace(/\[LEDGER\]/gi, "").replace(/\[PAID_DATE:\d{4}-\d{2}-\d{2}\]/gi, "").trim();
+        const baseNotes = writePaidOverride(cleaned, newPaidTotal);
+        await upsertOpening(card.id, cycleKey, openingAmount, `${baseNotes ? baseNotes + " " : ""}[LEDGER] [PAID_DATE:${payDate}]`.trim());
+      }
+
+      toast.success(isFull ? `Fatura paga · ${mask(fmt(amount))}` : `Pagamento parcial registrado · ${mask(fmt(amount))}`);
+      setPayDialogOpen(false);
+    } catch {
+      toast.error("Erro ao pagar fatura");
+    } finally {
+      setPaying(false);
+    }
+  }
+
   const content = (
     <div
       className="fixed inset-0 z-[2147483647] flex items-stretch sm:items-center justify-center p-0 sm:p-4 overscroll-contain"
