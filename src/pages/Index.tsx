@@ -391,7 +391,7 @@ const Index = () => {
 
   const nonVehicleExpenses = expenses.filter(e => !isVehicleExpenseForVehicles(e));
   const businessExpenses = nonVehicleExpenses.filter(e => (e.scope ?? "business") === "business");
-  const personalExpenses = expenses.filter(e => e.scope === "personal");
+  const personalExpenses = nonVehicleExpenses.filter(e => e.scope === "personal");
   const [showLoanForm, setShowLoanForm] = useState(false);
   const [showLoanSimulator, setShowLoanSimulator] = useState(false);
   const [loanFormPrefill, setLoanFormPrefill] = useState<{
