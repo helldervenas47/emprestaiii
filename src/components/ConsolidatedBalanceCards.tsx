@@ -411,7 +411,7 @@ export function ConsolidatedBalanceCards() {
           </DialogHeader>
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground pb-2">
-              Escolha quais saldos compõem o "Saldo Total em Mãos" e aparecem no detalhamento.
+              Escolha quais cards aparecem no detalhamento abaixo do total. Não altera o valor do "Saldo Total em Mãos".
             </p>
             {([
               { key: "account", label: "Conta", hint: "Saldo bancário (Dashboard)" },
