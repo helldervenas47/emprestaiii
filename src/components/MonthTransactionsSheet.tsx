@@ -158,21 +158,20 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
           status: "paid" as Row["status"],
         };
       });
-    // Pagamentos de fatura de cartão registrados no extrato, no mês selecionado.
-    for (const p of invoicePayments) {
-      if (!p.date.startsWith(monthKey)) continue;
-      const card = cards.find((c) => c.id === p.cardId);
+    // Faturas de cartão quitadas dentro do mês selecionado — entram como uma
+    // única saída consolidada (substituem os lançamentos individuais filtrados acima).
+    for (const inv of paidInvoices) {
       exp.push({
-        id: `card-invoice-${p.id}`,
-        date: p.date,
-        title: `Fatura ${card?.nickname ?? card?.bank ?? "Cartão"}`,
-        subtitle: p.cycleKey ? `Ciclo ${p.cycleKey}` : "Pagamento de fatura",
-        amount: p.amount,
+        id: `card-invoice-${inv.card.id}-${inv.cycleKey}`,
+        date: inv.paidDate,
+        title: `Fatura ${inv.card.nickname || inv.card.bank || "Cartão"}`,
+        subtitle: `Ciclo ${inv.cycleKey}`,
+        amount: inv.paidTotal,
         status: "paid",
       });
     }
     return exp;
-  }, [type, incomes, expenses, sales, monthKey, invoicePayments, cards]);
+  }, [type, incomes, expenses, sales, monthKey, paidInvoices]);
 
   const filtered = useMemo(() => {
     let arr = rows;
