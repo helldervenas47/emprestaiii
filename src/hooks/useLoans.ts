@@ -651,11 +651,12 @@ export function useLoans() {
 
     try {
       await applyPaymentBalance(amount, paymentMethodId ?? null, normalizedSplit);
-      await recordLedger({
-        direction: "in", category: "payment", amount,
+      await recordPaymentLedgerSplit({
+        amount,
         description: `Pagamento parcial - ${loan.borrowerName}`,
-        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
-        metadata: { payment_method_id: paymentMethodId ?? null },
+        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId,
+        paymentMethodId: paymentMethodId ?? null,
+        split: normalizedSplit,
       });
     } catch (balanceError: any) {
       console.error("[addPartialPayment] adjust balance failed:", balanceError);
