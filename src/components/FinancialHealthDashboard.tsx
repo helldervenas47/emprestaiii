@@ -167,7 +167,7 @@ function computeScore(m: MonthMetrics, piggyBalance: number, avgExpense: number)
 export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props) {
   const { hidden } = useHideValues();
   const { deposits } = usePiggyBanks();
-  const [expanded, setExpanded] = useState(false);
+  const { sales } = useProducts(true);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportContent, setReportContent] = useState<string>("");
