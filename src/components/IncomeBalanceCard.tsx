@@ -179,7 +179,9 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
         : e.amount;
       return s + amt;
     }, 0);
-    const monthOut = monthOutExpenses + (cardInvoicePaidByMonth[monthKey] ?? 0);
+    const piggyMonth = piggyNetByMonth[monthKey] ?? 0;
+    const monthOut = monthOutExpenses + (cardInvoicePaidByMonth[monthKey] ?? 0) + Math.max(0, piggyMonth);
+    const piggyMonthIn = Math.max(0, -piggyMonth);
 
     // Futuras do mês selecionado (pendentes/agendadas, não canceladas).
     // Receitas recorrentes são materializadas como lançamentos mensais separados;
