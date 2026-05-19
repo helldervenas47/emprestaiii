@@ -194,9 +194,7 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
               minAngle={6}
               paddingAngle={1}
               labelLine={{ stroke: "hsl(var(--muted-foreground))", strokeWidth: 1 }}
-              label={({ name, percent }: any) =>
-                `${name} ${(percent * 100).toFixed(0)}%`
-              }
+              label={({ name }: any) => name}
               isAnimationActive={false}
             >
               {byCategory.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
