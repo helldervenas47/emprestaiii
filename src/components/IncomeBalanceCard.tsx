@@ -158,7 +158,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     const totalExpensePaid = expenses
       .filter((e) => e.paid && (e.scope ?? "business") === "personal" && !isCreditCardExpense(e))
       .reduce((s, e) => s + e.amount, 0);
-    // balance recomputado abaixo como Entradas mês − Saídas mês
+    const balance = totalIncomeReceived + totalSalesReceived - totalExpensePaid - cardInvoicePaidTotal - piggyNetTotal;
 
     // Movimentação do mês vigente — alinhada ao total exibido em MonthTransactionsSheet
     // (Entradas/Saídas do mês), considerando todas as ocorrências do mês (pagas + pendentes).
@@ -200,7 +200,6 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     const piggyMonth = piggyNetByMonth[monthKey] ?? 0;
     const monthOut = monthOutExpenses + monthInvoicesPaid;
     const piggyMonthIn = Math.max(0, -piggyMonth);
-    const balance = (monthIn + piggyMonthIn) - monthOut;
 
     // Futuras do mês selecionado (pendentes/agendadas, não canceladas).
     // Receitas recorrentes são materializadas como lançamentos mensais separados;
@@ -314,7 +313,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
             {fmt(calc.balance, hide)}
           </div>
           <div className="mt-1 text-xs text-muted-foreground">
-            Entradas mês − Saídas mês
+            Receitas recebidas + vendas recebidas − despesas pessoais pagas
           </div>
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             <div className={`flex items-center gap-1 text-sm font-medium whitespace-nowrap ${trendColor}`}>
