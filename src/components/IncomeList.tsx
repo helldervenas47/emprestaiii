@@ -52,10 +52,21 @@ interface Props {
 
 export function IncomeList({ readOnly }: Props) {
   const { incomes, addIncome, updateIncome, deleteIncome, duplicateIncome, markReceived } = useIncomes();
-  const { expenses } = useExpenses();
-  const { sales } = useProducts();
+  const { expenses: rawExpenses } = useExpenses();
+  const { sales: rawSales } = useProducts();
   const { clients } = useClients();
   const { activeMethods } = usePaymentMethods();
+
+  // Isolamento da aba Veículos: receitas/despesas/aluguéis de veículos
+  // não devem impactar saldos, listas ou relatórios da aba Receitas.
+  const expenses = useMemo(
+    () => rawExpenses.filter((e) => !isVehicleExpenseForVehicles(e)),
+    [rawExpenses],
+  );
+  const sales = useMemo(
+    () => rawSales.filter((s) => s.businessType !== "aluguel_veiculo"),
+    [rawSales],
+  );
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("pending");
