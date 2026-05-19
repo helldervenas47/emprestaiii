@@ -254,7 +254,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .filter((i) => i.status === "received" && i.receivedDate.startsWith(prevKey))
       .reduce((s, i) => s + i.amount, 0);
 
-    return { balance, monthIn, monthOut, futureIn, futureOut, projected, projectedDiff, prevIn, pendingInCount };
+    return { balance, monthIn: monthIn + piggyMonthIn, monthOut, futureIn, futureOut, projected, projectedDiff, prevIn, pendingInCount };
   }, [incomes, expenses, monthKey, prevKey, cards, openings, sales, cardInvoicePaidByMonth, cardInvoicePaidTotal]);
 
   const diff = calc.monthIn - calc.prevIn;
