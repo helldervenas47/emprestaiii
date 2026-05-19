@@ -4,9 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Income, IncomeStatus } from "@/hooks/useIncomes";
 import { Expense, Sale } from "@/types/loan";
-import { ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertTriangle, Repeat } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertTriangle, Repeat, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
+import { useCreditCards } from "@/hooks/useCreditCards";
+import { useDataOwner } from "@/hooks/useDataOwner";
+import { supabase } from "@/integrations/supabase/client";
 
 function fmt(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
