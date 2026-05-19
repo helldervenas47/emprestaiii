@@ -273,57 +273,39 @@ export function ConsolidatedBalanceCards() {
                 </div>
               );
 
+              const contasItems = [
+                visibility.account && (
+                  <Item key="account" icon={Landmark} label="Conta" hint="Saldo bancário (Dashboard)" value={dashboardAccount} tint="bg-primary/15 text-primary" />
+                ),
+                visibility.cash && (
+                  <Item key="cash" icon={Banknote} label="Dinheiro em mãos" hint="Carteira (Dashboard)" value={dashboardCash} tint="bg-success/15 text-success" />
+                ),
+                visibility.incomes && (
+                  <Item key="incomes" icon={ArrowDownCircle} label="Saldo em Conta (Receitas)" hint="Receitas − Despesas pessoais" value={baseReceitas} tint="bg-warning/15 text-warning" />
+                ),
+              ].filter(Boolean);
+              const reservasItems = [
+                visibility.piggy && (
+                  <Item key="piggy" icon={PiggyBank} label="Total dos Cofrinhos" hint={`${piggyBanks.length} ${piggyBanks.length === 1 ? "cofrinho" : "cofrinhos"}`} value={piggyTotal} tint="bg-pink-500/15 text-pink-500" />
+                ),
+                visibility.vehicle && (
+                  <Item key="vehicle" icon={Car} label="Saldo de Veículos" hint="Reserva vinculada a veículos" value={vehicleBalance} tint="bg-blue-500/15 text-blue-500" />
+                ),
+              ].filter(Boolean);
+
               return (
                 <div className="space-y-4">
-                  <Section title="Contas">
-                    <Item
-                      icon={Landmark}
-                      label="Conta"
-                      hint="Saldo bancário (Dashboard)"
-                      value={dashboardAccount}
-                      tint="bg-primary/15 text-primary"
-                    />
-                    <Item
-                      icon={Banknote}
-                      label="Dinheiro em mãos"
-                      hint="Carteira (Dashboard)"
-                      value={dashboardCash}
-                      tint="bg-success/15 text-success"
-                    />
-                    <Item
-                      icon={ArrowDownCircle}
-                      label="Saldo em Conta (Receitas)"
-                      hint="Receitas − Despesas pessoais"
-                      value={baseReceitas}
-                      tint="bg-warning/15 text-warning"
-                    />
-                  </Section>
-
-                  <Section title="Reservas">
-                    <Item
-                      icon={PiggyBank}
-                      label="Total dos Cofrinhos"
-                      hint={`${piggyBanks.length} ${piggyBanks.length === 1 ? "cofrinho" : "cofrinhos"}`}
-                      value={piggyTotal}
-                      tint="bg-pink-500/15 text-pink-500"
-                    />
-                    <Item
-                      icon={Car}
-                      label="Saldo de Veículos"
-                      hint="Reserva vinculada a veículos"
-                      value={vehicleBalance}
-                      tint="bg-blue-500/15 text-blue-500"
-                    />
-                  </Section>
+                  {contasItems.length > 0 && <Section title="Contas">{contasItems}</Section>}
+                  {reservasItems.length > 0 && <Section title="Reservas">{reservasItems}</Section>}
 
                   {(() => {
-                    const parts = [
-                      { label: "Conta", value: Math.max(0, dashboardAccount), color: "bg-primary" },
-                      { label: "Dinheiro", value: Math.max(0, dashboardCash), color: "bg-success" },
-                      { label: "Receitas", value: Math.max(0, baseReceitas), color: "bg-warning" },
-                      { label: "Cofrinhos", value: Math.max(0, piggyTotal), color: "bg-pink-500" },
-                      { label: "Veículos", value: Math.max(0, vehicleBalance), color: "bg-blue-500" },
-                    ];
+                    const parts = ([
+                      visibility.account && { label: "Conta", value: Math.max(0, dashboardAccount), color: "bg-primary" },
+                      visibility.cash && { label: "Dinheiro", value: Math.max(0, dashboardCash), color: "bg-success" },
+                      visibility.incomes && { label: "Receitas", value: Math.max(0, baseReceitas), color: "bg-warning" },
+                      visibility.piggy && { label: "Cofrinhos", value: Math.max(0, piggyTotal), color: "bg-pink-500" },
+                      visibility.vehicle && { label: "Veículos", value: Math.max(0, vehicleBalance), color: "bg-blue-500" },
+                    ].filter(Boolean)) as { label: string; value: number; color: string }[];
                     const sum = parts.reduce((s, p) => s + p.value, 0);
                     if (sum <= 0) return null;
                     return (
