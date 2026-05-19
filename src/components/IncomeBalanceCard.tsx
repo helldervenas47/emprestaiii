@@ -142,10 +142,12 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     }, 0);
     const monthInSales = sales.reduce((s, sale) => s + saleReceivedInMonth(sale, monthKey), 0);
     const monthIn = monthInIncomes + monthInSales;
-    // Saídas do mês: apenas despesas pessoais pagas, considerando a data de pagamento.
-    const monthOut = expenses.reduce((s, e) => {
+    // Saídas do mês: despesas pessoais pagas (exceto itens de cartão, que entram pelo
+    // pagamento real da fatura registrado no extrato) + pagamentos de fatura no mês.
+    const monthOutExpenses = expenses.reduce((s, e) => {
       if ((e.scope ?? "business") !== "personal") return s;
       if (!e.paid) return s;
+      if (isCreditCardExpense(e)) return s;
       const d = e.paidDate || e.dueDate || "";
       if (!d.startsWith(monthKey)) return s;
       const amt = e.type === "recorrente" && e.installments && e.installments > 1
@@ -153,6 +155,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
         : e.amount;
       return s + amt;
     }, 0);
+    const monthOut = monthOutExpenses + (cardInvoicePaidByMonth[monthKey] ?? 0);
 
     // Futuras do mês selecionado (pendentes/agendadas, não canceladas).
     // Receitas recorrentes são materializadas como lançamentos mensais separados;
