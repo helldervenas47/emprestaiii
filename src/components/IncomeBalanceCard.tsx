@@ -10,7 +10,7 @@ import { useHideValues } from "@/contexts/HideValuesContext";
 import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight, Settings2, Receipt, Info } from "lucide-react";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
-import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
+import { getCardInvoiceTotalsForMonth, isCreditCardExpense, listPaidInvoicesInRange } from "@/lib/creditCardInvoiceTotals";
 import { isPiggyExpense } from "@/hooks/usePiggyBanks";
 import { useProducts } from "@/hooks/useProducts";
 import { Sale } from "@/types/loan";
