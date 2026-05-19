@@ -14,6 +14,7 @@ import { useHideValues } from "@/contexts/HideValuesContext";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { isCreditCardExpense, listPaidInvoicesInRange } from "@/lib/creditCardInvoiceTotals";
+import { useMonthFlow } from "@/hooks/useMonthFlow";
 import {
   ResponsiveContainer,
   RadialBarChart,
@@ -191,6 +192,7 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
   const { sales } = useProducts(true);
   const { cards } = useCreditCards();
   const { openings } = useCreditCardOpenings();
+  const monthFlow = useMonthFlow(monthKey);
   const [expanded, setExpanded] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
@@ -489,9 +491,9 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
       <div className={`${expanded ? "grid" : "hidden"} sm:grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6`}>
         <InsightCard
           icon={<Wallet className="h-4 w-4" />}
-          accent={data.current.income >= data.current.expense ? COLOR_GREEN : COLOR_RED}
-          title={data.current.income >= data.current.expense ? "Você gastou menos do que ganhou" : "Você gastou mais do que ganhou"}
-          value={fmtBRL(data.current.income - data.current.expense, hidden)}
+          accent={monthFlow.monthIn >= monthFlow.monthOut ? COLOR_GREEN : COLOR_RED}
+          title={monthFlow.monthIn >= monthFlow.monthOut ? "Você gastou menos do que ganhou" : "Você gastou mais do que ganhou"}
+          value={fmtBRL(monthFlow.monthIn - monthFlow.monthOut, hidden)}
         />
         <InsightCard
           icon={<PiggyBank className="h-4 w-4" />}
