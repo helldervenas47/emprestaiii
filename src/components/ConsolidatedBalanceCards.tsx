@@ -40,28 +40,9 @@ export function ConsolidatedBalanceCards() {
   const { sales } = useProducts(true);
   const { piggyBanks, balances: piggyBalances } = usePiggyBanks();
 
-  // Espelha EXATAMENTE o "Saldo em Conta" da aba Receitas e Despesas
-  // (IncomeBalanceCard): receitas recebidas + vendas recebidas − despesas pessoais pagas.
-  const { incomes } = useIncomes(true);
-  const { expenses } = useExpenses(true);
-  const incomesBalance = useMemo(() => {
-    const totalIncomeReceived = incomes
-      .filter((i) => i.status === "received")
-      .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-    const totalSalesReceived = sales.reduce((s, sale) => {
-      const historyTotal = (sale.paymentHistory || []).reduce(
-        (acc, p) => acc + (Number(p.amount) || 0),
-        0,
-      );
-      const iv = sale.installmentValue ?? (sale.installments > 0 ? sale.total / sale.installments : sale.total);
-      const legacyTotal = (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
-      return s + Math.max(historyTotal, legacyTotal);
-    }, 0);
-    const totalExpensePaid = expenses
-      .filter((e: any) => e.paid && (e.scope ?? "business") === "personal")
-      .reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
-    return totalIncomeReceived + totalSalesReceived - totalExpensePaid;
-  }, [incomes, sales, expenses]);
+  // Espelha EXATAMENTE o "Saldo em Conta" da aba Receitas (IncomeBalanceCard)
+  // via hook unificado — mantém os dois cards sempre sincronizados.
+  const incomesBalance = useUnifiedAccountBalance();
 
   const [dashboardAccount, setDashboardAccount] = useState(0);
   const [dashboardCash, setDashboardCash] = useState(0);
