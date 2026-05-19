@@ -158,7 +158,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     const totalExpensePaid = expenses
       .filter((e) => e.paid && (e.scope ?? "business") === "personal" && !isCreditCardExpense(e))
       .reduce((s, e) => s + e.amount, 0);
-    const balance = totalIncomeReceived + totalSalesReceived - totalExpensePaid - cardInvoicePaidTotal - piggyNetTotal;
+    // balance recomputado abaixo como Entradas mês − Saídas mês
 
     // Movimentação do mês vigente — alinhada ao total exibido em MonthTransactionsSheet
     // (Entradas/Saídas do mês), considerando todas as ocorrências do mês (pagas + pendentes).
