@@ -6,8 +6,7 @@ import { TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle
 import { useLoans } from "@/hooks/useLoans";
 import { useProducts } from "@/hooks/useProducts";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
-import { useIncomes } from "@/hooks/useIncomes";
-import { useExpenses } from "@/hooks/useExpenses";
+import { useUnifiedAccountBalance } from "@/hooks/useUnifiedAccountBalance";
 import { getBalances } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
 import type { Sale } from "@/types/loan";
