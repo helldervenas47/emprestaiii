@@ -1194,20 +1194,9 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                   const newPaidTotal = Number(Math.min(total, paidTotal + amount).toFixed(2));
                   const isFull = newPaidTotal + 0.005 >= total;
 
-                  // 1) Calcular ledger já lançado para este ciclo (escopado por owner)
-                  //    e debitar PRIMEIRO. Se falhar, nada é marcado como pago.
-                  const { data: sess } = await supabase.auth.getSession();
-                  const authedId = sess.session?.user?.id ?? null;
-                  let ownerId: string | null = authedId;
-                  if (authedId) {
-                    const { data: ownerRow } = await supabase
-                      .from("user_owner" as any)
-                      .select("owner_id")
-                      .eq("user_id", authedId)
-                      .maybeSingle();
-                    ownerId = (ownerRow as any)?.owner_id || authedId;
-                  }
-                  let ledgerPaid = 0;
+                  // 1) Calcular ledger real já lançado para este ciclo e debitar PRIMEIRO.
+                  //    Se a fatura foi marcada como paga antes sem débito, isso regulariza o saldo da conta.
+                  let ledgerPaid = invoiceLedgerPaid;
                   if (ownerId) {
                     const { data: ledgerRows } = await supabase
                       .from("account_ledger")
@@ -1228,6 +1217,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                   let ledgerAmount = Number(Math.max(0, newPaidTotal - ledgerPaid).toFixed(2));
                   // Quando estamos quitando totalmente e o opening ainda não foi debitado
                   // em nenhum lançamento anterior, garante que o saldo inicial entra no débito.
+                  if (ledgerAmount + 0.005 < amount) ledgerAmount = amount;
                   if (isFull && openingAmount > 0 && !openingPaidFlag) {
                     const missingOpening = Number(Math.max(0, openingAmount - Math.max(0, ledgerPaid - paidItemsTotal)).toFixed(2));
                     if (missingOpening > ledgerAmount) ledgerAmount = missingOpening;
@@ -1249,6 +1239,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                           kind: "credit_card_invoice_payment",
                         },
                       });
+                      setInvoiceLedgerPaid(Number((ledgerPaid + ledgerAmount).toFixed(2)));
                     } catch {
                       toast.error("Não foi possível debitar a conta. Pagamento cancelado.");
                       setPaying(false);
