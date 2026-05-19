@@ -314,7 +314,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
             {fmt(calc.balance, hide)}
           </div>
           <div className="mt-1 text-xs text-muted-foreground">
-            Receitas recebidas + vendas recebidas − despesas pessoais pagas
+            Entradas mês − Saídas mês
           </div>
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             <div className={`flex items-center gap-1 text-sm font-medium whitespace-nowrap ${trendColor}`}>
