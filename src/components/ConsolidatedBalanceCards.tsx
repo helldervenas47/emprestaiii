@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle, ArrowUpRight, ArrowDownRight, PieChart } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Settings2, TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle, ArrowUpRight, ArrowDownRight, PieChart } from "lucide-react";
 import { useLoans } from "@/hooks/useLoans";
 import { useProducts } from "@/hooks/useProducts";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
@@ -12,6 +13,22 @@ import { useUnifiedAccountBalance } from "@/hooks/useUnifiedAccountBalance";
 import { getBalances } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
 import type { Sale } from "@/types/loan";
+
+type MaosVisibility = {
+  account: boolean;
+  cash: boolean;
+  incomes: boolean;
+  piggy: boolean;
+  vehicle: boolean;
+};
+const VIS_STORAGE_KEY = "balanceMaos.visibility.v1";
+const DEFAULT_VIS: MaosVisibility = {
+  account: true,
+  cash: true,
+  incomes: true,
+  piggy: true,
+  vehicle: true,
+};
 
 const formatBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
