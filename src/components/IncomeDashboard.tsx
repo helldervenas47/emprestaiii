@@ -181,9 +181,24 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
 
       <Card no3d className="p-4">
         <h3 className="text-sm font-semibold mb-3 text-foreground">Receitas por categoria</h3>
-        <ResponsiveContainer width="100%" height={220}>
-          <PieChart>
-            <Pie data={byCategory} dataKey="value" nameKey="name" outerRadius={75} label={(e: any) => e.name}>
+        <ResponsiveContainer width="100%" height={280}>
+          <PieChart margin={{ top: 20, right: 70, bottom: 20, left: 70 }}>
+            <Pie
+              data={byCategory}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={70}
+              innerRadius={0}
+              minAngle={6}
+              paddingAngle={1}
+              labelLine={{ stroke: "hsl(var(--muted-foreground))", strokeWidth: 1 }}
+              label={({ name, percent }: any) =>
+                `${name} ${(percent * 100).toFixed(0)}%`
+              }
+              isAnimationActive={false}
+            >
               {byCategory.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
             </Pie>
             <Tooltip
