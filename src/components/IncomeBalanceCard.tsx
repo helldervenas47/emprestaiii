@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditC
 import { isPiggyExpense } from "@/hooks/usePiggyBanks";
 import { useProducts } from "@/hooks/useProducts";
 import { Sale } from "@/types/loan";
+import { supabase } from "@/integrations/supabase/client";
+import { useDataOwner } from "@/hooks/useDataOwner";
 
 /** Total efetivamente recebido de uma venda (não os lançamentos previstos). */
 function saleReceivedTotal(sale: Sale): number {
