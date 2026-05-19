@@ -1056,18 +1056,31 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
             const remaining = paymentRemaining;
             return (
               <div className="space-y-4 py-2">
-                <div className="rounded-xl bg-muted/40 p-3 grid grid-cols-3 gap-2 text-center">
-                  <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</p>
-                    <p className="text-sm font-semibold text-foreground mt-0.5">{mask(fmt(total))}</p>
+                <div className="rounded-xl bg-muted/40 p-3 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Compras do ciclo</span>
+                    <span className="font-medium text-foreground">{mask(fmt(transactionsTotal))}</span>
                   </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Já pago</p>
-                    <p className="text-sm font-semibold text-success mt-0.5">{mask(fmt(paidTotal))}</p>
+                  {openingAmount > 0 && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Saldo inicial</span>
+                      <span className="font-medium text-foreground">{mask(fmt(openingAmount))}</span>
+                    </div>
+                  )}
+                  <div className="h-px bg-border/60 my-1" />
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-foreground">Total da fatura</span>
+                    <span className="font-semibold text-foreground">{mask(fmt(total))}</span>
                   </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Restante</p>
-                    <p className="text-sm font-semibold text-foreground mt-0.5">{mask(fmt(remaining))}</p>
+                  {paidTotal > 0.005 && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Já pago</span>
+                      <span className="font-medium text-success">{mask(fmt(paidTotal))}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-foreground">Restante</span>
+                    <span className="font-semibold text-primary">{mask(fmt(remaining))}</span>
                   </div>
                 </div>
 
