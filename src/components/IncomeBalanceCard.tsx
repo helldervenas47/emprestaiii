@@ -72,7 +72,12 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
   const { hidden: hide } = useHideValues();
   const { cards } = useCreditCards();
   const { openings } = useCreditCardOpenings();
-  const { sales } = useProducts(true);
+  const { sales: rawSales } = useProducts(true);
+  // Aluguéis de veículo são isolados na aba "Veículos" e não impactam este saldo.
+  const sales = useMemo(
+    () => rawSales.filter((s) => s.businessType !== "aluguel_veiculo"),
+    [rawSales],
+  );
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [target, setTarget] = useState("");
   const [saving, setSaving] = useState(false);
