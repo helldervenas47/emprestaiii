@@ -58,9 +58,40 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
   const [filter, setFilter] = useState<string>(initialFilter ?? "all");
   const [sortBy, setSortBy] = useState<"date_desc" | "date_asc" | "amount">("date_desc");
 
+  const ownerId = useDataOwner();
+  const { cards } = useCreditCards();
+  const [invoicePayments, setInvoicePayments] = useState<
+    { id: string; date: string; amount: number; cardId?: string; cycleKey?: string }[]
+  >([]);
+
   useEffect(() => {
     if (open) setFilter(initialFilter ?? "all");
   }, [open, initialFilter]);
+
+  useEffect(() => {
+    if (!open || type !== "expenses" || !ownerId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("account_ledger")
+        .select("id, amount, occurred_on, metadata")
+        .eq("user_id", ownerId)
+        .eq("direction", "out")
+        .eq("metadata->>kind", "credit_card_invoice_payment");
+      if (cancelled) return;
+      const rows = ((data as any[]) ?? []).map((r) => ({
+        id: String(r.id),
+        date: String(r.occurred_on || ""),
+        amount: Number(r.amount) || 0,
+        cardId: r.metadata?.credit_card_id,
+        cycleKey: r.metadata?.cycle_key,
+      }));
+      setInvoicePayments(rows);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, type, ownerId]);
 
   const rows = useMemo<Row[]>(() => {
     if (type === "incomes") {
