@@ -154,10 +154,13 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
       }
       return out;
     }
-    return expenses
+    const exp: Row[] = expenses
       .filter((e) => {
         if ((e.scope ?? "business") !== "personal") return false;
         if (!e.paid) return false;
+        // Itens individuais vinculados ao cartão entram pelo pagamento consolidado
+        // da fatura (account_ledger) — não contar de novo aqui para evitar duplicidade.
+        if (isCreditCardExpense(e)) return false;
         const d = e.paidDate || e.dueDate || "";
         return d.startsWith(monthKey);
       })
@@ -172,7 +175,21 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
           status: "paid" as Row["status"],
         };
       });
-  }, [type, incomes, expenses, sales, monthKey]);
+    // Pagamentos de fatura de cartão registrados no extrato, no mês selecionado.
+    for (const p of invoicePayments) {
+      if (!p.date.startsWith(monthKey)) continue;
+      const card = cards.find((c) => c.id === p.cardId);
+      exp.push({
+        id: `card-invoice-${p.id}`,
+        date: p.date,
+        title: `Fatura ${card?.name ?? "Cartão"}`,
+        subtitle: p.cycleKey ? `Ciclo ${p.cycleKey}` : "Pagamento de fatura",
+        amount: p.amount,
+        status: "paid",
+      });
+    }
+    return exp;
+  }, [type, incomes, expenses, sales, monthKey, invoicePayments, cards]);
 
   const filtered = useMemo(() => {
     let arr = rows;
