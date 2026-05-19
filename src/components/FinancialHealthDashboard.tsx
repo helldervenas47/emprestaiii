@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { Income } from "@/hooks/useIncomes";
 import { Expense } from "@/types/loan";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
+import { useProducts } from "@/hooks/useProducts";
+import { Sale } from "@/types/loan";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import {
   ResponsiveContainer,
@@ -110,10 +112,36 @@ function monthlyExpenseAmount(e: Expense): number {
   return isRec ? Number(e.amount) / Number(e.installments) : Number(e.amount);
 }
 
-function computeMonthMetrics(incomes: Income[], expenses: Expense[], key: string): MonthMetrics {
-  const income = incomes
+function saleReceivedTotal(sale: Sale): number {
+  const history = sale.paymentHistory || [];
+  const historyTotal = history.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  const iv = sale.installmentValue ?? (sale.installments > 0 ? sale.total / sale.installments : sale.total);
+  const legacyTotal = (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
+  return Math.max(historyTotal, legacyTotal);
+}
+
+function saleReceivedInMonth(sale: Sale, monthKey: string): number {
+  const history = sale.paymentHistory || [];
+  if (history.length > 0) {
+    const historyMonthSum = history
+      .filter((p) => (p.date || "").startsWith(monthKey))
+      .reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    const historyTotal = history.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    const iv = sale.installmentValue ?? (sale.installments > 0 ? sale.total / sale.installments : sale.total);
+    const legacyTotal = (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
+    if (historyTotal >= legacyTotal) return historyMonthSum;
+    const missing = legacyTotal - historyTotal;
+    return historyMonthSum + ((sale.date || "").startsWith(monthKey) ? missing : 0);
+  }
+  return (sale.date || "").startsWith(monthKey) ? saleReceivedTotal(sale) : 0;
+}
+
+function computeMonthMetrics(incomes: Income[], expenses: Expense[], sales: Sale[], key: string): MonthMetrics {
+  const incomeFromIncomes = incomes
     .filter((i) => i.status === "received" && i.receivedDate.startsWith(key))
     .reduce((s, i) => s + i.amount, 0);
+  const incomeFromSales = sales.reduce((s, sale) => s + saleReceivedInMonth(sale, key), 0);
+  const income = incomeFromIncomes + incomeFromSales;
   const personal = expenses.filter((e) => (e.scope ?? "business") === "personal");
   const expense = personal
     .filter((e) => e.paid && (e.paidDate || "").startsWith(key))
@@ -139,6 +167,7 @@ function computeScore(m: MonthMetrics, piggyBalance: number, avgExpense: number)
 export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props) {
   const { hidden } = useHideValues();
   const { deposits } = usePiggyBanks();
+  const { sales } = useProducts(true);
   const [expanded, setExpanded] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
@@ -150,7 +179,7 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
 
     // Últimos 6 meses (incluindo o atual)
     const months = Array.from({ length: 6 }, (_, i) => monthKeyOffset(monthKey, -(5 - i)));
-    const monthsMetrics = months.map((k) => computeMonthMetrics(incomes, expenses, k));
+    const monthsMetrics = months.map((k) => computeMonthMetrics(incomes, expenses, sales, k));
     const avgExpense =
       monthsMetrics.reduce((s, m) => s + m.expense, 0) / Math.max(1, monthsMetrics.filter((m) => m.expense > 0).length);
 
@@ -224,7 +253,7 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
         stability: Math.round(stability),
       },
     };
-  }, [incomes, expenses, monthKey, deposits]);
+  }, [incomes, expenses, sales, monthKey, deposits]);
 
   const generateReport = async () => {
     setReportOpen(true);
