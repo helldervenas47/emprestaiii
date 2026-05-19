@@ -18,6 +18,7 @@ import { IncomeDashboard } from "./IncomeDashboard";
 import { FinancialHealthDashboard } from "./FinancialHealthDashboard";
 import { IncomePendingCalendar } from "./IncomePendingCalendar";
 import { IncomeForm, INCOME_CATEGORIES } from "./IncomeForm";
+import { isVehicleExpenseForVehicles } from "./VehicleExpenseForm";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { MonthTransactionsSheet } from "./MonthTransactionsSheet";
 import { FinancialStatement } from "./FinancialStatement";
