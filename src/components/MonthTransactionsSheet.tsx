@@ -182,7 +182,7 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
       exp.push({
         id: `card-invoice-${p.id}`,
         date: p.date,
-        title: `Fatura ${card?.name ?? "Cartão"}`,
+        title: `Fatura ${card?.nickname ?? card?.bank ?? "Cartão"}`,
         subtitle: p.cycleKey ? `Ciclo ${p.cycleKey}` : "Pagamento de fatura",
         amount: p.amount,
         status: "paid",
