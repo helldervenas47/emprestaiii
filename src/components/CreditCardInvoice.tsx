@@ -36,7 +36,8 @@ import { Progress } from "@/components/ui/progress";
 import { CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOpenings";
-import { readPaidOverride, writePaidOverride, listPaidInvoicesInRange, isCreditCardExpense, creditCardLedgerHandled, type PaidInvoiceEntry } from "@/lib/creditCardInvoiceTotals";
+import { useDataOwner } from "@/hooks/useDataOwner";
+import { readPaidOverride, writePaidOverride, listPaidInvoicesInRange, isCreditCardExpense, type PaidInvoiceEntry } from "@/lib/creditCardInvoiceTotals";
 import { expandCreditCardExpenses, type ExpandedExpense } from "@/lib/creditCardInstallments";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { getBank, brandLabel } from "@/lib/creditCardBanks";
@@ -89,6 +90,7 @@ function getCycle(ref: Date, closingDay: number, dueDay: number) {
 export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }: Props) {
   const { expenses, updateExpense, deleteExpense } = useExpenses();
   const { openings, getOpening, upsertOpening } = useCreditCardOpenings();
+  const ownerId = useDataOwner();
   const { mask } = useHideValues();
   const bank = getBank(card.bank);
 
@@ -122,6 +124,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const [paying, setPaying] = useState(false);
   const [payAmount, setPayAmount] = useState("");
   const [payWallet, setPayWallet] = useState<"account" | "cash">("account");
+  const [invoiceLedgerPaid, setInvoiceLedgerPaid] = useState(0);
   const [deletingPayment, setDeletingPayment] = useState<PaidInvoiceEntry | null>(null);
   const [deletingPaymentBusy, setDeletingPaymentBusy] = useState(false);
 
@@ -274,13 +277,45 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const prevTotal = sumItems(prevItems) + (prevOpening?.openingAmount ?? 0);
   const paidOverride = readPaidOverride(opening?.notes);
   const openingPaidFlag = /\[PAGA\]/i.test(opening?.notes ?? "");
-  const ledgerHandled = creditCardLedgerHandled(opening?.notes);
   const paidItemsTotal = sumItems(items.filter((e) => e.paid));
   const paidTotal = paidOverride ?? Number((paidItemsTotal + (openingPaidFlag ? openingAmount : 0)).toFixed(2));
   const remainingTotal = Math.max(0, Number((total - paidTotal).toFixed(2)));
-  // Se ainda não há lançamento no extrato, o pagamento precisa regularizar o total pago da fatura,
-  // incluindo saldos antigos já marcados como pagos apenas no cartão.
-  const paymentRemaining = ledgerHandled ? remainingTotal : total;
+  const totalRounded = Number(total.toFixed(2));
+  // O saldo da conta deve ser regularizado pelo que já está marcado como pago na fatura,
+  // mas ainda não foi efetivamente lançado no extrato. Isso cobre o saldo inicial/anterior.
+  const paymentRemaining = Math.max(
+    0,
+    Number((Math.max(remainingTotal, paidTotal - invoiceLedgerPaid, totalRounded - invoiceLedgerPaid)).toFixed(2)),
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadInvoiceLedgerPaid = async () => {
+      if (!ownerId) {
+        if (!cancelled) setInvoiceLedgerPaid(0);
+        return;
+      }
+      const { data } = await supabase
+        .from("account_ledger")
+        .select("amount, metadata")
+        .eq("user_id", ownerId)
+        .eq("category", "expense");
+      const paid = ((data as any[]) ?? [])
+        .filter((r) => {
+          const m = r.metadata || {};
+          return m.credit_card_id === card.id && m.cycle_key === cycleKey && m.kind === "credit_card_invoice_payment";
+        })
+        .reduce((s, r) => s + (Number(r.amount) || 0), 0);
+      if (!cancelled) setInvoiceLedgerPaid(Number(paid.toFixed(2)));
+    };
+    loadInvoiceLedgerPaid();
+    const onChanged = () => loadInvoiceLedgerPaid();
+    window.addEventListener("ledger:changed", onChanged);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("ledger:changed", onChanged);
+    };
+  }, [ownerId, card.id, cycleKey]);
 
   // Limite disponível = limite total - (despesas pendentes do cartão + saldos iniciais de
   // faturas em aberto). Reflete tudo que ainda foi gasto e não pago neste cartão.
@@ -1158,20 +1193,9 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                   const newPaidTotal = Number(Math.min(total, paidTotal + amount).toFixed(2));
                   const isFull = newPaidTotal + 0.005 >= total;
 
-                  // 1) Calcular ledger já lançado para este ciclo (escopado por owner)
-                  //    e debitar PRIMEIRO. Se falhar, nada é marcado como pago.
-                  const { data: sess } = await supabase.auth.getSession();
-                  const authedId = sess.session?.user?.id ?? null;
-                  let ownerId: string | null = authedId;
-                  if (authedId) {
-                    const { data: ownerRow } = await supabase
-                      .from("user_owner" as any)
-                      .select("owner_id")
-                      .eq("user_id", authedId)
-                      .maybeSingle();
-                    ownerId = (ownerRow as any)?.owner_id || authedId;
-                  }
-                  let ledgerPaid = 0;
+                  // 1) Calcular ledger real já lançado para este ciclo e debitar PRIMEIRO.
+                  //    Se a fatura foi marcada como paga antes sem débito, isso regulariza o saldo da conta.
+                  let ledgerPaid = invoiceLedgerPaid;
                   if (ownerId) {
                     const { data: ledgerRows } = await supabase
                       .from("account_ledger")
@@ -1192,6 +1216,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                   let ledgerAmount = Number(Math.max(0, newPaidTotal - ledgerPaid).toFixed(2));
                   // Quando estamos quitando totalmente e o opening ainda não foi debitado
                   // em nenhum lançamento anterior, garante que o saldo inicial entra no débito.
+                  if (ledgerAmount + 0.005 < amount) ledgerAmount = amount;
                   if (isFull && openingAmount > 0 && !openingPaidFlag) {
                     const missingOpening = Number(Math.max(0, openingAmount - Math.max(0, ledgerPaid - paidItemsTotal)).toFixed(2));
                     if (missingOpening > ledgerAmount) ledgerAmount = missingOpening;
@@ -1213,6 +1238,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                           kind: "credit_card_invoice_payment",
                         },
                       });
+                      setInvoiceLedgerPaid(Number((ledgerPaid + ledgerAmount).toFixed(2)));
                     } catch {
                       toast.error("Não foi possível debitar a conta. Pagamento cancelado.");
                       setPaying(false);
