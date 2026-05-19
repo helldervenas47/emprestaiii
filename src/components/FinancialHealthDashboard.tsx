@@ -191,6 +191,7 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
   const { sales } = useProducts(true);
   const { cards } = useCreditCards();
   const { openings } = useCreditCardOpenings();
+  const monthFlow = useMonthFlow(monthKey);
   const [expanded, setExpanded] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
