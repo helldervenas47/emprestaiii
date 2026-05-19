@@ -30,6 +30,33 @@ const DEFAULT_VIS: MaosVisibility = {
   vehicle: true,
 };
 
+// Cards extras (escolha 2) — aparecem abaixo dos cards de valores
+type ExtraCardKey =
+  | "composicao"
+  | "projecao30"
+  | "savingsRate"
+  | "runway"
+  | "topCategories"
+  | "biggest"
+  | "nextIncomes7"
+  | "nextBills7"
+  | "piggySummary"
+  | "monthCompare";
+const EXTRA_STORAGE_KEY = "balanceMaos.extraCards.v1";
+const DEFAULT_EXTRA: ExtraCardKey[] = ["composicao", "projecao30"];
+const EXTRA_CARDS_META: { key: ExtraCardKey; label: string; hint: string }[] = [
+  { key: "composicao", label: "Composição do saldo", hint: "Distribuição % por carteira" },
+  { key: "projecao30", label: "Projeção em 30 dias", hint: "Saldo projetado com previstos" },
+  { key: "savingsRate", label: "Taxa de poupança do mês", hint: "(Entradas − Saídas) / Entradas" },
+  { key: "runway", label: "Fôlego financeiro", hint: "Meses cobertos pelo saldo atual" },
+  { key: "topCategories", label: "Top 3 categorias do mês", hint: "Maiores categorias de despesa" },
+  { key: "biggest", label: "Maior entrada e saída", hint: "Destaques do mês" },
+  { key: "nextIncomes7", label: "Próximos recebimentos (7d)", hint: "Receitas pendentes da semana" },
+  { key: "nextBills7", label: "Contas a vencer (7d)", hint: "Despesas pessoais da semana" },
+  { key: "piggySummary", label: "Resumo dos cofrinhos", hint: "Total guardado e quantidade" },
+  { key: "monthCompare", label: "Comparativo mês a mês", hint: "Atual vs mês anterior" },
+];
+
 const formatBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
