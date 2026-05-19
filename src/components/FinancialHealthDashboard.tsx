@@ -11,6 +11,9 @@ import { usePiggyBanks } from "@/hooks/usePiggyBanks";
 import { useProducts } from "@/hooks/useProducts";
 import { Sale } from "@/types/loan";
 import { useHideValues } from "@/contexts/HideValuesContext";
+import { useCreditCards } from "@/hooks/useCreditCards";
+import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
+import { isCreditCardExpense, listPaidInvoicesInRange } from "@/lib/creditCardInvoiceTotals";
 import {
   ResponsiveContainer,
   RadialBarChart,
@@ -136,16 +139,34 @@ function saleReceivedInMonth(sale: Sale, monthKey: string): number {
   return (sale.date || "").startsWith(monthKey) ? saleReceivedTotal(sale) : 0;
 }
 
-function computeMonthMetrics(incomes: Income[], expenses: Expense[], sales: Sale[], key: string): MonthMetrics {
+function computeMonthMetrics(
+  incomes: Income[],
+  expenses: Expense[],
+  sales: Sale[],
+  cards: ReturnType<typeof useCreditCards>["cards"],
+  openings: ReturnType<typeof useCreditCardOpenings>["openings"],
+  key: string,
+): MonthMetrics {
   const incomeFromIncomes = incomes
     .filter((i) => i.status === "received" && i.receivedDate.startsWith(key))
     .reduce((s, i) => s + i.amount, 0);
   const incomeFromSales = sales.reduce((s, sale) => s + saleReceivedInMonth(sale, key), 0);
   const income = incomeFromIncomes + incomeFromSales;
   const personal = expenses.filter((e) => (e.scope ?? "business") === "personal");
-  const expense = personal
-    .filter((e) => e.paid && (e.paidDate || "").startsWith(key))
+  // Saídas do mês = despesas pessoais pagas (exceto itens de cartão) + faturas de cartão quitadas no mês.
+  const expensePaidNonCard = personal
+    .filter((e) => e.paid && (e.paidDate || "").startsWith(key) && !isCreditCardExpense(e))
     .reduce((s, e) => s + monthlyExpenseAmount(e), 0);
+  const [yy, mm] = key.split("-").map(Number);
+  let invoicesPaid = 0;
+  if (yy && mm) {
+    const lastDay = new Date(yy, mm, 0).getDate();
+    const fromISO = `${key}-01`;
+    const toISO = `${key}-${String(lastDay).padStart(2, "0")}`;
+    invoicesPaid = listPaidInvoicesInRange(expenses, cards, openings, fromISO, toISO)
+      .reduce((s, inv) => s + inv.paidTotal, 0);
+  }
+  const expense = expensePaidNonCard + invoicesPaid;
   const pendingExpense = personal
     .filter((e) => !e.paid && (e.dueDate || "").startsWith(key))
     .reduce((s, e) => s + monthlyExpenseAmount(e), 0);
@@ -168,6 +189,8 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
   const { hidden } = useHideValues();
   const { deposits } = usePiggyBanks();
   const { sales } = useProducts(true);
+  const { cards } = useCreditCards();
+  const { openings } = useCreditCardOpenings();
   const [expanded, setExpanded] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
@@ -179,7 +202,7 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
 
     // Últimos 6 meses (incluindo o atual)
     const months = Array.from({ length: 6 }, (_, i) => monthKeyOffset(monthKey, -(5 - i)));
-    const monthsMetrics = months.map((k) => computeMonthMetrics(incomes, expenses, sales, k));
+    const monthsMetrics = months.map((k) => computeMonthMetrics(incomes, expenses, sales, cards, openings, k));
     const avgExpense =
       monthsMetrics.reduce((s, m) => s + m.expense, 0) / Math.max(1, monthsMetrics.filter((m) => m.expense > 0).length);
 
@@ -253,7 +276,7 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
         stability: Math.round(stability),
       },
     };
-  }, [incomes, expenses, sales, monthKey, deposits]);
+  }, [incomes, expenses, sales, cards, openings, monthKey, deposits]);
 
   const generateReport = async () => {
     setReportOpen(true);
