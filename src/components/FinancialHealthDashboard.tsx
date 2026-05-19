@@ -200,9 +200,22 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
   const data = useMemo(() => {
     const piggyBalance = deposits.reduce((s, d) => s + (Number(d.amount) || 0), 0);
 
+    // Net cofrinhos por mês (positivo = aporte / negativo = resgate). Resgates
+    // entram como "entrada" no mês (igual ao card "Entradas mês").
+    const piggyNetByMonth: Record<string, number> = {};
+    for (const d of deposits) {
+      const mk = (d.depositDate || "").slice(0, 7);
+      if (!mk) continue;
+      piggyNetByMonth[mk] = (piggyNetByMonth[mk] ?? 0) + (Number(d.amount) || 0);
+    }
+
     // Últimos 6 meses (incluindo o atual)
     const months = Array.from({ length: 6 }, (_, i) => monthKeyOffset(monthKey, -(5 - i)));
-    const monthsMetrics = months.map((k) => computeMonthMetrics(incomes, expenses, sales, cards, openings, k));
+    const monthsMetrics = months.map((k) => {
+      const m = computeMonthMetrics(incomes, expenses, sales, cards, openings, k);
+      const piggyIn = Math.max(0, -(piggyNetByMonth[k] ?? 0));
+      return { ...m, income: m.income + piggyIn };
+    });
     const avgExpense =
       monthsMetrics.reduce((s, m) => s + m.expense, 0) / Math.max(1, monthsMetrics.filter((m) => m.expense > 0).length);
 
