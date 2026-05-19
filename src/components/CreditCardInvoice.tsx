@@ -36,6 +36,7 @@ import { Progress } from "@/components/ui/progress";
 import { CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOpenings";
+import { useDataOwner } from "@/hooks/useDataOwner";
 import { readPaidOverride, writePaidOverride, listPaidInvoicesInRange, isCreditCardExpense, creditCardLedgerHandled, type PaidInvoiceEntry } from "@/lib/creditCardInvoiceTotals";
 import { expandCreditCardExpenses, type ExpandedExpense } from "@/lib/creditCardInstallments";
 import { useHideValues } from "@/contexts/HideValuesContext";
@@ -89,6 +90,7 @@ function getCycle(ref: Date, closingDay: number, dueDay: number) {
 export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }: Props) {
   const { expenses, updateExpense, deleteExpense } = useExpenses();
   const { openings, getOpening, upsertOpening } = useCreditCardOpenings();
+  const ownerId = useDataOwner();
   const { mask } = useHideValues();
   const bank = getBank(card.bank);
 
@@ -122,6 +124,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const [paying, setPaying] = useState(false);
   const [payAmount, setPayAmount] = useState("");
   const [payWallet, setPayWallet] = useState<"account" | "cash">("account");
+  const [invoiceLedgerPaid, setInvoiceLedgerPaid] = useState(0);
   const [deletingPayment, setDeletingPayment] = useState<PaidInvoiceEntry | null>(null);
   const [deletingPaymentBusy, setDeletingPaymentBusy] = useState(false);
 
