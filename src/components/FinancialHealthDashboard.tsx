@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { Income } from "@/hooks/useIncomes";
 import { Expense } from "@/types/loan";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
+import { useProducts } from "@/hooks/useProducts";
+import { Sale } from "@/types/loan";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import {
   ResponsiveContainer,
