@@ -128,6 +128,68 @@ async function applyPaymentBalanceOffline(amount: number, paymentMethodId: strin
   await adjustBalanceOffline(amount * multiplier, wallet);
 }
 
+/**
+ * Records an "in" payment in the ledger. When a split is provided, creates ONE
+ * entry per split part (each with its own payment_method_id/wallet) so that the
+ * extrato/histórico mostra corretamente os dois meios de pagamento utilizados.
+ * All entries compartilham o mesmo payment_id (o índice único permite isso pois
+ * passou a incluir payment_method_id na chave).
+ */
+async function recordPaymentLedgerSplit(args: {
+  amount: number;
+  description: string;
+  occurred_on: string;
+  loan_id: string;
+  payment_id: string;
+  paymentMethodId: string | null;
+  split: PaymentSplit | null;
+  extraMetadata?: Record<string, any>;
+}) {
+  const { amount, description, occurred_on, loan_id, payment_id, paymentMethodId, split, extraMetadata } = args;
+  if (split?.parts?.length) {
+    const total = split.parts.reduce((s, p) => s + (Number(p.amount) || 0), 0) || amount;
+    for (let i = 0; i < split.parts.length; i++) {
+      const part = split.parts[i];
+      const partAmount = Number(part.amount) || 0;
+      if (partAmount <= 0) continue;
+      const ratio = total > 0 ? partAmount / total : 0;
+      const partMeta: Record<string, any> = {
+        ...(extraMetadata ?? {}),
+        payment_method_id: part.paymentMethodId ?? null,
+        split_part: true,
+        split_index: i,
+        split_count: split.parts.length,
+        total_amount: Math.round(total * 100) / 100,
+      };
+      // Distribui valores extras (principal/juros) proporcionalmente, se houver
+      if (extraMetadata?.principal_amount != null) {
+        partMeta.principal_amount = Math.round(Number(extraMetadata.principal_amount) * ratio * 100) / 100;
+      }
+      if (extraMetadata?.interest_amount != null) {
+        partMeta.interest_amount = Math.round(Number(extraMetadata.interest_amount) * ratio * 100) / 100;
+      }
+      if (extraMetadata?.fees_amount != null) {
+        partMeta.fees_amount = Math.round(Number(extraMetadata.fees_amount) * ratio * 100) / 100;
+      }
+      await recordLedger({
+        direction: "in", category: "payment", amount: partAmount,
+        description, occurred_on, loan_id, payment_id,
+        source: "auto", syncBalance: false,
+        payment_method_id: part.paymentMethodId ?? null,
+        metadata: partMeta,
+      });
+    }
+    return;
+  }
+  await recordLedger({
+    direction: "in", category: "payment", amount,
+    description, occurred_on, loan_id, payment_id,
+    source: "auto", syncBalance: false,
+    payment_method_id: paymentMethodId ?? null,
+    metadata: { payment_method_id: paymentMethodId ?? null, ...(extraMetadata ?? {}) },
+  });
+}
+
 export function useLoans() {
   const { user, dataOwnerId } = useAuth();
   const [loans, setLoans] = useState<Loan[]>([]);
