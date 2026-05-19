@@ -179,7 +179,7 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
 
     // Últimos 6 meses (incluindo o atual)
     const months = Array.from({ length: 6 }, (_, i) => monthKeyOffset(monthKey, -(5 - i)));
-    const monthsMetrics = months.map((k) => computeMonthMetrics(incomes, expenses, k));
+    const monthsMetrics = months.map((k) => computeMonthMetrics(incomes, expenses, sales, k));
     const avgExpense =
       monthsMetrics.reduce((s, m) => s + m.expense, 0) / Math.max(1, monthsMetrics.filter((m) => m.expense > 0).length);
 
