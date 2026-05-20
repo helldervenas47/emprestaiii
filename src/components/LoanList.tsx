@@ -2531,6 +2531,18 @@ function LoanRowView({
   clients?: Client[];
 }) {
   const [showAdjustDueDateRow, setShowAdjustDueDateRow] = useState(false);
+  const [payMenuOpen, setPayMenuOpen] = useState(false);
+  React.useEffect(() => {
+    if (!payMenuOpen) return;
+    const close = () => setPayMenuOpen(false);
+    const t = setTimeout(() => {
+      document.addEventListener("pointerdown", close, { once: true });
+    }, 0);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("pointerdown", close);
+    };
+  }, [payMenuOpen]);
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
