@@ -842,6 +842,7 @@ const Index = () => {
                   initialView={initialLoanView}
                   clients={filteredClients}
                   onOpenClientHistory={() => setLoanSubTab("history")}
+                  onOpenSimulator={!isReadOnly ? () => setShowLoanSimulator(true) : undefined}
                 />
               )}
             </div>
