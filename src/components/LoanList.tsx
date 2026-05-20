@@ -4526,6 +4526,12 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       filtered = filtered.filter((l) => l.installments >= 2 && l.status !== "paid");
     } else if (category === "venda") {
       filtered = filtered.filter((l) => !!l.isSale);
+    } else if (category === "on_track") {
+      // "Em Dia" inclui também os contratos com pagamento de juros (status JUROS).
+      filtered = filtered.filter((l) => {
+        const cat = getLoanCategory(l, payments, installmentSchedules);
+        return cat === "on_track" || cat === "paid_interest";
+      });
     } else {
       filtered = filtered.filter((l) => getLoanCategory(l, payments, installmentSchedules) === category);
     }
