@@ -2968,13 +2968,13 @@ function LoanRowView({
         )}
       </td>
       {/* Vencimento */}
-      <td className="px-1.5 sm:px-4 py-2 sm:py-3">
+      <td className="px-1.5 sm:px-4 py-2 sm:py-3 whitespace-nowrap">
         <span className={`text-[11px] sm:text-sm ${category === "overdue" ? "text-warning" : "text-foreground"}`}>
           {getFirstPendingDate(loan, installmentSchedules).toLocaleDateString("pt-BR")}
         </span>
       </td>
-      {/* Etiquetas - hidden on mobile */}
-      <td className="hidden sm:table-cell px-4 py-3">
+      {/* Etiquetas - hidden on mobile and tablet */}
+      <td className="hidden lg:table-cell px-4 py-3">
         <div className="flex flex-wrap gap-1">
           {loan.tags && loan.tags.length > 0 ? loan.tags.map((tag) => (
             <Badge key={tag} className="bg-primary text-primary-foreground text-[10px]">{tag}</Badge>
