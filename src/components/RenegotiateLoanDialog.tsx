@@ -555,46 +555,47 @@ export function RenegotiateLoanDialog({
                 setType(v as any);
                 setConfirming(false);
               }}
-              className="grid grid-cols-1 gap-2"
+              className="grid grid-cols-3 gap-1.5"
             >
               <label
                 htmlFor="reneg-no-interest"
-                className="flex items-start gap-3 rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40"
+                className={`flex flex-col items-center justify-center gap-1 rounded-lg border p-2 cursor-pointer text-center min-h-[60px] transition-colors ${
+                  type === "no_interest" ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"
+                }`}
               >
-                <RadioGroupItem value="no_interest" id="reneg-no-interest" className="mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Sem juros</p>
-                  <p className="text-xs text-muted-foreground">
-                    Apenas ajusta prazo/parcelas. Não adiciona valor extra.
-                  </p>
-                </div>
+                <RadioGroupItem value="no_interest" id="reneg-no-interest" className="sr-only" />
+                <p className="text-[11px] sm:text-xs font-semibold leading-tight">Sem juros</p>
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight">
+                  Ajusta prazo
+                </p>
               </label>
               <label
                 htmlFor="reneg-with-penalty"
-                className="flex items-start gap-3 rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40"
+                className={`flex flex-col items-center justify-center gap-1 rounded-lg border p-2 cursor-pointer text-center min-h-[60px] transition-colors ${
+                  type === "with_penalty" ? "border-warning bg-warning/5" : "border-border hover:bg-muted/40"
+                }`}
               >
-                <RadioGroupItem value="with_penalty" id="reneg-with-penalty" className="mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Com multa (reajuste)</p>
-                  <p className="text-xs text-muted-foreground">
-                    Adiciona uma multa de renegociação (R$ ou %) ao total.
-                  </p>
-                </div>
+                <RadioGroupItem value="with_penalty" id="reneg-with-penalty" className="sr-only" />
+                <p className="text-[11px] sm:text-xs font-semibold leading-tight">Com multa</p>
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight">
+                  Acresce R$ / %
+                </p>
               </label>
               <label
                 htmlFor="reneg-discount"
-                className="flex items-start gap-3 rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40"
+                className={`flex flex-col items-center justify-center gap-1 rounded-lg border p-2 cursor-pointer text-center min-h-[60px] transition-colors ${
+                  type === "discount" ? "border-success bg-success/5" : "border-border hover:bg-muted/40"
+                }`}
               >
-                <RadioGroupItem value="discount" id="reneg-discount" className="mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Com desconto</p>
-                  <p className="text-xs text-muted-foreground">
-                    Informe um novo valor total menor que o saldo atual.
-                  </p>
-                </div>
+                <RadioGroupItem value="discount" id="reneg-discount" className="sr-only" />
+                <p className="text-[11px] sm:text-xs font-semibold leading-tight">Com desconto</p>
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight">
+                  Novo total menor
+                </p>
               </label>
             </RadioGroup>
           </div>
+
 
           {type === "discount" && (
             <div className="space-y-2 rounded-lg border border-success/30 bg-success/5 p-3">
