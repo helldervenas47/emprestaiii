@@ -4133,9 +4133,9 @@ function LoanRowView({
             className="rounded-md border pointer-events-auto"
           />
         </div>
-        <DialogFooter className="shrink-0 px-6 pb-6 pt-3">
-          <Button variant="outline" onClick={() => setPaymentDialog(null)}>Cancelar</Button>
-          <Button onClick={confirmPayment} disabled={(rowActiveMethods.length > 0 && !rowSelectedMethodId) || (paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)) || (paymentDialog?.type === "amortize" && !(parseFloat(amortizeAmount.replace(",", ".")) > 0 && parseFloat(amortizeAmount.replace(",", ".")) <= (Number(loan.amount) || 0)))}>Confirmar</Button>
+        <DialogFooter className="shrink-0 flex-row gap-2 border-t border-border/40 bg-background/95 backdrop-blur px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-6 sm:pt-3 sm:border-0 sm:bg-transparent sm:backdrop-blur-0">
+          <Button variant="outline" onClick={() => setPaymentDialog(null)} className="flex-1 sm:flex-none">Cancelar</Button>
+          <Button size="lg" onClick={confirmPayment} disabled={(rowActiveMethods.length > 0 && !rowSelectedMethodId) || (paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)) || (paymentDialog?.type === "amortize" && !(parseFloat(amortizeAmount.replace(",", ".")) > 0 && parseFloat(amortizeAmount.replace(",", ".")) <= (Number(loan.amount) || 0)))} className="flex-[2] sm:flex-none sm:h-11"><CheckCircle2 className="h-4 w-4" /> Confirmar pagamento</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
