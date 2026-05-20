@@ -2019,12 +2019,12 @@ function LoanCardView({
       <DialogContent
         style={{ padding: 0 }}
         className={cn(
-          "left-2 right-2 top-2 bottom-[calc(env(safe-area-inset-bottom)+7rem)] h-auto w-auto max-w-none translate-x-0 translate-y-0 block overflow-y-auto overscroll-contain p-0 touch-pan-y [-webkit-overflow-scrolling:touch] sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[85svh] sm:w-full sm:max-w-[340px] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:grid sm:grid-rows-[auto_minmax(0,1fr)_auto] sm:gap-0 sm:overflow-hidden",
+          "left-1 right-1 top-1 bottom-1 h-auto w-auto max-w-none translate-x-0 translate-y-0 flex flex-col overflow-hidden p-0 sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[85svh] sm:w-full sm:max-w-[360px] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:grid sm:grid-rows-[auto_minmax(0,1fr)_auto] sm:gap-0",
           paymentDialog?.type === "interest" && lateFees > 0 && "sm:max-w-[460px]"
         )}
       >
-        <DialogHeader className="px-6 pt-6">
-          <DialogTitle>
+        <DialogHeader className="shrink-0 px-4 pt-4 sm:px-6 sm:pt-6">
+          <DialogTitle className="text-base sm:text-lg">
             {paymentDialog?.type === "full" ? "Pagamento Total" :
              paymentDialog?.type === "payoff" ? "Quitar Contrato" :
              paymentDialog?.type === "amortize" ? "Amortizar Contrato" :
@@ -2032,7 +2032,7 @@ function LoanCardView({
              paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
           </DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col items-center gap-2 overflow-visible px-6 pb-4 sm:min-h-0 sm:overflow-y-auto sm:overscroll-contain sm:touch-pan-y sm:[-webkit-overflow-scrolling:touch]">
+        <div className="flex-1 min-h-0 flex flex-col items-center gap-2 overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch] px-4 pb-3 sm:px-6 sm:pb-4">
           {paymentDialog?.type === "full" && (
             <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
               <p className="text-xs text-muted-foreground">Total restante a receber</p>
