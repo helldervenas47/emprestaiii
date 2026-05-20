@@ -4760,6 +4760,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
   // Baseados em TODOS os empréstimos não quitados, independentemente dos filtros.
   const statusSummary = useMemo(() => {
     const today = todayInAppTz();
+    const currentMonth = today.slice(0, 7);
     let overdue = 0;
     let dueToday = 0;
     let onTrack = 0;
@@ -4768,22 +4769,23 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     let onTrackCount = 0;
     for (const l of loans) {
       if (l.status === "paid") continue;
-      const due = l.dueDate || "";
-      if (due && due < today) {
-        // Mesma lógica do card "Saúde da Operação": soma das parcelas vencidas
-        // (sem incluir saldo futuro, juros de atraso ou multa).
+      const cat = getLoanCategory(l, payments, installmentSchedules);
+      if (cat === "overdue") {
         overdue += getOverdueAmount(l, installmentSchedules, today);
         overdueCount += 1;
-      } else {
-        const base = getBaseRemainingAmount(l, payments, installmentSchedules);
-        const fees = getLoanLateFees(l, payments, installmentSchedules);
-        const renegPenalty = Number(l.renegotiationPenaltyTotal || 0);
-        const receivable = Math.max(0, base + fees.lateFees + renegPenalty);
-        if (due === today) {
-          dueToday += receivable;
-          dueTodayCount += 1;
-        } else if (due > today && due.slice(0, 7) === today.slice(0, 7)) {
-          // "No Prazo" considera apenas vencimentos futuros dentro do mês vigente.
+        continue;
+      }
+      const base = getBaseRemainingAmount(l, payments, installmentSchedules);
+      const fees = getLoanLateFees(l, payments, installmentSchedules);
+      const renegPenalty = Number(l.renegotiationPenaltyTotal || 0);
+      const receivable = Math.max(0, base + fees.lateFees + renegPenalty);
+      if (cat === "due_today") {
+        dueToday += receivable;
+        dueTodayCount += 1;
+      } else if (cat === "on_track" || cat === "paid_interest") {
+        // "No Prazo" considera apenas vencimentos futuros dentro do mês vigente.
+        const due = l.dueDate || "";
+        if (due.slice(0, 7) === currentMonth) {
           onTrack += receivable;
           onTrackCount += 1;
         }
@@ -4796,6 +4798,25 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       totalCount: overdueCount + dueTodayCount + onTrackCount,
     };
   }, [loans, payments, installmentSchedules]);
+
+  // Aplica o filtro do card escolhido (categoria + janela de datas de vencimento quando necessário).
+  const applyCardFilter = useCallback((cardId: "overdue" | "due_today" | "on_track" | "all") => {
+    setSelectedCategories([cardId]);
+    setDueDateQuick(null);
+    if (cardId === "on_track") {
+      const today = todayInAppTz();
+      const [y, m] = today.split("-");
+      const firstOfMonth = `${y}-${m}-01`;
+      // último dia do mês
+      const lastDay = new Date(Number(y), Number(m), 0).getDate();
+      const lastOfMonth = `${y}-${m}-${String(lastDay).padStart(2, "0")}`;
+      setDueDateFrom(firstOfMonth);
+      setDueDateTo(lastOfMonth);
+    } else {
+      setDueDateFrom("");
+      setDueDateTo("");
+    }
+  }, []);
 
   if (loans.length === 0) {
     return (
@@ -4825,7 +4846,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             <button
               key={c.label}
               type="button"
-              onClick={() => setSelectedCategories([c.id])}
+              onClick={() => applyCardFilter(c.id as "overdue" | "due_today" | "on_track" | "all")}
               className={`rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center transition-all duration-200 hover:scale-[1.02] hover:shadow-md focus:outline-none ${isActive ? `ring-2 ${c.ring}` : ""}`}
               style={{ animationDelay: c.delay, animationFillMode: "backwards" }}
             >
