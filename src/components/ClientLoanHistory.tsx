@@ -1,21 +1,10 @@
 import { useMemo, useState, useCallback, useRef, useLayoutEffect } from "react";
-import { Loan, Payment, Sale } from "@/types/loan";
+import { Loan, Payment } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { calculateTotalWithInterest } from "@/hooks/useLoans";
-import {
-  Search,
-  Users,
-  BarChart3,
-  ArrowUpDown,
-  ChevronRight,
-  ArrowLeft,
-  HandCoins,
-  ShoppingBag,
-  ArrowDownCircle,
-  Banknote,
-} from "lucide-react";
+import { Search, Users, BarChart3, ArrowUpDown, ChevronRight, ArrowLeft } from "lucide-react";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +19,6 @@ import {
 interface Props {
   loans: Loan[];
   payments: Payment[];
-  sales?: Sale[];
 }
 
 function formatCurrency(value: number): string {
@@ -39,19 +27,11 @@ function formatCurrency(value: number): string {
 
 interface ClientRow {
   name: string;
-  // loan-only metrics
   borrowed: number;
   paid: number;
   pending: number;
   total: number;
   interestRate: number;
-  // sales-only metrics
-  salesCount: number;
-  salesTotal: number;
-  salesPaid: number;
-  salesPending: number;
-  hasLoans: boolean;
-  hasSales: boolean;
 }
 
 type SortOption =
@@ -68,13 +48,7 @@ type SortOption =
   | "rate-desc"
   | "rate-asc";
 
-function salePaidAmount(s: Sale): number {
-  const hist = Array.isArray(s.paymentHistory) ? s.paymentHistory : [];
-  if (hist.length > 0) return hist.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-  return Number(s.partialPaid) || 0;
-}
-
-export function ClientLoanHistory({ loans, payments, sales = [] }: Props) {
+export function ClientLoanHistory({ loans, payments }: Props) {
   const [search, setSearch] = useState("");
   const [showSummary, setShowSummary] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("name-asc");
@@ -99,58 +73,14 @@ export function ClientLoanHistory({ loans, payments, sales = [] }: Props) {
     }
   }, [selectedClient]);
 
-  // Map: lowercased key → display name (preserve first-seen casing)
-  const nameDisplay = useMemo(() => {
-    const map: Record<string, string> = {};
-    loans.forEach((l) => {
-      const key = (l.borrowerName || "—").trim().toLowerCase();
-      if (!map[key]) map[key] = (l.borrowerName || "—").trim();
-    });
-    sales.forEach((s) => {
-      const key = (s.customerName || "—").trim().toLowerCase();
-      if (!map[key]) map[key] = (s.customerName || "—").trim();
-    });
-    return map;
-  }, [loans, sales]);
-
-  const loansByClientKey = useMemo(() => {
-    const map: Record<string, Loan[]> = {};
-    loans.forEach((l) => {
-      const key = (l.borrowerName || "—").trim().toLowerCase();
-      (map[key] ??= []).push(l);
-    });
-    Object.keys(map).forEach((k) => {
-      map[k].sort((a, b) => {
-        const da = a.startDate || "";
-        const db = b.startDate || "";
-        return da.localeCompare(db);
-      });
-    });
-    return map;
-  }, [loans]);
-
-  const salesByClientKey = useMemo(() => {
-    const map: Record<string, Sale[]> = {};
-    sales.forEach((s) => {
-      const key = (s.customerName || "—").trim().toLowerCase();
-      (map[key] ??= []).push(s);
-    });
-    Object.keys(map).forEach((k) => {
-      map[k].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
-    });
-    return map;
-  }, [sales]);
-
   const rows = useMemo<ClientRow[]>(() => {
-    const keys = new Set<string>([
-      ...Object.keys(loansByClientKey),
-      ...Object.keys(salesByClientKey),
-    ]);
+    const byName: Record<string, Loan[]> = {};
+    loans.forEach((l) => {
+      const key = l.borrowerName?.trim() || "—";
+      (byName[key] ??= []).push(l);
+    });
 
-    const out: ClientRow[] = Array.from(keys).map((key) => {
-      const clientLoans = loansByClientKey[key] ?? [];
-      const clientSales = salesByClientKey[key] ?? [];
-
+    const out: ClientRow[] = Object.entries(byName).map(([name, clientLoans]) => {
       let borrowed = 0;
       let paid = 0;
       let pending = 0;
@@ -161,12 +91,13 @@ export function ClientLoanHistory({ loans, payments, sales = [] }: Props) {
         const totalPaid = loanPayments.reduce((s, p) => s + (p.amount || 0), 0);
         paid += totalPaid;
 
-        if (l.status !== "paid") {
+        if (l.status === "paid") {
+          // No pending
+        } else {
           const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-          const baseRemaining =
-            l.remainingAmount != null && l.remainingAmount > 0
-              ? l.remainingAmount
-              : Math.max(0, expected - totalPaid);
+          const baseRemaining = l.remainingAmount != null && l.remainingAmount > 0
+            ? l.remainingAmount
+            : Math.max(0, expected - totalPaid);
 
           const today = new Date();
           today.setHours(0, 0, 0, 0);
@@ -194,30 +125,15 @@ export function ClientLoanHistory({ loans, payments, sales = [] }: Props) {
       });
 
       const total = paid + pending;
-      // Taxa de Juros: APENAS empréstimos (não considera vendas)
       const interestRate = borrowed > 0 ? ((total - borrowed) / borrowed) * 100 : 0;
 
-      let salesTotal = 0;
-      let salesPaid = 0;
-      clientSales.forEach((s) => {
-        salesTotal += Number(s.total) || 0;
-        salesPaid += salePaidAmount(s);
-      });
-      const salesPending = Math.max(0, salesTotal - salesPaid);
-
       return {
-        name: nameDisplay[key] || "—",
+        name,
         borrowed,
         paid,
         pending,
         total,
         interestRate,
-        salesCount: clientSales.length,
-        salesTotal,
-        salesPaid,
-        salesPending,
-        hasLoans: clientLoans.length > 0,
-        hasSales: clientSales.length > 0,
       };
     });
 
@@ -242,22 +158,13 @@ export function ClientLoanHistory({ loans, payments, sales = [] }: Props) {
         default: return a.name.localeCompare(b.name, "pt-BR");
       }
     });
-  }, [loansByClientKey, salesByClientKey, payments, search, sortBy, nameDisplay]);
+  }, [loans, payments, search, sortBy]);
 
-  // Cache: payments grouped by loanId
+  // Cache: payments grouped by loanId — avoids re-filtering for each expanded client
   const paymentsByLoan = useMemo(() => {
     const map: Record<string, number> = {};
     payments.forEach((p) => {
       map[p.loanId] = (map[p.loanId] ?? 0) + (p.amount || 0);
-    });
-    return map;
-  }, [payments]);
-
-  // Cache: payments[] grouped by loanId for timeline
-  const paymentsListByLoan = useMemo(() => {
-    const map: Record<string, Payment[]> = {};
-    payments.forEach((p) => {
-      (map[p.loanId] ??= []).push(p);
     });
     return map;
   }, [payments]);
@@ -274,46 +181,53 @@ export function ClientLoanHistory({ loans, payments, sales = [] }: Props) {
     return map;
   }, [payments]);
 
+  // Cache: loans grouped by client name and pre-sorted by startDate ASC (oldest → newest)
+  const loansByClient = useMemo(() => {
+    const map: Record<string, Loan[]> = {};
+    loans.forEach((l) => {
+      const key = l.borrowerName?.trim() || "—";
+      (map[key] ??= []).push(l);
+    });
+    Object.keys(map).forEach((k) => {
+      map[k].sort((a, b) => {
+        const da = a.startDate ? new Date(a.startDate).getTime() : 0;
+        const db = b.startDate ? new Date(b.startDate).getTime() : 0;
+        return da - db;
+      });
+    });
+    return map;
+  }, [loans]);
+
   const totals = useMemo(() => {
-    // Loan-only totals (taxa de juros and indicadores financeiros relacionados a empréstimos)
     const totalPending = rows.reduce((s, r) => s + r.pending, 0);
     const totalPaid = rows.reduce((s, r) => s + r.paid, 0);
     const totalBorrowed = rows.reduce((s, r) => s + r.borrowed, 0);
     const grandTotal = totalPaid + totalPending;
     const clientCount = rows.length;
     const avgInterestRate = totalBorrowed > 0 ? ((grandTotal - totalBorrowed) / totalBorrowed) * 100 : 0;
-    // Sales totals
-    const salesTotal = rows.reduce((s, r) => s + r.salesTotal, 0);
-    const salesPaid = rows.reduce((s, r) => s + r.salesPaid, 0);
-    const salesPending = rows.reduce((s, r) => s + r.salesPending, 0);
-    return { totalPending, totalPaid, totalBorrowed, grandTotal, clientCount, avgInterestRate, salesTotal, salesPaid, salesPending };
+    return { totalPending, totalPaid, totalBorrowed, grandTotal, clientCount, avgInterestRate };
   }, [rows]);
 
   const mask = (v: string) => (hidden ? "•••" : v);
 
-  if (loans.length === 0 && sales.length === 0) {
+  if (loans.length === 0) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
           <Users className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
-          <p className="text-muted-foreground">Nenhum cliente com empréstimos ou vendas</p>
+          <p className="text-muted-foreground">Nenhum cliente com empréstimos</p>
         </CardContent>
       </Card>
     );
   }
 
   if (selectedClient) {
-    const key = selectedClient.trim().toLowerCase();
-    const clientLoans = loansByClientKey[key] ?? [];
-    const clientSales = salesByClientKey[key] ?? [];
-    const summary = rows.find((r) => r.name.trim().toLowerCase() === key);
+    const clientLoans = loansByClient[selectedClient] ?? [];
+    const summary = rows.find((r) => r.name === selectedClient);
     const borrowed = summary?.borrowed ?? 0;
     const paidTotal = summary?.paid ?? 0;
     const pendingTotal = summary?.pending ?? 0;
     const grandTotal = summary?.total ?? 0;
-    const salesTotal = summary?.salesTotal ?? 0;
-    const salesPaid = summary?.salesPaid ?? 0;
-    const salesPending = summary?.salesPending ?? 0;
 
     return (
       <div className="space-y-3 animate-in fade-in slide-in-from-right-4 duration-200">
@@ -330,91 +244,46 @@ export function ClientLoanHistory({ loans, payments, sales = [] }: Props) {
           <h2 className="text-base font-semibold truncate">{selectedClient}</h2>
         </div>
 
-        {/* Empréstimos */}
-        {clientLoans.length > 0 && (
-          <>
-            <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground font-semibold pt-1">
-              <HandCoins className="h-3.5 w-3.5" /> Empréstimos
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
-              <Card>
-                <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-                  <div className="text-[11px] text-muted-foreground mb-0.5">Emprestado</div>
-                  <div className="font-bold tabular-nums text-sm sm:text-base">
-                    {mask(formatCurrency(borrowed))}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-                  <div className="text-[11px] text-muted-foreground mb-0.5">Pago</div>
-                  <div className="font-bold tabular-nums text-success text-sm sm:text-base">
-                    {mask(formatCurrency(paidTotal))}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-                  <div className="text-[11px] text-muted-foreground mb-0.5">Pendente</div>
-                  <div className="font-bold tabular-nums text-warning text-sm sm:text-base">
-                    {mask(formatCurrency(pendingTotal))}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-                  <div className="text-[11px] text-muted-foreground mb-0.5">Total</div>
-                  <div className="font-bold tabular-nums text-primary text-sm sm:text-base">
-                    {mask(formatCurrency(grandTotal))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </>
-        )}
-
-        {/* Vendas */}
-        {clientSales.length > 0 && (
-          <>
-            <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground font-semibold pt-1">
-              <ShoppingBag className="h-3.5 w-3.5" /> Vendas
-            </div>
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              <Card>
-                <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-                  <div className="text-[11px] text-muted-foreground mb-0.5">Total Vendido</div>
-                  <div className="font-bold tabular-nums text-sm sm:text-base">
-                    {mask(formatCurrency(salesTotal))}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-                  <div className="text-[11px] text-muted-foreground mb-0.5">Recebido</div>
-                  <div className="font-bold tabular-nums text-success text-sm sm:text-base">
-                    {mask(formatCurrency(salesPaid))}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-                  <div className="text-[11px] text-muted-foreground mb-0.5">A Receber</div>
-                  <div className="font-bold tabular-nums text-warning text-sm sm:text-base">
-                    {mask(formatCurrency(salesPending))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </>
-        )}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+          <Card>
+            <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+              <div className="text-[11px] text-muted-foreground mb-0.5">Emprestado</div>
+              <div className="font-bold tabular-nums text-sm sm:text-base">
+                {mask(formatCurrency(borrowed))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+              <div className="text-[11px] text-muted-foreground mb-0.5">Pago</div>
+              <div className="font-bold tabular-nums text-success text-sm sm:text-base">
+                {mask(formatCurrency(paidTotal))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+              <div className="text-[11px] text-muted-foreground mb-0.5">Pendente</div>
+              <div className="font-bold tabular-nums text-warning text-sm sm:text-base">
+                {mask(formatCurrency(pendingTotal))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+              <div className="text-[11px] text-muted-foreground mb-0.5">Total</div>
+              <div className="font-bold tabular-nums text-primary text-sm sm:text-base">
+                {mask(formatCurrency(grandTotal))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         <Card>
           <CardContent className="p-3 sm:p-4">
-            <UnifiedClientTimeline
+            <ClientLoansList
               loans={clientLoans}
-              sales={clientSales}
               paymentsByLoan={paymentsByLoan}
-              paymentsListByLoan={paymentsListByLoan}
               lastPaymentDateByLoan={lastPaymentDateByLoan}
               hidden={hidden}
             />
@@ -470,10 +339,10 @@ export function ClientLoanHistory({ loans, payments, sales = [] }: Props) {
       </div>
 
       {showSummary && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
-              <div className="text-sm text-muted-foreground mb-1">Pendente (Empréstimos)</div>
+              <div className="text-sm text-muted-foreground mb-1">Pendente</div>
               <div className="font-bold tabular-nums text-warning text-xl">
                 {mask(formatCurrency(totals.totalPending))}
               </div>
@@ -481,7 +350,7 @@ export function ClientLoanHistory({ loans, payments, sales = [] }: Props) {
           </Card>
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
-              <div className="text-sm text-muted-foreground mb-1">Pago (Empréstimos)</div>
+              <div className="text-sm text-muted-foreground mb-1">Pago</div>
               <div className="font-bold tabular-nums text-success text-xl">
                 {mask(formatCurrency(totals.totalPaid))}
               </div>
@@ -497,7 +366,7 @@ export function ClientLoanHistory({ loans, payments, sales = [] }: Props) {
           </Card>
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
-              <div className="text-sm text-muted-foreground mb-1">Total Empréstimos</div>
+              <div className="text-sm text-muted-foreground mb-1">Total</div>
               <div className="font-bold tabular-nums text-xl">
                 {mask(formatCurrency(totals.grandTotal))}
               </div>
@@ -519,36 +388,11 @@ export function ClientLoanHistory({ loans, payments, sales = [] }: Props) {
               </div>
             </CardContent>
           </Card>
-          {totals.salesTotal > 0 && (
-            <>
-              <Card className="h-full">
-                <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
-                  <div className="text-sm text-muted-foreground mb-1">Total Vendido</div>
-                  <div className="font-bold tabular-nums text-xl">
-                    {mask(formatCurrency(totals.salesTotal))}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="h-full">
-                <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
-                  <div className="text-sm text-muted-foreground mb-1">Recebido (Vendas)</div>
-                  <div className="font-bold tabular-nums text-success text-xl">
-                    {mask(formatCurrency(totals.salesPaid))}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="h-full">
-                <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
-                  <div className="text-sm text-muted-foreground mb-1">A Receber (Vendas)</div>
-                  <div className="font-bold tabular-nums text-warning text-xl">
-                    {mask(formatCurrency(totals.salesPending))}
-                  </div>
-                </CardContent>
-              </Card>
-            </>
-          )}
         </div>
       )}
+
+      {/* Loans details renderer (cached lookup, no recompute on toggle) */}
+      {/* Inline helper kept here for clarity */}
 
       {/* Desktop / Tablet — Table */}
       <Card className="hidden md:block">
@@ -558,7 +402,6 @@ export function ClientLoanHistory({ loans, payments, sales = [] }: Props) {
               <TableRow>
                 <TableHead className="w-8" />
                 <TableHead>Cliente</TableHead>
-                <TableHead>Origem</TableHead>
                 <TableHead className="text-right">Emprestado</TableHead>
                 <TableHead className="text-right">Pago</TableHead>
                 <TableHead className="text-right">Pendente</TableHead>
@@ -577,12 +420,6 @@ export function ClientLoanHistory({ loans, payments, sales = [] }: Props) {
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </TableCell>
                   <TableCell className="font-medium">{r.name}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {r.hasLoans && <OriginBadge kind="loan" />}
-                      {r.hasSales && <OriginBadge kind="sale" count={r.salesCount} />}
-                    </div>
-                  </TableCell>
                   <TableCell className="text-right tabular-nums">{mask(formatCurrency(r.borrowed))}</TableCell>
                   <TableCell className="text-right tabular-nums text-success">{mask(formatCurrency(r.paid))}</TableCell>
                   <TableCell className="text-right tabular-nums text-warning">{mask(formatCurrency(r.pending))}</TableCell>
@@ -594,7 +431,7 @@ export function ClientLoanHistory({ loans, payments, sales = [] }: Props) {
               ))}
               {rows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                     Nenhum cliente encontrado
                   </TableCell>
                 </TableRow>
@@ -617,10 +454,6 @@ export function ClientLoanHistory({ loans, payments, sales = [] }: Props) {
                 <h3 className="font-semibold text-sm truncate text-center">{r.name}</h3>
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </button>
-              <div className="flex flex-wrap justify-center gap-1">
-                {r.hasLoans && <OriginBadge kind="loan" />}
-                {r.hasSales && <OriginBadge kind="sale" count={r.salesCount} />}
-              </div>
               <div className="grid grid-cols-2 gap-2 text-xs text-center">
                 <div>
                   <div className="text-muted-foreground">Emprestado</div>
@@ -638,18 +471,6 @@ export function ClientLoanHistory({ loans, payments, sales = [] }: Props) {
                   <div className="text-muted-foreground">Total</div>
                   <div className="tabular-nums font-semibold">{mask(formatCurrency(r.total))}</div>
                 </div>
-                {r.hasSales && (
-                  <>
-                    <div>
-                      <div className="text-muted-foreground">Vendas</div>
-                      <div className="tabular-nums font-medium">{mask(formatCurrency(r.salesTotal))}</div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground">Receb. Vendas</div>
-                      <div className="tabular-nums font-medium text-success">{mask(formatCurrency(r.salesPaid))}</div>
-                    </div>
-                  </>
-                )}
                 <div className="col-span-2 pt-1 border-t border-border/40">
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Taxa de Juros</span>
@@ -687,277 +508,225 @@ function formatDate(d?: string): string {
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-type OriginKind = "loan" | "sale" | "payment" | "receipt";
 
-function OriginBadge({ kind, count }: { kind: OriginKind; count?: number }) {
-  const meta: Record<OriginKind, { label: string; className: string; Icon: typeof HandCoins }> = {
-    loan: {
-      label: "Empréstimo",
-      className: "bg-primary/15 text-primary border-primary/30",
-      Icon: HandCoins,
-    },
-    sale: {
-      label: "Venda",
-      className: "bg-accent/40 text-accent-foreground border-accent",
-      Icon: ShoppingBag,
-    },
-    payment: {
-      label: "Pagamento",
-      className: "bg-success/15 text-success border-success/30",
-      Icon: ArrowDownCircle,
-    },
-    receipt: {
-      label: "Recebimento",
-      className: "bg-success/15 text-success border-success/30",
-      Icon: Banknote,
-    },
-  };
-  const m = meta[kind];
-  const Icon = m.Icon;
-  return (
-    <Badge
-      variant="outline"
-      className={`text-[10px] px-1.5 py-0 h-5 inline-flex items-center gap-1 ${m.className}`}
-    >
-      <Icon className="h-3 w-3" />
-      {m.label}
-      {count != null && count > 1 ? ` (${count})` : ""}
-    </Badge>
-  );
-}
-
-function statusMetaForLoan(l: Loan) {
-  const isPaid = l.status === "paid";
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const due = l.dueDate ? new Date(`${l.dueDate}T00:00:00`) : null;
-  const isExpired = !isPaid && due != null && !isNaN(due.getTime()) && due.getTime() < today.getTime();
-
-  if (isPaid) return { label: "Pago", className: "bg-success/15 text-success border-success/30" };
-  if (l.status === "overdue") return { label: "Atrasado", className: "bg-destructive/15 text-destructive border-destructive/30" };
-  if (isExpired) return { label: "Vencido", className: "bg-destructive/15 text-destructive border-destructive/30" };
-  return { label: "Pendente", className: "bg-warning/15 text-warning border-warning/30" };
-}
-
-function statusMetaForSale(s: Sale, paid: number) {
-  const total = Number(s.total) || 0;
-  if (paid >= total && total > 0) {
-    return { label: "Pago", className: "bg-success/15 text-success border-success/30" };
-  }
-  // Verifica se alguma parcela está vencida
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const dates = Array.isArray(s.installmentDates) ? s.installmentDates : [];
-  const hasOverdue = dates.some((d, idx) => {
-    if (idx < (s.paidInstallments || 0)) return false;
-    if (!d) return false;
-    const dt = new Date(`${d}T00:00:00`);
-    return !isNaN(dt.getTime()) && dt.getTime() < today.getTime();
-  });
-  if (hasOverdue) return { label: "Vencido", className: "bg-destructive/15 text-destructive border-destructive/30" };
-  if (paid > 0) return { label: "Parcial", className: "bg-warning/15 text-warning border-warning/30" };
-  return { label: "Pendente", className: "bg-warning/15 text-warning border-warning/30" };
-}
-
-interface TimelineProps {
+interface ClientLoansListProps {
   loans: Loan[];
-  sales: Sale[];
   paymentsByLoan: Record<string, number>;
-  paymentsListByLoan: Record<string, Payment[]>;
   lastPaymentDateByLoan: Record<string, string | undefined>;
   hidden: boolean;
 }
 
-interface TimelineItem {
-  id: string;
-  date: string; // YYYY-MM-DD for sorting
-  kind: OriginKind;
-  title: string;
-  amount: number;
-  paid?: number;
-  pending?: number;
-  statusLabel?: string;
-  statusClass?: string;
-  meta?: string;
-  tags?: string[];
-}
-
-function UnifiedClientTimeline({
-  loans,
-  sales,
-  paymentsByLoan,
-  paymentsListByLoan,
-  lastPaymentDateByLoan,
-  hidden,
-}: TimelineProps) {
+function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden }: ClientLoansListProps) {
   const mask = (v: string) => (hidden ? "•••" : v);
 
-  const items = useMemo<TimelineItem[]>(() => {
-    const out: TimelineItem[] = [];
-
-    loans.forEach((l) => {
-      const totalPaid = paymentsByLoan[l.id] ?? 0;
-      const isPaid = l.status === "paid";
-      const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-      const baseRemaining = isPaid
-        ? 0
-        : l.remainingAmount != null && l.remainingAmount > 0
-          ? l.remainingAmount
-          : Math.max(0, expected - totalPaid);
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const due = l.dueDate ? new Date(`${l.dueDate}T00:00:00`) : null;
-      const daysOverdue =
-        !isPaid && due && !isNaN(due.getTime())
-          ? Math.max(0, Math.floor((today.getTime() - due.getTime()) / 86400000))
-          : 0;
-      let lateFees = 0;
-      if (daysOverdue > 0) {
-        if (l.lateInterestValue != null && l.lateInterestValue > 0) {
-          lateFees +=
-            l.lateInterestType === "fixed"
-              ? l.lateInterestValue * daysOverdue
-              : baseRemaining * (l.lateInterestValue / 100) * daysOverdue;
-        }
-        if (l.penaltyValue != null && l.penaltyValue > 0) lateFees += l.penaltyValue;
-      }
-      const remaining = baseRemaining + lateFees;
-      const settlementDate = lastPaymentDateByLoan[l.id];
-      const status = statusMetaForLoan(l);
-
-      out.push({
-        id: `loan-${l.id}`,
-        date: l.startDate || "",
-        kind: "loan",
-        title: `Empréstimo · ${formatCurrency(l.amount)}`,
-        amount: l.amount,
-        paid: totalPaid,
-        pending: remaining,
-        statusLabel: status.label,
-        statusClass: status.className,
-        meta: `Venc. ${formatDate(l.dueDate)} · ${l.paidInstallments ?? 0}/${l.installments}${isPaid && settlementDate ? ` · Quitação ${formatDate(settlementDate)}` : ""}`,
-        tags: l.tags,
-      });
-
-      // Pagamentos do empréstimo
-      (paymentsListByLoan[l.id] ?? []).forEach((p) => {
-        out.push({
-          id: `payment-${p.id}`,
-          date: p.date || "",
-          kind: "payment",
-          title: `Pagamento · ${formatCurrency(p.amount)}`,
-          amount: p.amount,
-          meta: p.installmentNumber ? `Parcela ${p.installmentNumber}` : undefined,
-        });
-      });
-    });
-
-    sales.forEach((s) => {
-      const paid = salePaidAmount(s);
-      const total = Number(s.total) || 0;
-      const pending = Math.max(0, total - paid);
-      const status = statusMetaForSale(s, paid);
-      out.push({
-        id: `sale-${s.id}`,
-        date: s.date || "",
-        kind: "sale",
-        title: `${s.productName || "Venda"} · ${formatCurrency(total)}`,
-        amount: total,
-        paid,
-        pending,
-        statusLabel: status.label,
-        statusClass: status.className,
-        meta: `${s.quantity}× ${formatCurrency(s.unitPrice)} · ${s.paidInstallments ?? 0}/${s.installments}`,
-      });
-
-      // Recebimentos da venda
-      (Array.isArray(s.paymentHistory) ? s.paymentHistory : []).forEach((p, idx) => {
-        out.push({
-          id: `receipt-${s.id}-${idx}`,
-          date: p.date || "",
-          kind: "receipt",
-          title: `Recebimento · ${formatCurrency(p.amount)}`,
-          amount: p.amount,
-          meta: p.notes ? `Obs.: ${p.notes}` : undefined,
-        });
-      });
-    });
-
-    // Ordena por data DESC (mais recente primeiro)
-    out.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-    return out;
-  }, [loans, sales, paymentsByLoan, paymentsListByLoan, lastPaymentDateByLoan]);
-
-  if (items.length === 0) {
+  if (loans.length === 0) {
     return (
       <p className="text-xs text-muted-foreground text-center py-2">
-        Nenhum registro encontrado.
+        Nenhum empréstimo encontrado.
       </p>
     );
   }
 
+  const renderTags = (tags?: string[]) =>
+    tags && tags.length > 0 ? (
+      <div className="flex flex-wrap gap-1">
+        {tags.map((t) => (
+          <Badge
+            key={t}
+            variant="outline"
+            className="text-[10px] px-1.5 py-0 h-5 bg-primary/10 text-primary border-primary/30"
+          >
+            {t}
+          </Badge>
+        ))}
+      </div>
+    ) : null;
+
+  const computeValueCell = (l: Loan) => {
+    const totalPaid = paymentsByLoan[l.id] ?? 0;
+    const isPaid = l.status === "paid";
+    if (isPaid) return { remaining: 0, paid: totalPaid, isPaid };
+    const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+    const baseRemaining =
+      l.remainingAmount != null && l.remainingAmount > 0
+        ? l.remainingAmount
+        : Math.max(0, expected - totalPaid);
+
+    // Acrescenta juros de mora + multa se contrato vencido
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = l.dueDate ? new Date(`${l.dueDate}T00:00:00`) : null;
+    const daysOverdue =
+      due && !isNaN(due.getTime())
+        ? Math.max(0, Math.floor((today.getTime() - due.getTime()) / 86400000))
+        : 0;
+
+    let lateFees = 0;
+    if (daysOverdue > 0) {
+      if (l.lateInterestValue != null && l.lateInterestValue > 0) {
+        lateFees +=
+          l.lateInterestType === "fixed"
+            ? l.lateInterestValue * daysOverdue
+            : baseRemaining * (l.lateInterestValue / 100) * daysOverdue;
+      }
+      if (l.penaltyValue != null && l.penaltyValue > 0) {
+        lateFees += l.penaltyValue;
+      }
+    }
+
+    return { remaining: baseRemaining + lateFees, paid: totalPaid, isPaid };
+  };
+
+  const statusMeta = (l: Loan) => {
+    const isPaid = l.status === "paid";
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = l.dueDate ? new Date(l.dueDate) : null;
+    if (due) due.setHours(0, 0, 0, 0);
+    const isExpired = !isPaid && due != null && !isNaN(due.getTime()) && due.getTime() < today.getTime();
+
+    let label: string;
+    let className: string;
+    if (isPaid) {
+      label = "Pago";
+      className = "bg-success/15 text-success border-success/30";
+    } else if (l.status === "overdue") {
+      label = "Atrasado";
+      className = "bg-destructive/15 text-destructive border-destructive/30";
+    } else if (isExpired) {
+      label = "Vencido";
+      className = "bg-destructive/15 text-destructive border-destructive/30";
+    } else {
+      label = "Pendente";
+      className = "bg-warning/15 text-warning border-warning/30";
+    }
+    return { label, className };
+  };
+
   return (
-    <div className="space-y-2">
-      {items.map((it) => (
-        <div
-          key={it.id}
-          className="rounded-lg border border-border/50 bg-card/40 p-3 space-y-2"
-        >
-          <div className="flex items-start justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2 flex-wrap min-w-0">
-              <OriginBadge kind={it.kind} />
-              {it.statusLabel && (
-                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${it.statusClass}`}>
-                  {it.statusLabel}
+    <>
+      {/* Mobile — Cards */}
+      <div className="md:hidden space-y-2">
+        {loans.map((l) => {
+          const { remaining, paid, isPaid } = computeValueCell(l);
+          const { label, className } = statusMeta(l);
+          const settlementDate = lastPaymentDateByLoan[l.id];
+          const isSettled = l.status === "paid" && remaining === 0 && !!settlementDate;
+          return (
+            <div
+              key={l.id}
+              className="rounded-lg border border-border/50 bg-card/40 p-3 space-y-2"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] text-muted-foreground">
+                  {formatDate(l.startDate)}
+                </span>
+                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${className}`}>
+                  {label}
                 </Badge>
-              )}
-              <span className="text-[11px] text-muted-foreground tabular-nums">
-                {formatDate(it.date)}
-              </span>
-            </div>
-            <span className="text-sm font-semibold tabular-nums">
-              {mask(formatCurrency(it.amount))}
-            </span>
-          </div>
-          {it.meta && (
-            <p className="text-[11px] text-muted-foreground">{it.meta}</p>
-          )}
-          {(it.paid != null || it.pending != null) && (it.paid! > 0 || it.pending! > 0) && (
-            <div className="grid grid-cols-2 gap-2 text-[11px] pt-1 border-t border-border/30">
-              {it.paid != null && (
-                <div className="text-center">
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px] text-center">
+                <div>
+                  <div className="text-muted-foreground">Vencimento</div>
+                  <div className="tabular-nums font-medium">{formatDate(l.dueDate)}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Parcelas</div>
+                  <div className="tabular-nums font-medium">
+                    {l.paidInstallments ?? 0} / {l.installments}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Valor</div>
+                  <div className="tabular-nums font-medium">{mask(formatCurrency(l.amount))}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Restante</div>
+                  <div className="tabular-nums font-medium text-warning">
+                    {mask(formatCurrency(remaining))}
+                  </div>
+                </div>
+                <div>
                   <div className="text-muted-foreground">Pago</div>
                   <div className="tabular-nums font-medium text-success">
-                    {mask(formatCurrency(it.paid))}
+                    {mask(formatCurrency(paid))}
                   </div>
                 </div>
-              )}
-              {it.pending != null && (
-                <div className="text-center">
-                  <div className="text-muted-foreground">Pendente</div>
-                  <div className="tabular-nums font-medium text-warning">
-                    {mask(formatCurrency(it.pending))}
+                {isSettled && (
+                  <div>
+                    <div className="text-muted-foreground">Quitação</div>
+                    <div className="tabular-nums font-medium text-primary">
+                      {formatDate(settlementDate)}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+                {l.tags && l.tags.length > 0 && (
+                  <div className={isSettled ? "" : "col-span-2"}>
+                    <div className="text-muted-foreground">Etiquetas</div>
+                    <div className="mt-0.5 flex justify-center">{renderTags(l.tags)}</div>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-          {it.tags && it.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 pt-1">
-              {it.tags.map((t) => (
-                <Badge
-                  key={t}
-                  variant="outline"
-                  className="text-[10px] px-1.5 py-0 h-5 bg-primary/10 text-primary border-primary/30"
-                >
-                  {t}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop / Tablet — Table */}
+      <div className="hidden md:block w-full overflow-x-auto">
+        <table className="w-full text-xs border-collapse">
+          <thead>
+            <tr className="border-b border-border/60 text-muted-foreground">
+              <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Data</th>
+              <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Vencimento</th>
+              <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Quitação</th>
+              <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Valor</th>
+              <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Restante</th>
+              <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Pago</th>
+              <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Parcelas</th>
+              <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Status</th>
+              <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Etiquetas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loans.map((l) => {
+              const { remaining, paid } = computeValueCell(l);
+              const { label, className } = statusMeta(l);
+              const settlementDate = lastPaymentDateByLoan[l.id];
+              const isSettled = l.status === "paid" && remaining === 0 && !!settlementDate;
+              return (
+                <tr key={l.id} className="border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors">
+                  <td className="py-2 px-2 tabular-nums whitespace-nowrap text-center">{formatDate(l.startDate)}</td>
+                  <td className="py-2 px-2 tabular-nums whitespace-nowrap text-center">{formatDate(l.dueDate)}</td>
+                  <td className="py-2 px-2 tabular-nums whitespace-nowrap font-medium text-primary text-center">
+                    {isSettled ? formatDate(settlementDate) : "—"}
+                  </td>
+                  <td className="py-2 px-2 tabular-nums whitespace-nowrap font-medium text-center">
+                    {mask(formatCurrency(l.amount))}
+                  </td>
+                  <td className="py-2 px-2 tabular-nums whitespace-nowrap font-medium text-warning text-center">
+                    {mask(formatCurrency(remaining))}
+                  </td>
+                  <td className="py-2 px-2 tabular-nums whitespace-nowrap font-medium text-success text-center">
+                    {mask(formatCurrency(paid))}
+                  </td>
+                  <td className="py-2 px-2 tabular-nums text-center whitespace-nowrap">
+                    {l.paidInstallments ?? 0} / {l.installments}
+                  </td>
+                  <td className="py-2 px-2 text-center whitespace-nowrap">
+                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${className}`}>
+                      {label}
+                    </Badge>
+                  </td>
+                  <td className="py-2 px-2 whitespace-nowrap">
+                    <div className="flex justify-center">{renderTags(l.tags)}</div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

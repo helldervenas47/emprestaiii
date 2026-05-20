@@ -821,7 +821,7 @@ const Index = () => {
                 </div>
               </div>
               {loanSubTab === "history" ? (
-                <ClientLoanHistory loans={filteredLoans} payments={filteredPayments} sales={filteredSales} />
+                <ClientLoanHistory loans={filteredLoans} payments={filteredPayments} />
               ) : (
                 <LoanList
                   loans={filteredLoans}
