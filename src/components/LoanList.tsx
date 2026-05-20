@@ -4780,7 +4780,9 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       const renegPenalty = Number(l.renegotiationPenaltyTotal || 0);
       const receivable = Math.max(0, base + fees.lateFees + renegPenalty);
       if (cat === "due_today") {
-        dueToday += receivable;
+        // Para parcelados, considera apenas o valor da parcela que vence hoje.
+        const isParcelado = l.installments >= 2;
+        dueToday += isParcelado ? getInstallmentAmount(l, installmentSchedules) : receivable;
         dueTodayCount += 1;
       } else if (cat === "on_track" || cat === "paid_interest") {
         // "No Prazo" considera apenas vencimentos futuros dentro do mês vigente.
