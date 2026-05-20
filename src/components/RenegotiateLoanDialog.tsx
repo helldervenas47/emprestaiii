@@ -984,37 +984,60 @@ export function RenegotiateLoanDialog({
                         </div>
                       </div>
 
-                      <div className="flex justify-between text-muted-foreground">
-                        <span>{formatCurrency(r.previousAmount)} → {formatCurrency(r.newAmount)}</span>
-                        {r.penaltyAmount > 0 && (
-                          <span className="text-warning font-medium">
-                            +{formatCurrency(r.penaltyAmount)}
-                            {r.penaltyMode === "percentage" && r.penaltyInput
-                              ? ` (${r.penaltyInput}%)`
-                              : ""}
-                          </span>
-                        )}
-                      </div>
+                      {(() => {
+                        const discountVal = r.newAmount < r.previousAmount
+                          ? Math.round((r.previousAmount - r.newAmount) * 100) / 100
+                          : 0;
+                        return (
+                          <>
+                            <div className="flex justify-between text-muted-foreground">
+                              <span>{formatCurrency(r.previousAmount)} → {formatCurrency(r.newAmount)}</span>
+                              {r.penaltyAmount > 0 && (
+                                <span className="text-warning font-medium">
+                                  +{formatCurrency(r.penaltyAmount)}
+                                  {r.penaltyMode === "percentage" && r.penaltyInput
+                                    ? ` (${r.penaltyInput}%)`
+                                    : ""}
+                                </span>
+                              )}
+                              {discountVal > 0 && (
+                                <span className="text-success font-medium">
+                                  −{formatCurrency(discountVal)}
+                                </span>
+                              )}
+                            </div>
 
-                      {r.previousInstallments != null && r.newInstallments != null && (
-                        <div className="text-[11px] text-muted-foreground">
-                          Parcelas: {r.previousInstallments} → {r.newInstallments}
-                        </div>
-                      )}
+                            {r.previousInstallments != null && r.newInstallments != null && (
+                              <div className="text-[11px] text-muted-foreground">
+                                Parcelas: {r.previousInstallments} → {r.newInstallments}
+                              </div>
+                            )}
+
+                            {!isEditing && (
+                              <div className="flex items-center justify-between">
+                                <span
+                                  className={
+                                    r.type === "with_penalty"
+                                      ? "text-warning font-medium"
+                                      : discountVal > 0
+                                        ? "text-success font-medium"
+                                        : "text-muted-foreground"
+                                  }
+                                >
+                                  {r.type === "with_penalty"
+                                    ? "Com multa"
+                                    : discountVal > 0
+                                      ? "Com desconto"
+                                      : "Sem juros"}
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
 
                       {!isEditing ? (
                         <>
-                          <div className="flex items-center justify-between">
-                            <span
-                              className={
-                                r.type === "with_penalty"
-                                  ? "text-warning font-medium"
-                                  : "text-muted-foreground"
-                              }
-                            >
-                              {r.type === "with_penalty" ? "Com multa" : "Sem juros"}
-                            </span>
-                          </div>
                           {r.notes && (
                             <p className="text-muted-foreground italic border-t border-border/40 pt-1.5">
                               {r.notes}
