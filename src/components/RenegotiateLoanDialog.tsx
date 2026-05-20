@@ -69,6 +69,7 @@ interface Props {
     firstDueDate?: string | null;
     frequency?: "monthly" | "biweekly" | "weekly" | "daily" | null;
     customDates?: string[] | null;
+    discountNewTotal?: number | null;
   }) => Promise<void>;
 }
 
