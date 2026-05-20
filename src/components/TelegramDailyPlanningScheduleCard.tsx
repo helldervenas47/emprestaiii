@@ -82,7 +82,7 @@ export function TelegramDailyPlanningScheduleCard() {
                   />
                 </div>
                 <Button type="button" variant="ghost" size="icon" onClick={() => save({ [key]: null } as any)} title="Remover horário">
-                  <X className="h-4 w-4 text-destructive" />
+                  <X className="w-[25px] h-[25px] text-destructive" />
                 </Button>
               </div>
             ))}
