@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from "react";
-import { Plus, Users, LayoutDashboard, FolderOpen, Folders, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity, Send, MessageCircle, Wallet, Barcode } from "lucide-react";
+import { Plus, Users, LayoutDashboard, FolderOpen, Folders, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity, Send, MessageCircle, Wallet, Barcode, UserPlus } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -111,7 +111,7 @@ const tabConfig = [
   { id: "products" as Tab, label: "Vendas", icon: ShoppingBag },
   { id: "vehicles" as Tab, label: "Veículos", icon: Car },
   { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
-  { id: "clients" as Tab, label: "Cadastro", icon: LayoutDashboard },
+  { id: "clients" as Tab, label: "Cadastro", icon: UserPlus },
   { id: "expenses" as Tab, label: "Receitas e Despesas", icon: Receipt },
   { id: "boletos" as Tab, label: "Boletos", icon: Barcode },
   { id: "salary" as Tab, label: "Salário", icon: Wallet },
