@@ -4813,17 +4813,20 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     <div className="space-y-3">
       {/* Cards de resumo dos empréstimos */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-        {[
-          { label: "Vencidos", value: statusSummary.overdue, count: statusSummary.overdueCount, icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", delay: "0ms" },
-          { label: "Vence Hoje", value: statusSummary.dueToday, count: statusSummary.dueTodayCount, icon: Clock, color: "text-primary", bg: "bg-primary/10", delay: "80ms" },
-          { label: "No Prazo", value: statusSummary.onTrack, count: statusSummary.onTrackCount, icon: CheckCircle, color: "text-success", bg: "bg-success/10", delay: "160ms" },
-          { label: "Total a Receber", value: statusSummary.total, count: statusSummary.totalCount, icon: DollarSign, color: "text-warning", bg: "bg-warning/10", delay: "240ms" },
-        ].map((c) => {
+        {([
+          { id: "overdue" as Category, label: "Vencidos", value: statusSummary.overdue, count: statusSummary.overdueCount, icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", ring: "ring-destructive/40", delay: "0ms" },
+          { id: "due_today" as Category, label: "Vence Hoje", value: statusSummary.dueToday, count: statusSummary.dueTodayCount, icon: Clock, color: "text-primary", bg: "bg-primary/10", ring: "ring-primary/40", delay: "80ms" },
+          { id: "on_track" as Category, label: "No Prazo", value: statusSummary.onTrack, count: statusSummary.onTrackCount, icon: CheckCircle, color: "text-success", bg: "bg-success/10", ring: "ring-success/40", delay: "160ms" },
+          { id: "all" as Category, label: "Total a Receber", value: statusSummary.total, count: statusSummary.totalCount, icon: DollarSign, color: "text-warning", bg: "bg-warning/10", ring: "ring-warning/40", delay: "240ms" },
+        ]).map((c) => {
           const Icon = c.icon;
+          const isActive = selectedCategories.length === 1 && selectedCategories[0] === c.id;
           return (
-            <div
+            <button
               key={c.label}
-              className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center"
+              type="button"
+              onClick={() => setSelectedCategories([c.id])}
+              className={`rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center transition-all duration-200 hover:scale-[1.02] hover:shadow-md focus:outline-none ${isActive ? `ring-2 ${c.ring}` : ""}`}
               style={{ animationDelay: c.delay, animationFillMode: "backwards" }}
             >
               <div className={`h-8 w-8 rounded-lg ${c.bg} flex items-center justify-center mb-2`}>
@@ -4832,7 +4835,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
               <p className="text-[10px] sm:text-xs text-muted-foreground">{c.label}</p>
               <p className={`text-sm sm:text-xl font-bold ${c.color} mt-0.5`}>{formatCurrency(c.value)}</p>
               <p className="text-[10px] text-muted-foreground mt-1">{c.count} {c.count === 1 ? "contrato" : "contratos"}</p>
-            </div>
+            </button>
           );
         })}
       </div>
