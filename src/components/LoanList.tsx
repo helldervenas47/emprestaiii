@@ -4782,7 +4782,8 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
         if (due === today) {
           dueToday += receivable;
           dueTodayCount += 1;
-        } else {
+        } else if (due > today && due.slice(0, 7) === today.slice(0, 7)) {
+          // "No Prazo" considera apenas vencimentos futuros dentro do mês vigente.
           onTrack += receivable;
           onTrackCount += 1;
         }
