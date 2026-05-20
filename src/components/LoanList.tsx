@@ -4846,7 +4846,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             <button
               key={c.label}
               type="button"
-              onClick={() => setSelectedCategories([c.id])}
+              onClick={() => applyCardFilter(c.id as "overdue" | "due_today" | "on_track" | "all")}
               className={`rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center transition-all duration-200 hover:scale-[1.02] hover:shadow-md focus:outline-none ${isActive ? `ring-2 ${c.ring}` : ""}`}
               style={{ animationDelay: c.delay, animationFillMode: "backwards" }}
             >
