@@ -1723,17 +1723,21 @@ function LoanCardView({
 
         {/* Partial payment input */}
         <Dialog open={showPartial} onOpenChange={(open) => { if (!open) { setShowPartial(false); setPartialAmount(""); setPartialDate(new Date()); } }}>
-          <DialogContent className="sm:max-w-[340px]">
-            <DialogHeader>
-              <DialogTitle>Pagamento Parcial</DialogTitle>
+          <DialogContent
+            onOpenAutoFocus={(e) => e.preventDefault()}
+            style={{ padding: 0 }}
+            className="left-1 right-1 top-1 bottom-1 h-auto w-auto max-w-none translate-x-0 translate-y-0 flex flex-col overflow-hidden p-0 sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[85svh] sm:w-full sm:max-w-[340px] sm:translate-x-[-50%] sm:translate-y-[-50%]"
+          >
+            <DialogHeader className="shrink-0 px-4 pt-4 sm:px-6 sm:pt-6">
+              <DialogTitle className="text-base sm:text-lg">Pagamento Parcial</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch] px-4 pb-3 sm:px-6 sm:pb-4 space-y-3">
               <div>
                 <Label className="text-sm">Valor (R$)</Label>
                 <Input
                   type="number" step="0.01" placeholder="Ex: 150.00"
                   value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)}
-                  className="h-9 text-sm mt-1" autoFocus
+                  className="h-9 text-sm mt-1"
                 />
               </div>
               {activeMethods.length > 0 && (
@@ -1761,9 +1765,11 @@ function LoanCardView({
                 </div>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => { setShowPartial(false); setPartialAmount(""); setPartialDate(new Date()); }}>Cancelar</Button>
-              <Button onClick={handlePartialSubmit} disabled={!partialAmount || parseFloat(partialAmount) <= 0 || (activeMethods.length > 0 && !selectedMethodId)}>Confirmar</Button>
+            <DialogFooter className="shrink-0 flex-row gap-2 border-t border-border/40 bg-background/95 backdrop-blur px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-6 sm:pt-3 sm:border-0 sm:bg-transparent sm:backdrop-blur-0">
+              <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => { setShowPartial(false); setPartialAmount(""); setPartialDate(new Date()); }}>Cancelar</Button>
+              <Button className="flex-[2] sm:flex-none sm:h-11 gap-2" onClick={handlePartialSubmit} disabled={!partialAmount || parseFloat(partialAmount) <= 0 || (activeMethods.length > 0 && !selectedMethodId)}>
+                <CheckCircle2 className="h-4 w-4" /> Confirmar pagamento
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -3418,17 +3424,21 @@ function LoanRowView({
               </div>
             </div>
             <Dialog open={showPartial} onOpenChange={(open) => { if (!open) { setShowPartial(false); setPartialAmount(""); setPartialDate(new Date()); } }}>
-              <DialogContent className="sm:max-w-[340px]">
-                <DialogHeader>
-                  <DialogTitle>Pagamento Parcial</DialogTitle>
+              <DialogContent
+                onOpenAutoFocus={(e) => e.preventDefault()}
+                style={{ padding: 0 }}
+                className="left-1 right-1 top-1 bottom-1 h-auto w-auto max-w-none translate-x-0 translate-y-0 flex flex-col overflow-hidden p-0 sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[85svh] sm:w-full sm:max-w-[340px] sm:translate-x-[-50%] sm:translate-y-[-50%]"
+              >
+                <DialogHeader className="shrink-0 px-4 pt-4 sm:px-6 sm:pt-6">
+                  <DialogTitle className="text-base sm:text-lg">Pagamento Parcial</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4">
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch] px-4 pb-3 sm:px-6 sm:pb-4 space-y-3">
                   <div>
                     <Label className="text-sm">Valor (R$)</Label>
                     <Input
                       type="number" step="0.01" placeholder="Ex: 150.00"
                       value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)}
-                      className="h-9 text-sm mt-1" autoFocus
+                      className="h-9 text-sm mt-1"
                     />
                   </div>
                   {rowActiveMethods.length > 0 && (
@@ -3456,9 +3466,11 @@ function LoanRowView({
                     </div>
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => { setShowPartial(false); setPartialAmount(""); setPartialDate(new Date()); }}>Cancelar</Button>
-                  <Button onClick={handlePartialSubmit} disabled={!partialAmount || parseFloat(partialAmount) <= 0 || (rowActiveMethods.length > 0 && !rowSelectedMethodId)}>Confirmar</Button>
+                <DialogFooter className="shrink-0 flex-row gap-2 border-t border-border/40 bg-background/95 backdrop-blur px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-6 sm:pt-3 sm:border-0 sm:bg-transparent sm:backdrop-blur-0">
+                  <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => { setShowPartial(false); setPartialAmount(""); setPartialDate(new Date()); }}>Cancelar</Button>
+                  <Button className="flex-[2] sm:flex-none sm:h-11 gap-2" onClick={handlePartialSubmit} disabled={!partialAmount || parseFloat(partialAmount) <= 0 || (rowActiveMethods.length > 0 && !rowSelectedMethodId)}>
+                    <CheckCircle2 className="h-4 w-4" /> Confirmar pagamento
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
