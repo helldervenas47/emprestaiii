@@ -2936,8 +2936,8 @@ function LoanRowView({
       <td className="hidden sm:table-cell px-1.5 sm:px-4 py-2 sm:py-3">
         <Badge variant="outline" className={`${badge.className} text-[9px] sm:text-xs px-1.5 sm:px-2.5`}>{badge.label}</Badge>
       </td>
-      {/* Emprestado - hidden on mobile */}
-      <td className="hidden sm:table-cell px-4 py-3">
+      {/* Emprestado - hidden on mobile and tablet */}
+      <td className="hidden lg:table-cell px-4 py-3">
         <span className="text-sm font-medium text-foreground">{formatCurrency(loan.amount)}</span>
       </td>
       {/* Restante / Parcela / Total Pago */}
