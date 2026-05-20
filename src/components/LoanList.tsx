@@ -4877,7 +4877,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
           const isActive = selectedCategories.includes(cat.id);
           return (
             <button key={cat.id} onClick={() => handleCategoryClick(cat.id)}
-              className={`px-2 py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-all duration-200 border whitespace-nowrap sm:flex-1 sm:basis-0 sm:min-w-0 sm:text-center ${
+              className={`px-2 py-1.5 sm:px-1 lg:px-2 rounded-full text-[10px] sm:text-[10px] lg:text-xs font-medium transition-all duration-200 border whitespace-nowrap sm:flex-1 sm:basis-0 sm:min-w-0 sm:text-center ${
                 isActive ? `${cat.activeColor} scale-[1.03] shadow-sm ring-1 ring-offset-1 ring-offset-background ring-current/20` : `bg-card ${cat.color} hover:opacity-80`
               }`}
             >
