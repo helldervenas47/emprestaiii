@@ -793,31 +793,7 @@ const Index = () => {
                       <LayoutDashboard className="h-4 w-4" />
                       Voltar para Empréstimos
                     </Button>
-                  ) : (
-                    <>
-                      {!isReadOnly && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setShowLoanSimulator(true)}
-                          className="gap-1.5 hidden"
-                        >
-                          <Calculator className="h-4 w-4" />
-                          Simular Empréstimo
-                        </Button>
-                      )}
-                      {/* Botão Histórico do Cliente — agora dentro da toolbar do LoanList */}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setLoanSubTab("history")}
-                        className="gap-1.5 hidden"
-                      >
-                        <Users className="h-4 w-4" />
-                        Histórico do Cliente
-                      </Button>
-                    </>
-                  )}
+                  ) : null}
                 </div>
               </div>
               {loanSubTab === "history" ? (
