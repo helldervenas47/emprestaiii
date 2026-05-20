@@ -708,7 +708,7 @@ export function RenegotiateLoanDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2">
 
             <div className="space-y-1.5 min-w-0">
               <Label className="text-xs flex items-center gap-1.5">
