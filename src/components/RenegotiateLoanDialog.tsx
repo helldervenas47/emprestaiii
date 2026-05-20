@@ -708,9 +708,9 @@ export function RenegotiateLoanDialog({
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2">
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-xs flex items-center gap-1.5">
                 <CalendarDays className="h-3.5 w-3.5" /> 1ª parcela
               </Label>
@@ -718,7 +718,7 @@ export function RenegotiateLoanDialog({
                 type="date"
                 value={firstDueDate}
                 onChange={(e) => { setFirstDueDate(e.target.value); setCustomDates({}); setConfirming(false); }}
-                className="h-11 text-sm"
+                className="h-11 text-sm w-full min-w-0 px-2"
               />
             </div>
             <div className="space-y-1.5">
