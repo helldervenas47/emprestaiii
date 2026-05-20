@@ -4888,7 +4888,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative flex-1 min-w-[200px] sm:flex-initial sm:w-[220px] sm:min-w-[180px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
           <Input placeholder="Buscar por nome do cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
@@ -4898,6 +4898,19 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             <Badge className="bg-destructive text-destructive-foreground h-4 w-4 p-0 flex items-center justify-center text-[10px] rounded-full">!</Badge>
           )}
         </Button>
+        {/* Botões — versão PC/Tablet (entre Filtros e o seletor de visualização) */}
+        {onOpenSimulator && (
+          <Button variant="outline" size="sm" onClick={onOpenSimulator} className="hidden md:inline-flex gap-1.5">
+            <Calculator className="h-3.5 w-3.5" />
+            Simular Empréstimo
+          </Button>
+        )}
+        {onOpenClientHistory && (
+          <Button variant="outline" size="sm" onClick={onOpenClientHistory} className="hidden md:inline-flex gap-1.5">
+            <User className="h-3.5 w-3.5" />
+            Histórico do Cliente
+          </Button>
+        )}
         <div className="flex flex-col gap-1 w-full sm:w-auto">
           <div className="flex w-full sm:w-auto bg-muted/60 rounded-xl p-0.5 backdrop-blur-sm border border-border/30">
             <button onClick={() => setView("cards")}
