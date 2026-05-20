@@ -497,10 +497,17 @@ export function ClientLoanHistory({ loans, payments }: Props) {
 
 function formatDate(d?: string): string {
   if (!d) return "—";
+  // ISO date (YYYY-MM-DD) — parse manualmente para evitar deslocamento de fuso horário
+  const iso = d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) {
+    const [, y, m, day] = iso;
+    return `${day}/${m}/${y}`;
+  }
   const date = new Date(d);
   if (isNaN(date.getTime())) return "—";
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
+
 
 interface ClientLoansListProps {
   loans: Loan[];
