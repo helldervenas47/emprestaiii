@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { Settings2, TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle, ArrowUpRight, ArrowDownRight, PieChart, Percent, Hourglass, BarChart3, Trophy, CalendarClock, CalendarX, LineChart } from "lucide-react";
+import { Settings, TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle, ArrowUpRight, ArrowDownRight, PieChart, Percent, Hourglass, BarChart3, Trophy, CalendarClock, CalendarX, LineChart } from "lucide-react";
 import { useLoans } from "@/hooks/useLoans";
 import { useProducts } from "@/hooks/useProducts";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
@@ -272,7 +272,7 @@ export function ConsolidatedBalanceCards() {
               className="absolute right-12 inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/80 hover:text-foreground hover:bg-accent/60 transition-colors focus:outline-none focus:ring-2 focus:ring-ring/40"
               style={{ top: "calc(0.625rem + env(safe-area-inset-top))" }}
             >
-              <Settings2 className="h-4 w-4" />
+              <Settings className="w-[25px] h-[20px]" />
             </button>
             <div className="mt-3 rounded-2xl border border-border/60 bg-gradient-to-br from-success/10 via-success/5 to-transparent p-4 shadow-sm">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total consolidado</p>
@@ -672,7 +672,7 @@ export function ConsolidatedBalanceCards() {
         <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
-              <Settings2 className="h-4 w-4 text-muted-foreground" /> Configurações do saldo
+              <Settings className="h-4 w-4 text-muted-foreground" /> Configurações do saldo
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-1">
