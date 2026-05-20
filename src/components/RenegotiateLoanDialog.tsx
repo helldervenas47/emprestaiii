@@ -748,7 +748,7 @@ export function RenegotiateLoanDialog({
                     {simulatedSchedule.length} parcela{simulatedSchedule.length > 1 ? "s" : ""}
                   </span>
                 </div>
-                <div className="rounded-lg border border-border/60 max-h-64 overflow-y-auto">
+                <div className="rounded-lg border border-border/60 max-h-64 overflow-y-auto overflow-x-auto">
                   <table className="w-full text-xs tabular-nums">
                     <thead className="bg-muted/50 sticky top-0">
                       <tr className="text-[10px] uppercase tracking-wide text-muted-foreground">
