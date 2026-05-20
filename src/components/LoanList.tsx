@@ -4943,7 +4943,8 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             </div>
           )}
           {/* Botões — versão Mobile (abaixo de Ontem/Hoje/Amanhã) */}
-          {(onOpenSimulator || onOpenClientHistory) && (
+          {/* Botões — versão Mobile ocultos conforme solicitado */}
+          {false && (onOpenSimulator || onOpenClientHistory) && (
             <div className="grid grid-cols-2 gap-2 mt-1 md:hidden">
               {onOpenSimulator && (
                 <Button
