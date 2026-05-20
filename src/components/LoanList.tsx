@@ -4900,15 +4900,15 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
         </Button>
         {/* Botões — versão PC/Tablet (entre Filtros e o seletor de visualização) */}
         {onOpenSimulator && (
-          <Button variant="outline" size="sm" onClick={onOpenSimulator} className="hidden md:inline-flex gap-1.5">
+          <Button variant="outline" size="sm" onClick={onOpenSimulator} className="hidden md:inline-flex gap-1.5" title="Simular Empréstimo">
             <Calculator className="h-3.5 w-3.5" />
-            Simular Empréstimo
+            <span className="hidden lg:inline">Simular Empréstimo</span>
           </Button>
         )}
         {onOpenClientHistory && (
-          <Button variant="outline" size="sm" onClick={onOpenClientHistory} className="hidden md:inline-flex gap-1.5">
+          <Button variant="outline" size="sm" onClick={onOpenClientHistory} className="hidden md:inline-flex gap-1.5" title="Histórico do Cliente">
             <User className="h-3.5 w-3.5" />
-            Histórico do Cliente
+            <span className="hidden lg:inline">Histórico do Cliente</span>
           </Button>
         )}
         <div className="flex flex-col gap-1 w-full sm:w-auto sm:ml-auto">
