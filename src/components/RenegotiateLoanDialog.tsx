@@ -82,10 +82,11 @@ export function RenegotiateLoanDialog({
   history,
   onConfirm,
 }: Props) {
-  const [type, setType] = useState<"no_interest" | "with_penalty">("no_interest");
+  const [type, setType] = useState<"no_interest" | "with_penalty" | "discount">("no_interest");
   const [penaltyMode, setPenaltyMode] = useState<"fixed" | "percentage">("fixed");
   const [penaltyInput, setPenaltyInput] = useState("");
   const [penaltyDistribution, setPenaltyDistribution] = useState<"diluted" | "first">("diluted");
+  const [discountNewTotalInput, setDiscountNewTotalInput] = useState("");
   const [newInstallments, setNewInstallments] = useState("");
   const [notes, setNotes] = useState("");
   const [firstDueDate, setFirstDueDate] = useState("");
