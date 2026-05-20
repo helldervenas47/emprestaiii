@@ -2937,52 +2937,52 @@ function LoanRowView({
         <Badge variant="outline" className={`${badge.className} text-[9px] sm:text-xs px-1.5 sm:px-2.5`}>{badge.label}</Badge>
       </td>
       {/* Emprestado - hidden on mobile */}
-      <td className="hidden sm:table-cell px-4 py-3">
-        <span className="text-sm font-medium text-foreground">{formatCurrency(loan.amount)}</span>
+      <td className="hidden sm:table-cell px-2 lg:px-4 py-3">
+        <span className="text-xs lg:text-sm font-medium text-foreground whitespace-nowrap">{formatCurrency(loan.amount)}</span>
       </td>
       {/* Restante / Parcela / Total Pago */}
-      <td className="px-1.5 sm:px-4 py-2 sm:py-3">
+      <td className="px-1.5 sm:px-2 lg:px-4 py-2 sm:py-3">
         {loan.status === "paid" ? (
-          <span className="text-[11px] sm:text-sm font-medium text-success">{formatCurrency(totalPaid)}</span>
+          <span className="text-[11px] sm:text-xs lg:text-sm font-medium text-success whitespace-nowrap">{formatCurrency(totalPaid)}</span>
         ) : isParcelado ? (
           <div className="flex flex-col">
-            <span className="text-[11px] sm:text-sm font-medium text-destructive">{formatCurrency(installmentValue + lateFees)}</span>
+            <span className="text-[11px] sm:text-xs lg:text-sm font-medium text-destructive whitespace-nowrap">{formatCurrency(installmentValue + lateFees)}</span>
           </div>
         ) : (
           <div className="flex flex-col">
-            <span className="text-[11px] sm:text-sm font-medium text-destructive">{formatCurrency(remaining)}</span>
+            <span className="text-[11px] sm:text-xs lg:text-sm font-medium text-destructive whitespace-nowrap">{formatCurrency(remaining)}</span>
           </div>
         )}
       </td>
       {/* Parcelas - hidden on mobile */}
-      <td className="hidden sm:table-cell px-4 py-3">
-        <div className="flex items-center gap-1.5">
-          <CheckCircle className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium">{loan.paidInstallments}/{loan.installments}</span>
+      <td className="hidden sm:table-cell px-2 lg:px-4 py-3">
+        <div className="flex items-center gap-1 lg:gap-1.5">
+          <CheckCircle className="h-3.5 w-3.5 lg:h-4 lg:w-4 text-primary shrink-0" />
+          <span className="text-xs lg:text-sm font-medium">{loan.paidInstallments}/{loan.installments}</span>
         </div>
         {daysOverdue > 0 && loan.status !== "paid" && (
           <div className="flex items-center gap-1 mt-0.5 whitespace-nowrap">
             <span className="h-2 w-2 rounded-full bg-destructive inline-block shrink-0"></span>
-            <span className="text-[10px] text-destructive">{daysOverdue} dia{daysOverdue > 1 ? "s" : ""} em atraso</span>
+            <span className="text-[10px] text-destructive">{daysOverdue}d em atraso</span>
           </div>
         )}
       </td>
       {/* Vencimento */}
-      <td className="px-1.5 sm:px-4 py-2 sm:py-3 whitespace-nowrap">
-        <span className={`text-[11px] sm:text-sm ${category === "overdue" ? "text-warning" : "text-foreground"}`}>
+      <td className="px-1.5 sm:px-2 lg:px-4 py-2 sm:py-3 whitespace-nowrap">
+        <span className={`text-[11px] sm:text-xs lg:text-sm ${category === "overdue" ? "text-warning" : "text-foreground"}`}>
           {getFirstPendingDate(loan, installmentSchedules).toLocaleDateString("pt-BR")}
         </span>
       </td>
       {/* Etiquetas - hidden on mobile */}
-      <td className="hidden sm:table-cell px-4 py-3">
+      <td className="hidden sm:table-cell px-2 lg:px-4 py-3">
         <div className="flex flex-wrap gap-1">
           {loan.tags && loan.tags.length > 0 ? loan.tags.map((tag) => (
             <Badge key={tag} className="bg-primary text-primary-foreground text-[10px]">{tag}</Badge>
           )) : <span className="text-xs text-muted-foreground">—</span>}
         </div>
       </td>
-      {/* Chevron */}
-      <td className="hidden sm:table-cell px-4 py-3 text-right">
+      {/* Chevron - somente desktop */}
+      <td className="hidden lg:table-cell px-4 py-3 text-right">
         {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground inline" /> : <ChevronRight className="h-4 w-4 text-muted-foreground inline" />}
       </td>
     </tr>
@@ -5116,14 +5116,14 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border/30">
-                    <th className="px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Cliente</th>
+                    <th className="px-1.5 sm:px-2 lg:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Cliente</th>
                     <th className="hidden lg:table-cell px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Status</th>
-                    <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Emprestado</th>
-                    <th className="px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">{category === "paid" ? "Pago" : "Restante"}</th>
-                    <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Parcelas</th>
-                    <th className="px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Venc.</th>
-                    <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Etiquetas</th>
-                    <th className="hidden sm:table-cell px-4 py-2.5 text-right text-xs font-medium text-muted-foreground"></th>
+                    <th className="hidden sm:table-cell px-2 lg:px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Emprestado</th>
+                    <th className="px-1.5 sm:px-2 lg:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">{category === "paid" ? "Pago" : "Restante"}</th>
+                    <th className="hidden sm:table-cell px-2 lg:px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Parcelas</th>
+                    <th className="px-1.5 sm:px-2 lg:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Venc.</th>
+                    <th className="hidden sm:table-cell px-2 lg:px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Etiquetas</th>
+                    <th className="hidden lg:table-cell px-4 py-2.5 text-right text-xs font-medium text-muted-foreground"></th>
                   </tr>
                 </thead>
                 <tbody>
