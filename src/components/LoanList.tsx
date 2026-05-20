@@ -4911,7 +4911,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             Histórico do Cliente
           </Button>
         )}
-        <div className="flex flex-col gap-1 w-full sm:w-auto">
+        <div className="flex flex-col gap-1 w-full sm:w-auto sm:ml-auto">
           <div className="flex w-full sm:w-auto bg-muted/60 rounded-xl p-0.5 backdrop-blur-sm border border-border/30">
             <button onClick={() => setView("cards")}
               className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
