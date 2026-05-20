@@ -442,7 +442,7 @@ export function RenegotiateLoanDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full min-w-0">
           <TabsList className="grid w-full grid-cols-2 h-auto p-1">
             <TabsTrigger value="renegotiate">Renegociar</TabsTrigger>
             <TabsTrigger value="history">
@@ -450,7 +450,7 @@ export function RenegotiateLoanDialog({
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="renegotiate" className="mt-4 space-y-4">
+          <TabsContent value="renegotiate" className="mt-4 space-y-4 min-w-0">
           <div className="rounded-lg border border-border/60 bg-muted/40 p-3 text-xs space-y-1">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Data de saída</span>
