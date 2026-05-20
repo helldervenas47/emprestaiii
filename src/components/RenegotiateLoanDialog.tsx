@@ -766,9 +766,17 @@ export function RenegotiateLoanDialog({
                 <span>{formatCurrency(penaltyAmount)}</span>
               </div>
             )}
+            {type === "discount" && discountAmount > 0 && (
+              <div className="flex justify-between text-success">
+                <span>− Desconto concedido</span>
+                <span>{formatCurrency(discountAmount)}</span>
+              </div>
+            )}
             <div className="flex justify-between font-semibold text-foreground border-t border-border/50 pt-1.5">
               <span>Novo total renegociado</span>
-              <span>{formatCurrency(newTotal)}</span>
+              <span className={type === "discount" && discountAmount > 0 ? "text-success" : ""}>
+                {formatCurrency(newTotal)}
+              </span>
             </div>
             {useFirstMode ? (
               <>
