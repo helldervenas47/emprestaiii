@@ -442,7 +442,7 @@ export function RenegotiateLoanDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full min-w-0">
           <TabsList className="grid w-full grid-cols-2 h-auto p-1">
             <TabsTrigger value="renegotiate">Renegociar</TabsTrigger>
             <TabsTrigger value="history">
@@ -450,7 +450,7 @@ export function RenegotiateLoanDialog({
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="renegotiate" className="mt-4 space-y-4">
+          <TabsContent value="renegotiate" className="mt-4 space-y-4 min-w-0">
           <div className="rounded-lg border border-border/60 bg-muted/40 p-3 text-xs space-y-1">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Data de saída</span>
@@ -748,7 +748,7 @@ export function RenegotiateLoanDialog({
                     {simulatedSchedule.length} parcela{simulatedSchedule.length > 1 ? "s" : ""}
                   </span>
                 </div>
-                <div className="rounded-lg border border-border/60 max-h-64 overflow-y-auto">
+                <div className="rounded-lg border border-border/60 max-h-64 overflow-y-auto overflow-x-auto">
                   <table className="w-full text-xs tabular-nums">
                     <thead className="bg-muted/50 sticky top-0">
                       <tr className="text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -859,7 +859,7 @@ export function RenegotiateLoanDialog({
           )}
           </TabsContent>
 
-          <TabsContent value="history" className="mt-4 space-y-3">
+          <TabsContent value="history" className="mt-4 space-y-3 min-w-0">
             {sortedHistory.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border/60 p-6 text-center">
                 <History className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
