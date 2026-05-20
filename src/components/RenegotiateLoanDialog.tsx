@@ -581,8 +581,51 @@ export function RenegotiateLoanDialog({
                   </p>
                 </div>
               </label>
+              <label
+                htmlFor="reneg-discount"
+                className="flex items-start gap-3 rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40"
+              >
+                <RadioGroupItem value="discount" id="reneg-discount" className="mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Com desconto</p>
+                  <p className="text-xs text-muted-foreground">
+                    Informe um novo valor total menor que o saldo atual.
+                  </p>
+                </div>
+              </label>
             </RadioGroup>
           </div>
+
+          {type === "discount" && (
+            <div className="space-y-2 rounded-lg border border-success/30 bg-success/5 p-3">
+              <Label className="text-xs">Novo valor total negociado</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                inputMode="decimal"
+                placeholder={`Menor que ${formatCurrency(remaining)}`}
+                value={discountNewTotalInput}
+                onChange={(e) => { setDiscountNewTotalInput(e.target.value); setConfirming(false); }}
+              />
+              {discountNewTotal > 0 && discountNewTotal < remaining && (
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <span className="text-muted-foreground">Desconto concedido</span>
+                  <span className="font-semibold text-success">
+                    − {formatCurrency(discountAmount)}
+                    <span className="text-[10px] text-muted-foreground ml-1">
+                      ({((discountAmount / remaining) * 100).toFixed(1)}%)
+                    </span>
+                  </span>
+                </div>
+              )}
+              {discountNewTotal > 0 && discountNewTotal >= remaining && (
+                <p className="text-[11px] text-destructive">
+                  O novo valor deve ser menor que o saldo atual ({formatCurrency(remaining)}).
+                </p>
+              )}
+            </div>
+          )}
 
           {type === "with_penalty" && (
             <div className="space-y-2 rounded-lg border border-warning/30 bg-warning/5 p-3">
