@@ -3186,7 +3186,7 @@ function LoanRowView({
             {/* Actions */}
             <div className="flex flex-col gap-2 pt-2 border-t border-border/30 w-full">
               {!readOnly && loan.status !== "paid" && (
-                <DropdownMenu>
+                <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <Button variant="default" className="w-full h-10 text-sm gap-2" onClick={(e) => e.stopPropagation()}>
                       <DollarSign className="h-4 w-4" /> Pagar
