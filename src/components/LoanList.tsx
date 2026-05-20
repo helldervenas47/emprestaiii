@@ -2961,8 +2961,8 @@ function LoanRowView({
           <span className="text-sm font-medium">{loan.paidInstallments}/{loan.installments}</span>
         </div>
         {daysOverdue > 0 && loan.status !== "paid" && (
-          <div className="flex items-center gap-1 mt-0.5">
-            <span className="h-2 w-2 rounded-full bg-destructive inline-block"></span>
+          <div className="flex items-center gap-1 mt-0.5 whitespace-nowrap">
+            <span className="h-2 w-2 rounded-full bg-destructive inline-block shrink-0"></span>
             <span className="text-[10px] text-destructive">{daysOverdue} dia{daysOverdue > 1 ? "s" : ""} em atraso</span>
           </div>
         )}
