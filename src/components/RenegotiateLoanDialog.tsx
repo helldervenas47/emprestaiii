@@ -833,15 +833,22 @@ export function RenegotiateLoanDialog({
                     {simulatedSchedule.length} parcela{simulatedSchedule.length > 1 ? "s" : ""}
                   </span>
                 </div>
-                <div className="rounded-lg border border-border/60 max-h-64 overflow-y-auto overflow-x-auto">
-                  <table className="w-full text-xs tabular-nums">
+                <div className="rounded-lg border border-border/60 max-h-64 overflow-y-auto overflow-x-hidden">
+                  <table className="w-full table-fixed text-[11px] sm:text-xs tabular-nums">
+                    <colgroup>
+                      <col className="w-[18%]" />
+                      <col className="w-[30%]" />
+                      <col className="w-[16%]" />
+                      <col className="w-[16%]" />
+                      <col className="w-[20%]" />
+                    </colgroup>
                     <thead className="bg-muted/50 sticky top-0">
-                      <tr className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                        <th className="text-left px-2 py-1.5 font-semibold">#</th>
-                        <th className="text-left px-2 py-1.5 font-semibold">Vencimento</th>
-                        <th className="text-right px-2 py-1.5 font-semibold">Multa</th>
-                        <th className="text-right px-2 py-1.5 font-semibold">Juros</th>
-                        <th className="text-right px-2 py-1.5 font-semibold">Total</th>
+                      <tr className="text-[9px] sm:text-[10px] uppercase tracking-wide text-muted-foreground">
+                        <th className="text-left px-1 py-1.5 font-semibold">#</th>
+                        <th className="text-left px-1 py-1.5 font-semibold">Venc.</th>
+                        <th className="text-right px-1 py-1.5 font-semibold">Multa</th>
+                        <th className="text-right px-1 py-1.5 font-semibold">Juros</th>
+                        <th className="text-right px-1 py-1.5 font-semibold">Total</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/40">
