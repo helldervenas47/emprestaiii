@@ -420,6 +420,19 @@ function LoanCardView({
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
   const [showAdjustDueDate, setShowAdjustDueDate] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [payMenuOpen, setPayMenuOpen] = useState(false);
+  React.useEffect(() => {
+    if (!payMenuOpen) return;
+    const close = () => setPayMenuOpen(false);
+    // Use timeout so the opening tap doesn't immediately close it
+    const t = setTimeout(() => {
+      document.addEventListener("pointerdown", close, { once: true });
+    }, 0);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("pointerdown", close);
+    };
+  }, [payMenuOpen]);
   const { activeMethods } = usePaymentMethods();
   const { celebrate } = usePaymentCelebration();
   const [selectedMethodId, setSelectedMethodId] = useState<string>("");
@@ -1777,7 +1790,7 @@ function LoanCardView({
         {/* Action Buttons */}
         <div className="flex flex-col gap-2 pt-2 border-t border-border/50 mt-auto">
           {!readOnly && loan.status !== "paid" && (
-            <DropdownMenu modal={false}>
+            <DropdownMenu modal={false} open={payMenuOpen} onOpenChange={setPayMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button className="w-full h-10 text-sm font-semibold gap-2">
                   <DollarSign className="h-4 w-4" /> Pagar
@@ -2518,6 +2531,18 @@ function LoanRowView({
   clients?: Client[];
 }) {
   const [showAdjustDueDateRow, setShowAdjustDueDateRow] = useState(false);
+  const [payMenuOpen, setPayMenuOpen] = useState(false);
+  React.useEffect(() => {
+    if (!payMenuOpen) return;
+    const close = () => setPayMenuOpen(false);
+    const t = setTimeout(() => {
+      document.addEventListener("pointerdown", close, { once: true });
+    }, 0);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("pointerdown", close);
+    };
+  }, [payMenuOpen]);
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
@@ -3186,7 +3211,7 @@ function LoanRowView({
             {/* Actions */}
             <div className="flex flex-col gap-2 pt-2 border-t border-border/30 w-full">
               {!readOnly && loan.status !== "paid" && (
-                <DropdownMenu modal={false}>
+                <DropdownMenu modal={false} open={payMenuOpen} onOpenChange={setPayMenuOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button variant="default" className="w-full h-10 text-sm gap-2" onClick={(e) => e.stopPropagation()}>
                       <DollarSign className="h-4 w-4" /> Pagar
