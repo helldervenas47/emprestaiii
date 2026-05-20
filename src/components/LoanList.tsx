@@ -3429,20 +3429,20 @@ function LoanRowView({
                     title={(loan.autoBillingEnabled ?? true) ? "Desativar cobrança automática" : "Ativar cobrança automática"}
                   >
                     {(loan.autoBillingEnabled ?? true)
-                      ? <><BellRing className="h-3.5 w-3.5" /> Cobrança ativa</>
-                      : <><BellOff className="h-3.5 w-3.5" /> Cobrança off</>}
+                      ? <><BellRing className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Cobrança ativa</span></>
+                      : <><BellOff className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Cobrança off</span></>}
                   </Button>
                 )}
                 <Button variant="ghost" className="flex-1 h-9 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); setShowHistory(true); }}>
-                  <History className="h-3.5 w-3.5" /> Histórico
+                  <History className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Histórico</span>
                 </Button>
                 {!readOnly && (
                   <>
                     <Button variant="ghost" className="flex-1 h-9 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); startEdit(); }}>
-                      <Pencil className="h-3.5 w-3.5" /> Editar
+                      <Pencil className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Editar</span>
                     </Button>
                     <Button variant="ghost" className="flex-1 h-9 text-xs gap-1.5 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}>
-                      <Trash2 className="h-3.5 w-3.5" /> Excluir
+                      <Trash2 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Excluir</span>
                     </Button>
                   </>
                 )}
