@@ -17,7 +17,7 @@ import { todayInAppTz, formatYmdInAppTz } from "@/lib/timezone";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
-import { getInstallmentAmount } from "@/lib/loanInstallmentAmount";
+import { getInstallmentAmount, getOverdueAmount } from "@/lib/loanInstallmentAmount";
 import { getLoanLateFees, getBaseRemainingAmount } from "@/lib/loanLateFees";
 import { cn } from "@/lib/utils";
 import {
