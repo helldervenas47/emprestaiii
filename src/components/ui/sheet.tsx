@@ -69,7 +69,7 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
           className="absolute right-4 rounded-sm opacity-70 ring-offset-background transition-opacity data-[state=open]:bg-secondary hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
           style={{ top: `calc(env(safe-area-inset-top) + 1rem)` }}
         >
-          <X className="w-[25px] h-[25px]" />
+          <X className="w-[30px] h-[30px]" />
           <span className="sr-only">Close</span>
         </SheetPrimitive.Close>
       </SheetPrimitive.Content>
