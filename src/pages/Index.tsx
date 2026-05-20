@@ -112,7 +112,7 @@ const tabConfig = [
   { id: "vehicles" as Tab, label: "Veículos", icon: Car },
   { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
   { id: "clients" as Tab, label: "Cadastro", icon: UserPlus },
-  { id: "expenses" as Tab, label: "Receitas e Despesas", icon: Receipt },
+  { id: "expenses" as Tab, label: "Financeiro", icon: Receipt },
   { id: "boletos" as Tab, label: "Boletos", icon: Barcode },
   { id: "salary" as Tab, label: "Salário", icon: Wallet },
   { id: "accountant" as Tab, label: "Contador", icon: Calculator },
