@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LayoutDashboard, Users, ClipboardList, FileText, CalendarDays, History as HistoryIcon } from "lucide-react";
+import { FolderOpen, Users, ClipboardList, FileText, CalendarDays, History as HistoryIcon } from "lucide-react";
 import { SalaryDashboard } from "./SalaryDashboard";
 import { EmployeeManager } from "./EmployeeManager";
 import { PayrollManager } from "./PayrollManager";
@@ -9,7 +9,7 @@ import { SalaryCalendar } from "./SalaryCalendar";
 type SubTab = "dashboard" | "employees" | "payroll" | "payslips" | "calendar" | "history";
 
 const subTabs: { id: SubTab; label: string; icon: any }[] = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "dashboard", label: "Dashboard", icon: FolderOpen },
   { id: "employees", label: "Funcionários", icon: Users },
   { id: "payroll", label: "Folha", icon: ClipboardList },
   { id: "payslips", label: "Contracheques", icon: FileText },

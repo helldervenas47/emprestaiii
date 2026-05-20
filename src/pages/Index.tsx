@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from "react";
-import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity, Send, MessageCircle, Wallet, Barcode } from "lucide-react";
+import { Plus, Users, LayoutDashboard, FolderOpen, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity, Send, MessageCircle, Wallet, Barcode } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -107,11 +107,11 @@ type IncExpTab = "incomes" | "expenses";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
-  { id: "dashboard" as Tab, label: "Empréstimos", icon: LayoutDashboard },
+  { id: "dashboard" as Tab, label: "Empréstimos", icon: FolderOpen },
   { id: "products" as Tab, label: "Vendas", icon: ShoppingBag },
   { id: "vehicles" as Tab, label: "Veículos", icon: Car },
   { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
-  { id: "clients" as Tab, label: "Cadastro", icon: Users },
+  { id: "clients" as Tab, label: "Cadastro", icon: LayoutDashboard },
   { id: "expenses" as Tab, label: "Receitas e Despesas", icon: Receipt },
   { id: "boletos" as Tab, label: "Boletos", icon: Barcode },
   { id: "salary" as Tab, label: "Salário", icon: Wallet },
@@ -790,7 +790,7 @@ const Index = () => {
                       onClick={() => setLoanSubTab("loans")}
                       className="gap-1.5 hidden md:inline-flex"
                     >
-                      <LayoutDashboard className="h-4 w-4" />
+                      <FolderOpen className="h-4 w-4" />
                       Voltar para Empréstimos
                     </Button>
                   ) : null}
@@ -1237,9 +1237,9 @@ const Index = () => {
                     }`}
                   >
                     <div className={`flex items-center justify-center h-6 transition-transform duration-200 ${active ? "scale-110" : ""}`}>
-                      <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.4 : 2} />
+                      <Icon className={`h-[22px] w-[22px] ${item.id === 'clients' ? 'font-extrabold' : ''}`} strokeWidth={active ? 2.4 : 2} />
                     </div>
-                    <span className={`text-[10px] leading-none ${active ? "font-semibold" : "font-medium"}`}>{item.label}</span>
+                    <span className="text-[10px] leading-none font-bold">{item.label}</span>
                     <span className={`block h-0.5 w-6 rounded-full mt-0.5 transition-all ${active ? "bg-primary" : "bg-transparent"}`} />
                   </button>
                 );
@@ -1262,7 +1262,7 @@ const Index = () => {
                     </span>
                   )}
                 </div>
-                <span className={`text-[10px] leading-none ${moreOpen ? "font-semibold" : "font-medium"}`}>Mais</span>
+                <span className="text-[10px] leading-none font-bold">Mais</span>
                 <span className={`block h-0.5 w-6 rounded-full mt-0.5 transition-all ${moreOpen ? "bg-primary" : "bg-transparent"}`} />
               </button>
             </div>
