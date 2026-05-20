@@ -112,7 +112,7 @@ const tabConfig = [
   { id: "vehicles" as Tab, label: "Veículos", icon: Car },
   { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
   { id: "clients" as Tab, label: "Cadastro", icon: UserPlus },
-  { id: "expenses" as Tab, label: "Receitas e Despesas", icon: Receipt },
+  { id: "expenses" as Tab, label: "Financeiro", icon: Receipt },
   { id: "boletos" as Tab, label: "Boletos", icon: Barcode },
   { id: "salary" as Tab, label: "Salário", icon: Wallet },
   { id: "accountant" as Tab, label: "Contador", icon: Calculator },
@@ -896,7 +896,7 @@ const Index = () => {
           </div>
         )}
         {tab === "expenses" && (
-          <SubscriptionGate requiredTier={2} featureName="Receitas e Despesas">
+          <SubscriptionGate requiredTier={2} featureName="Financeiro">
           <div className="max-w-full">
             <div className="w-full bg-muted/50 rounded-xl p-1 flex gap-0.5 mb-4">
               <button
