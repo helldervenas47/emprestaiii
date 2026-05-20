@@ -97,7 +97,7 @@ function WhatsappBillButton({
       title={phone ? "Cobrar via WhatsApp" : "Cliente sem telefone"}
       disabled={!phone}
     >
-      <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+      <MessageCircle className="h-3.5 w-3.5" /> <span className="hidden sm:inline">WhatsApp</span>
     </Button>
   ) : (
     <Button
