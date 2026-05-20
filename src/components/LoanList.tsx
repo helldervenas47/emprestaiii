@@ -420,6 +420,19 @@ function LoanCardView({
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
   const [showAdjustDueDate, setShowAdjustDueDate] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [payMenuOpen, setPayMenuOpen] = useState(false);
+  React.useEffect(() => {
+    if (!payMenuOpen) return;
+    const close = () => setPayMenuOpen(false);
+    // Use timeout so the opening tap doesn't immediately close it
+    const t = setTimeout(() => {
+      document.addEventListener("pointerdown", close, { once: true });
+    }, 0);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("pointerdown", close);
+    };
+  }, [payMenuOpen]);
   const { activeMethods } = usePaymentMethods();
   const { celebrate } = usePaymentCelebration();
   const [selectedMethodId, setSelectedMethodId] = useState<string>("");
