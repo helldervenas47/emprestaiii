@@ -2932,12 +2932,12 @@ function LoanRowView({
           </div>
         </div>
       </td>
-      {/* Status - hidden on mobile (color distinction is kept via row/border) */}
-      <td className="hidden sm:table-cell px-1.5 sm:px-4 py-2 sm:py-3">
+      {/* Status - hidden on mobile and tablet */}
+      <td className="hidden lg:table-cell px-1.5 sm:px-4 py-2 sm:py-3">
         <Badge variant="outline" className={`${badge.className} text-[9px] sm:text-xs px-1.5 sm:px-2.5`}>{badge.label}</Badge>
       </td>
-      {/* Emprestado - hidden on mobile and tablet */}
-      <td className="hidden lg:table-cell px-4 py-3">
+      {/* Emprestado - hidden on mobile */}
+      <td className="hidden sm:table-cell px-4 py-3">
         <span className="text-sm font-medium text-foreground">{formatCurrency(loan.amount)}</span>
       </td>
       {/* Restante / Parcela / Total Pago */}
@@ -2973,8 +2973,8 @@ function LoanRowView({
           {getFirstPendingDate(loan, installmentSchedules).toLocaleDateString("pt-BR")}
         </span>
       </td>
-      {/* Etiquetas - hidden on mobile and tablet */}
-      <td className="hidden lg:table-cell px-4 py-3">
+      {/* Etiquetas - hidden on mobile */}
+      <td className="hidden sm:table-cell px-4 py-3">
         <div className="flex flex-wrap gap-1">
           {loan.tags && loan.tags.length > 0 ? loan.tags.map((tag) => (
             <Badge key={tag} className="bg-primary text-primary-foreground text-[10px]">{tag}</Badge>
@@ -5117,12 +5117,12 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 <thead>
                   <tr className="border-b border-border/30">
                     <th className="px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Cliente</th>
-                    <th className="hidden sm:table-cell px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Status</th>
-                    <th className="hidden lg:table-cell px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Emprestado</th>
+                    <th className="hidden lg:table-cell px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Status</th>
+                    <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Emprestado</th>
                     <th className="px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">{category === "paid" ? "Pago" : "Restante"}</th>
                     <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Parcelas</th>
                     <th className="px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Venc.</th>
-                    <th className="hidden lg:table-cell px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Etiquetas</th>
+                    <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Etiquetas</th>
                     <th className="hidden sm:table-cell px-4 py-2.5 text-right text-xs font-medium text-muted-foreground"></th>
                   </tr>
                 </thead>
