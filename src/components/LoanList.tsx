@@ -4517,6 +4517,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
           if (sel === "all") return cat !== "paid";
           if (sel === "parcelado") return l.installments >= 2 && l.status !== "paid";
           if (sel === "venda") return !!l.isSale;
+          if (sel === "on_track") return cat === "on_track" || cat === "paid_interest";
           return cat === sel;
         });
       });
@@ -4526,6 +4527,12 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       filtered = filtered.filter((l) => l.installments >= 2 && l.status !== "paid");
     } else if (category === "venda") {
       filtered = filtered.filter((l) => !!l.isSale);
+    } else if (category === "on_track") {
+      // "Em Dia" inclui também os contratos com pagamento de juros (status JUROS).
+      filtered = filtered.filter((l) => {
+        const cat = getLoanCategory(l, payments, installmentSchedules);
+        return cat === "on_track" || cat === "paid_interest";
+      });
     } else {
       filtered = filtered.filter((l) => getLoanCategory(l, payments, installmentSchedules) === category);
     }
@@ -4643,7 +4650,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       paid_interest: cats.filter((c) => c === "paid_interest").length,
       paid: cats.filter((c) => c === "paid").length,
       due_today: cats.filter((c) => c === "due_today").length,
-      on_track: cats.filter((c) => c === "on_track").length,
+      on_track: cats.filter((c) => c === "on_track" || c === "paid_interest").length,
       venda: loans.filter((l) => !!l.isSale && l.status !== "paid").length,
     };
   }, [loans, payments, folderCount]);
