@@ -1777,7 +1777,7 @@ function LoanCardView({
         {/* Action Buttons */}
         <div className="flex flex-col gap-2 pt-2 border-t border-border/50 mt-auto">
           {!readOnly && loan.status !== "paid" && (
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button className="w-full h-10 text-sm font-semibold gap-2">
                   <DollarSign className="h-4 w-4" /> Pagar
