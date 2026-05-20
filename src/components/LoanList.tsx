@@ -857,7 +857,7 @@ function LoanCardView({
             <h3 className="font-semibold text-foreground">Editar Empréstimo</h3>
             <div className="flex gap-1">
               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={saveEdit}><Check className="h-4 w-4 text-success" /></Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={cancelEdit}><X className="h-4 w-4 text-destructive" /></Button>
+               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={cancelEdit}><X className="w-[25px] h-[25px] text-destructive" /></Button>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -3026,7 +3026,7 @@ function LoanRowView({
                 <h3 className="font-semibold text-foreground">Editar Empréstimo</h3>
                 <div className="flex gap-1">
                   <Button size="icon" variant="ghost" className="h-8 w-8" onClick={saveEdit}><Check className="h-4 w-4 text-success" /></Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={cancelEdit}><X className="h-4 w-4 text-destructive" /></Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={cancelEdit}><X className="w-[25px] h-[25px] text-destructive" /></Button>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
