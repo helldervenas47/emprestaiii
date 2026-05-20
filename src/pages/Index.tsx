@@ -800,18 +800,18 @@ const Index = () => {
                           size="sm"
                           variant="outline"
                           onClick={() => setShowLoanSimulator(true)}
-                          className="gap-1.5 hidden md:inline-flex"
+                          className="gap-1.5 hidden"
                         >
                           <Calculator className="h-4 w-4" />
                           Simular Empréstimo
                         </Button>
                       )}
-                      {/* Botão Histórico do Cliente — versão PC/Tablet (oculto no mobile) */}
+                      {/* Botão Histórico do Cliente — agora dentro da toolbar do LoanList */}
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => setLoanSubTab("history")}
-                        className="gap-1.5 hidden md:inline-flex"
+                        className="gap-1.5 hidden"
                       >
                         <Users className="h-4 w-4" />
                         Histórico do Cliente
