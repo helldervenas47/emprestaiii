@@ -1891,7 +1891,9 @@ export function useLoans() {
     toast.success(
       params.type === "with_penalty"
         ? `Renegociação registrada com multa de R$ ${penaltyAmount.toFixed(2)}`
-        : "Renegociação registrada"
+        : isDiscount
+          ? `Renegociação com desconto de R$ ${(remaining - newAmount).toFixed(2)} registrada`
+          : "Renegociação registrada"
     );
   }, [user, dataOwnerId, loans, payments, installmentSchedules, fetchLoans, fetchSchedules]);
 
