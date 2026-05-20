@@ -4943,7 +4943,32 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             </div>
           )}
           {/* Botões — versão Mobile (abaixo de Ontem/Hoje/Amanhã) */}
-          {/* Botões — versão Mobile removidos conforme solicitado */}
+          {(onOpenSimulator || onOpenClientHistory) && (
+            <div className="grid grid-cols-2 gap-2 mt-1 md:hidden">
+              {onOpenSimulator && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onOpenSimulator}
+                  className="w-full gap-1.5"
+                >
+                  <Calculator className="h-3.5 w-3.5" />
+                  Simular Empréstimo
+                </Button>
+              )}
+              {onOpenClientHistory && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onOpenClientHistory}
+                  className="w-full gap-1.5"
+                >
+                  <User className="h-3.5 w-3.5" />
+                  Histórico do Cliente
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

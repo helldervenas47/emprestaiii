@@ -770,7 +770,7 @@ const Index = () => {
               <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-semibold text-foreground">
-                    {loanSubTab === "history" ? "Histórico do Cliente" : "\n"}
+                    {loanSubTab === "history" ? "Histórico do Cliente" : "Empréstimos"}
                   </h2>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
