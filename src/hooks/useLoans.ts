@@ -1596,6 +1596,7 @@ export function useLoans() {
       firstDueDate?: string | null;
       frequency?: "monthly" | "biweekly" | "weekly" | "daily" | null;
       customDates?: string[] | null;
+      discountNewTotal?: number | null;
     }
   ) => {
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
@@ -1649,7 +1650,18 @@ export function useLoans() {
       }
     }
 
-    const newAmount = Math.round((remaining + penaltyAmount) * 100) / 100;
+    // Modo desconto: novo valor total < saldo atual
+    const discountNewTotal = Number(params.discountNewTotal ?? 0);
+    const isDiscount = params.type === "no_interest"
+      && discountNewTotal > 0
+      && discountNewTotal < remaining;
+    if (params.discountNewTotal != null && params.discountNewTotal > 0 && params.discountNewTotal >= remaining) {
+      throw new Error("O novo valor deve ser menor que o saldo atual");
+    }
+
+    const newAmount = isDiscount
+      ? Math.round(discountNewTotal * 100) / 100
+      : Math.round((remaining + penaltyAmount) * 100) / 100;
 
     // Quantas parcelas substituirão as selecionadas
     const desiredNewPending = params.newInstallments && params.newInstallments > 0
@@ -1879,7 +1891,9 @@ export function useLoans() {
     toast.success(
       params.type === "with_penalty"
         ? `Renegociação registrada com multa de R$ ${penaltyAmount.toFixed(2)}`
-        : "Renegociação registrada"
+        : isDiscount
+          ? `Renegociação com desconto de R$ ${(remaining - newAmount).toFixed(2)} registrada`
+          : "Renegociação registrada"
     );
   }, [user, dataOwnerId, loans, payments, installmentSchedules, fetchLoans, fetchSchedules]);
 

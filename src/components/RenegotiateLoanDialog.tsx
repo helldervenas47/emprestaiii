@@ -69,6 +69,7 @@ interface Props {
     firstDueDate?: string | null;
     frequency?: "monthly" | "biweekly" | "weekly" | "daily" | null;
     customDates?: string[] | null;
+    discountNewTotal?: number | null;
   }) => Promise<void>;
 }
 
@@ -81,10 +82,11 @@ export function RenegotiateLoanDialog({
   history,
   onConfirm,
 }: Props) {
-  const [type, setType] = useState<"no_interest" | "with_penalty">("no_interest");
+  const [type, setType] = useState<"no_interest" | "with_penalty" | "discount">("no_interest");
   const [penaltyMode, setPenaltyMode] = useState<"fixed" | "percentage">("fixed");
   const [penaltyInput, setPenaltyInput] = useState("");
   const [penaltyDistribution, setPenaltyDistribution] = useState<"diluted" | "first">("diluted");
+  const [discountNewTotalInput, setDiscountNewTotalInput] = useState("");
   const [newInstallments, setNewInstallments] = useState("");
   const [notes, setNotes] = useState("");
   const [firstDueDate, setFirstDueDate] = useState("");
@@ -146,7 +148,18 @@ export function RenegotiateLoanDialog({
     return Math.round(v * 100) / 100;
   }, [type, penaltyMode, penaltyInput, remaining]);
 
-  const newTotal = Math.round((remaining + penaltyAmount) * 100) / 100;
+  const discountNewTotal = useMemo(() => {
+    if (type !== "discount") return 0;
+    const v = parseFloat(discountNewTotalInput.replace(",", ".")) || 0;
+    return v > 0 ? Math.round(v * 100) / 100 : 0;
+  }, [type, discountNewTotalInput]);
+  const discountAmount = type === "discount" && discountNewTotal > 0 && discountNewTotal < remaining
+    ? Math.round((remaining - discountNewTotal) * 100) / 100
+    : 0;
+
+  const newTotal = type === "discount" && discountNewTotal > 0
+    ? discountNewTotal
+    : Math.round((remaining + penaltyAmount) * 100) / 100;
 
   const installmentsCount = useMemo(() => {
     const n = parseInt(newInstallments) || 0;
@@ -285,6 +298,7 @@ export function RenegotiateLoanDialog({
     setPenaltyMode("fixed");
     setPenaltyInput("");
     setPenaltyDistribution("diluted");
+    setDiscountNewTotalInput("");
     setNewInstallments("");
     setNotes("");
     setFrequency("monthly");
@@ -326,21 +340,37 @@ export function RenegotiateLoanDialog({
         return;
       }
     }
+    if (type === "discount") {
+      if (discountNewTotal <= 0) {
+        toast.error("Informe o novo valor negociado");
+        return;
+      }
+      if (discountNewTotal >= remaining) {
+        toast.error("O novo valor deve ser menor que o saldo atual");
+        return;
+      }
+    }
     if (!confirming) {
       setConfirming(true);
       return;
     }
     try {
       setSubmitting(true);
+      const submitType: "no_interest" | "with_penalty" =
+        type === "with_penalty" ? "with_penalty" : "no_interest";
+      const discountNote = type === "discount"
+        ? `[Desconto: ${formatCurrency(discountAmount)}]`
+        : "";
+      const finalNotes = [discountNote, notes.trim()].filter(Boolean).join(" ").trim() || null;
       await onConfirm({
-        type,
+        type: submitType,
         penaltyMode: type === "with_penalty" ? penaltyMode : null,
         penaltyInput: type === "with_penalty"
           ? parseFloat(penaltyInput.replace(",", ".")) || 0
           : null,
         penaltyDistribution: type === "with_penalty" ? penaltyDistribution : null,
         newInstallments: parseInt(newInstallments) || null,
-        notes: notes.trim() || null,
+        notes: finalNotes,
         selectedInstallmentNumbers:
           isInstallmentLoan && pendingInstallments.length > 0
             ? Array.from(selectedNumbers).sort((a, b) => a - b)
@@ -355,6 +385,7 @@ export function RenegotiateLoanDialog({
           }
           return arr.length > 0 ? arr : null;
         })(),
+        discountNewTotal: type === "discount" ? discountNewTotal : null,
       });
       reset();
       onOpenChange(false);
@@ -550,8 +581,51 @@ export function RenegotiateLoanDialog({
                   </p>
                 </div>
               </label>
+              <label
+                htmlFor="reneg-discount"
+                className="flex items-start gap-3 rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/40"
+              >
+                <RadioGroupItem value="discount" id="reneg-discount" className="mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Com desconto</p>
+                  <p className="text-xs text-muted-foreground">
+                    Informe um novo valor total menor que o saldo atual.
+                  </p>
+                </div>
+              </label>
             </RadioGroup>
           </div>
+
+          {type === "discount" && (
+            <div className="space-y-2 rounded-lg border border-success/30 bg-success/5 p-3">
+              <Label className="text-xs">Novo valor total negociado</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                inputMode="decimal"
+                placeholder={`Menor que ${formatCurrency(remaining)}`}
+                value={discountNewTotalInput}
+                onChange={(e) => { setDiscountNewTotalInput(e.target.value); setConfirming(false); }}
+              />
+              {discountNewTotal > 0 && discountNewTotal < remaining && (
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <span className="text-muted-foreground">Desconto concedido</span>
+                  <span className="font-semibold text-success">
+                    − {formatCurrency(discountAmount)}
+                    <span className="text-[10px] text-muted-foreground ml-1">
+                      ({((discountAmount / remaining) * 100).toFixed(1)}%)
+                    </span>
+                  </span>
+                </div>
+              )}
+              {discountNewTotal > 0 && discountNewTotal >= remaining && (
+                <p className="text-[11px] text-destructive">
+                  O novo valor deve ser menor que o saldo atual ({formatCurrency(remaining)}).
+                </p>
+              )}
+            </div>
+          )}
 
           {type === "with_penalty" && (
             <div className="space-y-2 rounded-lg border border-warning/30 bg-warning/5 p-3">
@@ -692,9 +766,17 @@ export function RenegotiateLoanDialog({
                 <span>{formatCurrency(penaltyAmount)}</span>
               </div>
             )}
+            {type === "discount" && discountAmount > 0 && (
+              <div className="flex justify-between text-success">
+                <span>− Desconto concedido</span>
+                <span>{formatCurrency(discountAmount)}</span>
+              </div>
+            )}
             <div className="flex justify-between font-semibold text-foreground border-t border-border/50 pt-1.5">
               <span>Novo total renegociado</span>
-              <span>{formatCurrency(newTotal)}</span>
+              <span className={type === "discount" && discountAmount > 0 ? "text-success" : ""}>
+                {formatCurrency(newTotal)}
+              </span>
             </div>
             {useFirstMode ? (
               <>
@@ -902,37 +984,60 @@ export function RenegotiateLoanDialog({
                         </div>
                       </div>
 
-                      <div className="flex justify-between text-muted-foreground">
-                        <span>{formatCurrency(r.previousAmount)} → {formatCurrency(r.newAmount)}</span>
-                        {r.penaltyAmount > 0 && (
-                          <span className="text-warning font-medium">
-                            +{formatCurrency(r.penaltyAmount)}
-                            {r.penaltyMode === "percentage" && r.penaltyInput
-                              ? ` (${r.penaltyInput}%)`
-                              : ""}
-                          </span>
-                        )}
-                      </div>
+                      {(() => {
+                        const discountVal = r.newAmount < r.previousAmount
+                          ? Math.round((r.previousAmount - r.newAmount) * 100) / 100
+                          : 0;
+                        return (
+                          <>
+                            <div className="flex justify-between text-muted-foreground">
+                              <span>{formatCurrency(r.previousAmount)} → {formatCurrency(r.newAmount)}</span>
+                              {r.penaltyAmount > 0 && (
+                                <span className="text-warning font-medium">
+                                  +{formatCurrency(r.penaltyAmount)}
+                                  {r.penaltyMode === "percentage" && r.penaltyInput
+                                    ? ` (${r.penaltyInput}%)`
+                                    : ""}
+                                </span>
+                              )}
+                              {discountVal > 0 && (
+                                <span className="text-success font-medium">
+                                  −{formatCurrency(discountVal)}
+                                </span>
+                              )}
+                            </div>
 
-                      {r.previousInstallments != null && r.newInstallments != null && (
-                        <div className="text-[11px] text-muted-foreground">
-                          Parcelas: {r.previousInstallments} → {r.newInstallments}
-                        </div>
-                      )}
+                            {r.previousInstallments != null && r.newInstallments != null && (
+                              <div className="text-[11px] text-muted-foreground">
+                                Parcelas: {r.previousInstallments} → {r.newInstallments}
+                              </div>
+                            )}
+
+                            {!isEditing && (
+                              <div className="flex items-center justify-between">
+                                <span
+                                  className={
+                                    r.type === "with_penalty"
+                                      ? "text-warning font-medium"
+                                      : discountVal > 0
+                                        ? "text-success font-medium"
+                                        : "text-muted-foreground"
+                                  }
+                                >
+                                  {r.type === "with_penalty"
+                                    ? "Com multa"
+                                    : discountVal > 0
+                                      ? "Com desconto"
+                                      : "Sem juros"}
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
 
                       {!isEditing ? (
                         <>
-                          <div className="flex items-center justify-between">
-                            <span
-                              className={
-                                r.type === "with_penalty"
-                                  ? "text-warning font-medium"
-                                  : "text-muted-foreground"
-                              }
-                            >
-                              {r.type === "with_penalty" ? "Com multa" : "Sem juros"}
-                            </span>
-                          </div>
                           {r.notes && (
                             <p className="text-muted-foreground italic border-t border-border/40 pt-1.5">
                               {r.notes}
