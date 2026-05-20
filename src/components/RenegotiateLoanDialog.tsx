@@ -718,7 +718,7 @@ export function RenegotiateLoanDialog({
                 type="date"
                 value={firstDueDate}
                 onChange={(e) => { setFirstDueDate(e.target.value); setCustomDates({}); setConfirming(false); }}
-                className="h-11 text-sm w-full min-w-0 px-3 text-left [&::-webkit-date-and-time-value]:text-left [&::-webkit-date-and-time-value]:w-full"
+                className="h-11 text-sm w-full min-w-0 px-3 text-center [&::-webkit-date-and-time-value]:text-center [&::-webkit-date-and-time-value]:w-full [&::-webkit-calendar-picker-indicator]:ml-0"
               />
             </div>
             <div className="space-y-1.5">
