@@ -149,6 +149,7 @@ interface Props {
   initialView?: "cards" | "rows" | "folders";
   clients?: Client[];
   onOpenClientHistory?: () => void;
+  onOpenSimulator?: () => void;
 }
 
 type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track" | "parcelado" | "venda";
@@ -4447,7 +4448,7 @@ function ClientFolder({
   );
 }
 
-export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, initialCategory, initialView, clients = [], onOpenClientHistory }: Props) {
+export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, initialCategory, initialView, clients = [], onOpenClientHistory, onOpenSimulator }: Props) {
   const { renegotiations: allRenegotiations } = useLoanRenegotiations();
   const renegotiationsByLoan = useMemo(() => {
     const map = new Map<string, LoanRenegotiation[]>();
@@ -4941,7 +4942,18 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
               ))}
             </div>
           )}
-          {/* Botão Histórico do Cliente — versão Mobile (abaixo de Ontem/Hoje/Amanhã) */}
+          {/* Botões — versão Mobile (abaixo de Ontem/Hoje/Amanhã) */}
+          {onOpenSimulator && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenSimulator}
+              className="w-full md:hidden gap-1.5 mt-1"
+            >
+              <Calculator className="h-3.5 w-3.5" />
+              Simular Empréstimo
+            </Button>
+          )}
           {onOpenClientHistory && (
             <Button
               variant="outline"

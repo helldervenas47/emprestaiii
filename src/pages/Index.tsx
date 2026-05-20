@@ -800,7 +800,7 @@ const Index = () => {
                           size="sm"
                           variant="outline"
                           onClick={() => setShowLoanSimulator(true)}
-                          className="gap-1.5"
+                          className="gap-1.5 hidden md:inline-flex"
                         >
                           <Calculator className="h-4 w-4" />
                           Simular Empréstimo
@@ -842,6 +842,7 @@ const Index = () => {
                   initialView={initialLoanView}
                   clients={filteredClients}
                   onOpenClientHistory={() => setLoanSubTab("history")}
+                  onOpenSimulator={!isReadOnly ? () => setShowLoanSimulator(true) : undefined}
                 />
               )}
             </div>
