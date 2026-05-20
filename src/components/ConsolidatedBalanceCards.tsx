@@ -269,8 +269,8 @@ export function ConsolidatedBalanceCards() {
               onClick={() => setOpenSettings(true)}
               aria-label="Configurações do saldo"
               title="Configurações do saldo"
-              className="absolute right-12 top-4 inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/80 hover:text-foreground hover:bg-accent/60 transition-colors focus:outline-none focus:ring-2 focus:ring-ring/40"
-              style={{ top: "calc(1rem + env(safe-area-inset-top))" }}
+              className="absolute right-12 inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/80 hover:text-foreground hover:bg-accent/60 transition-colors focus:outline-none focus:ring-2 focus:ring-ring/40"
+              style={{ top: "calc(0.625rem + env(safe-area-inset-top))" }}
             >
               <Settings2 className="h-4 w-4" />
             </button>
