@@ -340,21 +340,37 @@ export function RenegotiateLoanDialog({
         return;
       }
     }
+    if (type === "discount") {
+      if (discountNewTotal <= 0) {
+        toast.error("Informe o novo valor negociado");
+        return;
+      }
+      if (discountNewTotal >= remaining) {
+        toast.error("O novo valor deve ser menor que o saldo atual");
+        return;
+      }
+    }
     if (!confirming) {
       setConfirming(true);
       return;
     }
     try {
       setSubmitting(true);
+      const submitType: "no_interest" | "with_penalty" =
+        type === "with_penalty" ? "with_penalty" : "no_interest";
+      const discountNote = type === "discount"
+        ? `[Desconto: ${formatCurrency(discountAmount)}]`
+        : "";
+      const finalNotes = [discountNote, notes.trim()].filter(Boolean).join(" ").trim() || null;
       await onConfirm({
-        type,
+        type: submitType,
         penaltyMode: type === "with_penalty" ? penaltyMode : null,
         penaltyInput: type === "with_penalty"
           ? parseFloat(penaltyInput.replace(",", ".")) || 0
           : null,
         penaltyDistribution: type === "with_penalty" ? penaltyDistribution : null,
         newInstallments: parseInt(newInstallments) || null,
-        notes: notes.trim() || null,
+        notes: finalNotes,
         selectedInstallmentNumbers:
           isInstallmentLoan && pendingInstallments.length > 0
             ? Array.from(selectedNumbers).sort((a, b) => a - b)
@@ -369,6 +385,7 @@ export function RenegotiateLoanDialog({
           }
           return arr.length > 0 ? arr : null;
         })(),
+        discountNewTotal: type === "discount" ? discountNewTotal : null,
       });
       reset();
       onOpenChange(false);
