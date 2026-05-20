@@ -149,6 +149,7 @@ interface Props {
   initialView?: "cards" | "rows" | "folders";
   clients?: Client[];
   onOpenClientHistory?: () => void;
+  onOpenSimulator?: () => void;
 }
 
 type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track" | "parcelado" | "venda";
