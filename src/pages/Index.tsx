@@ -896,7 +896,7 @@ const Index = () => {
           </div>
         )}
         {tab === "expenses" && (
-          <SubscriptionGate requiredTier={2} featureName="Receitas e Despesas">
+          <SubscriptionGate requiredTier={2} featureName="Financeiro">
           <div className="max-w-full">
             <div className="w-full bg-muted/50 rounded-xl p-1 flex gap-0.5 mb-4">
               <button
