@@ -790,7 +790,7 @@ const Index = () => {
                       onClick={() => setLoanSubTab("loans")}
                       className="gap-1.5 hidden md:inline-flex"
                     >
-                      <LayoutDashboard className="h-4 w-4" />
+                      <FolderOpen className="h-4 w-4" />
                       Voltar para Empréstimos
                     </Button>
                   ) : null}
