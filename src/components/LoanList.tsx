@@ -4756,6 +4756,42 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     return { totalLent, totalToReceive, totalInterest, activeCount, overdueCount };
   }, [categorized, payments, dueDateQuick, view, installmentSchedules, category]);
 
+  // Cards de resumo (Vencidos / Vence Hoje / No Prazo / Total a Receber)
+  // Baseados em TODOS os empréstimos não quitados, independentemente dos filtros.
+  const statusSummary = useMemo(() => {
+    const today = todayInAppTz();
+    let overdue = 0;
+    let dueToday = 0;
+    let onTrack = 0;
+    let overdueCount = 0;
+    let dueTodayCount = 0;
+    let onTrackCount = 0;
+    for (const l of loans) {
+      if (l.status === "paid") continue;
+      const base = getBaseRemainingAmount(l, payments, installmentSchedules);
+      const fees = getLoanLateFees(l, payments, installmentSchedules);
+      const renegPenalty = Number(l.renegotiationPenaltyTotal || 0);
+      const receivable = Math.max(0, base + fees.lateFees + renegPenalty);
+      const due = l.dueDate || "";
+      if (due && due < today) {
+        overdue += receivable;
+        overdueCount += 1;
+      } else if (due === today) {
+        dueToday += receivable;
+        dueTodayCount += 1;
+      } else {
+        onTrack += receivable;
+        onTrackCount += 1;
+      }
+    }
+    return {
+      overdue, dueToday, onTrack,
+      total: overdue + dueToday + onTrack,
+      overdueCount, dueTodayCount, onTrackCount,
+      totalCount: overdueCount + dueTodayCount + onTrackCount,
+    };
+  }, [loans, payments, installmentSchedules]);
+
   if (loans.length === 0) {
     return (
       <Card>
