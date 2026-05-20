@@ -148,7 +148,18 @@ export function RenegotiateLoanDialog({
     return Math.round(v * 100) / 100;
   }, [type, penaltyMode, penaltyInput, remaining]);
 
-  const newTotal = Math.round((remaining + penaltyAmount) * 100) / 100;
+  const discountNewTotal = useMemo(() => {
+    if (type !== "discount") return 0;
+    const v = parseFloat(discountNewTotalInput.replace(",", ".")) || 0;
+    return v > 0 ? Math.round(v * 100) / 100 : 0;
+  }, [type, discountNewTotalInput]);
+  const discountAmount = type === "discount" && discountNewTotal > 0 && discountNewTotal < remaining
+    ? Math.round((remaining - discountNewTotal) * 100) / 100
+    : 0;
+
+  const newTotal = type === "discount" && discountNewTotal > 0
+    ? discountNewTotal
+    : Math.round((remaining + penaltyAmount) * 100) / 100;
 
   const installmentsCount = useMemo(() => {
     const n = parseInt(newInstallments) || 0;
