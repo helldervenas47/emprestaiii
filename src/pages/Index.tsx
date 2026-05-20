@@ -1234,7 +1234,7 @@ const Index = () => {
                     onClick={() => setTab(item.id)}
                     className={`flex-1 flex-col gap-0.5 px-1 transition-all duration-200 touch-manipulation focus-visible:outline-none ${
                       active ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                    } flex items-center justify-center`}
+                    } flex items-center justify-end`}
                   >
                     <div className={`flex items-center justify-center h-6 transition-transform duration-200 ${active ? "scale-110" : ""}`}>
                       <Icon className={`h-[22px] w-[22px] ${item.id === 'clients' ? 'font-extrabold' : ''}`} strokeWidth={active ? 2.4 : 2} />
@@ -1249,7 +1249,7 @@ const Index = () => {
                 onClick={() => setMoreOpen(true)}
                 className={`relative flex-1 flex-col gap-0.5 px-1 transition-all duration-200 touch-manipulation focus-visible:outline-none ${
                   moreOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                } flex items-center justify-center`}
+                } flex items-center justify-end`}
               >
                 <div className={`relative flex items-center justify-center h-6 transition-transform duration-200 ${moreOpen ? "scale-110" : ""}`}>
                   <Menu className="h-[22px] w-[22px]" strokeWidth={moreOpen ? 2.4 : 2} />
