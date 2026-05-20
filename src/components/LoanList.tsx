@@ -2442,7 +2442,7 @@ function LoanCardView({
     <Dialog open={showHistory} onOpenChange={setShowHistory}>
       <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
-          <DialogTitle className="whitespace-pre-wrap">{"\n\n"}Histórico de Pagamentos — {loan.borrowerName}</DialogTitle>
+          <DialogTitle>Histórico de Pagamentos — {loan.borrowerName}</DialogTitle>
         </DialogHeader>
         <div className="max-h-[400px] overflow-y-auto">
           {(() => {
@@ -4186,7 +4186,7 @@ function LoanRowView({
     <Dialog open={showHistory} onOpenChange={setShowHistory}>
       <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
-          <DialogTitle className="whitespace-pre-wrap">{"\n\n"}Histórico de Pagamentos — {loan.borrowerName}</DialogTitle>
+          <DialogTitle>Histórico de Pagamentos — {loan.borrowerName}</DialogTitle>
         </DialogHeader>
         <div className="max-h-[400px] overflow-y-auto">
           {(() => {
