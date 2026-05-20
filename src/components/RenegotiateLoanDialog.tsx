@@ -833,15 +833,22 @@ export function RenegotiateLoanDialog({
                     {simulatedSchedule.length} parcela{simulatedSchedule.length > 1 ? "s" : ""}
                   </span>
                 </div>
-                <div className="rounded-lg border border-border/60 max-h-64 overflow-y-auto overflow-x-auto">
-                  <table className="w-full text-xs tabular-nums">
+                <div className="rounded-lg border border-border/60 max-h-64 overflow-y-auto overflow-x-hidden">
+                  <table className="w-full table-fixed text-[11px] sm:text-xs tabular-nums">
+                    <colgroup>
+                      <col className="w-[18%]" />
+                      <col className="w-[30%]" />
+                      <col className="w-[16%]" />
+                      <col className="w-[16%]" />
+                      <col className="w-[20%]" />
+                    </colgroup>
                     <thead className="bg-muted/50 sticky top-0">
-                      <tr className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                        <th className="text-left px-2 py-1.5 font-semibold">#</th>
-                        <th className="text-left px-2 py-1.5 font-semibold">Vencimento</th>
-                        <th className="text-right px-2 py-1.5 font-semibold">Multa</th>
-                        <th className="text-right px-2 py-1.5 font-semibold">Juros</th>
-                        <th className="text-right px-2 py-1.5 font-semibold">Total</th>
+                      <tr className="text-[9px] sm:text-[10px] uppercase tracking-wide text-muted-foreground">
+                        <th className="text-left px-1 py-1.5 font-semibold">#</th>
+                        <th className="text-left px-1 py-1.5 font-semibold">Venc.</th>
+                        <th className="text-right px-1 py-1.5 font-semibold">Multa</th>
+                        <th className="text-right px-1 py-1.5 font-semibold">Juros</th>
+                        <th className="text-right px-1 py-1.5 font-semibold">Total</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/40">
@@ -867,15 +874,15 @@ export function RenegotiateLoanDialog({
                             key={`${row.number}-${row.dueDate}-${row.isNew}`}
                             className={row.isNew ? "bg-primary/5" : ""}
                           >
-                            <td className="px-2 py-1.5">
+                            <td className="px-1 py-1.5 truncate">
                               <span className="font-medium">#{row.number}</span>
                               {row.isNew && (
-                                <span className="ml-1 text-[9px] uppercase tracking-wide bg-primary/15 text-primary rounded px-1 py-0.5 font-semibold">
+                                <span className="ml-0.5 text-[8px] uppercase tracking-tight bg-primary/15 text-primary rounded px-1 py-0.5 font-semibold">
                                   Nova
                                 </span>
                               )}
                             </td>
-                            <td className="px-2 py-1.5 text-muted-foreground">
+                            <td className="px-1 py-1.5 text-muted-foreground truncate">
                               {row.isNew && row.newIndex !== undefined ? (
                                 <Input
                                   type="date"
@@ -885,19 +892,19 @@ export function RenegotiateLoanDialog({
                                     setCustomDates((prev) => ({ ...prev, [row.newIndex as number]: v }));
                                     setConfirming(false);
                                   }}
-                                  className="h-7 px-1.5 text-xs"
+                                  className="h-7 px-1 text-[11px] w-full min-w-0"
                                 />
                               ) : (
                                 formatDateBR(row.dueDate)
                               )}
                             </td>
-                            <td className="px-2 py-1.5 text-right text-warning">
+                            <td className="px-1 py-1.5 text-right text-warning truncate">
                               {rowMulta > 0 ? formatCurrency(rowMulta) : "—"}
                             </td>
-                            <td className="px-2 py-1.5 text-right text-muted-foreground">
+                            <td className="px-1 py-1.5 text-right text-muted-foreground truncate">
                               {rowJuros > 0 ? formatCurrency(rowJuros) : "—"}
                             </td>
-                            <td className="px-2 py-1.5 text-right font-semibold">
+                            <td className="px-1 py-1.5 text-right font-semibold truncate">
                               {formatCurrency(row.amount)}
                             </td>
                           </tr>
@@ -905,15 +912,15 @@ export function RenegotiateLoanDialog({
                       })}
                     </tbody>
                     <tfoot className="bg-muted/40 sticky bottom-0">
-                      <tr className="text-[10px] font-semibold">
-                        <td className="px-2 py-1.5" colSpan={2}>Totais</td>
-                        <td className="px-2 py-1.5 text-right text-warning">
+                      <tr className="text-[9px] sm:text-[10px] font-semibold">
+                        <td className="px-1 py-1.5 truncate" colSpan={2}>Totais</td>
+                        <td className="px-1 py-1.5 text-right text-warning truncate">
                           {totMulta > 0 ? formatCurrency(totMulta) : "—"}
                         </td>
-                        <td className="px-2 py-1.5 text-right text-muted-foreground">
+                        <td className="px-1 py-1.5 text-right text-muted-foreground truncate">
                           {totJuros > 0 ? formatCurrency(totJuros) : "—"}
                         </td>
-                        <td className="px-2 py-1.5 text-right">
+                        <td className="px-1 py-1.5 text-right truncate">
                           {formatCurrency(Math.round(totParcela * 100) / 100)}
                         </td>
                       </tr>
