@@ -4517,6 +4517,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
           if (sel === "all") return cat !== "paid";
           if (sel === "parcelado") return l.installments >= 2 && l.status !== "paid";
           if (sel === "venda") return !!l.isSale;
+          if (sel === "on_track") return cat === "on_track" || cat === "paid_interest";
           return cat === sel;
         });
       });
