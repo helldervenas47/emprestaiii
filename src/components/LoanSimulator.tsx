@@ -548,7 +548,7 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
 
         <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-between">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            <X className="h-4 w-4 mr-1" /> Fechar
+            <X className="w-[25px] h-[25px] mr-1" /> Fechar
           </Button>
           <div className="flex flex-wrap gap-2 justify-end">
             <Button variant="outline" onClick={handleSave} disabled={saving} className="gap-1.5">

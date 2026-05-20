@@ -486,10 +486,10 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                     </div>
                     <div className="flex gap-2 justify-end">
                       <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
-                        <X className="h-4 w-4 mr-1" /> Cancelar
+                        <X className="w-[25px] h-[25px] mr-1" /> Cancelar
                       </Button>
                       <Button size="sm" onClick={() => saveEdit(client.id)}>
-                        <Check className="h-4 w-4 mr-1" /> Salvar
+                        <Check className="w-[25px] h-[25px] mr-1" /> Salvar
                       </Button>
                     </div>
                   </div>

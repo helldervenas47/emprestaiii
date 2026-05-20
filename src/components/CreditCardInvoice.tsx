@@ -782,7 +782,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                         <p className="text-xs text-muted-foreground">Debita a conta e registra no histórico.</p>
                       </div>
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPayDialogOpen(false)}>
-                        <X className="h-4 w-4" />
+                        <X className="w-[25px] h-[25px]" />
                       </Button>
                     </div>
 

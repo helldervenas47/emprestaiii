@@ -63,11 +63,11 @@ export function LocadorPopoverContent({ locador, onSave, readOnly = false }: Pro
           <div className="flex gap-2 justify-end">
             {hasData && (
               <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setForm(locador); }}>
-                <X className="h-4 w-4 mr-1" /> Cancelar
+                <X className="w-[25px] h-[25px] mr-1" /> Cancelar
               </Button>
             )}
             <Button size="sm" onClick={handleSave}>
-              <Check className="h-4 w-4 mr-1" /> Salvar
+              <Check className="w-[25px] h-[25px] mr-1" /> Salvar
             </Button>
           </div>
         )}
@@ -88,7 +88,7 @@ export function LocadorPopoverContent({ locador, onSave, readOnly = false }: Pro
       </div>
       {!readOnly && (
         <Button size="sm" variant="outline" onClick={() => { setForm(locador); setEditing(true); }}>
-          <Pencil className="h-4 w-4 mr-1" /> Editar
+          <Pencil className="w-[25px] h-[25px] mr-1" /> Editar
         </Button>
       )}
     </div>

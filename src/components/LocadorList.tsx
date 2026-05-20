@@ -119,10 +119,10 @@ export function LocadorList({ locadores, onSave, onDelete, readOnly = false }: P
         </div>
         <div className="flex gap-2 justify-end">
           <Button size="sm" variant="ghost" onClick={cancelEdit}>
-            <X className="h-4 w-4 mr-1" /> Cancelar
+            <X className="w-[25px] h-[25px] mr-1" /> Cancelar
           </Button>
           <Button size="sm" onClick={saveEdit}>
-            <Check className="h-4 w-4 mr-1" /> Salvar
+            <Check className="w-[25px] h-[25px] mr-1" /> Salvar
           </Button>
         </div>
       </CardContent>
@@ -143,7 +143,7 @@ export function LocadorList({ locadores, onSave, onDelete, readOnly = false }: P
         </div>
         {!readOnly && (
           <Button size="sm" onClick={startAdd} className="h-9">
-            <Plus className="h-4 w-4 mr-1" /> Novo
+            <Plus className="w-[25px] h-[25px] mr-1" /> Novo
           </Button>
         )}
       </div>

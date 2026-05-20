@@ -857,7 +857,7 @@ function LoanCardView({
             <h3 className="font-semibold text-foreground">Editar Empréstimo</h3>
             <div className="flex gap-1">
               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={saveEdit}><Check className="h-4 w-4 text-success" /></Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={cancelEdit}><X className="h-4 w-4 text-destructive" /></Button>
+               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={cancelEdit}><X className="w-[25px] h-[25px] text-destructive" /></Button>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -1790,7 +1790,7 @@ function LoanCardView({
         {/* Action Buttons */}
         <div className="flex flex-col gap-2 pt-2 border-t border-border/50 mt-auto">
           {!readOnly && loan.status !== "paid" && (
-            <DropdownMenu modal={false} open={payMenuOpen} onOpenChange={setPayMenuOpen}>
+            <DropdownMenu open={payMenuOpen} onOpenChange={setPayMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button className="w-full h-10 text-sm font-semibold gap-2">
                   <DollarSign className="h-4 w-4" /> Pagar
@@ -3026,7 +3026,7 @@ function LoanRowView({
                 <h3 className="font-semibold text-foreground">Editar Empréstimo</h3>
                 <div className="flex gap-1">
                   <Button size="icon" variant="ghost" className="h-8 w-8" onClick={saveEdit}><Check className="h-4 w-4 text-success" /></Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={cancelEdit}><X className="h-4 w-4 text-destructive" /></Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={cancelEdit}><X className="w-[25px] h-[25px] text-destructive" /></Button>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -3211,7 +3211,7 @@ function LoanRowView({
             {/* Actions */}
             <div className="flex flex-col gap-2 pt-2 border-t border-border/30 w-full">
               {!readOnly && loan.status !== "paid" && (
-                <DropdownMenu modal={false} open={payMenuOpen} onOpenChange={setPayMenuOpen}>
+                <DropdownMenu open={payMenuOpen} onOpenChange={setPayMenuOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button variant="default" className="w-full h-10 text-sm gap-2" onClick={(e) => e.stopPropagation()}>
                       <DollarSign className="h-4 w-4" /> Pagar
@@ -3408,7 +3408,7 @@ function LoanRowView({
               )}
               {!readOnly && loan.status === "paid" && (
                 <Button variant="outline" className="w-full h-10 text-sm gap-2" onClick={(e) => { e.stopPropagation(); onUpdate({ status: "active", paidInstallments: 0 }); }}>
-                  <X className="h-4 w-4" /> Marcar como não pago
+                  <X className="w-[25px] h-[25px]" /> Marcar como não pago
                 </Button>
               )}
               <div className="flex gap-2 w-full flex-wrap">

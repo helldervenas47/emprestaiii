@@ -122,11 +122,11 @@ export function VehicleLocadorManager({
                   <div className="flex gap-2 justify-end">
                     {hasLocadorData && (
                       <Button size="sm" variant="ghost" onClick={() => { setEditingLocador(false); setLocadorForm(locador); }}>
-                        <X className="h-4 w-4 mr-1" /> Cancelar
+                        <X className="w-[25px] h-[25px] mr-1" /> Cancelar
                       </Button>
                     )}
                     <Button size="sm" onClick={handleSaveLocador}>
-                      <Check className="h-4 w-4 mr-1" /> Salvar
+                      <Check className="w-[25px] h-[25px] mr-1" /> Salvar
                     </Button>
                   </div>
                 )}
@@ -143,7 +143,7 @@ export function VehicleLocadorManager({
                 </div>
                 {!readOnly && (
                   <Button size="sm" variant="outline" onClick={() => { setLocadorForm(locador); setEditingLocador(true); }}>
-                    <Pencil className="h-4 w-4 mr-1" /> Editar
+                    <Pencil className="w-[25px] h-[25px] mr-1" /> Editar
                   </Button>
                 )}
               </div>
@@ -198,10 +198,10 @@ export function VehicleLocadorManager({
                       </div>
                       <div className="flex gap-2 justify-end">
                         <Button size="sm" variant="ghost" onClick={() => setEditingVehicleId(null)}>
-                          <X className="h-4 w-4 mr-1" /> Cancelar
+                          <X className="w-[25px] h-[25px] mr-1" /> Cancelar
                         </Button>
                         <Button size="sm" onClick={() => saveEditVehicle(v.id)}>
-                          <Check className="h-4 w-4 mr-1" /> Salvar
+                          <Check className="w-[25px] h-[25px] mr-1" /> Salvar
                         </Button>
                       </div>
                     </div>
@@ -259,10 +259,10 @@ export function VehicleLocadorManager({
                   </div>
                   <div className="flex gap-2 justify-end">
                     <Button size="sm" variant="ghost" onClick={() => setAddingVehicle(false)}>
-                      <X className="h-4 w-4 mr-1" /> Cancelar
+                      <X className="w-[25px] h-[25px] mr-1" /> Cancelar
                     </Button>
                     <Button size="sm" onClick={handleAddVehicle}>
-                      <Check className="h-4 w-4 mr-1" /> Cadastrar
+                      <Check className="w-[25px] h-[25px] mr-1" /> Cadastrar
                     </Button>
                   </div>
                 </CardContent>

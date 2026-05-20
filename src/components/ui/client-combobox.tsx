@@ -99,7 +99,7 @@ export function ClientCombobox({
                   onSelect={() => { onChange(""); setOpen(false); }}
                   className="text-destructive"
                 >
-                  <X className="mr-2 h-4 w-4" />
+                  <X className="mr-2 w-[25px] h-[25px]" />
                   Remover cliente selecionado
                 </CommandItem>
               </CommandGroup>

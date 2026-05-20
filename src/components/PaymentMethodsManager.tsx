@@ -117,7 +117,7 @@ export function PaymentMethodsManager({ readOnly = false }: Props) {
                       <Check className="h-4 w-4 text-success" />
                     </Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingId(null)}>
-                      <X className="h-4 w-4" />
+                      <X className="w-[25px] h-[25px]" />
                     </Button>
                   </>
                 ) : !readOnly ? (

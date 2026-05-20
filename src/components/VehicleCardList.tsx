@@ -70,7 +70,7 @@ export function VehicleCardList({ vehicles, onAdd, onUpdate, onDelete, readOnly 
         </div>
         {!readOnly && (
           <Button size="sm" onClick={() => setAdding(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Novo Veículo
+            <Plus className="w-[25px] h-[25px] mr-1" /> Novo Veículo
           </Button>
         )}
       </div>
@@ -104,10 +104,10 @@ export function VehicleCardList({ vehicles, onAdd, onUpdate, onDelete, readOnly 
             </div>
             <div className="flex gap-2 justify-end">
               <Button size="sm" variant="ghost" onClick={() => setAdding(false)}>
-                <X className="h-4 w-4 mr-1" /> Cancelar
+                <X className="w-[25px] h-[25px] mr-1" /> Cancelar
               </Button>
               <Button size="sm" onClick={handleAdd}>
-                <Check className="h-4 w-4 mr-1" /> Cadastrar
+                <Check className="w-[25px] h-[25px] mr-1" /> Cadastrar
               </Button>
             </div>
           </CardContent>
@@ -146,10 +146,10 @@ export function VehicleCardList({ vehicles, onAdd, onUpdate, onDelete, readOnly 
                   </div>
                   <div className="flex gap-2 justify-end">
                     <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
-                      <X className="h-4 w-4 mr-1" /> Cancelar
+                      <X className="w-[25px] h-[25px] mr-1" /> Cancelar
                     </Button>
                     <Button size="sm" onClick={() => saveEdit(v.id)}>
-                      <Check className="h-4 w-4 mr-1" /> Salvar
+                      <Check className="w-[25px] h-[25px] mr-1" /> Salvar
                     </Button>
                   </div>
                 </div>
