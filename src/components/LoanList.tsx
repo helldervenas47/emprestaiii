@@ -4806,6 +4806,32 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
 
   return (
     <div className="space-y-3">
+      {/* Cards de resumo dos empréstimos */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+        {[
+          { label: "Vencidos", value: statusSummary.overdue, count: statusSummary.overdueCount, icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", delay: "0ms" },
+          { label: "Vence Hoje", value: statusSummary.dueToday, count: statusSummary.dueTodayCount, icon: Clock, color: "text-primary", bg: "bg-primary/10", delay: "80ms" },
+          { label: "No Prazo", value: statusSummary.onTrack, count: statusSummary.onTrackCount, icon: CheckCircle, color: "text-success", bg: "bg-success/10", delay: "160ms" },
+          { label: "Total a Receber", value: statusSummary.total, count: statusSummary.totalCount, icon: DollarSign, color: "text-warning", bg: "bg-warning/10", delay: "240ms" },
+        ].map((c) => {
+          const Icon = c.icon;
+          return (
+            <div
+              key={c.label}
+              className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center"
+              style={{ animationDelay: c.delay, animationFillMode: "backwards" }}
+            >
+              <div className={`h-8 w-8 rounded-lg ${c.bg} flex items-center justify-center mb-2`}>
+                <Icon className={`h-4 w-4 ${c.color}`} />
+              </div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">{c.label}</p>
+              <p className={`text-sm sm:text-xl font-bold ${c.color} mt-0.5`}>{formatCurrency(c.value)}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">{c.count} {c.count === 1 ? "contrato" : "contratos"}</p>
+            </div>
+          );
+        })}
+      </div>
+
       {/* Filtros rápidos: grid em mobile, linha única ocupando toda a largura em tablet/desktop */}
       <div className="grid grid-cols-4 gap-2 w-full sm:flex sm:flex-nowrap sm:items-center sm:gap-2 sm:overflow-x-auto sm:scrollbar-hide">
         {categoryConfig.map((cat) => {
