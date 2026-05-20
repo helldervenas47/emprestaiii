@@ -848,7 +848,7 @@ function UnifiedClientTimeline({
           kind: "payment",
           title: `Pagamento · ${formatCurrency(p.amount)}`,
           amount: p.amount,
-          meta: p.notes ? `Obs.: ${p.notes}` : undefined,
+          meta: p.installmentNumber ? `Parcela ${p.installmentNumber}` : undefined,
         });
       });
     });
