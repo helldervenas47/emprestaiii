@@ -859,7 +859,7 @@ export function RenegotiateLoanDialog({
           )}
           </TabsContent>
 
-          <TabsContent value="history" className="mt-4 space-y-3">
+          <TabsContent value="history" className="mt-4 space-y-3 min-w-0">
             {sortedHistory.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border/60 p-6 text-center">
                 <History className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
