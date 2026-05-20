@@ -190,8 +190,8 @@ export function ClientLoanHistory({ loans, payments }: Props) {
     });
     Object.keys(map).forEach((k) => {
       map[k].sort((a, b) => {
-        const da = a.startDate ? new Date(a.startDate).getTime() : 0;
-        const db = b.startDate ? new Date(b.startDate).getTime() : 0;
+        const da = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+        const db = b.dueDate ? new Date(b.dueDate).getTime() : 0;
         return da - db;
       });
     });
