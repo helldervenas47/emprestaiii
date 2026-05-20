@@ -4888,7 +4888,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[200px] sm:flex-initial sm:w-[220px] sm:min-w-[180px]">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
           <Input placeholder="Buscar por nome do cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
