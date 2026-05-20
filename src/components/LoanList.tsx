@@ -17,7 +17,7 @@ import { todayInAppTz, formatYmdInAppTz } from "@/lib/timezone";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
-import { getInstallmentAmount } from "@/lib/loanInstallmentAmount";
+import { getInstallmentAmount, getOverdueAmount } from "@/lib/loanInstallmentAmount";
 import { getLoanLateFees, getBaseRemainingAmount } from "@/lib/loanLateFees";
 import { cn } from "@/lib/utils";
 import {
@@ -4768,20 +4768,24 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     let onTrackCount = 0;
     for (const l of loans) {
       if (l.status === "paid") continue;
-      const base = getBaseRemainingAmount(l, payments, installmentSchedules);
-      const fees = getLoanLateFees(l, payments, installmentSchedules);
-      const renegPenalty = Number(l.renegotiationPenaltyTotal || 0);
-      const receivable = Math.max(0, base + fees.lateFees + renegPenalty);
       const due = l.dueDate || "";
       if (due && due < today) {
-        overdue += receivable;
+        // Mesma lógica do card "Saúde da Operação": soma das parcelas vencidas
+        // (sem incluir saldo futuro, juros de atraso ou multa).
+        overdue += getOverdueAmount(l, installmentSchedules, today);
         overdueCount += 1;
-      } else if (due === today) {
-        dueToday += receivable;
-        dueTodayCount += 1;
       } else {
-        onTrack += receivable;
-        onTrackCount += 1;
+        const base = getBaseRemainingAmount(l, payments, installmentSchedules);
+        const fees = getLoanLateFees(l, payments, installmentSchedules);
+        const renegPenalty = Number(l.renegotiationPenaltyTotal || 0);
+        const receivable = Math.max(0, base + fees.lateFees + renegPenalty);
+        if (due === today) {
+          dueToday += receivable;
+          dueTodayCount += 1;
+        } else {
+          onTrack += receivable;
+          onTrackCount += 1;
+        }
       }
     }
     return {
