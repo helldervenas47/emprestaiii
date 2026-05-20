@@ -3408,7 +3408,7 @@ function LoanRowView({
               )}
               {!readOnly && loan.status === "paid" && (
                 <Button variant="outline" className="w-full h-10 text-sm gap-2" onClick={(e) => { e.stopPropagation(); onUpdate({ status: "active", paidInstallments: 0 }); }}>
-                  <X className="h-4 w-4" /> Marcar como não pago
+                  <X className="w-[25px] h-[25px]" /> Marcar como não pago
                 </Button>
               )}
               <div className="flex gap-2 w-full flex-wrap">
