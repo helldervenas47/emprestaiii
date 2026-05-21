@@ -481,10 +481,12 @@ export function ExpenseEditDialog({
         cardTag: paymentMethod === "Crédito" ? cardTag : null,
         freeNotes,
       });
+      const inst = expense.installments ?? 0;
+      const totalAmount = isParcelada ? Number(amount) * inst : Number(amount);
       await onSave(
         {
           description,
-          amount: Number(amount),
+          amount: totalAmount,
           dueDate,
           category,
           notes,
