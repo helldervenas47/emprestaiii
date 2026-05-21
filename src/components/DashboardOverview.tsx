@@ -1409,10 +1409,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     return months.map(({ month, juros }) => ({ month, juros }));
   }, [loans, payments]);
 
+  // Override SUBSTITUI o valor calculado (semântica absoluta) — antes era diff somado,
+  // o que distorcia o gráfico quando a fórmula de cálculo era ajustada.
   const interestChart = useMemo(() => {
     return interestChartBase.map((m) => ({
       month: m.month,
-      juros: m.juros + (interestOverrides[m.month] ?? 0),
+      juros: interestOverrides[m.month] !== undefined ? interestOverrides[m.month] : m.juros,
     }));
   }, [interestChartBase, interestOverrides]);
 
@@ -1426,9 +1428,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const saveInterestOverrides = () => {
     const newOverrides: Record<string, number> = {};
     interestChartBase.forEach((m) => {
-      const totalVal = parseFloat(tempInterestOverrides[m.month]) || 0;
-      const diff = totalVal - m.juros;
-      if (diff !== 0) newOverrides[m.month] = diff;
+      const raw = tempInterestOverrides[m.month];
+      if (raw === undefined || raw === "") return;
+      const totalVal = parseFloat(raw);
+      if (!Number.isFinite(totalVal)) return;
+      // Só grava override se diferir do valor calculado
+      if (Math.abs(totalVal - m.juros) > 0.005) newOverrides[m.month] = totalVal;
     });
     setInterestOverrides(newOverrides);
     setEditingInterest(false);
