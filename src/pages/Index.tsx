@@ -826,12 +826,12 @@ const Index = () => {
         )}
         {tab === "clients" && (
           <div>
-            <div className="flex gap-2 mb-4">
+            <div className="grid grid-cols-2 gap-2 mb-4 sm:flex sm:gap-2">
               <Button
                 variant={clientSubTab === "clientes" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setClientSubTab("clientes")}
-                className="flex-1 sm:flex-none"
+                className="w-full sm:w-auto"
               >
                 <Users className="h-4 w-4 mr-1" /> Cadastro
               </Button>
@@ -840,7 +840,7 @@ const Index = () => {
                   variant={clientSubTab === "veiculos" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setClientSubTab("veiculos")}
-                  className="flex-1 sm:flex-none"
+                  className="w-full sm:w-auto"
                 >
                   <Car className="h-4 w-4 mr-1" /> Veículos
                 </Button>
