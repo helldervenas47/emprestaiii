@@ -151,6 +151,7 @@ export function StockManager({ readOnly = false }: Props) {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </TabsContent>
 
