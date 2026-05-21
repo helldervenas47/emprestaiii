@@ -73,9 +73,12 @@ export function useProducts(enabled = true) {
         supabase.from("sales").select("*").order("created_at", { ascending: false }),
       ]);
       if (prodRes.data) {
-        setProducts(prodRes.data.map((p) => ({
+        setProducts(prodRes.data.map((p: any) => ({
           id: p.id, name: p.name, description: p.description || "",
-          price: Number(p.price), stock: p.stock, active: true, createdAt: p.created_at,
+          price: Number(p.price), cost: Number(p.cost || 0),
+          lastPurchasePrice: Number(p.last_purchase_price || 0),
+          suggestedStock: Number(p.suggested_stock || 0),
+          stock: p.stock, active: true, createdAt: p.created_at,
         })));
       }
       if (salesRes.data) {
