@@ -273,6 +273,44 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                 </div>
               )}
               </>
+            ) : form.businessType === "venda" ? (
+              <div>
+                <Label>Produto</Label>
+                {(() => {
+                  const available = products.filter((p) => p.stock > 0);
+                  if (available.length === 0) {
+                    return (
+                      <div className="text-sm text-muted-foreground border border-dashed rounded-md p-3">
+                        Nenhum produto com estoque disponível. Cadastre um produto e registre entrada/compra na aba Estoque.
+                      </div>
+                    );
+                  }
+                  return (
+                    <Select
+                      value={form.productId}
+                      onValueChange={(v) => {
+                        const prod = products.find((p) => p.id === v);
+                        setForm((p) => ({
+                          ...p,
+                          productId: v,
+                          description: prod?.name || "",
+                        }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um produto do estoque" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {available.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name} (estoque: {p.stock})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  );
+                })()}
+              </div>
             ) : (
               <div>
                 <Label>{descriptionLabel}</Label>
