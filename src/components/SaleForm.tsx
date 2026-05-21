@@ -301,12 +301,12 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                           description: prod?.name || "",
                           total: prod ? newTotal : p.total,
                         }));
-                        if (prod && p.paymentMode === "recorrente") {
+                        if (prod && form.paymentMode === "recorrente") {
                           const count = parseInt(form.installments) || 1;
                           const totalVal = parseFloat(newTotal);
                           if (totalVal > 0 && count > 0) {
                             const newInstVal = (totalVal / count).toFixed(2);
-                            setForm((p) => ({ ...p, installmentValue: newInstVal }));
+                            setForm((pp) => ({ ...pp, installmentValue: newInstVal }));
                             setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: newInstVal }));
                           }
                         }
