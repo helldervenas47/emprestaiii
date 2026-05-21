@@ -319,7 +319,7 @@ export function ExpenseEditDialog({
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[2147483650]">
                   {PAYMENT_METHODS.map((m) => (
                     <SelectItem key={m} value={m}>
                       {m}
@@ -335,7 +335,7 @@ export function ExpenseEditDialog({
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[2147483650]">
                     {cards.length === 0 && (
                       <div className="px-2 py-1.5 text-xs text-muted-foreground">
                         Nenhum cartão cadastrado
