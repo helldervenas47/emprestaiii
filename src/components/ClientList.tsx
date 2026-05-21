@@ -299,7 +299,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-[calc(100vw-2rem)] max-w-sm">
             <DropdownMenuItem onClick={() => setStatusFilter("all")}>
-              <Users className="h-4 w-4 mr-2" /> Todos ({clients.length})
+              <Users className="h-4 w-4 mr-2" /> Todos
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setStatusFilter("active")}>
               <ToggleRight className="h-4 w-4 mr-2" /> Ativos ({activeCount})
