@@ -153,7 +153,9 @@ export function ExpenseEditDialog({
   useEffect(() => {
     if (!expense) return;
     setDescription(expense.description);
-    setAmount(String(expense.amount));
+    const inst = expense.installments ?? 0;
+    const isParc = expense.type === "recorrente" && inst > 1;
+    setAmount(String(isParc ? expense.amount / inst : expense.amount));
     setDueDate(expense.dueDate);
     setCategory(expense.category ?? "");
     const pm = detectPaymentMethod(expense.notes);
@@ -225,7 +227,7 @@ export function ExpenseEditDialog({
           <DialogTitle>Editar lançamento</DialogTitle>
           <DialogDescription>
             {isParcelada
-              ? `Esta despesa é parcelada (${expense.installments}x). A edição altera o valor total e impacta todas as parcelas.`
+              ? `Esta despesa é parcelada (${expense.installments}x). Informe o valor da parcela — o total e todas as parcelas serão atualizados.`
               : "Altere os dados do lançamento. As alterações refletem em todos os relatórios."}
           </DialogDescription>
         </DialogHeader>
@@ -254,7 +256,7 @@ export function ExpenseEditDialog({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">
-                Valor {isParcelada ? "(total)" : ""}
+                {isParcelada ? "Valor da parcela" : "Valor"}
               </Label>
               <Input
                 type="number"
@@ -276,13 +278,13 @@ export function ExpenseEditDialog({
 
           {isParcelada && Number(amount) > 0 && (expense.installments ?? 0) > 0 && (
             <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-              Valor por parcela:{" "}
+              Valor total:{" "}
               <span className="font-semibold text-foreground">
                 {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-                  Number(amount) / (expense.installments as number),
+                  Number(amount) * (expense.installments as number),
                 )}
               </span>{" "}
-              ({expense.installments}x)
+              ({expense.installments}x de {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(amount))})
             </div>
           )}
 
@@ -317,7 +319,7 @@ export function ExpenseEditDialog({
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[2147483650]">
                   {PAYMENT_METHODS.map((m) => (
                     <SelectItem key={m} value={m}>
                       {m}
@@ -333,7 +335,7 @@ export function ExpenseEditDialog({
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[2147483650]">
                     {cards.length === 0 && (
                       <div className="px-2 py-1.5 text-xs text-muted-foreground">
                         Nenhum cartão cadastrado
@@ -479,10 +481,12 @@ export function ExpenseEditDialog({
         cardTag: paymentMethod === "Crédito" ? cardTag : null,
         freeNotes,
       });
+      const inst = expense.installments ?? 0;
+      const totalAmount = isParcelada ? Number(amount) * inst : Number(amount);
       await onSave(
         {
           description,
-          amount: Number(amount),
+          amount: totalAmount,
           dueDate,
           category,
           notes,
