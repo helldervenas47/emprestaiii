@@ -71,8 +71,8 @@ export function useExpenses(enabled = true) {
     return () => window.removeEventListener("offline-sync:flushed", handler);
   }, [fetchExpenses]);
 
-  const addExpense = useCallback(async (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">) => {
-    if (!user || !dataOwnerId) return;
+  const addExpense = useCallback(async (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">): Promise<string | null> => {
+    if (!user || !dataOwnerId) return null;
     const tempId = crypto.randomUUID();
     const optimistic: Expense = {
       ...expense, id: tempId, paid: false, paidDate: undefined,
@@ -95,7 +95,7 @@ export function useExpenses(enabled = true) {
 
     if (!isOnline()) {
       await enqueueMutation({ table: "expenses", op: "insert", recordId: tempId, payload: insertPayload });
-      return;
+      return tempId;
     }
 
     const { data, error } = await supabase.from("expenses").insert(insertPayload as any).select().single();
@@ -103,20 +103,23 @@ export function useExpenses(enabled = true) {
     if (error) {
       if (!error.message.toLowerCase().includes("row-level")) {
         await enqueueMutation({ table: "expenses", op: "insert", recordId: tempId, payload: insertPayload });
+        return tempId;
       } else {
         setExpenses((prev) => prev.filter((e) => e.id !== tempId));
         await removeCachedRow("expenses", tempId);
+        return null;
       }
     } else if (data) {
       setExpenses((prev) => prev.map((e) => e.id === tempId ? { ...e, id: data.id, createdAt: data.created_at } : e));
       await removeCachedRow("expenses", tempId);
       await upsertCachedRow("expenses", data);
       await rewritePendingRecordId("expenses", tempId, data.id);
-      // Trigger budget overrun push notification check (personal scope only)
       if ((expense.scope ?? "business") === "personal") {
         supabase.functions.invoke("notify-budget-overrun").catch(() => { /* silent */ });
       }
+      return (data as any).id as string;
     }
+    return tempId;
   }, [user, dataOwnerId]);
 
   const payExpense = useCallback(async (id: string, skipBalanceAdjust = false, payDate?: string, paidAmount?: number) => {
