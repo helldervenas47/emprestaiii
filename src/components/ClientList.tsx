@@ -549,6 +549,12 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                               </Badge>
                             </div>
                             {client.cpf && <p className="text-xs text-muted-foreground break-words">CPF: {client.cpf}</p>}
+                            {client.phone && (
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                                <Phone className="h-3.5 w-3.5" />
+                                <span>{client.phone}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                         {!readOnly && (
@@ -562,6 +568,16 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                           </div>
                         )}
                       </div>
+
+                      {/* Credit Score — compact (between name and action buttons) */}
+                      <div className="flex items-center justify-between rounded-xl border border-border/30 px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`h-2 w-2 rounded-full ${cs.bgColor}`} />
+                          <span className="text-xs text-muted-foreground">Score</span>
+                        </div>
+                        <span className={`text-sm font-bold ${cs.color}`}>{cs.score}</span>
+                      </div>
+
                       {!readOnly && (
                         <div className="flex gap-0.5 sm:gap-1 justify-end">
                           <Button
@@ -581,15 +597,6 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                           </Button>
                         </div>
                       )}
-                    </div>
-
-                    {/* Credit Score — compact */}
-                    <div className="flex items-center justify-between rounded-xl border border-border/30 px-3 py-2 mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className={`h-2 w-2 rounded-full ${cs.bgColor}`} />
-                        <span className="text-xs text-muted-foreground">Score</span>
-                      </div>
-                      <span className={`text-sm font-bold ${cs.color}`}>{cs.score}</span>
                     </div>
 
                     {/* Credit Limit — Total / Utilizado / Disponível */}
@@ -632,7 +639,6 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                     })()}
 
                     <div className="space-y-1.5 text-sm text-muted-foreground">
-                      {client.phone && <div className="flex items-center gap-2"><Phone className="h-3.5 w-3.5" /><span>{client.phone}</span></div>}
                       {client.email && <div className="flex items-center gap-2"><Mail className="h-3.5 w-3.5" /><span>{client.email}</span></div>}
                       {client.address && <div className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5" /><span>{client.address}</span></div>}
                     </div>
