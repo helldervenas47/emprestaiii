@@ -2623,10 +2623,14 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   // Sales page - show sub-tabs for venda/streaming + extrato
   const activeTabs = salesSubTabs;
   const allTabValues = [...activeTabs.map((t) => t.type as string), "extrato"];
-  
+  const [currentSubTab, setCurrentSubTab] = useState<string>(allTabValues[0] || "venda");
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("products-subtab-change", { detail: currentSubTab }));
+  }, [currentSubTab]);
+
   return (
     <>
-    <Tabs defaultValue={allTabValues[0] || "venda"} className="space-y-4">
+    <Tabs value={currentSubTab} onValueChange={setCurrentSubTab} className="space-y-4">
       <TabsList className="w-full bg-muted/50 rounded-xl p-1 flex gap-0.5 h-auto">
         {activeTabs.map((tab) => (
           <TabsTrigger
