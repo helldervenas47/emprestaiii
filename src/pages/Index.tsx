@@ -851,11 +851,12 @@ const Index = () => {
             )}
             {clientSubTab === "veiculos" && !isReadOnly && (
               <>
-                <div className="flex gap-2 mb-4">
+                <div className="grid grid-cols-2 gap-2 mb-4 sm:flex sm:gap-2">
                   <Button
                     variant={vehicleSubTab === "veiculos" ? "default" : "outline"}
                     size="sm"
                     onClick={() => setVehicleSubTab("veiculos")}
+                    className="w-full sm:w-auto"
                   >
                     <Car className="h-4 w-4 mr-1" /> Veículos
                   </Button>
@@ -863,6 +864,7 @@ const Index = () => {
                     variant={vehicleSubTab === "locadores" ? "default" : "outline"}
                     size="sm"
                     onClick={() => setVehicleSubTab("locadores")}
+                    className="w-full sm:w-auto"
                   >
                     <User className="h-4 w-4 mr-1" /> Dados do Locador
                   </Button>
