@@ -826,6 +826,7 @@ const Index = () => {
         )}
         {tab === "clients" && (
           <div>
+            <h1 className="text-2xl font-bold text-foreground mb-4">Cadastro</h1>
             <div className="flex gap-2 mb-4">
               <Button
                 variant={clientSubTab === "clientes" ? "default" : "outline"}
