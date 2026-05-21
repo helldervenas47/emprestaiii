@@ -1298,12 +1298,18 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
           if (scope !== "this" && (isParcelada || isChild)) {
             try {
               const parentId = isChild ? exp.parentExpenseId! : exp.id;
-              const totalInstallments = isParcelada ? (exp.installments ?? 1) : 1;
+              const parentExpense = isChild
+                ? expenses.find((e) => e.id === exp.parentExpenseId)
+                : exp;
+              const totalInstallments = parentExpense?.installments ?? exp.installments ?? 1;
               const perInstallment = isChild
                 ? patch.amount
                 : totalInstallments > 0
                   ? patch.amount / totalInstallments
                   : patch.amount;
+              const parentTotalAmount = totalInstallments > 0
+                ? perInstallment * totalInstallments
+                : patch.amount;
 
               let q = supabase
                 .from("expenses")
@@ -1326,14 +1332,12 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
               }
 
               if (isChild) {
-                await supabase
-                  .from("expenses")
-                  .update({
-                    description: patch.description,
-                    category: patch.category,
-                    notes: patch.notes ?? null,
-                  })
-                  .eq("id", parentId);
+                await onUpdate(parentId, {
+                  description: patch.description,
+                  amount: parentTotalAmount,
+                  category: patch.category,
+                  notes: patch.notes ?? undefined,
+                });
               }
             } catch (err) {
               console.error("[scope-edit] propagation failed", err);
