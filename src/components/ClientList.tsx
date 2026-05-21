@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, Clock, CalendarDays, TrendingUp, AlertTriangle, ShieldCheck, Wallet, Sparkles, Shield } from "lucide-react";
+import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, Clock, CalendarDays, TrendingUp, AlertTriangle, ShieldCheck, Wallet, Sparkles, Shield, SlidersHorizontal } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ClientDetailDialog } from "@/components/ClientDetailDialog";
 import { CreditLimitDialog } from "@/components/CreditLimitDialog";
