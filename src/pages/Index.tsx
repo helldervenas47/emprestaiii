@@ -826,6 +826,7 @@ const Index = () => {
         )}
         {tab === "clients" && (
           <div>
+            <h1 className="text-2xl font-bold text-foreground mb-4">Cadastro</h1>
             <div className="flex gap-2 mb-4">
               <Button
                 variant={clientSubTab === "clientes" ? "default" : "outline"}
@@ -845,10 +846,7 @@ const Index = () => {
               )}
             </div>
             {clientSubTab === "clientes" && (
-              <>
-                <h2 className="text-lg font-semibold text-foreground mb-4">Cadastro</h2>
-                <ClientList clients={filteredClients} loans={filteredLoans} payments={filteredPayments} installmentSchedules={filteredInstallments} onDelete={deleteClient} onUpdate={updateClient} readOnly={isReadOnly} />
-              </>
+              <ClientList clients={filteredClients} loans={filteredLoans} payments={filteredPayments} installmentSchedules={filteredInstallments} onDelete={deleteClient} onUpdate={updateClient} readOnly={isReadOnly} />
             )}
             {clientSubTab === "veiculos" && !isReadOnly && (
               <>
