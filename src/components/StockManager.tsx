@@ -75,40 +75,54 @@ export function StockManager({ readOnly = false }: Props) {
             Cadastre um produto primeiro para começar a controlar o estoque.
           </CardContent></Card>
         ) : (
-          <div className="divide-y rounded-lg border bg-card overflow-hidden">
-            {products.map(p => {
-              const threshold = p.suggestedStock && p.suggestedStock > 0 ? p.suggestedStock : 5;
-              const low = p.stock > 0 && p.stock <= threshold;
-              const out = p.stock <= 0;
-              return (
-                <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/40 transition-colors">
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium truncate">{p.name}</div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      Venda {fmtBRL(p.price)}
-                      {p.cost > 0 ? ` · Compra ${fmtBRL(p.cost)}` : ""}
-                      {p.suggestedStock > 0 ? ` · Sugerido ${p.suggestedStock}` : ""}
-                    </div>
-                  </div>
-                  {out ? (
-                    <Badge variant="destructive" className="shrink-0"><AlertTriangle className="h-3 w-3 mr-1" />Sem estoque</Badge>
-                  ) : low ? (
-                    <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 shrink-0">Estoque baixo</Badge>
-                  ) : (
-                    <Badge variant="secondary" className="shrink-0">Em estoque</Badge>
-                  )}
-                  <div className="text-right shrink-0 w-16">
-                    <div className="text-lg font-bold tabular-nums leading-none">{p.stock}</div>
-                    <div className="text-[10px] text-muted-foreground">unid.</div>
-                  </div>
-                  {!readOnly && (
-                    <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => setEditingProduct(p)} aria-label="Editar produto">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              );
-            })}
+          <div className="rounded-lg border bg-card overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs text-muted-foreground">
+                <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:text-left [&>th]:font-medium">
+                  <th>Produto</th>
+                  <th className="hidden sm:table-cell text-right">Preço venda</th>
+                  <th className="hidden md:table-cell text-right">Preço compra</th>
+                  <th className="hidden lg:table-cell text-right">Últ. compra</th>
+                  <th className="hidden md:table-cell text-right">Sugerido</th>
+                  <th className="text-right">Estoque</th>
+                  <th>Status</th>
+                  {!readOnly && <th className="w-10"></th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {products.map(p => {
+                  const threshold = p.suggestedStock && p.suggestedStock > 0 ? p.suggestedStock : 5;
+                  const low = p.stock > 0 && p.stock <= threshold;
+                  const out = p.stock <= 0;
+                  return (
+                    <tr key={p.id} className="hover:bg-muted/40 transition-colors [&>td]:px-3 [&>td]:py-2.5">
+                      <td className="font-medium truncate max-w-[200px]">{p.name}</td>
+                      <td className="hidden sm:table-cell text-right tabular-nums">{fmtBRL(p.price)}</td>
+                      <td className="hidden md:table-cell text-right tabular-nums text-muted-foreground">{p.cost > 0 ? fmtBRL(p.cost) : "—"}</td>
+                      <td className="hidden lg:table-cell text-right tabular-nums text-muted-foreground">{p.lastPurchasePrice && p.lastPurchasePrice > 0 ? fmtBRL(p.lastPurchasePrice) : "—"}</td>
+                      <td className="hidden md:table-cell text-right tabular-nums text-muted-foreground">{p.suggestedStock > 0 ? p.suggestedStock : "—"}</td>
+                      <td className="text-right font-bold tabular-nums">{p.stock}</td>
+                      <td>
+                        {out ? (
+                          <Badge variant="destructive"><AlertTriangle className="h-3 w-3 mr-1" />Sem estoque</Badge>
+                        ) : low ? (
+                          <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Estoque baixo</Badge>
+                        ) : (
+                          <Badge variant="secondary">Em estoque</Badge>
+                        )}
+                      </td>
+                      {!readOnly && (
+                        <td>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingProduct(p)} aria-label="Editar produto">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </TabsContent>
