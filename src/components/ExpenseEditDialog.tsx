@@ -227,7 +227,7 @@ export function ExpenseEditDialog({
           <DialogTitle>Editar lançamento</DialogTitle>
           <DialogDescription>
             {isParcelada
-              ? `Esta despesa é parcelada (${expense.installments}x). A edição altera o valor total e impacta todas as parcelas.`
+              ? `Esta despesa é parcelada (${expense.installments}x). Informe o valor da parcela — o total e todas as parcelas serão atualizados.`
               : "Altere os dados do lançamento. As alterações refletem em todos os relatórios."}
           </DialogDescription>
         </DialogHeader>
