@@ -405,6 +405,12 @@ const Index = () => {
   const [showClientForm, setShowClientForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
   const [showSaleForm, setShowSaleForm] = useState(false);
+  const [productsSubTab, setProductsSubTab] = useState<string>("venda");
+  useEffect(() => {
+    const handler = (e: Event) => setProductsSubTab((e as CustomEvent).detail as string);
+    window.addEventListener("products-subtab-change", handler);
+    return () => window.removeEventListener("products-subtab-change", handler);
+  }, []);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showPersonalExpenseForm, setShowPersonalExpenseForm] = useState(false);
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
