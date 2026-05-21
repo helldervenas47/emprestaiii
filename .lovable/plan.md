@@ -1,60 +1,79 @@
-## Diagnóstico
+# Módulo de Controle de Estoque
 
-Para o Nubank (final 9982), ciclo `2026-05`:
+Integra estoque com Vendas e Receitas/Despesas, com movimentações registradas em histórico e sincronização em tempo real.
 
-- `opening_amount` = R$ 1.796,94 (saldo inicial / fatura anterior).
-- 2 despesas no ciclo (R$ 424,00 + R$ 181,86 = R$ 605,86).
-- `total` esperado da fatura = **R$ 2.402,80**.
-- Nenhum lançamento `account_ledger` com `kind = credit_card_invoice_payment` para esse cartão.
+## O que será criado
 
-Lendo `src/components/CreditCardInvoice.tsx`, a lógica de pagamento já calcula `paymentRemaining = total` (compras + opening) quando o ciclo ainda não foi lançado no extrato, e o `recordLedger` é chamado com `ledgerAmount = newPaidTotal − ledgerPaid`. Em teoria deveria debitar os R$ 2.402,80.
+### 1. Nova tabela `stock_movements` (Lovable Cloud)
+Registra TODAS as movimentações de estoque:
+- `type`: `entrada_manual` | `compra` | `venda` | `ajuste`
+- `product_id`, `product_name` (snapshot)
+- `quantity` (positivo = entrada, negativo = saída)
+- `unit_cost` e `total_value` (para compras)
+- `expense_id` (vínculo com a despesa gerada quando for compra)
+- `sale_id` (vínculo com a venda quando for saída)
+- `notes`, `created_at`, `user_id`, `owner_id`
+- RLS por `owner_id` via `get_data_owner_id`
+- Realtime habilitado
 
-Existem 3 fragilidades que explicam o sintoma "saldo inicial não é debitado":
+### 2. Novo hook `useStockMovements`
+- Lista movimentações do owner
+- `addManualEntry(productId, qty, notes)` → grava movimento + soma estoque
+- `addPurchase(productId, qty, unitCost, notes, paymentMethod)` → grava movimento + soma estoque + cria despesa automática (categoria "Compra de mercadoria", já paga, debita saldo)
+- Subscription realtime em `stock_movements`
 
-1. **Consulta do ledger já existente usa `metadata->>credit_card_id` sem `user_id`** — em alguns ambientes PostgREST devolve 0 linhas e o cálculo de `ledgerAmount` fica certo por acidente; em outros pode somar valores de outros usuários/cartões. A consulta deve ser escopada por `user_id` e ainda usar `kind` correto.
+### 3. Integração com vendas existentes
+- Em `useProducts.addSale`: além de já reduzir o estoque, gravar 1 movimento `venda` por venda (com `sale_id`).
+- Em `useProducts.deleteSale`: registrar movimento `ajuste` reverso ou marcar a venda como cancelada (estorno do estoque já existe).
+- Bloqueio de venda quando `stock <= 0`:
+  - Em `SaleForm`, desabilitar produto sem estoque e mostrar badge "Sem estoque"
+  - Validação no submit: se `quantity > stock`, exibe toast e impede gravação
+  - Alerta visual (badge amarelo) quando `stock <= 5`
 
-2. **Quando o usuário marca itens como pagos antes** (manualmente, ou via app de despesas) e depois abre "Pagar fatura", `paidTotal = paidItemsTotal` (sem opening), mas o input vem pré-preenchido com `total`. Se o usuário ajustar manualmente para o valor que aparece como "Restante" (que é o `total` inteiro só quando `!ledgerHandled`), o resultado é certo. Mas hoje o diálogo mostra três blocos confusos (Total / Já pago / Restante) sem explicitar o componente "Saldo inicial". Visualmente o usuário acredita estar pagando só as compras.
+### 4. Integração com Receitas/Despesas
+- Compra gera automaticamente uma despesa via `useExpenses.addExpense`:
+  - `category`: "Compra de mercadoria"
+  - `amount`: `qty * unitCost`
+  - `paid`: true, `paidAt`: agora
+  - `description`: `Compra: <produto> x<qty>`
+  - `scope`: "business"
+- O saldo financeiro do mês é debitado automaticamente (já que despesas pagas entram no fluxo existente).
+- Se a compra/movimento for excluído, a despesa vinculada também é removida.
 
-3. **Quando `isFull`, o `upsertOpening` mantém `[PAGA]` + `[LEDGER]`, mas a lista de cartões em outros componentes (`useAccountBalance` → `creditCardInvoiceExtraPaid`) só desconsidera ciclos que têm `[LEDGER]`.** Se o `recordLedger` falhar silenciosamente (rede, RLS), o opening fica marcado como `[LEDGER]` sem o débito ter sido lançado — e o saldo "some" sem nunca ter sido debitado. Hoje o `try/catch` engole o erro do `recordLedger`.
+### 5. UI nova na aba Vendas
+Dentro de `ProductSalesView`, adicionar duas novas sub-abas ao lado das atuais:
+- **Estoque**: lista de produtos com coluna de estoque atual, ações:
+  - Botão "Entrada manual" (modal: produto, quantidade, observação)
+  - Botão "Registrar compra" (modal: produto, quantidade, custo unitário, método de pagamento, observação)
+  - Indicador visual de estoque baixo / zerado
+- **Histórico de estoque**: tabela de `stock_movements` ordenada por data desc, com filtros por produto/tipo, mostrando tipo, produto, quantidade (+/-), valor, data/hora.
 
-## Mudanças propostas
+### 6. Sincronização realtime
+- Subscription em `products`, `sales`, `stock_movements` já existente ou adicionada.
+- Qualquer alteração propaga para todas as telas abertas.
 
-### 1. Tornar o pagamento atômico e à prova de falha silenciosa
-Em `src/components/CreditCardInvoice.tsx`, no handler do botão "Confirmar pagamento":
+## Detalhes técnicos
 
-- Lançar primeiro o `recordLedger` (débito na conta). Só depois aplicar `updateExpense` nos itens e `upsertOpening` com `[PAGA] [LEDGER] [PAID_DATE]`.
-- Se o `recordLedger` falhar, abortar com toast e **não** marcar o opening como `[LEDGER]`, evitando o estado fantasma.
-- Escopar a consulta de ledger anterior por `user_id` (via `get_data_owner_id` / hook `useDataOwner`) e por `category = 'expense'` para evitar colisão.
+- Migration cria `stock_movements` com índices em `(owner_id, created_at desc)` e `(product_id)`.
+- Atualizações de estoque continuam feitas a partir do hook (optimistic) e gravadas no banco. A coluna `products.stock` permanece como cache do agregado.
+- Para idempotência, vendas/compras inserem o movimento na mesma operação que o INSERT principal e usam o `id` retornado para vínculo.
+- Categoria "Compra de mercadoria" será criada automaticamente em `personal_expense_categories`/categoria de despesa caso não exista (ou usada como string livre, conforme o padrão atual do `useExpenses`).
+- i18n: todos os textos em pt-BR.
 
-### 2. Deixar explícito que o saldo inicial está sendo pago
-Reformatar o resumo no `Dialog` de pagamento para mostrar o detalhamento:
+## Arquivos afetados (estimativa)
 
-```text
-Compras do ciclo   R$ 605,86
-Saldo inicial      R$ 1.796,94
-─────────────────────────────
-Total da fatura    R$ 2.402,80
-Já pago            R$ 0,00
-Restante           R$ 2.402,80
-```
+- novo: `src/hooks/useStockMovements.ts`
+- novo: `src/components/StockEntryForm.tsx`
+- novo: `src/components/StockPurchaseForm.tsx`
+- novo: `src/components/StockMovementsHistory.tsx`
+- novo: `src/components/StockManager.tsx` (aba container)
+- edit: `src/hooks/useProducts.ts` (gravar movimento na venda/cancelamento, expor helper)
+- edit: `src/components/SaleForm.tsx` (bloqueio sem estoque, alerta baixo)
+- edit: `src/components/ProductSalesView.tsx` (novas sub-abas Estoque/Histórico)
+- migration: criar tabela + RLS + realtime
 
-Mantém o input com o valor restante já preenchido.
+## Confirmar antes de implementar
 
-### 3. Garantir que o débito sempre cobre o opening quando `isFull`
-Ao calcular `ledgerAmount`, usar `Math.max(ledgerAmount, openingAmount − openingAlreadyInLedger)` quando `openingPaidFlag` está sendo marcado pela primeira vez. Isso protege casos em que `paidItemsTotal` foi marcado em outro fluxo e o `newPaidTotal − ledgerPaid` daria um valor que ignora o opening.
-
-### 4. Pequeno ajuste em `creditCardInvoiceTotals.ts`
-Adicionar guard em `creditCardInvoiceExtraPaid`: se `[LEDGER]` está presente mas **não existe nenhum** `account_ledger` correspondente (verificação opcional via prop futura), continuar somando o extra — fora do escopo desta task, mas deixar nota no código para investigação.
-
-## Resultado esperado
-
-- Botão "Pagar fatura" do Nubank 05/2026 mostra `R$ 2.402,80` com breakdown.
-- Ao confirmar, é criado **1 lançamento no extrato** de `R$ 2.402,80` (categoria `expense`, wallet escolhida).
-- Saldo em Conta cai exatamente R$ 2.402,80.
-- Histórico de Pagamentos do cartão registra a fatura paga com valor total correto.
-- Se a inserção falhar, o opening permanece em aberto e o usuário vê o erro.
-
-## Arquivos a alterar
-
-- `src/components/CreditCardInvoice.tsx` — reordenar o fluxo de pagamento, ajustar consulta de ledger, redesenhar o resumo do diálogo.
-- (Opcional) `src/lib/creditCardInvoiceTotals.ts` — comentário/guard sobre estado fantasma.
+1. Pode criar a tabela `stock_movements` no backend? (sim/não)
+2. A compra deve gerar uma **despesa "paga" automaticamente** (debitando saldo na hora) ou apenas registrar e deixar o usuário marcar como paga depois?
+3. Quando o estoque chegar a zero: **bloquear venda** ou apenas **avisar** e permitir prosseguir?
