@@ -33,7 +33,7 @@ interface Props { readOnly?: boolean; }
 
 export function StockManager({ readOnly = false }: Props) {
   const { products, updateProduct } = useProducts(true);
-  const { addExpense } = useExpenses(true);
+  const { addExpense, payExpense } = useExpenses(true);
   const { movements, recordMovement } = useStockMovements(true);
 
   const [entryOpen, setEntryOpen] = useState(false);
@@ -251,17 +251,21 @@ export function StockManager({ readOnly = false }: Props) {
             const prod = products.find(p => p.id === it.productId);
             return `${prod?.name || "?"} x${it.quantity}`;
           });
-          // 1) Cria UMA despesa paga com o total geral
+          // 1) Cria UMA despesa já paga com o total geral (impacta o saldo)
+          const today = todayInAppTz();
           try {
-            await addExpense({
+            const newId = await addExpense({
               description: `Compra: ${descParts.join(", ")}`,
               amount: totalAll,
               type: "fixa",
               category: "Compra de mercadoria",
-              dueDate: todayInAppTz(),
+              dueDate: today,
               notes: notes || undefined,
-              scope: "business",
+              scope: "personal",
             } as any);
+            if (newId) {
+              await payExpense(newId, false, today);
+            }
           } catch (e) { /* segue mesmo se falhar a despesa */ }
           // 2) Para cada item: atualiza estoque + último custo + registra movimento
           for (const it of validItems) {
