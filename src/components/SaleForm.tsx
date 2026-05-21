@@ -51,6 +51,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     productId: "",
     quantity: "1",
     total: "",
+    discount: "",
     installmentValue: "",
     customerName: "",
     notes: "",
