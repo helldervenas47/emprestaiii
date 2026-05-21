@@ -649,11 +649,7 @@ export function IncomePendingCalendar({
                     statusCls = "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30";
                   }
                   const fmtBR = (d: string) => new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-                  const dotCls = isReceived
-                    ? "bg-emerald-500"
-                    : isLate
-                      ? "bg-rose-500"
-                      : "";
+                  const dotCls = isReceived ? "bg-emerald-500" : "bg-rose-500";
                   return (
                     <li key={`inc-${inc.id}`} className="flex items-start justify-between gap-2 rounded-md bg-emerald-500/5 border border-emerald-500/20 px-2.5 py-1.5">
                       <span className="flex flex-col gap-0.5 min-w-0 flex-1">
