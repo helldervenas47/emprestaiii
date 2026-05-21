@@ -153,7 +153,9 @@ export function ExpenseEditDialog({
   useEffect(() => {
     if (!expense) return;
     setDescription(expense.description);
-    setAmount(String(expense.amount));
+    const inst = expense.installments ?? 0;
+    const isParc = expense.type === "recorrente" && inst > 1;
+    setAmount(String(isParc ? expense.amount / inst : expense.amount));
     setDueDate(expense.dueDate);
     setCategory(expense.category ?? "");
     const pm = detectPaymentMethod(expense.notes);
