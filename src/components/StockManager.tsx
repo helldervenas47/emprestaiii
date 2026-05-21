@@ -33,7 +33,7 @@ interface Props { readOnly?: boolean; }
 
 export function StockManager({ readOnly = false }: Props) {
   const { products, updateProduct } = useProducts(true);
-  const { addExpense } = useExpenses(true);
+  const { addExpense, payExpense } = useExpenses(true);
   const { movements, recordMovement } = useStockMovements(true);
 
   const [entryOpen, setEntryOpen] = useState(false);
