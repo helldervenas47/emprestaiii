@@ -406,11 +406,10 @@ export function IncomePendingCalendar({
           remaining,
           paid: t.paid,
         });
-        // Para o saldo previsto do dia, considera apenas a parcela ainda em aberto.
-        // Faturas já pagas não devem ser subtraídas novamente (o pagamento real já
-        // está refletido no saldo em conta atual via baseBalance).
-        if (!t.paid && remaining > 0) {
-          e.totalExpense += remaining;
+        // Faturas de cartão entram no cálculo do saldo de despesas do dia
+        // pelo valor total da fatura, independente de já estarem pagas ou em aberto.
+        if (t.total > 0) {
+          e.totalExpense += t.total;
         }
       }
     }
