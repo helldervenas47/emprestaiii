@@ -278,22 +278,25 @@ export function StockManager({ readOnly = false }: Props) {
             const prod = products.find(p => p.id === it.productId);
             return `${prod?.name || "?"} x${it.quantity}`;
           });
-          // 1) Cria UMA despesa já paga com o total geral (impacta o saldo)
+          // 1) Cria UMA despesa já paga com o total geral (impacta o saldo da aba Receitas e Despesas)
           const today = todayInAppTz();
           try {
-            const newId = await addExpense({
-              description: `Compra: ${descParts.join(", ")}`,
-              amount: totalAll,
-              type: "fixa",
-              category: "Compra de mercadoria",
-              dueDate: today,
-              notes: notes || undefined,
-              scope: "personal",
-            } as any);
-            if (newId) {
-              await payExpense(newId, false, today);
+            if (ownerId) {
+              await supabase.from("expenses").insert({
+                user_id: ownerId,
+                description: `Compra: ${descParts.join(", ")}`,
+                amount: totalAll,
+                type: "fixa",
+                category: "Compra de mercadoria",
+                due_date: today,
+                paid: true,
+                paid_date: today,
+                notes: notes || null,
+                scope: "personal",
+              } as any);
             }
           } catch (e) { /* segue mesmo se falhar a despesa */ }
+
           // 2) Para cada item: atualiza estoque + último custo + registra movimento
           for (const it of validItems) {
             const product = products.find(p => p.id === it.productId);
