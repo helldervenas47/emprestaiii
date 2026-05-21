@@ -750,8 +750,7 @@ export function IncomePendingCalendar({
               </div>
               <ul className="space-y-1">
                 {selectedInfo.cardInvoices.map((c) => {
-                  const isLate = !c.paid && selectedDate! < todayStr;
-                  const dotCls = c.paid ? "bg-emerald-500" : isLate ? "bg-rose-500" : "";
+                  const dotCls = c.paid ? "bg-emerald-500" : "bg-rose-500";
                   return (
                   <li key={`inv-${c.cardId}`} className="flex items-start justify-between gap-2 rounded-md bg-violet-500/5 border border-violet-500/20 px-2.5 py-1.5">
                     <span className="flex items-start gap-1.5 text-xs text-foreground min-w-0 flex-1">
