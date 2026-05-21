@@ -45,6 +45,22 @@ export function StockManager({ readOnly = false }: Props) {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
   const [filterProduct, setFilterProduct] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("name-asc");
+
+  const sortedProducts = useMemo(() => {
+    const arr = [...products];
+    switch (sortBy) {
+      case "name-asc": arr.sort((a, b) => a.name.localeCompare(b.name, "pt-BR")); break;
+      case "name-desc": arr.sort((a, b) => b.name.localeCompare(a.name, "pt-BR")); break;
+      case "stock-asc": arr.sort((a, b) => (a.stock || 0) - (b.stock || 0)); break;
+      case "stock-desc": arr.sort((a, b) => (b.stock || 0) - (a.stock || 0)); break;
+      case "price-asc": arr.sort((a, b) => (a.price || 0) - (b.price || 0)); break;
+      case "price-desc": arr.sort((a, b) => (b.price || 0) - (a.price || 0)); break;
+      case "cost-asc": arr.sort((a, b) => (a.cost || 0) - (b.cost || 0)); break;
+      case "cost-desc": arr.sort((a, b) => (b.cost || 0) - (a.cost || 0)); break;
+    }
+    return arr;
+  }, [products, sortBy]);
 
   const filteredMovements = useMemo(() => movements.filter(m =>
     (filterType === "all" || m.type === filterType) &&
