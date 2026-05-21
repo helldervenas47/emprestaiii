@@ -289,10 +289,10 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
             <Button variant="outline" size="sm" className="h-9 gap-1.5 w-full justify-between">
               <span className="inline-flex items-center gap-1.5">
                 <SlidersHorizontal className="h-4 w-4" />
-                {statusFilter === "all" && `Todos (${clients.length})`}
-                {statusFilter === "active" && `Ativos (${activeCount})`}
-                {statusFilter === "inactive" && `Inativos (${inactiveCount})`}
-                {statusFilter === "over-limit" && `Acima do limite (${overLimitCount})`}
+                {statusFilter === "all" && `Todos`}
+                {statusFilter === "active" && `Ativos`}
+                {statusFilter === "inactive" && `Inativos`}
+                {statusFilter === "over-limit" && `Acima do limite`}
               </span>
               <ArrowUpDown className="h-3.5 w-3.5 opacity-60" />
             </Button>
