@@ -21,9 +21,12 @@ export function useProducts(enabled = true) {
       ]);
 
       if (prodRes.data) {
-        setProducts(prodRes.data.map((p) => ({
+        setProducts(prodRes.data.map((p: any) => ({
           id: p.id, name: p.name, description: p.description || "",
-          price: Number(p.price), stock: p.stock, active: true, createdAt: p.created_at,
+          price: Number(p.price), cost: Number(p.cost || 0),
+          lastPurchasePrice: Number(p.last_purchase_price || 0),
+          suggestedStock: Number(p.suggested_stock || 0),
+          stock: p.stock, active: true, createdAt: p.created_at,
         })));
       }
 
@@ -70,9 +73,12 @@ export function useProducts(enabled = true) {
         supabase.from("sales").select("*").order("created_at", { ascending: false }),
       ]);
       if (prodRes.data) {
-        setProducts(prodRes.data.map((p) => ({
+        setProducts(prodRes.data.map((p: any) => ({
           id: p.id, name: p.name, description: p.description || "",
-          price: Number(p.price), stock: p.stock, active: true, createdAt: p.created_at,
+          price: Number(p.price), cost: Number(p.cost || 0),
+          lastPurchasePrice: Number(p.last_purchase_price || 0),
+          suggestedStock: Number(p.suggested_stock || 0),
+          stock: p.stock, active: true, createdAt: p.created_at,
         })));
       }
       if (salesRes.data) {
@@ -119,8 +125,15 @@ export function useProducts(enabled = true) {
     setProducts((prev) => [{ ...p, id: tempId, createdAt: new Date().toISOString() }, ...prev]);
 
     const { data, error } = await supabase.from("products").insert({
-      user_id: dataOwnerId, name: p.name, description: p.description, price: p.price, cost: 0, stock: p.stock,
-    }).select().single();
+      user_id: dataOwnerId,
+      name: p.name,
+      description: p.description,
+      price: p.price,
+      cost: p.cost ?? 0,
+      stock: p.stock,
+      last_purchase_price: p.lastPurchasePrice ?? 0,
+      suggested_stock: p.suggestedStock ?? 0,
+    } as any).select().single();
 
     if (error) {
       setProducts((prev) => prev.filter((x) => x.id !== tempId));
@@ -132,12 +145,15 @@ export function useProducts(enabled = true) {
   const updateProduct = useCallback(async (id: string, data: Partial<Omit<Product, "id" | "createdAt">>) => {
     if (!user) return;
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...data } : p)));
-    const updateData: { name?: string; description?: string; price?: number; stock?: number } = {};
+    const updateData: Record<string, any> = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.description !== undefined) updateData.description = data.description;
     if (data.price !== undefined) updateData.price = data.price;
+    if (data.cost !== undefined) updateData.cost = data.cost;
     if (data.stock !== undefined) updateData.stock = data.stock;
-    await supabase.from("products").update(updateData).eq("id", id);
+    if (data.lastPurchasePrice !== undefined) updateData.last_purchase_price = data.lastPurchasePrice;
+    if (data.suggestedStock !== undefined) updateData.suggested_stock = data.suggestedStock;
+    await supabase.from("products").update(updateData as any).eq("id", id);
   }, [user]);
 
   const deleteProduct = useCallback(async (id: string) => {

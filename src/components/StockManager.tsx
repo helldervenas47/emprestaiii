@@ -12,7 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MoneyInput } from "@/components/ui/money-input";
-import { Boxes, PackagePlus, ShoppingBag, History, ShoppingCart, ArrowDown, ArrowUp, Wrench, AlertTriangle } from "lucide-react";
+import { Boxes, PackagePlus, ShoppingBag, History, ShoppingCart, ArrowDown, ArrowUp, Wrench, AlertTriangle, Pencil } from "lucide-react";
+import { ProductForm } from "@/components/ProductForm";
+import type { Product } from "@/types/loan";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -36,6 +38,7 @@ export function StockManager({ readOnly = false }: Props) {
 
   const [entryOpen, setEntryOpen] = useState(false);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
   const [filterProduct, setFilterProduct] = useState<string>("all");
 
@@ -74,13 +77,18 @@ export function StockManager({ readOnly = false }: Props) {
         ) : (
           <div className="divide-y rounded-lg border bg-card overflow-hidden">
             {products.map(p => {
-              const low = p.stock > 0 && p.stock <= 5;
+              const threshold = p.suggestedStock && p.suggestedStock > 0 ? p.suggestedStock : 5;
+              const low = p.stock > 0 && p.stock <= threshold;
               const out = p.stock <= 0;
               return (
                 <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/40 transition-colors">
                   <div className="min-w-0 flex-1">
                     <div className="font-medium truncate">{p.name}</div>
-                    <div className="text-xs text-muted-foreground truncate">{fmtBRL(p.price)}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      Venda {fmtBRL(p.price)}
+                      {p.cost > 0 ? ` · Compra ${fmtBRL(p.cost)}` : ""}
+                      {p.suggestedStock > 0 ? ` · Sugerido ${p.suggestedStock}` : ""}
+                    </div>
                   </div>
                   {out ? (
                     <Badge variant="destructive" className="shrink-0"><AlertTriangle className="h-3 w-3 mr-1" />Sem estoque</Badge>
@@ -93,6 +101,11 @@ export function StockManager({ readOnly = false }: Props) {
                     <div className="text-lg font-bold tabular-nums leading-none">{p.stock}</div>
                     <div className="text-[10px] text-muted-foreground">unid.</div>
                   </div>
+                  {!readOnly && (
+                    <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => setEditingProduct(p)} aria-label="Editar produto">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               );
             })}
@@ -198,8 +211,11 @@ export function StockManager({ readOnly = false }: Props) {
             } as any);
             // expense id não é retornado pelo addExpense — vínculo opcional
           } catch (e) { /* segue mesmo se falhar a despesa */ }
-          // 2) Atualiza estoque
-          await updateProduct(productId, { stock: product.stock + quantity });
+          // 2) Atualiza estoque e último preço de compra
+          await updateProduct(productId, {
+            stock: product.stock + quantity,
+            lastPurchasePrice: unitCost,
+          });
           // 3) Registra movimento
           await recordMovement({
             productId, productName: product.name, type: "compra",
@@ -209,6 +225,14 @@ export function StockManager({ readOnly = false }: Props) {
           toast.success(`Compra de ${quantity} unid. registrada (${fmtBRL(total)})`);
         }}
       />
+
+      {editingProduct && (
+        <ProductForm
+          product={editingProduct}
+          onUpdate={async (id, data) => { await updateProduct(id, data); }}
+          onClose={() => setEditingProduct(null)}
+        />
+      )}
     </Tabs>
   );
 }

@@ -192,7 +192,14 @@ export interface Product {
   id: string;
   name: string;
   description: string;
+  /** Preço de venda. */
   price: number;
+  /** Preço de compra (custo padrão). */
+  cost: number;
+  /** Último valor pago em uma compra. */
+  lastPurchasePrice: number;
+  /** Estoque sugerido (mínimo recomendado). */
+  suggestedStock: number;
   stock: number;
   active: boolean;
   createdAt: string;
