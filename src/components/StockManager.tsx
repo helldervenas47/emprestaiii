@@ -225,6 +225,14 @@ export function StockManager({ readOnly = false }: Props) {
           toast.success(`Compra de ${quantity} unid. registrada (${fmtBRL(total)})`);
         }}
       />
+
+      {editingProduct && (
+        <ProductForm
+          product={editingProduct}
+          onUpdate={async (id, data) => { await updateProduct(id, data); }}
+          onClose={() => setEditingProduct(null)}
+        />
+      )}
     </Tabs>
   );
 }
