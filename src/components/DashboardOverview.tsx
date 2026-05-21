@@ -1343,75 +1343,70 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [tempInterestOverrides, setTempInterestOverrides] = useState<Record<string, string>>({});
 
   const interestChartBase = useMemo(() => {
+    // Aplica a MESMA regra "juros primeiro por contrato" usada no card "Juros Recebidos no Mês".
+    // 1) Ordena pagamentos cronologicamente.
+    // 2) Para cada pagamento: se installmentNumber === 0 → 100% juros; senão amortiza primeiro
+    //    o juros restante do contrato, o restante vai para principal.
+    // 3) Em contratos quitados, redistribui o lucro residual (totalPago − principal − juros já alocado)
+    //    para o último pagamento — capturando bônus/descontos na quitação.
+    // 4) Agrupa o juros alocado por mês do pagamento.
+    const paymentsSorted = [...payments].sort((a, b) => {
+      const d = a.date.localeCompare(b.date);
+      if (d !== 0) return d;
+      return (a.createdAt ?? "").localeCompare(b.createdAt ?? "");
+    });
+    const interestByPaymentId = new Map<string, number>();
+    const loanInterestRemaining = new Map<string, number>();
+    loans.forEach((l) => {
+      const total = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+      loanInterestRemaining.set(l.id, Math.max(0, total - l.amount));
+    });
+    paymentsSorted.forEach((p) => {
+      const amt = Number(p.amount) || 0;
+      if (amt <= 0) { interestByPaymentId.set(p.id, 0); return; }
+      if (p.installmentNumber === 0) {
+        interestByPaymentId.set(p.id, amt);
+        const rem = loanInterestRemaining.get(p.loanId) ?? 0;
+        loanInterestRemaining.set(p.loanId, Math.max(0, rem - amt));
+      } else {
+        const rem = loanInterestRemaining.get(p.loanId) ?? 0;
+        const interest = Math.min(amt, rem);
+        interestByPaymentId.set(p.id, interest);
+        loanInterestRemaining.set(p.loanId, Math.max(0, rem - interest));
+      }
+    });
+    const lastPaymentByLoanId = new Map<string, string>();
+    paymentsSorted.forEach((p) => { lastPaymentByLoanId.set(p.loanId, p.id); });
+    loans.forEach((l) => {
+      if (l.status !== "paid") return;
+      const lastId = lastPaymentByLoanId.get(l.id);
+      if (!lastId) return;
+      const loanPays = payments.filter((p) => p.loanId === l.id);
+      const totalPaid = loanPays.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+      const allocated = loanPays.reduce((s, p) => s + (interestByPaymentId.get(p.id) ?? 0), 0);
+      const realProfit = totalPaid - l.amount;
+      const diff = realProfit - allocated;
+      if (Math.abs(diff) < 0.005) return;
+      const cur = interestByPaymentId.get(lastId) ?? 0;
+      interestByPaymentId.set(lastId, Math.max(0, cur + diff));
+    });
+
     const now = new Date();
-    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const months: { month: string; juros: number }[] = [];
+    const months: { month: string; juros: number; key: string }[] = [];
     for (let i = 11; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
       const label = `${monthNames[d.getMonth()].slice(0, 3)}/${String(d.getFullYear()).slice(2)}`;
-      let interestInMonth = 0;
-
-      // A partir do mês atual, usa a mesma lógica do card "Juros Recebidos no Mês"
-      // (3 componentes: juros avulsos + lucro de quitações + porção de juros de parcelas)
-      if (d >= currentMonthStart) {
-        const isInMonth = (dateStr: string) => {
-          const pd = new Date(dateStr + "T00:00:00");
-          return pd >= d && pd <= end;
-        };
-        const paymentsInMonth = payments.filter((p) => isInMonth(p.date));
-        const quitadoIds = new Set<string>();
-        loans.forEach((l) => {
-          if (l.status !== "paid") return;
-          const lp = payments.filter((pp) => pp.loanId === l.id);
-          if (lp.length === 0) return;
-          const lastDate = lp.reduce((m, pp) => (pp.date > m ? pp.date : m), lp[0].date);
-          if (isInMonth(lastDate)) quitadoIds.add(l.id);
-        });
-        const interestOnlyProfit = paymentsInMonth
-          .filter((p) => p.installmentNumber === 0 && !quitadoIds.has(p.loanId))
-          .reduce((s, p) => s + p.amount, 0);
-        const quitadoProfit = Array.from(quitadoIds).reduce((s, id) => {
-          const loan = loans.find((l) => l.id === id);
-          if (!loan) return s;
-          const totalPaid = payments.filter((p) => p.loanId === id).reduce((sum, p) => sum + p.amount, 0);
-          return s + Math.max(0, totalPaid - loan.amount);
-        }, 0);
-        const activeProfit = paymentsInMonth
-          .filter((p) => p.installmentNumber !== 0 && !quitadoIds.has(p.loanId))
-          .reduce((s, p) => {
-            const loan = loans.find((l) => l.id === p.loanId);
-            if (!loan) return s;
-            const twi = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
-            const ratio = twi > 0 ? 1 - loan.amount / twi : 0;
-            return s + p.amount * ratio;
-          }, 0);
-        interestInMonth = interestOnlyProfit + quitadoProfit + activeProfit;
-      } else {
-        // Meses anteriores ao atual: mantém a lógica histórica para não alterar dados passados
-        loans.forEach((l) => {
-          const loanPayments = payments.filter((p) => {
-            const pd = new Date(p.date + "T00:00:00");
-            return p.loanId === l.id && pd >= d && pd <= end;
-          });
-          const installmentAmount = calculateInstallment(l.amount, l.interestRate, l.installments);
-          const principalPerInstallment = l.installments > 0 ? l.amount / l.installments : 0;
-          const totalWithInterest = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-          const interestRatio = totalWithInterest > 0 ? 1 - (l.amount / totalWithInterest) : 0;
-          loanPayments.forEach((p) => {
-            if (p.installmentNumber === 0) {
-              interestInMonth += p.amount;
-            } else if (p.installmentNumber > 0) {
-              interestInMonth += installmentAmount - principalPerInstallment;
-            } else if (p.installmentNumber === -1) {
-              interestInMonth += p.amount * interestRatio;
-            }
-          });
-        });
-      }
-      months.push({ month: label, juros: interestInMonth });
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      months.push({ month: label, juros: 0, key });
     }
-    return months;
+    const byKey = new Map(months.map((m) => [m.key, m]));
+    payments.forEach((p) => {
+      const k = (p.date || "").slice(0, 7);
+      const row = byKey.get(k);
+      if (!row) return;
+      row.juros += interestByPaymentId.get(p.id) ?? 0;
+    });
+    return months.map(({ month, juros }) => ({ month, juros }));
   }, [loans, payments]);
 
   const interestChart = useMemo(() => {
