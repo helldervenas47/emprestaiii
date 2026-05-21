@@ -291,11 +291,25 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                       value={form.productId}
                       onValueChange={(v) => {
                         const prod = products.find((p) => p.id === v);
+                        const qty = parseInt(form.quantity) || 1;
+                        const disc = parseFloat(form.discount) || 0;
+                        const base = (prod?.price || 0) * qty;
+                        const newTotal = Math.max(0, base - disc).toFixed(2);
                         setForm((p) => ({
                           ...p,
                           productId: v,
                           description: prod?.name || "",
+                          total: prod ? newTotal : p.total,
                         }));
+                        if (prod && p.paymentMode === "recorrente") {
+                          const count = parseInt(form.installments) || 1;
+                          const totalVal = parseFloat(newTotal);
+                          if (totalVal > 0 && count > 0) {
+                            const newInstVal = (totalVal / count).toFixed(2);
+                            setForm((p) => ({ ...p, installmentValue: newInstVal }));
+                            setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: newInstVal }));
+                          }
+                        }
                       }}
                     >
                       <SelectTrigger>
@@ -304,7 +318,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                       <SelectContent>
                         {available.map((p) => (
                           <SelectItem key={p.id} value={p.id}>
-                            {p.name} (estoque: {p.stock})
+                            {p.name} — {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(p.price)} (estoque: {p.stock})
                           </SelectItem>
                         ))}
                       </SelectContent>
