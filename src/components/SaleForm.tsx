@@ -48,6 +48,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
   const defaultLocadorId = locadores.length === 1 ? (locadores[0].id || "") : "";
   const [form, setForm] = useState({
     description: "",
+    productId: "",
     quantity: "1",
     total: "",
     installmentValue: "",
