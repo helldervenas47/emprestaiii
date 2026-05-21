@@ -229,20 +229,7 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
         </CardContent>
       </Card>
 
-      {/* Dados do locador */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <UserIcon className="h-4 w-4 text-primary" /> Dados do locador
-          </CardTitle>
-          <CardDescription>Cadastros usados em contratos de aluguel de veículos.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Suspense fallback={<SectionLoader />}>
-            <LocadorList locadores={locadores} onSave={onSaveLocador} onDelete={onRemoveLocador} readOnly={isReadOnly} />
-          </Suspense>
-        </CardContent>
-      </Card>
+      {/* Dados do locador movidos para a aba Cadastro > Veículos > Dados do Locador */}
 
       {/* Formas de pagamento */}
       <Suspense fallback={<SectionLoader />}>
