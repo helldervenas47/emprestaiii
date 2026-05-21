@@ -599,7 +599,7 @@ const Index = () => {
           ? personalSubTab === "cards" ? "" : "Nova Despesa Pessoal"
           : "Nova Despesa"
       :
-    tab === "products" ? "Novo Lançamento" :
+    tab === "products" ? (productsSubTab === "estoque" ? "Novo Produto" : "Novo Lançamento") :
     tab === "vehicles" ? "Novo Aluguel" : "";
 
   return (
