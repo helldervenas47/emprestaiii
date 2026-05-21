@@ -832,7 +832,7 @@ const Index = () => {
                 size="sm"
                 onClick={() => setClientSubTab("clientes")}
               >
-                <Users className="h-4 w-4 mr-1" /> Clientes
+                <Users className="h-4 w-4 mr-1" /> Cadastro
               </Button>
               {!isReadOnly && (
                 <Button
