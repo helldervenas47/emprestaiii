@@ -754,7 +754,7 @@ const Index = () => {
           return (
             <div className="flex items-center gap-2 sm:gap-3 pt-1">
               <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{current.label}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{current.id === "clients" ? "\u00A0" : current.label}</h1>
             </div>
           );
         })()}
