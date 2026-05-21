@@ -247,51 +247,71 @@ function fmtValue(v: number, unit: Unit, hidden: boolean): string {
   return String(Math.round(v));
 }
 
-// Calcula o "Lucro Realizado" do período usando a mesma lógica do gráfico "Lucro por Período"
-// (3 componentes: juros avulsos, contratos quitados no período, parcelas regulares de contratos ativos)
+// Calcula o "Lucro Realizado" do período usando a MESMA regra do card "Juros Recebidos no Mês"
+// e do gráfico "Juros Recebidos por Mês": alocação "juros primeiro por contrato".
+//  - Ordena pagamentos cronologicamente.
+//  - installmentNumber === 0 → 100% juros.
+//  - Demais pagamentos amortizam primeiro o juros restante do contrato; o resto vira principal.
+//  - Em contratos quitados, redistribui o lucro residual (totalPago − principal − juros já alocado)
+//    para o último pagamento (captura bônus/descontos na quitação).
+//  - Soma o juros alocado aos pagamentos com data no mês `m`.
 function computeProfitRealized(loans: Loan[], payments: Payment[], m: string): number {
-  const inP = (date: string | undefined | null) => inMonth(date, m);
-  const paymentsInPeriod = payments.filter((p: any) => inP(p.date));
+  const getLoanId = (p: any) => p.loanId || p.loan_id;
+  const getInstNum = (p: any) => (p.installmentNumber ?? p.installment_number);
+  const getDate = (p: any) => p.date || "";
+  const getCreatedAt = (p: any) => p.createdAt ?? p.created_at ?? "";
 
-  const quitadoLoanIds = new Set<string>();
-  loans.forEach((l: any) => {
-    if (l.status !== "paid") return;
-    const loanPays = payments.filter((pp: any) => (pp.loanId || pp.loan_id) === l.id);
-    if (loanPays.length === 0) return;
-    const lastPayDate = loanPays.reduce((max: string, pp: any) => pp.date > max ? pp.date : max, loanPays[0].date);
-    if (inP(lastPayDate)) quitadoLoanIds.add(l.id);
+  const paymentsSorted = [...payments].sort((a: any, b: any) => {
+    const d = getDate(a).localeCompare(getDate(b));
+    if (d !== 0) return d;
+    return getCreatedAt(a).localeCompare(getCreatedAt(b));
   });
 
-  // 1) Juros avulsos (installmentNumber === 0) de contratos NÃO quitados no período
-  const interestOnly = paymentsInPeriod
-    .filter((p: any) => (p.installmentNumber ?? p.installment_number) === 0 && !quitadoLoanIds.has(p.loanId || p.loan_id))
-    .reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+  const interestByPaymentId = new Map<string, number>();
+  const loanInterestRemaining = new Map<string, number>();
+  loans.forEach((l: any) => {
+    const principal = Number(l.amount) || 0;
+    const rate = Number(l.interestRate ?? l.interest_rate) || 0;
+    const inst = Number(l.installments) || 1;
+    const total = calculateTotalWithInterest(principal, rate, inst);
+    loanInterestRemaining.set(l.id, Math.max(0, total - principal));
+  });
 
-  // 2) Lucro total dos contratos quitados no período (total pago - principal)
-  const quitadoProfit = Array.from(quitadoLoanIds).reduce((s: number, loanId: string) => {
-    const loan: any = loans.find((l: any) => l.id === loanId);
-    if (!loan) return s;
-    const totalPaid = payments
-      .filter((p: any) => (p.loanId || p.loan_id) === loanId)
-      .reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
-    return s + Math.max(0, totalPaid - Number(loan.amount || 0));
-  }, 0);
+  paymentsSorted.forEach((p: any) => {
+    const amt = Number(p.amount) || 0;
+    if (amt <= 0) { interestByPaymentId.set(p.id, 0); return; }
+    const loanId = getLoanId(p);
+    if (getInstNum(p) === 0) {
+      interestByPaymentId.set(p.id, amt);
+      const rem = loanInterestRemaining.get(loanId) ?? 0;
+      loanInterestRemaining.set(loanId, Math.max(0, rem - amt));
+    } else {
+      const rem = loanInterestRemaining.get(loanId) ?? 0;
+      const interest = Math.min(amt, rem);
+      interestByPaymentId.set(p.id, interest);
+      loanInterestRemaining.set(loanId, Math.max(0, rem - interest));
+    }
+  });
 
-  // 3) Parcelas regulares/parciais de contratos em aberto: proporção de juros
-  const activeInstallment = paymentsInPeriod
-    .filter((p: any) => (p.installmentNumber ?? p.installment_number) !== 0 && !quitadoLoanIds.has(p.loanId || p.loan_id))
-    .reduce((s: number, p: any) => {
-      const loan: any = loans.find((l: any) => l.id === (p.loanId || p.loan_id));
-      if (!loan) return s;
-      const principal = Number(loan.amount) || 0;
-      const rate = Number(loan.interestRate ?? loan.interest_rate) || 0;
-      const inst = Number(loan.installments) || 1;
-      const totalWithInterest = calculateTotalWithInterest(principal, rate, inst);
-      const interestRatio = totalWithInterest > 0 ? 1 - (principal / totalWithInterest) : 0;
-      return s + (Number(p.amount) || 0) * interestRatio;
-    }, 0);
+  const lastPaymentByLoanId = new Map<string, string>();
+  paymentsSorted.forEach((p: any) => { lastPaymentByLoanId.set(getLoanId(p), p.id); });
 
-  return interestOnly + quitadoProfit + activeInstallment;
+  loans.forEach((l: any) => {
+    if (l.status !== "paid") return;
+    const lastId = lastPaymentByLoanId.get(l.id);
+    if (!lastId) return;
+    const loanPays = payments.filter((p: any) => getLoanId(p) === l.id);
+    const totalPaid = loanPays.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+    const allocated = loanPays.reduce((s: number, p: any) => s + (interestByPaymentId.get(p.id) ?? 0), 0);
+    const diff = (totalPaid - Number(l.amount || 0)) - allocated;
+    if (Math.abs(diff) < 0.005) return;
+    const cur = interestByPaymentId.get(lastId) ?? 0;
+    interestByPaymentId.set(lastId, Math.max(0, cur + diff));
+  });
+
+  return payments
+    .filter((p: any) => inMonth(getDate(p), m))
+    .reduce((s: number, p: any) => s + (interestByPaymentId.get(p.id) ?? 0), 0);
 }
 
 // Calcula o "Lucro Previsto" do período (parcelas com vencimento no mês × proporção de juros)
