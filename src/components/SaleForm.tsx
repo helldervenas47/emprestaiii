@@ -51,6 +51,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     productId: "",
     quantity: "1",
     total: "",
+    discount: "",
     installmentValue: "",
     customerName: "",
     notes: "",
@@ -290,11 +291,25 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                       value={form.productId}
                       onValueChange={(v) => {
                         const prod = products.find((p) => p.id === v);
+                        const qty = parseInt(form.quantity) || 1;
+                        const disc = parseFloat(form.discount) || 0;
+                        const base = (prod?.price || 0) * qty;
+                        const newTotal = Math.max(0, base - disc).toFixed(2);
                         setForm((p) => ({
                           ...p,
                           productId: v,
                           description: prod?.name || "",
+                          total: prod ? newTotal : p.total,
                         }));
+                        if (prod && form.paymentMode === "recorrente") {
+                          const count = parseInt(form.installments) || 1;
+                          const totalVal = parseFloat(newTotal);
+                          if (totalVal > 0 && count > 0) {
+                            const newInstVal = (totalVal / count).toFixed(2);
+                            setForm((pp) => ({ ...pp, installmentValue: newInstVal }));
+                            setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: newInstVal }));
+                          }
+                        }
                       }}
                     >
                       <SelectTrigger>
@@ -303,7 +318,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                       <SelectContent>
                         {available.map((p) => (
                           <SelectItem key={p.id} value={p.id}>
-                            {p.name} (estoque: {p.stock})
+                            {p.name} — {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(p.price)} (estoque: {p.stock})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -319,10 +334,28 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
             )}
 
             {!isVehicleRental && (
+              <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Quantidade</Label>
-                  <Input type="number" min="1" value={form.quantity} onChange={(e) => update("quantity", e.target.value)} required />
+                  <Input type="number" min="1" value={form.quantity} onChange={(e) => {
+                    const qStr = e.target.value;
+                    const qty = parseInt(qStr) || 1;
+                    const prod = products.find((p) => p.id === form.productId);
+                    if (prod && isVenda) {
+                      const disc = parseFloat(form.discount) || 0;
+                      const newTotal = Math.max(0, prod.price * qty - disc).toFixed(2);
+                      setForm((p) => ({ ...p, quantity: qStr, total: newTotal }));
+                      const count = parseInt(form.installments) || 1;
+                      if (form.paymentMode === "recorrente" && count > 0) {
+                        const newInstVal = (parseFloat(newTotal) / count).toFixed(2);
+                        setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: newInstVal }));
+                        setForm((p) => ({ ...p, installmentValue: newInstVal }));
+                      }
+                    } else {
+                      update("quantity", qStr);
+                    }
+                  }} required />
                 </div>
                 <div>
                   <Label>{totalLabel}</Label>
@@ -338,6 +371,43 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                   }} placeholder="0,00" required />
                 </div>
               </div>
+              {isVenda && form.productId && (
+                <div>
+                  <Label>Desconto (R$)</Label>
+                  <Input type="number" step="0.01" min="0" value={form.discount} onChange={(e) => {
+                    const dStr = e.target.value;
+                    const disc = parseFloat(dStr) || 0;
+                    const prod = products.find((p) => p.id === form.productId);
+                    const qty = parseInt(form.quantity) || 1;
+                    if (prod) {
+                      const newTotal = Math.max(0, prod.price * qty - disc).toFixed(2);
+                      setForm((p) => ({ ...p, discount: dStr, total: newTotal }));
+                      const count = parseInt(form.installments) || 1;
+                      if (form.paymentMode === "recorrente" && count > 0) {
+                        const newInstVal = (parseFloat(newTotal) / count).toFixed(2);
+                        setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: newInstVal }));
+                        setForm((p) => ({ ...p, installmentValue: newInstVal }));
+                      }
+                    } else {
+                      update("discount", dStr);
+                    }
+                  }} placeholder="0,00" />
+                  {(() => {
+                    const prod = products.find((p) => p.id === form.productId);
+                    const qty = parseInt(form.quantity) || 1;
+                    if (!prod) return null;
+                    const base = prod.price * qty;
+                    const disc = parseFloat(form.discount) || 0;
+                    return (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Subtotal: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(base)}
+                        {disc > 0 ? ` − ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(disc)} desconto` : ""}
+                      </p>
+                    );
+                  })()}
+                </div>
+              )}
+              </>
             )}
 
             {isVehicleRental && (
