@@ -2619,6 +2619,62 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_movements: {
+        Row: {
+          created_at: string
+          expense_id: string | null
+          id: string
+          movement_type: string
+          notes: string | null
+          owner_id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          sale_id: string | null
+          total_value: number | null
+          unit_cost: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expense_id?: string | null
+          id?: string
+          movement_type: string
+          notes?: string | null
+          owner_id: string
+          product_id?: string | null
+          product_name: string
+          quantity: number
+          sale_id?: string | null
+          total_value?: number | null
+          unit_cost?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expense_id?: string | null
+          id?: string
+          movement_type?: string
+          notes?: string | null
+          owner_id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          sale_id?: string | null
+          total_value?: number | null
+          unit_cost?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null

@@ -149,6 +149,22 @@ export function useProducts(enabled = true) {
 
   const addSale = useCallback(async (s: Omit<Sale, "id">) => {
     if (!user || !dataOwnerId) return;
+
+    // Bloqueio: produto sem estoque suficiente
+    if (s.productId) {
+      const product = products.find((p) => p.id === s.productId);
+      if (product && product.stock <= 0) {
+        const { toast } = await import("sonner");
+        toast.error(`"${product.name}" está sem estoque. Registre uma entrada ou compra antes de vender.`);
+        return;
+      }
+      if (product && s.quantity > product.stock) {
+        const { toast } = await import("sonner");
+        toast.error(`Estoque insuficiente de "${product.name}" (disponível: ${product.stock}).`);
+        return;
+      }
+    }
+
     const tempId = crypto.randomUUID();
     setSales((prev) => [{ ...s, id: tempId }, ...prev]);
 
@@ -196,10 +212,22 @@ export function useProducts(enabled = true) {
         if (product) {
           const newStock = Math.max(0, product.stock - s.quantity);
           await supabase.from("products").update({ stock: newStock }).eq("id", s.productId);
+          // Movimento de estoque "venda"
+          await supabase.from("stock_movements" as any).insert({
+            owner_id: dataOwnerId,
+            user_id: user.id,
+            product_id: s.productId,
+            product_name: product.name,
+            movement_type: "venda",
+            quantity: -s.quantity,
+            total_value: s.total ?? null,
+            sale_id: data.id,
+          } as any);
         }
       }
     }
   }, [user, dataOwnerId, products]);
+
 
   const updateSale = useCallback(async (id: string, data: Partial<Omit<Sale, "id">>) => {
     if (!user) return;

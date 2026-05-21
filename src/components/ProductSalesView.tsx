@@ -15,7 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, CheckCircle2, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus, Wallet, ChevronLeft, ChevronRight, LayoutGrid, Folder, List, FileText, BookOpen } from "lucide-react";
+import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, CheckCircle2, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus, Wallet, ChevronLeft, ChevronRight, LayoutGrid, Folder, List, FileText, BookOpen, Boxes } from "lucide-react";
+import { StockManager } from "@/components/StockManager";
 import { SalesLedger } from "@/components/SalesLedger";
 import { generateContract } from "@/lib/generateContract";
 import { addMonths, addWeeks, addDays, format, startOfMonth, endOfMonth, differenceInCalendarDays } from "date-fns";
@@ -2644,6 +2645,15 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
           <BookOpen className="h-3.5 w-3.5 shrink-0" />
           <span className="truncate">Extrato</span>
         </TabsTrigger>
+        {!isVehicleView && (
+          <TabsTrigger
+            value="estoque"
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 text-muted-foreground hover:text-foreground data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+          >
+            <Boxes className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">Estoque</span>
+          </TabsTrigger>
+        )}
       </TabsList>
 
       {activeTabs.map((tab) => (
@@ -2661,6 +2671,12 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
       <TabsContent value="extrato">
         <SalesLedger sales={sales.filter((s) => s.businessType !== "aluguel_veiculo")} />
       </TabsContent>
+
+      {!isVehicleView && (
+        <TabsContent value="estoque">
+          <StockManager readOnly={readOnly} />
+        </TabsContent>
+      )}
     </Tabs>
     <ConfirmDeleteDialog
       open={!!deleteExpenseId}
