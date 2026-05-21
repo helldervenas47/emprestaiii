@@ -226,53 +226,62 @@ export function StockManager({ readOnly = false }: Props) {
       <ManualEntryDialog
         open={entryOpen} onOpenChange={setEntryOpen}
         products={products}
-        onSubmit={async ({ productId, quantity, notes }) => {
-          const product = products.find(p => p.id === productId);
-          if (!product) return;
-          await updateProduct(productId, { stock: product.stock + quantity });
-          await recordMovement({
-            productId, productName: product.name, type: "entrada_manual",
-            quantity, notes: notes || null,
-          });
-          toast.success(`Entrada de ${quantity} unid. registrada`);
+        onSubmit={async ({ items, notes }) => {
+          for (const it of items) {
+            const product = products.find(p => p.id === it.productId);
+            if (!product) continue;
+            await updateProduct(it.productId, { stock: product.stock + it.quantity });
+            await recordMovement({
+              productId: it.productId, productName: product.name, type: "entrada_manual",
+              quantity: it.quantity, notes: notes || null,
+            });
+          }
+          toast.success(`Entrada de ${items.length} item(ns) registrada`);
         }}
       />
 
       <PurchaseDialog
         open={purchaseOpen} onOpenChange={setPurchaseOpen}
         products={products}
-        onSubmit={async ({ productId, quantity, unitCost, notes }) => {
-          const product = products.find(p => p.id === productId);
-          if (!product) return;
-          const total = quantity * unitCost;
-          // 1) Cria despesa paga -> debita saldo financeiro
-          let expenseId: string | null = null;
+        onSubmit={async ({ items, notes }) => {
+          const validItems = items.filter(it => it.productId && it.quantity > 0 && it.unitCost > 0);
+          if (validItems.length === 0) return;
+          const totalAll = validItems.reduce((s, it) => s + it.quantity * it.unitCost, 0);
+          const descParts = validItems.map(it => {
+            const prod = products.find(p => p.id === it.productId);
+            return `${prod?.name || "?"} x${it.quantity}`;
+          });
+          // 1) Cria UMA despesa paga com o total geral
           try {
             await addExpense({
-              description: `Compra: ${product.name} x${quantity}`,
-              amount: total,
+              description: `Compra: ${descParts.join(", ")}`,
+              amount: totalAll,
               type: "fixa",
               category: "Compra de mercadoria",
               dueDate: todayInAppTz(),
               notes: notes || undefined,
               scope: "business",
             } as any);
-            // expense id não é retornado pelo addExpense — vínculo opcional
           } catch (e) { /* segue mesmo se falhar a despesa */ }
-          // 2) Atualiza estoque e último preço de compra
-          await updateProduct(productId, {
-            stock: product.stock + quantity,
-            lastPurchasePrice: unitCost,
-          });
-          // 3) Registra movimento
-          await recordMovement({
-            productId, productName: product.name, type: "compra",
-            quantity, unitCost, totalValue: total,
-            expenseId, notes: notes || null,
-          });
-          toast.success(`Compra de ${quantity} unid. registrada (${fmtBRL(total)})`);
+          // 2) Para cada item: atualiza estoque + último custo + registra movimento
+          for (const it of validItems) {
+            const product = products.find(p => p.id === it.productId);
+            if (!product) continue;
+            const total = it.quantity * it.unitCost;
+            await updateProduct(it.productId, {
+              stock: product.stock + it.quantity,
+              lastPurchasePrice: it.unitCost,
+            });
+            await recordMovement({
+              productId: it.productId, productName: product.name, type: "compra",
+              quantity: it.quantity, unitCost: it.unitCost, totalValue: total,
+              expenseId: null, notes: notes || null,
+            });
+          }
+          toast.success(`Compra de ${validItems.length} item(ns) registrada (${fmtBRL(totalAll)})`);
         }}
       />
+
 
       {editingProduct && (
         <ProductForm
