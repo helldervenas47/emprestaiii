@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Plus, X, Calendar as CalendarIcon } from "lucide-react";
-import { Sale, BusinessType, PaymentMode, Client } from "@/types/loan";
+import { Sale, BusinessType, PaymentMode, Client, Product } from "@/types/loan";
 import { format, addMonths, addWeeks, addDays } from "date-fns";
 import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { LocadorInfo } from "@/hooks/useLocadorInfo";
@@ -39,14 +39,16 @@ interface Props {
   clients?: Client[];
   registeredVehicles?: VehicleInfo[];
   locadores?: LocadorInfo[];
+  products?: Product[];
 }
 
-export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", clients = [], registeredVehicles = [], locadores = [] }: Props) {
+export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", clients = [], registeredVehicles = [], locadores = [], products = [] }: Props) {
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const defaultLocadorId = locadores.length === 1 ? (locadores[0].id || "") : "";
   const [form, setForm] = useState({
     description: "",
+    productId: "",
     quantity: "1",
     total: "",
     installmentValue: "",
@@ -91,10 +93,32 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const valorRecebido = parseFloat(form.total) || 0;
     if (!form.description || valorRecebido <= 0 || !form.customerName) return;
+
+    // Para vendas de produto: exige produto cadastrado com estoque
+    if (form.businessType === "venda") {
+      const selectedProduct = products.find((p) => p.id === form.productId);
+      if (!selectedProduct) {
+        const { toast } = await import("sonner");
+        toast.error("Selecione um produto cadastrado no estoque.");
+        return;
+      }
+      const qty = parseInt(form.quantity) || 1;
+      if (selectedProduct.stock <= 0) {
+        const { toast } = await import("sonner");
+        toast.error(`"${selectedProduct.name}" está sem estoque.`);
+        return;
+      }
+      if (qty > selectedProduct.stock) {
+        const { toast } = await import("sonner");
+        toast.error(`Estoque insuficiente (disponível: ${selectedProduct.stock}).`);
+        return;
+      }
+    }
+
 
     // Validate merchandise (only available for "venda")
     const allowMerch = form.businessType === "venda";
@@ -129,6 +153,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       : null;
     const encodedNotes = encodeNotesWithMerchandise(form.notes, merchandise);
     onAdd({
+      productId: form.businessType === "venda" ? (form.productId || undefined) : undefined,
       productName: form.description,
       description: form.description,
       quantity: parseInt(form.quantity) || 1,
@@ -248,6 +273,44 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                 </div>
               )}
               </>
+            ) : form.businessType === "venda" ? (
+              <div>
+                <Label>Produto</Label>
+                {(() => {
+                  const available = products.filter((p) => p.stock > 0);
+                  if (available.length === 0) {
+                    return (
+                      <div className="text-sm text-muted-foreground border border-dashed rounded-md p-3">
+                        Nenhum produto com estoque disponível. Cadastre um produto e registre entrada/compra na aba Estoque.
+                      </div>
+                    );
+                  }
+                  return (
+                    <Select
+                      value={form.productId}
+                      onValueChange={(v) => {
+                        const prod = products.find((p) => p.id === v);
+                        setForm((p) => ({
+                          ...p,
+                          productId: v,
+                          description: prod?.name || "",
+                        }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um produto do estoque" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {available.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name} (estoque: {p.stock})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  );
+                })()}
+              </div>
             ) : (
               <div>
                 <Label>{descriptionLabel}</Label>
