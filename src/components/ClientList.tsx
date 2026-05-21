@@ -229,7 +229,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
+      <div className="hidden sm:flex flex-wrap gap-2">
         {([
           { id: "all" as StatusFilter, label: "Todos", count: clients.length },
           { id: "active" as StatusFilter, label: "Ativos", count: activeCount },
@@ -280,6 +280,46 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
             Limite máximo
           </button>
         )}
+      </div>
+
+      {/* Mobile: single filter dropdown */}
+      <div className="sm:hidden">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 w-full justify-between">
+              <span className="inline-flex items-center gap-1.5">
+                <SlidersHorizontal className="h-4 w-4" />
+                {statusFilter === "all" && `Todos (${clients.length})`}
+                {statusFilter === "active" && `Ativos (${activeCount})`}
+                {statusFilter === "inactive" && `Inativos (${inactiveCount})`}
+                {statusFilter === "over-limit" && `Acima do limite (${overLimitCount})`}
+              </span>
+              <ArrowUpDown className="h-3.5 w-3.5 opacity-60" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-[calc(100vw-2rem)] max-w-sm">
+            <DropdownMenuItem onClick={() => setStatusFilter("all")}>
+              <Users className="h-4 w-4 mr-2" /> Todos ({clients.length})
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStatusFilter("active")}>
+              <ToggleRight className="h-4 w-4 mr-2" /> Ativos ({activeCount})
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStatusFilter("inactive")}>
+              <ToggleLeft className="h-4 w-4 mr-2" /> Inativos ({inactiveCount})
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStatusFilter("over-limit")}>
+              <AlertTriangle className="h-4 w-4 mr-2" /> Acima do limite ({overLimitCount})
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setRecentAdjustOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-2" /> Limites ajustados
+            </DropdownMenuItem>
+            {!readOnly && (
+              <DropdownMenuItem onClick={() => setMaxLimitOpen(true)}>
+                <Shield className="h-4 w-4 mr-2" /> Limite máximo
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       <div className="flex gap-2">
         <div className="relative flex-1">
