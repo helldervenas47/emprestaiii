@@ -111,6 +111,7 @@ export function StockManager({ readOnly = false }: Props) {
                   <th className="hidden md:table-cell text-right">Preço compra</th>
                   <th className="hidden lg:table-cell text-right">Últ. compra</th>
                   <th className="hidden md:table-cell text-right">Sugerido</th>
+                  <th className="hidden sm:table-cell text-right">Margem</th>
                   <th className="text-right">Estoque</th>
                   <th className="text-left">Status</th>
                   {!readOnly && <th className="w-10"></th>}
@@ -121,6 +122,8 @@ export function StockManager({ readOnly = false }: Props) {
                   const threshold = p.suggestedStock && p.suggestedStock > 0 ? p.suggestedStock : 5;
                   const low = p.stock > 0 && p.stock <= threshold;
                   const out = p.stock <= 0;
+                  const hasMargin = p.cost > 0 && p.price > 0;
+                  const marginPct = hasMargin ? ((p.price - p.cost) / p.cost) * 100 : null;
                   return (
                     <tr key={p.id} className="hover:bg-muted/40 transition-colors [&>td]:px-3 [&>td]:py-2.5">
                       <td className="font-medium truncate max-w-[200px]">{p.name}</td>
@@ -128,6 +131,9 @@ export function StockManager({ readOnly = false }: Props) {
                       <td className="hidden md:table-cell text-right tabular-nums text-muted-foreground">{p.cost > 0 ? fmtBRL(p.cost) : "—"}</td>
                       <td className="hidden lg:table-cell text-right tabular-nums text-muted-foreground">{p.lastPurchasePrice && p.lastPurchasePrice > 0 ? fmtBRL(p.lastPurchasePrice) : "—"}</td>
                       <td className="hidden md:table-cell text-right tabular-nums text-muted-foreground">{p.suggestedStock > 0 ? p.suggestedStock : "—"}</td>
+                      <td className={`hidden sm:table-cell text-right tabular-nums font-medium ${marginPct == null ? "text-muted-foreground" : marginPct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                        {marginPct == null ? "—" : `${marginPct.toFixed(1)}%`}
+                      </td>
                       <td className="text-right font-bold tabular-nums">{p.stock}</td>
                       <td>
                         {out ? (
