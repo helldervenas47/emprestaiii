@@ -299,45 +299,63 @@ export function StockManager({ readOnly = false }: Props) {
 function ManualEntryDialog({ open, onOpenChange, products, onSubmit }: {
   open: boolean; onOpenChange: (v: boolean) => void;
   products: { id: string; name: string }[];
-  onSubmit: (v: { productId: string; quantity: number; notes: string }) => Promise<void>;
+  onSubmit: (v: { items: { productId: string; quantity: number }[]; notes: string }) => Promise<void>;
 }) {
-  const [productId, setProductId] = useState("");
-  const [quantity, setQuantity] = useState("");
+  const [items, setItems] = useState<{ productId: string; quantity: string }[]>([{ productId: "", quantity: "" }]);
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const updateItem = (idx: number, patch: Partial<{ productId: string; quantity: string }>) =>
+    setItems(prev => prev.map((it, i) => i === idx ? { ...it, ...patch } : it));
+  const addItem = () => setItems(prev => [...prev, { productId: "", quantity: "" }]);
+  const removeItem = (idx: number) => setItems(prev => prev.length === 1 ? prev : prev.filter((_, i) => i !== idx));
+
   const handle = async (e: React.FormEvent) => {
     e.preventDefault();
-    const q = parseInt(quantity);
-    if (!productId || !q || q <= 0) { toast.error("Selecione produto e quantidade"); return; }
+    const parsed = items
+      .map(it => ({ productId: it.productId, quantity: parseInt(it.quantity) }))
+      .filter(it => it.productId && it.quantity > 0);
+    if (parsed.length === 0) { toast.error("Adicione ao menos um produto com quantidade"); return; }
     setBusy(true);
     try {
-      await onSubmit({ productId, quantity: q, notes });
-      setProductId(""); setQuantity(""); setNotes("");
+      await onSubmit({ items: parsed, notes });
+      setItems([{ productId: "", quantity: "" }]); setNotes("");
       onOpenChange(false);
     } finally { setBusy(false); }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Entrada manual de estoque</DialogTitle>
-          <DialogDescription>Aumenta a quantidade em estoque sem afetar o financeiro.</DialogDescription>
+          <DialogDescription>Adicione um ou mais produtos. Não afeta o financeiro.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handle} className="space-y-3">
-          <div>
-            <Label>Produto</Label>
-            <Select value={productId} onValueChange={setProductId}>
-              <SelectTrigger><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
-              <SelectContent>
-                {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Quantidade</Label>
-            <Input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} required />
+          <div className="space-y-2">
+            {items.map((it, idx) => (
+              <div key={idx} className="flex gap-2 items-end">
+                <div className="flex-1">
+                  {idx === 0 && <Label className="text-xs">Produto</Label>}
+                  <Select value={it.productId} onValueChange={v => updateItem(idx, { productId: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
+                    <SelectContent>
+                      {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="w-28">
+                  {idx === 0 && <Label className="text-xs">Qtd</Label>}
+                  <Input type="number" min="1" value={it.quantity} onChange={e => updateItem(idx, { quantity: e.target.value })} />
+                </div>
+                <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(idx)} disabled={items.length === 1} aria-label="Remover">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button type="button" variant="outline" size="sm" onClick={addItem}>
+              <Plus className="h-4 w-4 mr-1" /> Adicionar produto
+            </Button>
           </div>
           <div>
             <Label>Observação</Label>
@@ -356,59 +374,71 @@ function ManualEntryDialog({ open, onOpenChange, products, onSubmit }: {
 function PurchaseDialog({ open, onOpenChange, products, onSubmit }: {
   open: boolean; onOpenChange: (v: boolean) => void;
   products: { id: string; name: string }[];
-  onSubmit: (v: { productId: string; quantity: number; unitCost: number; notes: string }) => Promise<void>;
+  onSubmit: (v: { items: { productId: string; quantity: number; unitCost: number }[]; notes: string }) => Promise<void>;
 }) {
-  const [productId, setProductId] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [unitCost, setUnitCost] = useState("");
+  const [items, setItems] = useState<{ productId: string; quantity: string; unitCost: string }[]>([{ productId: "", quantity: "", unitCost: "" }]);
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const total = (parseFloat(unitCost) || 0) * (parseInt(quantity) || 0);
+  const updateItem = (idx: number, patch: Partial<{ productId: string; quantity: string; unitCost: string }>) =>
+    setItems(prev => prev.map((it, i) => i === idx ? { ...it, ...patch } : it));
+  const addItem = () => setItems(prev => [...prev, { productId: "", quantity: "", unitCost: "" }]);
+  const removeItem = (idx: number) => setItems(prev => prev.length === 1 ? prev : prev.filter((_, i) => i !== idx));
+
+  const total = items.reduce((s, it) => s + (parseFloat(it.unitCost) || 0) * (parseInt(it.quantity) || 0), 0);
 
   const handle = async (e: React.FormEvent) => {
     e.preventDefault();
-    const q = parseInt(quantity);
-    const cost = parseFloat(unitCost);
-    if (!productId || !q || q <= 0 || !cost || cost <= 0) {
-      toast.error("Preencha produto, quantidade e custo"); return;
-    }
+    const parsed = items
+      .map(it => ({ productId: it.productId, quantity: parseInt(it.quantity), unitCost: parseFloat(it.unitCost) }))
+      .filter(it => it.productId && it.quantity > 0 && it.unitCost > 0);
+    if (parsed.length === 0) { toast.error("Preencha produto, quantidade e custo em ao menos um item"); return; }
     setBusy(true);
     try {
-      await onSubmit({ productId, quantity: q, unitCost: cost, notes });
-      setProductId(""); setQuantity(""); setUnitCost(""); setNotes("");
+      await onSubmit({ items: parsed, notes });
+      setItems([{ productId: "", quantity: "", unitCost: "" }]); setNotes("");
       onOpenChange(false);
     } finally { setBusy(false); }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Registrar compra</DialogTitle>
           <DialogDescription>
-            Adiciona ao estoque e cria uma despesa paga, debitando o saldo financeiro.
+            Adicione um ou mais produtos. Será criada uma única despesa paga com o total.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handle} className="space-y-3">
-          <div>
-            <Label>Produto</Label>
-            <Select value={productId} onValueChange={setProductId}>
-              <SelectTrigger><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
-              <SelectContent>
-                {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Quantidade</Label>
-              <Input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} required />
-            </div>
-            <div>
-              <Label>Custo unitário</Label>
-              <MoneyInput value={unitCost} onChange={setUnitCost} />
-            </div>
+          <div className="space-y-2">
+            {items.map((it, idx) => (
+              <div key={idx} className="flex gap-2 items-end">
+                <div className="flex-1">
+                  {idx === 0 && <Label className="text-xs">Produto</Label>}
+                  <Select value={it.productId} onValueChange={v => updateItem(idx, { productId: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
+                    <SelectContent>
+                      {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="w-20">
+                  {idx === 0 && <Label className="text-xs">Qtd</Label>}
+                  <Input type="number" min="1" value={it.quantity} onChange={e => updateItem(idx, { quantity: e.target.value })} />
+                </div>
+                <div className="w-32">
+                  {idx === 0 && <Label className="text-xs">Custo unit.</Label>}
+                  <MoneyInput value={it.unitCost} onChange={v => updateItem(idx, { unitCost: v })} />
+                </div>
+                <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(idx)} disabled={items.length === 1} aria-label="Remover">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button type="button" variant="outline" size="sm" onClick={addItem}>
+              <Plus className="h-4 w-4 mr-1" /> Adicionar produto
+            </Button>
           </div>
           <div className="rounded-lg bg-muted/40 p-3 text-sm flex items-center justify-between">
             <span className="text-muted-foreground">Total da compra</span>
@@ -427,3 +457,4 @@ function PurchaseDialog({ open, onOpenChange, products, onSubmit }: {
     </Dialog>
   );
 }
+
