@@ -35,6 +35,8 @@ export function StockManager({ readOnly = false }: Props) {
   const { products, updateProduct } = useProducts(true);
   const { addExpense, payExpense } = useExpenses(true);
   const { movements, recordMovement, deleteMovement } = useStockMovements(true);
+  const ownerId = useDataOwner();
+
 
   const [entryOpen, setEntryOpen] = useState(false);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
