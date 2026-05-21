@@ -34,7 +34,7 @@ interface Props { readOnly?: boolean; }
 export function StockManager({ readOnly = false }: Props) {
   const { products, updateProduct } = useProducts(true);
   const { addExpense, payExpense } = useExpenses(true);
-  const { movements, recordMovement } = useStockMovements(true);
+  const { movements, recordMovement, deleteMovement } = useStockMovements(true);
 
   const [entryOpen, setEntryOpen] = useState(false);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
@@ -215,6 +215,22 @@ export function StockManager({ readOnly = false }: Props) {
                         <div className="text-xs text-muted-foreground">{fmtBRL(m.totalValue)}</div>
                       )}
                     </div>
+                    {!readOnly && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-rose-600"
+                        onClick={async () => {
+                          if (!confirm(`Excluir esta movimentação de ${m.productName}? Esta ação não pode ser desfeita.`)) return;
+                          const ok = await deleteMovement(m.id);
+                          if (ok) toast.success("Movimentação excluída");
+                          else toast.error("Erro ao excluir movimentação");
+                        }}
+                        aria-label="Excluir movimentação"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               );
