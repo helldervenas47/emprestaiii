@@ -6,7 +6,15 @@ export type AppThemeId =
   | "glass"
   | "dark-ai"
   | "data-vision"
-  | "light-future";
+  | "light-future"
+  | "nord"
+  | "sunset"
+  | "forest"
+  | "neo-brutal"
+  | "mocha"
+  | "synthwave"
+  | "rose-pine"
+  | "monochrome";
 
 export type AppMode = "auto" | "light" | "dark";
 
