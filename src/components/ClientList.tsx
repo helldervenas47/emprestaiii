@@ -305,7 +305,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
               <ToggleRight className="h-4 w-4 mr-2" /> Ativos
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setStatusFilter("inactive")}>
-              <ToggleLeft className="h-4 w-4 mr-2" /> Inativos ({inactiveCount})
+              <ToggleLeft className="h-4 w-4 mr-2" /> Inativos
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setStatusFilter("over-limit")}>
               <AlertTriangle className="h-4 w-4 mr-2" /> Acima do limite ({overLimitCount})
