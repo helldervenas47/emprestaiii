@@ -2412,9 +2412,11 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          last_purchase_price: number
           name: string
           price: number
           stock: number
+          suggested_stock: number
           updated_at: string
           user_id: string
         }
@@ -2423,9 +2425,11 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          last_purchase_price?: number
           name: string
           price?: number
           stock?: number
+          suggested_stock?: number
           updated_at?: string
           user_id: string
         }
@@ -2434,9 +2438,11 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          last_purchase_price?: number
           name?: string
           price?: number
           stock?: number
+          suggested_stock?: number
           updated_at?: string
           user_id?: string
         }
