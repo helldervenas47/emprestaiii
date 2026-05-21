@@ -582,7 +582,11 @@ const Index = () => {
       } else if (expenseSubTab === "personal") setShowPersonalExpenseForm(true);
       else setShowExpenseForm(true);
     }
-    else if (tab === "products" || tab === "vehicles") setShowSaleForm(true);
+    else if (tab === "products") {
+      if (productsSubTab === "estoque") setShowProductForm(true);
+      else setShowSaleForm(true);
+    }
+    else if (tab === "vehicles") setShowSaleForm(true);
   };
 
   const primaryLabel =
