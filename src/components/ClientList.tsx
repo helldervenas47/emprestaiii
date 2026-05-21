@@ -289,26 +289,26 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
             <Button variant="outline" size="sm" className="h-9 gap-1.5 w-full justify-between">
               <span className="inline-flex items-center gap-1.5">
                 <SlidersHorizontal className="h-4 w-4" />
-                {statusFilter === "all" && `Todos`}
-                {statusFilter === "active" && `Ativos`}
-                {statusFilter === "inactive" && `Inativos`}
-                {statusFilter === "over-limit" && `Acima do limite`}
+                {statusFilter === "all" && `Todos (${clients.length})`}
+                {statusFilter === "active" && `Ativos (${activeCount})`}
+                {statusFilter === "inactive" && `Inativos (${inactiveCount})`}
+                {statusFilter === "over-limit" && `Acima do limite (${overLimitCount})`}
               </span>
               <ArrowUpDown className="h-3.5 w-3.5 opacity-60" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-[calc(100vw-2rem)] max-w-sm">
             <DropdownMenuItem onClick={() => setStatusFilter("all")}>
-              <Users className="h-4 w-4 mr-2" /> Todos
+              <Users className="h-4 w-4 mr-2" /> Todos ({clients.length})
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setStatusFilter("active")}>
-              <ToggleRight className="h-4 w-4 mr-2" /> Ativos
+              <ToggleRight className="h-4 w-4 mr-2" /> Ativos ({activeCount})
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setStatusFilter("inactive")}>
-              <ToggleLeft className="h-4 w-4 mr-2" /> Inativos
+              <ToggleLeft className="h-4 w-4 mr-2" /> Inativos ({inactiveCount})
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setStatusFilter("over-limit")}>
-              <AlertTriangle className="h-4 w-4 mr-2" /> Acima do limite
+              <AlertTriangle className="h-4 w-4 mr-2" /> Acima do limite ({overLimitCount})
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setRecentAdjustOpen(true)}>
               <Sparkles className="h-4 w-4 mr-2" /> Limites ajustados
