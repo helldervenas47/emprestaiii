@@ -302,7 +302,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
               <Users className="h-4 w-4 mr-2" /> Todos
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setStatusFilter("active")}>
-              <ToggleRight className="h-4 w-4 mr-2" /> Ativos ({activeCount})
+              <ToggleRight className="h-4 w-4 mr-2" /> Ativos
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setStatusFilter("inactive")}>
               <ToggleLeft className="h-4 w-4 mr-2" /> Inativos ({inactiveCount})
