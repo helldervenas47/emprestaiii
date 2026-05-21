@@ -90,5 +90,11 @@ export function useStockMovements(enabled = true) {
     return mapRow(data);
   }, [user, dataOwnerId]);
 
-  return { movements, loading, recordMovement };
+  const deleteMovement = useCallback(async (id: string) => {
+    const { error } = await supabase.from("stock_movements" as any).delete().eq("id", id);
+    if (!error) setMovements((prev) => prev.filter((m) => m.id !== id));
+    return !error;
+  }, []);
+
+  return { movements, loading, recordMovement, deleteMovement };
 }
