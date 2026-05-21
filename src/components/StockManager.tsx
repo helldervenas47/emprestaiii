@@ -72,29 +72,28 @@ export function StockManager({ readOnly = false }: Props) {
             Cadastre um produto primeiro para começar a controlar o estoque.
           </CardContent></Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="divide-y rounded-lg border bg-card overflow-hidden">
             {products.map(p => {
               const low = p.stock > 0 && p.stock <= 5;
               const out = p.stock <= 0;
               return (
-                <Card key={p.id} className={out ? "border-rose-500/40" : low ? "border-amber-500/40" : ""}>
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="font-medium truncate">{p.name}</div>
-                        <div className="text-xs text-muted-foreground truncate">{fmtBRL(p.price)}</div>
-                      </div>
-                      {out ? (
-                        <Badge variant="destructive" className="shrink-0"><AlertTriangle className="h-3 w-3 mr-1" />Sem estoque</Badge>
-                      ) : low ? (
-                        <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 shrink-0">Estoque baixo</Badge>
-                      ) : (
-                        <Badge variant="secondary" className="shrink-0">Em estoque</Badge>
-                      )}
-                    </div>
-                    <div className="text-2xl font-bold tabular-nums">{p.stock}<span className="text-sm font-normal text-muted-foreground ml-1">unid.</span></div>
-                  </CardContent>
-                </Card>
+                <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/40 transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{p.name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{fmtBRL(p.price)}</div>
+                  </div>
+                  {out ? (
+                    <Badge variant="destructive" className="shrink-0"><AlertTriangle className="h-3 w-3 mr-1" />Sem estoque</Badge>
+                  ) : low ? (
+                    <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 shrink-0">Estoque baixo</Badge>
+                  ) : (
+                    <Badge variant="secondary" className="shrink-0">Em estoque</Badge>
+                  )}
+                  <div className="text-right shrink-0 w-16">
+                    <div className="text-lg font-bold tabular-nums leading-none">{p.stock}</div>
+                    <div className="text-[10px] text-muted-foreground">unid.</div>
+                  </div>
+                </div>
               );
             })}
           </div>
