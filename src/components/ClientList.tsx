@@ -569,34 +569,33 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                         )}
                       </div>
 
-                      {/* Credit Score — compact (between name and action buttons) */}
-                      <div className="flex items-center justify-between rounded-xl border border-border/30 px-3 py-2">
-                        <div className="flex items-center gap-2">
+                      {/* Score + action buttons row */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 rounded-xl border border-border/30 px-3 py-1.5">
                           <span className={`h-2 w-2 rounded-full ${cs.bgColor}`} />
                           <span className="text-xs text-muted-foreground">Score</span>
+                          <span className={`text-sm font-bold ${cs.color}`}>{cs.score}</span>
                         </div>
-                        <span className={`text-sm font-bold ${cs.color}`}>{cs.score}</span>
+                        {!readOnly && (
+                          <div className="flex gap-0.5 sm:gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => handleToggleActive(client)}
+                              title={client.active ? "Desativar" : "Ativar"}
+                            >
+                              {client.active ? <ToggleRight className="h-4 w-4 text-success" /> : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(client)} title="Editar">
+                              <Pencil className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteClientId(client.id)} title="Excluir">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
-
-                      {!readOnly && (
-                        <div className="flex gap-0.5 sm:gap-1 justify-end">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => handleToggleActive(client)}
-                            title={client.active ? "Desativar" : "Ativar"}
-                          >
-                            {client.active ? <ToggleRight className="h-4 w-4 text-success" /> : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(client)} title="Editar">
-                            <Pencil className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteClientId(client.id)} title="Excluir">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
                     </div>
 
                     {/* Credit Limit — Total / Utilizado / Disponível */}
