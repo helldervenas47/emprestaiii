@@ -78,14 +78,14 @@ export function StockManager({ readOnly = false }: Props) {
           <div className="rounded-lg border bg-card overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs text-muted-foreground">
-                <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:text-left [&>th]:font-medium">
-                  <th>Produto</th>
+                <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:font-medium">
+                  <th className="text-left">Produto</th>
                   <th className="hidden sm:table-cell text-right">Preço venda</th>
                   <th className="hidden md:table-cell text-right">Preço compra</th>
                   <th className="hidden lg:table-cell text-right">Últ. compra</th>
                   <th className="hidden md:table-cell text-right">Sugerido</th>
                   <th className="text-right">Estoque</th>
-                  <th>Status</th>
+                  <th className="text-left">Status</th>
                   {!readOnly && <th className="w-10"></th>}
                 </tr>
               </thead>
