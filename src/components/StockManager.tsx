@@ -45,6 +45,22 @@ export function StockManager({ readOnly = false }: Props) {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
   const [filterProduct, setFilterProduct] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("name-asc");
+
+  const sortedProducts = useMemo(() => {
+    const arr = [...products];
+    switch (sortBy) {
+      case "name-asc": arr.sort((a, b) => a.name.localeCompare(b.name, "pt-BR")); break;
+      case "name-desc": arr.sort((a, b) => b.name.localeCompare(a.name, "pt-BR")); break;
+      case "stock-asc": arr.sort((a, b) => (a.stock || 0) - (b.stock || 0)); break;
+      case "stock-desc": arr.sort((a, b) => (b.stock || 0) - (a.stock || 0)); break;
+      case "price-asc": arr.sort((a, b) => (a.price || 0) - (b.price || 0)); break;
+      case "price-desc": arr.sort((a, b) => (b.price || 0) - (a.price || 0)); break;
+      case "cost-asc": arr.sort((a, b) => (a.cost || 0) - (b.cost || 0)); break;
+      case "cost-desc": arr.sort((a, b) => (b.cost || 0) - (a.cost || 0)); break;
+    }
+    return arr;
+  }, [products, sortBy]);
 
   const filteredMovements = useMemo(() => movements.filter(m =>
     (filterType === "all" || m.type === filterType) &&
@@ -106,6 +122,22 @@ export function StockManager({ readOnly = false }: Props) {
               </CardContent>
             </Card>
           </div>
+          <div className="flex items-center gap-2 justify-end">
+            <Label className="text-xs text-muted-foreground">Classificar por</Label>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="h-9 w-[200px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name-asc">Descrição (A-Z)</SelectItem>
+                <SelectItem value="name-desc">Descrição (Z-A)</SelectItem>
+                <SelectItem value="stock-desc">Estoque (maior)</SelectItem>
+                <SelectItem value="stock-asc">Estoque (menor)</SelectItem>
+                <SelectItem value="price-desc">Preço venda (maior)</SelectItem>
+                <SelectItem value="price-asc">Preço venda (menor)</SelectItem>
+                <SelectItem value="cost-desc">Preço compra (maior)</SelectItem>
+                <SelectItem value="cost-asc">Preço compra (menor)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="rounded-lg border bg-card overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs text-muted-foreground">
@@ -122,7 +154,7 @@ export function StockManager({ readOnly = false }: Props) {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {products.map(p => {
+                {sortedProducts.map(p => {
                   const threshold = p.suggestedStock && p.suggestedStock > 0 ? p.suggestedStock : 5;
                   const low = p.stock > 0 && p.stock <= threshold;
                   const out = p.stock <= 0;
