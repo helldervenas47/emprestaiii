@@ -138,7 +138,7 @@ export function StockManager({ readOnly = false }: Props) {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {products.map(p => {
+                {sortedProducts.map(p => {
                   const threshold = p.suggestedStock && p.suggestedStock > 0 ? p.suggestedStock : 5;
                   const low = p.stock > 0 && p.stock <= threshold;
                   const out = p.stock <= 0;
