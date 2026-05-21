@@ -19,6 +19,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { todayInAppTz } from "@/lib/timezone";
+import { useDataOwner } from "@/hooks/useDataOwner";
+import { supabase } from "@/integrations/supabase/client";
 
 const movementMeta: Record<StockMovementType, { label: string; icon: any; cls: string; sign: "+" | "-" }> = {
   entrada_manual: { label: "Entrada manual", icon: PackagePlus, cls: "bg-blue-500/10 text-blue-600 border-blue-500/20", sign: "+" },
@@ -35,6 +37,8 @@ export function StockManager({ readOnly = false }: Props) {
   const { products, updateProduct } = useProducts(true);
   const { addExpense, payExpense } = useExpenses(true);
   const { movements, recordMovement, deleteMovement } = useStockMovements(true);
+  const ownerId = useDataOwner();
+
 
   const [entryOpen, setEntryOpen] = useState(false);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
@@ -274,22 +278,25 @@ export function StockManager({ readOnly = false }: Props) {
             const prod = products.find(p => p.id === it.productId);
             return `${prod?.name || "?"} x${it.quantity}`;
           });
-          // 1) Cria UMA despesa já paga com o total geral (impacta o saldo)
+          // 1) Cria UMA despesa já paga com o total geral (impacta o saldo da aba Receitas e Despesas)
           const today = todayInAppTz();
           try {
-            const newId = await addExpense({
-              description: `Compra: ${descParts.join(", ")}`,
-              amount: totalAll,
-              type: "fixa",
-              category: "Compra de mercadoria",
-              dueDate: today,
-              notes: notes || undefined,
-              scope: "personal",
-            } as any);
-            if (newId) {
-              await payExpense(newId, false, today);
+            if (ownerId) {
+              await supabase.from("expenses").insert({
+                user_id: ownerId,
+                description: `Compra: ${descParts.join(", ")}`,
+                amount: totalAll,
+                type: "fixa",
+                category: "Compra de mercadoria",
+                due_date: today,
+                paid: true,
+                paid_date: today,
+                notes: notes || null,
+                scope: "personal",
+              } as any);
             }
           } catch (e) { /* segue mesmo se falhar a despesa */ }
+
           // 2) Para cada item: atualiza estoque + último custo + registra movimento
           for (const it of validItems) {
             const product = products.find(p => p.id === it.productId);
