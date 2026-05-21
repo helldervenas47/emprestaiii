@@ -267,15 +267,6 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
                 </Button>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setDate(todayISO())}>
-                Hoje
-              </Button>
-              <Button size="sm" onClick={handleSendNow} disabled={sending || !linked}>
-                {sending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
-                Enviar agora
-              </Button>
-            </div>
           </div>
           {!linked && (
             <p className="text-xs text-muted-foreground">
