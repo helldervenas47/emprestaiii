@@ -93,10 +93,32 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const valorRecebido = parseFloat(form.total) || 0;
     if (!form.description || valorRecebido <= 0 || !form.customerName) return;
+
+    // Para vendas de produto: exige produto cadastrado com estoque
+    if (form.businessType === "venda") {
+      const selectedProduct = products.find((p) => p.id === form.productId);
+      if (!selectedProduct) {
+        const { toast } = await import("sonner");
+        toast.error("Selecione um produto cadastrado no estoque.");
+        return;
+      }
+      const qty = parseInt(form.quantity) || 1;
+      if (selectedProduct.stock <= 0) {
+        const { toast } = await import("sonner");
+        toast.error(`"${selectedProduct.name}" está sem estoque.`);
+        return;
+      }
+      if (qty > selectedProduct.stock) {
+        const { toast } = await import("sonner");
+        toast.error(`Estoque insuficiente (disponível: ${selectedProduct.stock}).`);
+        return;
+      }
+    }
+
 
     // Validate merchandise (only available for "venda")
     const allowMerch = form.businessType === "venda";
