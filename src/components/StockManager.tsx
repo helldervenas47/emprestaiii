@@ -228,8 +228,8 @@ export function StockManager({ readOnly = false }: Props) {
                           if (prod) {
                             const qty = Math.abs(m.quantity);
                             const delta = meta.sign === "+" ? -qty : qty;
-                            const newStock = Math.max(0, (prod.stockQuantity ?? 0) + delta);
-                            await updateProduct(prod.id, { stockQuantity: newStock });
+                            const newStock = Math.max(0, (prod.stock ?? 0) + delta);
+                            await updateProduct(prod.id, { stock: newStock });
                           }
                           toast.success("Movimentação excluída e estoque ajustado");
                         }}
