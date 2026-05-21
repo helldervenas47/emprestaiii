@@ -314,18 +314,29 @@ export function StockManager({ readOnly = false }: Props) {
           const today = todayInAppTz();
           try {
             if (ownerId) {
-              await supabase.from("expenses").insert({
-                user_id: ownerId,
-                description: `Compra: ${descParts.join(", ")}`,
-                amount: totalAll,
-                type: "fixa",
-                category: "Compra de mercadoria",
-                due_date: today,
-                paid: true,
-                paid_date: today,
-                notes: notes || null,
-                scope: "personal",
-              } as any);
+              const { data: inserted, error: insErr } = await supabase
+                .from("expenses")
+                .insert({
+                  user_id: ownerId,
+                  description: `Compra: ${descParts.join(", ")}`,
+                  amount: totalAll,
+                  type: "fixa",
+                  category: "Compra de mercadoria",
+                  due_date: today,
+                  paid: true,
+                  paid_date: today,
+                  notes: notes || null,
+                  scope: "personal",
+                })
+                .select("id, paid, scope")
+                .single();
+              // Garantia: caso algum default sobrescreva, força paid=true e scope=personal
+              if (!insErr && inserted && (!inserted.paid || inserted.scope !== "personal")) {
+                await supabase
+                  .from("expenses")
+                  .update({ paid: true, paid_date: today, scope: "personal" })
+                  .eq("id", inserted.id);
+              }
             }
           } catch (e) { /* segue mesmo se falhar a despesa */ }
 
