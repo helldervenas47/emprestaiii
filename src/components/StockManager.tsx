@@ -198,8 +198,11 @@ export function StockManager({ readOnly = false }: Props) {
             } as any);
             // expense id não é retornado pelo addExpense — vínculo opcional
           } catch (e) { /* segue mesmo se falhar a despesa */ }
-          // 2) Atualiza estoque
-          await updateProduct(productId, { stock: product.stock + quantity });
+          // 2) Atualiza estoque e último preço de compra
+          await updateProduct(productId, {
+            stock: product.stock + quantity,
+            lastPurchasePrice: unitCost,
+          });
           // 3) Registra movimento
           await recordMovement({
             productId, productName: product.name, type: "compra",
