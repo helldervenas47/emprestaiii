@@ -754,7 +754,7 @@ const Index = () => {
           return (
             <div className="flex items-center gap-2 sm:gap-3 pt-1">
               <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{current.label}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{current.id === "clients" ? "\u00A0" : current.label}</h1>
             </div>
           );
         })()}
@@ -846,7 +846,7 @@ const Index = () => {
             </div>
             {clientSubTab === "clientes" && (
               <>
-                <h2 className="text-lg font-semibold text-foreground mb-4">Clientes ({filteredClients.length})</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-4">{"\u00A0"}</h2>
                 <ClientList clients={filteredClients} loans={filteredLoans} payments={filteredPayments} installmentSchedules={filteredInstallments} onDelete={deleteClient} onUpdate={updateClient} readOnly={isReadOnly} />
               </>
             )}
