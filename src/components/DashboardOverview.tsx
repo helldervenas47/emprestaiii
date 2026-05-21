@@ -2624,12 +2624,15 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             <SheetTitle>{interestExpectedFilter === "pending" ? "Juros Pendentes do Mês" : "Juros a Receber no Mês"} — {range.label}</SheetTitle>
           </SheetHeader>
           {(() => {
+            const q = interestExpectedSearch.trim().toLowerCase();
+            const matches = (name: string) => !q || name.toLowerCase().includes(q);
             const pendingRecs = data.interestExpectedRecords
-              .filter((r) => !r.paid)
+              .filter((r) => !r.paid && matches(r.borrowerName))
               .slice()
               .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
             const pendingTotal = pendingRecs.reduce((s, r) => s + r.interestPortion, 0);
             const receivedRecs = data.interestDetailRecords
+              .filter((r) => matches(r.borrowerName))
               .slice()
               .sort((a, b) => a.date.localeCompare(b.date));
             const receivedTotal = receivedRecs.reduce((s, r) => s + r.interestPortion, 0);
@@ -2637,6 +2640,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             const grandTotal = pendingTotal + (showReceived ? receivedTotal : 0);
             return (
               <div className="mt-4 space-y-4">
+                <Input
+                  placeholder="Buscar por nome do cliente..."
+                  value={interestExpectedSearch}
+                  onChange={(e) => setInterestExpectedSearch(e.target.value)}
+                  className="h-9"
+                />
                 {/* Recebidos */}
                 {showReceived && (
                   <div className="space-y-2">
