@@ -649,11 +649,7 @@ export function IncomePendingCalendar({
                     statusCls = "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30";
                   }
                   const fmtBR = (d: string) => new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-                  const dotCls = isReceived
-                    ? "bg-emerald-500"
-                    : isLate
-                      ? "bg-rose-500"
-                      : "";
+                  const dotCls = isReceived ? "bg-emerald-500" : "bg-rose-500";
                   return (
                     <li key={`inc-${inc.id}`} className="flex items-start justify-between gap-2 rounded-md bg-emerald-500/5 border border-emerald-500/20 px-2.5 py-1.5">
                       <span className="flex flex-col gap-0.5 min-w-0 flex-1">
@@ -714,7 +710,7 @@ export function IncomePendingCalendar({
                     statusCls = "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30";
                   }
                   const fmtBR = (d: string) => new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-                  const dotCls = isPaid ? "bg-emerald-500" : isLate ? "bg-rose-500" : "";
+                  const dotCls = isPaid ? "bg-emerald-500" : "bg-rose-500";
                   return (
                     <li key={`exp-${ex.id}`} className="flex items-start justify-between gap-2 rounded-md bg-rose-500/5 border border-rose-500/20 px-2.5 py-1.5">
                       <span className="flex flex-col gap-0.5 min-w-0 flex-1">
@@ -754,8 +750,7 @@ export function IncomePendingCalendar({
               </div>
               <ul className="space-y-1">
                 {selectedInfo.cardInvoices.map((c) => {
-                  const isLate = !c.paid && selectedDate! < todayStr;
-                  const dotCls = c.paid ? "bg-emerald-500" : isLate ? "bg-rose-500" : "";
+                  const dotCls = c.paid ? "bg-emerald-500" : "bg-rose-500";
                   return (
                   <li key={`inv-${c.cardId}`} className="flex items-start justify-between gap-2 rounded-md bg-violet-500/5 border border-violet-500/20 px-2.5 py-1.5">
                     <span className="flex items-start gap-1.5 text-xs text-foreground min-w-0 flex-1">
