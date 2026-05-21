@@ -845,10 +845,7 @@ const Index = () => {
               )}
             </div>
             {clientSubTab === "clientes" && (
-              <>
-                <h2 className="text-lg font-semibold text-foreground mb-4">Cadastro</h2>
-                <ClientList clients={filteredClients} loans={filteredLoans} payments={filteredPayments} installmentSchedules={filteredInstallments} onDelete={deleteClient} onUpdate={updateClient} readOnly={isReadOnly} />
-              </>
+              <ClientList clients={filteredClients} loans={filteredLoans} payments={filteredPayments} installmentSchedules={filteredInstallments} onDelete={deleteClient} onUpdate={updateClient} readOnly={isReadOnly} />
             )}
             {clientSubTab === "veiculos" && !isReadOnly && (
               <>
