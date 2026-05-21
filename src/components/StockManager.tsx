@@ -38,6 +38,7 @@ export function StockManager({ readOnly = false }: Props) {
 
   const [entryOpen, setEntryOpen] = useState(false);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
   const [filterProduct, setFilterProduct] = useState<string>("all");
 
