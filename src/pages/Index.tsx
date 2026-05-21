@@ -831,6 +831,7 @@ const Index = () => {
                 variant={clientSubTab === "clientes" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setClientSubTab("clientes")}
+                className="flex-1 sm:flex-none"
               >
                 <Users className="h-4 w-4 mr-1" /> Cadastro
               </Button>
@@ -839,6 +840,7 @@ const Index = () => {
                   variant={clientSubTab === "veiculos" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setClientSubTab("veiculos")}
+                  className="flex-1 sm:flex-none"
                 >
                   <Car className="h-4 w-4 mr-1" /> Veículos
                 </Button>
