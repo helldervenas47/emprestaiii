@@ -221,10 +221,17 @@ export function StockManager({ readOnly = false }: Props) {
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-rose-600"
                         onClick={async () => {
-                          if (!confirm(`Excluir esta movimentação de ${m.productName}? Esta ação não pode ser desfeita.`)) return;
+                          if (!confirm(`Excluir esta movimentação de ${m.productName}? O estoque será ajustado e esta ação não pode ser desfeita.`)) return;
                           const ok = await deleteMovement(m.id);
-                          if (ok) toast.success("Movimentação excluída");
-                          else toast.error("Erro ao excluir movimentação");
+                          if (!ok) { toast.error("Erro ao excluir movimentação"); return; }
+                          const prod = products.find(p => p.id === m.productId);
+                          if (prod) {
+                            const qty = Math.abs(m.quantity);
+                            const delta = meta.sign === "+" ? -qty : qty;
+                            const newStock = Math.max(0, (prod.stockQuantity ?? 0) + delta);
+                            await updateProduct(prod.id, { stockQuantity: newStock });
+                          }
+                          toast.success("Movimentação excluída e estoque ajustado");
                         }}
                         aria-label="Excluir movimentação"
                       >
