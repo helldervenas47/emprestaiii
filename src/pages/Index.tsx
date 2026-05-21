@@ -405,6 +405,12 @@ const Index = () => {
   const [showClientForm, setShowClientForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
   const [showSaleForm, setShowSaleForm] = useState(false);
+  const [productsSubTab, setProductsSubTab] = useState<string>("venda");
+  useEffect(() => {
+    const handler = (e: Event) => setProductsSubTab((e as CustomEvent).detail as string);
+    window.addEventListener("products-subtab-change", handler);
+    return () => window.removeEventListener("products-subtab-change", handler);
+  }, []);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showPersonalExpenseForm, setShowPersonalExpenseForm] = useState(false);
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
@@ -576,7 +582,11 @@ const Index = () => {
       } else if (expenseSubTab === "personal") setShowPersonalExpenseForm(true);
       else setShowExpenseForm(true);
     }
-    else if (tab === "products" || tab === "vehicles") setShowSaleForm(true);
+    else if (tab === "products") {
+      if (productsSubTab === "estoque") setShowProductForm(true);
+      else setShowSaleForm(true);
+    }
+    else if (tab === "vehicles") setShowSaleForm(true);
   };
 
   const primaryLabel =
@@ -589,7 +599,7 @@ const Index = () => {
           ? personalSubTab === "cards" ? "" : "Nova Despesa Pessoal"
           : "Nova Despesa"
       :
-    tab === "products" ? "Novo Lançamento" :
+    tab === "products" ? (productsSubTab === "estoque" ? "Novo Produto" : "Novo Lançamento") :
     tab === "vehicles" ? "Novo Aluguel" : "";
 
   return (
