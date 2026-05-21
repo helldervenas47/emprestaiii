@@ -153,6 +153,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       : null;
     const encodedNotes = encodeNotesWithMerchandise(form.notes, merchandise);
     onAdd({
+      productId: form.businessType === "venda" ? (form.productId || undefined) : undefined,
       productName: form.description,
       description: form.description,
       quantity: parseInt(form.quantity) || 1,
