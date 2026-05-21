@@ -217,7 +217,55 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
           <div className="flex flex-col sm:flex-row sm:items-end gap-3">
             <div className="flex-1 space-y-1">
               <Label className="text-xs">Data do relatório</Label>
-              <DatePickerField value={date} onChange={setDate} />
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 shrink-0"
+                  aria-label="Dia anterior"
+                  onClick={() => {
+                    const d = new Date(date + "T00:00:00");
+                    d.setDate(d.getDate() - 1);
+                    setDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+                  }}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="flex-1 justify-center font-normal h-10">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(new Date(date + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="center">
+                    <Calendar
+                      mode="single"
+                      selected={new Date(date + "T00:00:00")}
+                      onSelect={(d) => {
+                        if (d) {
+                          setDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+                        }
+                      }}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 shrink-0"
+                  aria-label="Próximo dia"
+                  onClick={() => {
+                    const d = new Date(date + "T00:00:00");
+                    d.setDate(d.getDate() + 1);
+                    setDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+                  }}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setDate(todayISO())}>
