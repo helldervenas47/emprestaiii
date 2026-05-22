@@ -363,7 +363,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         .filter((o) => o.cardId === card.id)
         .reduce((s, o) => {
           const openingAmount = Number(o.openingAmount ?? 0);
-          const paid = readPaidOverride(o.notes) ?? (/[PAGA]/i.test(o.notes ?? "") ? openingAmount : 0);
+          const paid = readPaidOverride(o.notes) ?? (/\[PAGA\]/i.test(o.notes ?? "") ? openingAmount : 0);
           return s + Math.max(0, openingAmount - Math.min(openingAmount, paid));
         }, 0);
       const pendingTotal = expensesPending + openingsPending;
