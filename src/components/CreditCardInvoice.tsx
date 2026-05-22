@@ -530,6 +530,10 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
             source: "auto",
             wallet: payWallet,
             metadata: { credit_card_id: card.id, cycle_key: cycleKey, kind: "credit_card_invoice_payment" },
+            // O pagamento de fatura deve debitar APENAS o "Saldo em Conta" da aba Receitas
+            // (que lê este lançamento do extrato). Não tocar no saldo do Dashboard
+            // para evitar duplo débito no Total em Mãos.
+            syncBalance: false,
           });
           setInvoiceLedgerPaid(Number((ledgerPaid + ledgerAmount).toFixed(2)));
         } catch {
