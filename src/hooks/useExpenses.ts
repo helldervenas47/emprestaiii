@@ -416,6 +416,8 @@ export function useExpenses(enabled = true) {
         if ((expense.scope ?? "business") === "business") {
           await removeLedgerByRef({ expense_id: latestChildId, category: "expense" });
         }
+        // Remove receita gerada para esta parcela específica, se existir
+        if (dataOwnerId) await deleteLinkedIncomeFor(dataOwnerId, latestChildId);
         await supabase.from("expenses").delete().eq("id", latestChildId);
       }
       await supabase.from("expenses").update(parentUpdate).eq("id", id);
