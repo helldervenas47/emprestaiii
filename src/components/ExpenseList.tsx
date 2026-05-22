@@ -80,6 +80,7 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
     installments: String(expense.installments && expense.installments < FIXED_RECURRING_INSTALLMENTS ? expense.installments : 1),
     dueDate: expense.dueDate,
     notes: expense.notes || "",
+    generateIncomeOnPay: !!expense.generateIncomeOnPay,
   });
 
   useEffect(() => {
