@@ -83,7 +83,7 @@ function isSalePaid(s: Sale): boolean {
 
 export function ConsolidatedBalanceCards() {
   const { loans } = useLoans();
-  const { sales } = useProducts(true);
+  const { sales, products } = useProducts(true);
   const { piggyBanks, balances: piggyBalances } = usePiggyBanks();
 
   // Espelha EXATAMENTE o "Saldo em Conta" da aba Receitas (IncomeBalanceCard)
@@ -92,6 +92,7 @@ export function ConsolidatedBalanceCards() {
   // Necessário para a projeção de 30 dias abaixo.
   const { incomes } = useIncomes(true);
   const { expenses } = useExpenses(true);
+
 
   const [dashboardAccount, setDashboardAccount] = useState(0);
   const [dashboardCash, setDashboardCash] = useState(0);
