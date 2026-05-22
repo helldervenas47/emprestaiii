@@ -7,6 +7,7 @@ import { extractPiggyId } from "./usePiggyBanks";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 import { recordLedger, removeLedgerByRef } from "@/lib/ledger";
 import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
+import { adjustVehicleBalance } from "@/lib/vehicleBalance";
 import {
   cacheRows, getCachedRows, upsertCachedRow, removeCachedRow,
   enqueueMutation, rewritePendingRecordId,
@@ -249,7 +250,7 @@ export function useExpenses(enabled = true) {
       await supabase.from("expenses").update(parentUpdate).eq("id", id);
 
       // Saída no extrato: parcela paga (apenas business; despesas de veículos NÃO
-      // entram no extrato — são debitadas exclusivamente do "Saldo em Conta" da aba Receitas).
+      // entram no extrato — são debitadas exclusivamente do "Saldo em Conta" da aba Veículos).
       if (!skipBalanceAdjust && (expense.scope ?? "business") === "business" && !isVehicleExpenseForVehicles(expense)) {
         await recordLedger({
           direction: "out", category: "expense", amount: installmentAmount,
@@ -258,6 +259,9 @@ export function useExpenses(enabled = true) {
           payment_method_id: expense.paymentMethodId ?? null,
           metadata: { parent_expense_id: id, category: expense.category },
         });
+      } else if (!skipBalanceAdjust && isVehicleExpenseForVehicles(expense)) {
+        // Debita o "Saldo em Conta" da aba Veículos.
+        await adjustVehicleBalance(-installmentAmount);
       }
 
       // Receita gerada automaticamente (flag opt-in na despesa pai)
@@ -298,7 +302,7 @@ export function useExpenses(enabled = true) {
       await supabase.from("expenses").update(updatePayload).eq("id", id);
 
       // Saída no extrato: despesa simples paga (apenas business; despesas de veículos NÃO
-      // entram no extrato — são debitadas exclusivamente do "Saldo em Conta" da aba Receitas).
+      // entram no extrato — são debitadas exclusivamente do "Saldo em Conta" da aba Veículos).
       if (!skipBalanceAdjust && (expense.scope ?? "business") === "business" && !isVehicleExpenseForVehicles(expense)) {
         await recordLedger({
           direction: "out", category: "expense", amount: finalAmount,
@@ -307,6 +311,9 @@ export function useExpenses(enabled = true) {
           payment_method_id: expense.paymentMethodId ?? null,
           metadata: { category: expense.category },
         });
+      } else if (!skipBalanceAdjust && isVehicleExpenseForVehicles(expense)) {
+        // Debita o "Saldo em Conta" da aba Veículos.
+        await adjustVehicleBalance(-finalAmount);
       }
 
       // Receita gerada automaticamente (flag opt-in)
@@ -416,8 +423,18 @@ export function useExpenses(enabled = true) {
 
       if (latestChildId) {
         // Reverte saldo + remove lançamento do extrato vinculado ao child (carteira correta)
-        if ((expense.scope ?? "business") === "business") {
+        if ((expense.scope ?? "business") === "business" && !isVehicleExpenseForVehicles(expense)) {
           await removeLedgerByRef({ expense_id: latestChildId, category: "expense" });
+        }
+        // Estorno em despesa de veículo: devolve o valor da parcela ao "Saldo em Conta" da aba Veículos.
+        if (isVehicleExpenseForVehicles(expense)) {
+          const { data: child } = await supabase
+            .from("expenses")
+            .select("amount")
+            .eq("id", latestChildId)
+            .maybeSingle();
+          const refund = Number((child as any)?.amount ?? (expense.amount / (expense.installments || 1)));
+          await adjustVehicleBalance(refund);
         }
         // Remove receita gerada para esta parcela específica, se existir
         if (dataOwnerId) await deleteLinkedIncomeFor(dataOwnerId, latestChildId);
@@ -443,9 +460,13 @@ export function useExpenses(enabled = true) {
 
       await supabase.from("expenses").update(updatePayload).eq("id", id);
 
-      // Reverte saída do extrato (despesa simples) - apenas business
-      if ((expense.scope ?? "business") === "business") {
+      // Reverte saída do extrato (despesa simples) - apenas business não-veículo
+      if ((expense.scope ?? "business") === "business" && !isVehicleExpenseForVehicles(expense)) {
         await removeLedgerByRef({ expense_id: id, category: "expense" });
+      }
+      // Estorno em despesa simples de veículo: devolve ao "Saldo em Conta" da aba Veículos.
+      if (isVehicleExpenseForVehicles(expense)) {
+        await adjustVehicleBalance(expense.amount);
       }
 
       // Remove receita gerada (se houver) e limpa o vínculo
@@ -475,6 +496,14 @@ export function useExpenses(enabled = true) {
 
     // Remove lançamento do extrato (reverte saldo na carteira correta automaticamente)
     await removeLedgerByRef({ expense_id: id, category: "expense" });
+
+    // Despesa de veículo paga sendo excluída: devolve o valor pago ao "Saldo em Conta" da aba Veículos.
+    if (!skipBalanceAdjust && expense && isVehicleExpenseForVehicles(expense) && expense.paid) {
+      const refund = expense.type === "recorrente" && expense.installments && expense.installments > 1
+        ? expense.amount / expense.installments
+        : expense.amount;
+      await adjustVehicleBalance(refund);
+    }
 
     // Remove receita gerada vinculada (se houver)
     if (dataOwnerId) await deleteLinkedIncomeFor(dataOwnerId, id);

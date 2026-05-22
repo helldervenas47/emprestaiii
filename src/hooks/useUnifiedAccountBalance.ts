@@ -83,8 +83,9 @@ export function useUnifiedAccountBalance(): number {
       .filter(
         (e: any) =>
           e.paid &&
+          (e.scope ?? "business") === "personal" &&
           !isCreditCardExpense(e) &&
-          ((e.scope ?? "business") === "personal" || isVehicleExpenseForVehicles(e)),
+          !isVehicleExpenseForVehicles(e),
       )
       .reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
     return (
