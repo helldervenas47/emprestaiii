@@ -1344,9 +1344,26 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
             </Button>
           </div>
         )}
+        {!readOnly && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground w-full justify-center"
+            onClick={(e) => { e.stopPropagation(); setConfirmDeleteSale(true); }}
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
+          </Button>
+        )}
       </div>
       );
     })()}
+    <ConfirmDeleteDialog
+      open={confirmDeleteSale}
+      onOpenChange={setConfirmDeleteSale}
+      onConfirm={() => { onDelete(); setConfirmDeleteSale(false); }}
+      title="Excluir venda"
+      description="Tem certeza que deseja excluir esta venda?"
+    />
     </div>
   );
 }
