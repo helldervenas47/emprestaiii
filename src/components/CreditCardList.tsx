@@ -413,7 +413,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
       let chosen = computeCycle(baseCycle);
       if (chosen.isPaid) {
         const baseRef = new Date(baseCycle.dueDate);
-        for (let i = 1; i <= 24; i++) {
+        for (let i = 0; i < 24; i++) {
           const d = new Date(baseRef);
           d.setMonth(d.getMonth() + i);
           const nextCycle = getCycleForRef(d, card.closingDay, card.dueDay);
