@@ -969,14 +969,16 @@ function getNextInstallmentValueHelper(s: Sale): number {
   return s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
 }
 
-function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false, incomeCategoryByName }: {
+function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnly = false, incomeCategoryByName }: {
   sale: Sale;
   onEdit: () => void;
+  onDelete: () => void;
   onUpdate: (data: Partial<Omit<Sale, "id">>) => void;
   formatCurrency: (v: number) => string;
   readOnly?: boolean;
   incomeCategoryByName?: Map<string, CustomIncomeCategory>;
 }) {
+  const [confirmDeleteSale, setConfirmDeleteSale] = useState(false);
   const [showPartial, setShowPartial] = useState(false);
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
   const [showPayments, setShowPayments] = useState(false);
