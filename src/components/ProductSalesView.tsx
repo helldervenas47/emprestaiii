@@ -969,14 +969,16 @@ function getNextInstallmentValueHelper(s: Sale): number {
   return s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
 }
 
-function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false, incomeCategoryByName }: {
+function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnly = false, incomeCategoryByName }: {
   sale: Sale;
   onEdit: () => void;
+  onDelete: () => void;
   onUpdate: (data: Partial<Omit<Sale, "id">>) => void;
   formatCurrency: (v: number) => string;
   readOnly?: boolean;
   incomeCategoryByName?: Map<string, CustomIncomeCategory>;
 }) {
+  const [confirmDeleteSale, setConfirmDeleteSale] = useState(false);
   const [showPartial, setShowPartial] = useState(false);
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
   const [showPayments, setShowPayments] = useState(false);
@@ -1106,6 +1108,17 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
               <Pencil className="h-4 w-4" />
             </Button>
           )}
+          {!readOnly && !isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              title="Excluir"
+              onClick={(e) => { e.stopPropagation(); setConfirmDeleteSale(true); }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       ) : (
         <div className="shrink-0 flex items-center justify-end gap-1">
@@ -1164,6 +1177,15 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
                 onClick={onEdit}
               >
                 <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                title="Excluir"
+                onClick={(e) => { e.stopPropagation(); setConfirmDeleteSale(true); }}
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
             </>
           )}
@@ -1322,9 +1344,26 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             </Button>
           </div>
         )}
+        {!readOnly && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground w-full justify-center"
+            onClick={(e) => { e.stopPropagation(); setConfirmDeleteSale(true); }}
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
+          </Button>
+        )}
       </div>
       );
     })()}
+    <ConfirmDeleteDialog
+      open={confirmDeleteSale}
+      onOpenChange={setConfirmDeleteSale}
+      onConfirm={() => { onDelete(); setConfirmDeleteSale(false); }}
+      title="Excluir venda"
+      description="Tem certeza que deseja excluir esta venda?"
+    />
     </div>
   );
 }
@@ -1814,6 +1853,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 key={sale.id}
                 sale={sale}
                 onEdit={() => setEditingSale(sale)}
+                onDelete={() => onDeleteSale(sale.id)}
                 onUpdate={(data) => onUpdateSale(sale.id, data)}
                 formatCurrency={formatCurrency}
                 readOnly={readOnly}
