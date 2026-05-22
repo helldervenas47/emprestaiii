@@ -423,8 +423,18 @@ export function useExpenses(enabled = true) {
 
       if (latestChildId) {
         // Reverte saldo + remove lançamento do extrato vinculado ao child (carteira correta)
-        if ((expense.scope ?? "business") === "business") {
+        if ((expense.scope ?? "business") === "business" && !isVehicleExpenseForVehicles(expense)) {
           await removeLedgerByRef({ expense_id: latestChildId, category: "expense" });
+        }
+        // Estorno em despesa de veículo: devolve o valor da parcela ao "Saldo em Conta" da aba Veículos.
+        if (isVehicleExpenseForVehicles(expense)) {
+          const { data: child } = await supabase
+            .from("expenses")
+            .select("amount")
+            .eq("id", latestChildId)
+            .maybeSingle();
+          const refund = Number((child as any)?.amount ?? (expense.amount / (expense.installments || 1)));
+          await adjustVehicleBalance(refund);
         }
         // Remove receita gerada para esta parcela específica, se existir
         if (dataOwnerId) await deleteLinkedIncomeFor(dataOwnerId, latestChildId);
