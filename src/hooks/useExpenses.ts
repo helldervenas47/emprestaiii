@@ -257,6 +257,20 @@ export function useExpenses(enabled = true) {
           metadata: { parent_expense_id: id, category: expense.category },
         });
       }
+
+      // Receita gerada automaticamente (flag opt-in na despesa pai)
+      if (expense.generateIncomeOnPay && (expense.scope ?? "business") === "business") {
+        await createLinkedIncome({
+          ownerId: dataOwnerId,
+          expenseId: childTempId,
+          description: `${expense.description} (${newPaid}/${expense.installments})`,
+          amount: installmentAmount,
+          category: expense.category,
+          paymentMethodId: expense.paymentMethodId ?? null,
+          date: today,
+          parentExpenseId: id,
+        });
+      }
     } else {
       // Simple fixa expense — if a different paid amount was provided, update the amount
       // and stash the original in notes so we can restore it on unpay.
