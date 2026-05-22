@@ -1222,7 +1222,7 @@ const Index = () => {
       )}
       {showClientForm && <ClientForm onAdd={addClient} onClose={() => setShowClientForm(false)} />}
       {showProductForm && <ProductForm onAdd={addProduct} onClose={() => setShowProductForm(false)} />}
-      {showSaleForm && <SaleForm onAdd={addSale} onClose={() => setShowSaleForm(false)} clients={clients} defaultBusinessType={tab === "vehicles" ? "aluguel_veiculo" : undefined} registeredVehicles={registeredVehicles} locadores={locadores} products={products} />}
+      {showSaleForm && <SaleForm onAdd={addSale} onClose={() => setShowSaleForm(false)} clients={clients} defaultBusinessType={tab === "vehicles" ? "aluguel_veiculo" : (productsSubTab === "streaming" ? "streaming" : undefined)} registeredVehicles={registeredVehicles} locadores={locadores} products={products} />}
       {showExpenseForm && <ExpenseForm onAdd={addExpense} onClose={() => setShowExpenseForm(false)} scope="business" />}
       {showPersonalExpenseForm && <PersonalExpenseForm onAdd={addExpense} onClose={() => setShowPersonalExpenseForm(false)} />}
       {showVehicleExpenseForm && <VehicleExpenseForm onAdd={addExpense} onClose={() => setShowVehicleExpenseForm(false)} />}
