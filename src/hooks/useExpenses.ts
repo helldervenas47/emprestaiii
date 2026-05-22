@@ -460,9 +460,13 @@ export function useExpenses(enabled = true) {
 
       await supabase.from("expenses").update(updatePayload).eq("id", id);
 
-      // Reverte saída do extrato (despesa simples) - apenas business
-      if ((expense.scope ?? "business") === "business") {
+      // Reverte saída do extrato (despesa simples) - apenas business não-veículo
+      if ((expense.scope ?? "business") === "business" && !isVehicleExpenseForVehicles(expense)) {
         await removeLedgerByRef({ expense_id: id, category: "expense" });
+      }
+      // Estorno em despesa simples de veículo: devolve ao "Saldo em Conta" da aba Veículos.
+      if (isVehicleExpenseForVehicles(expense)) {
+        await adjustVehicleBalance(expense.amount);
       }
 
       // Remove receita gerada (se houver) e limpa o vínculo
