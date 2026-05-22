@@ -117,6 +117,7 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
         installments: inst,
         dueDate: form.dueDate,
         notes: form.notes || undefined,
+        generateIncomeOnPay: form.generateIncomeOnPay,
       };
     } else if (form.kind === "fixa") {
       patch = {
@@ -127,6 +128,7 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
         installments: FIXED_RECURRING_INSTALLMENTS,
         dueDate: form.dueDate,
         notes: form.notes || undefined,
+        generateIncomeOnPay: form.generateIncomeOnPay,
       };
     } else {
       patch = {
@@ -137,6 +139,7 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
         installments: undefined,
         dueDate: form.dueDate,
         notes: form.notes || undefined,
+        generateIncomeOnPay: form.generateIncomeOnPay,
       };
     }
     onSave(patch);
