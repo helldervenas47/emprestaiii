@@ -141,6 +141,7 @@ export function useExpenses(enabled = true) {
       notes: expense.notes ?? null,
       scope: expense.scope ?? "business",
       payment_method_id: expense.paymentMethodId ?? null,
+      generate_income_on_pay: !!expense.generateIncomeOnPay,
     };
 
     await upsertCachedRow("expenses", { ...insertPayload, created_at: optimistic.createdAt });
