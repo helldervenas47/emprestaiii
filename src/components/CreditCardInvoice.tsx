@@ -201,9 +201,13 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
     }
   };
 
+  const userOverrideRef = useRef(false);
+
   useEffect(() => {
+    userOverrideRef.current = false;
     setCycleOffset(initialOffset);
   }, [initialOffset]);
+
 
   const ref = useMemo(() => {
     const d = new Date();
@@ -311,6 +315,50 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
       window.removeEventListener("ledger:changed", onChanged);
     };
   }, [ownerId, card.id, cycleKey]);
+
+  // Auto-avança a fatura exibida: se a fatura do mês filtrado já está paga,
+  // pula para a próxima em aberto. Se nenhuma futura está aberta, mantém a última.
+  // Respeita navegação manual (botões prev/next).
+  useEffect(() => {
+    if (userOverrideRef.current) return;
+    const isCyclePaidAt = (offset: number): { paid: boolean; hasData: boolean } => {
+      const d = new Date();
+      d.setMonth(d.getMonth() + offset);
+      const c = getCycle(d, card.closingDay, card.dueDay);
+      const ck = cycleKeyFromDate(c.to);
+      const op = getOpening(card.id, ck);
+      const openingAmt = op?.openingAmount ?? 0;
+      const cItems = filterCardExpenses(c.from, c.to);
+      const sum = (list: ExpandedExpense[]) =>
+        list.reduce((s, e) => {
+          const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
+          return s + (isRec ? e.amount / e.installments! : e.amount);
+        }, 0);
+      const itemsTotal = sum(cItems);
+      const total = itemsTotal + openingAmt;
+      const paidOv = readPaidOverride(op?.notes);
+      const opPaidFlag = /\[PAGA\]/i.test(op?.notes ?? "");
+      const paidT = paidOv ?? Number((sum(cItems.filter((e) => e.paid)) + (opPaidFlag ? openingAmt : 0)).toFixed(2));
+      const remaining = Math.max(0, Number((total - paidT).toFixed(2)));
+      const everHadValue = cItems.length > 0 || openingAmt > 0 || opPaidFlag || paidOv !== null;
+      return { paid: everHadValue && remaining <= 0.005, hasData: everHadValue };
+    };
+    // Estratégia: começa no mês filtrado. Se estiver paga, avança até achar
+    // uma fatura em aberto. Se nenhuma futura está aberta, mantém o ciclo filtrado.
+    let target = initialOffset;
+    for (let i = 0; i < 24; i++) {
+      const candidate = initialOffset + i;
+      const { paid } = isCyclePaidAt(candidate);
+      if (!paid) {
+        target = candidate;
+        break;
+      }
+    }
+    setCycleOffset(target);
+  }, [initialOffset, expandedExpenses, openings, card.id, card.closingDay, card.dueDay, cardTag]);
+
+
+
 
   // Limite disponível = limite total - (despesas pendentes do cartão + saldos iniciais de
   // faturas em aberto). Reflete tudo que ainda foi gasto e não pago neste cartão.
@@ -647,7 +695,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
               variant="ghost"
               size="icon"
               className={`h-8 w-8 ${bank.textClass} hover:bg-white/15`}
-              onClick={() => setCycleOffset((o) => o - 1)}
+              onClick={() => { userOverrideRef.current = true; setCycleOffset((o) => o - 1); }}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -661,7 +709,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
               variant="ghost"
               size="icon"
               className={`h-8 w-8 ${bank.textClass} hover:bg-white/15`}
-              onClick={() => setCycleOffset((o) => o + 1)}
+              onClick={() => { userOverrideRef.current = true; setCycleOffset((o) => o + 1); }}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
