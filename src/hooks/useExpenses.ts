@@ -445,6 +445,13 @@ export function useExpenses(enabled = true) {
         await removeLedgerByRef({ expense_id: id, category: "expense" });
       }
 
+      // Remove receita gerada (se houver) e limpa o vínculo
+      if (dataOwnerId) {
+        await deleteLinkedIncomeFor(dataOwnerId, id);
+        await supabase.from("expenses").update({ generated_income_id: null } as any).eq("id", id);
+        setExpenses((prev) => prev.map((e) => e.id === id ? { ...e, generatedIncomeId: null } : e));
+      }
+
       // Reverse piggy bank credit when unpaying a piggy expense.
       if (extractPiggyId(expense.notes)) {
         await supabase.from("piggy_bank_deposits" as any).delete().eq("expense_id", id);
