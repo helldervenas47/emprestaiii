@@ -457,7 +457,7 @@ export function useExpenses(enabled = true) {
         await supabase.from("piggy_bank_deposits" as any).delete().eq("expense_id", id);
       }
     }
-  }, [expenses]);
+  }, [expenses, dataOwnerId]);
 
   const deleteExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
     const expense = expenses.find((e) => e.id === id);
@@ -473,9 +473,12 @@ export function useExpenses(enabled = true) {
     // Remove lançamento do extrato (reverte saldo na carteira correta automaticamente)
     await removeLedgerByRef({ expense_id: id, category: "expense" });
 
+    // Remove receita gerada vinculada (se houver)
+    if (dataOwnerId) await deleteLinkedIncomeFor(dataOwnerId, id);
+
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) await enqueueMutation({ table: "expenses", op: "delete", recordId: id });
-  }, [expenses]);
+  }, [expenses, dataOwnerId]);
 
   const updateExpense = useCallback(async (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => {
     setExpenses((prev) => prev.map((e) => e.id === id ? { ...e, ...data } : e));
@@ -485,6 +488,7 @@ export function useExpenses(enabled = true) {
       paid_installments: data.paidInstallments, due_date: data.dueDate,
       paid: data.paid, paid_date: data.paidDate, notes: data.notes,
       payment_method_id: data.paymentMethodId,
+      generate_income_on_pay: data.generateIncomeOnPay,
     };
     Object.keys(updatePayload).forEach(k => updatePayload[k] === undefined && delete updatePayload[k]);
     if (!isOnline()) {
@@ -494,6 +498,7 @@ export function useExpenses(enabled = true) {
     const { error } = await supabase.from("expenses").update(updatePayload).eq("id", id);
     if (error) await enqueueMutation({ table: "expenses", op: "update", recordId: id, payload: updatePayload });
   }, []);
+
 
   return { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense };
 }
