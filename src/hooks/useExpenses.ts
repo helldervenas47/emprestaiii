@@ -497,6 +497,14 @@ export function useExpenses(enabled = true) {
     // Remove lançamento do extrato (reverte saldo na carteira correta automaticamente)
     await removeLedgerByRef({ expense_id: id, category: "expense" });
 
+    // Despesa de veículo paga sendo excluída: devolve o valor pago ao "Saldo em Conta" da aba Veículos.
+    if (!skipBalanceAdjust && expense && isVehicleExpenseForVehicles(expense) && expense.paid) {
+      const refund = expense.type === "recorrente" && expense.installments && expense.installments > 1
+        ? expense.amount / expense.installments
+        : expense.amount;
+      await adjustVehicleBalance(refund);
+    }
+
     // Remove receita gerada vinculada (se houver)
     if (dataOwnerId) await deleteLinkedIncomeFor(dataOwnerId, id);
 
