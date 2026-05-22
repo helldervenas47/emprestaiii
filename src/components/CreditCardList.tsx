@@ -336,6 +336,10 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
       }
     >();
     const expandedAll = expandCreditCardExpenses(expenses);
+    const installmentValue = (e: typeof expandedAll[number]) => {
+      const isRec = e.type === "recorrente" && !!e.installments && e.installments > 1;
+      return isRec ? e.amount / e.installments! : e.amount;
+    };
     cards.forEach((card) => {
       const baseCycle = referenceMonth
         ? getCycleForDueMonth(referenceMonth, card.closingDay, card.dueDay)
@@ -354,10 +358,14 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
 
       const expensesPending = cardExpenses
         .filter((e) => !e.paid)
-        .reduce((s, e) => s + e.amount, 0);
+        .reduce((s, e) => s + installmentValue(e), 0);
       const openingsPending = openings
         .filter((o) => o.cardId === card.id)
-        .reduce((s, o) => s + (o.openingAmount ?? 0), 0);
+        .reduce((s, o) => {
+          const openingAmount = Number(o.openingAmount ?? 0);
+          const paid = readPaidOverride(o.notes) ?? (/\[PAGA\]/i.test(o.notes ?? "") ? openingAmount : 0);
+          return s + Math.max(0, openingAmount - Math.min(openingAmount, paid));
+        }, 0);
       const pendingTotal = expensesPending + openingsPending;
       const unpaidExpenseIds = cardExpenses.filter((e) => !e.paid).map((e) => e.id);
 
@@ -366,18 +374,18 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
           const d = new Date(e.dueDate + "T00:00:00");
           return d >= cycle.from && d < cycle.to;
         });
-        const transactions = inCycle.reduce((s, e) => s + e.amount, 0);
+        const transactions = inCycle.reduce((s, e) => s + installmentValue(e), 0);
         const cycleKey = cycleKeyFromDate(cycle.to);
         const op = getOpening(card.id, cycleKey);
         const opening = op?.openingAmount ?? 0;
         const cycleUnpaidExpenseIds = inCycle.filter((e) => !e.paid).map((e) => e.id);
         const cycleExpensesPending = inCycle
           .filter((e) => !e.paid)
-          .reduce((s, e) => s + e.amount, 0);
+          .reduce((s, e) => s + installmentValue(e), 0);
         const cyclePendingTotal = cycleExpensesPending + opening;
         const itemsPaidTotal = inCycle
           .filter((e) => e.paid)
-          .reduce((s, e) => s + e.amount, 0);
+          .reduce((s, e) => s + installmentValue(e), 0);
         const paidOverride = readPaidOverride(op?.notes);
         const openingPaidFlag = /\[PAGA\]/i.test(op?.notes ?? "");
         const paidTotal = paidOverride ?? Number((itemsPaidTotal + (openingPaidFlag ? opening : 0)).toFixed(2));
@@ -395,6 +403,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
           paidTotal,
           cyclePendingTotal,
           cycleUnpaidExpenseIds,
+          hasData: everHadValue,
           isPaid,
         };
       };
@@ -404,7 +413,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
       let chosen = computeCycle(baseCycle);
       if (chosen.isPaid) {
         const baseRef = new Date(baseCycle.dueDate);
-        for (let i = 1; i <= 24; i++) {
+        for (let i = 0; i < 24; i++) {
           const d = new Date(baseRef);
           d.setMonth(d.getMonth() + i);
           const nextCycle = getCycleForRef(d, card.closingDay, card.dueDay);
