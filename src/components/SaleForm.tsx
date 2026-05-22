@@ -471,6 +471,54 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
               </div>
             )}
 
+            {/* Status de pagamento (somente para vendas/streaming à vista) */}
+            {!isVehicleRental && form.paymentMode === "fixa" && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Data de Pagamento</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(new Date(form.paymentDate + "T00:00:00"), "dd/MM/yyyy")}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarUI
+                        mode="single"
+                        selected={new Date(form.paymentDate + "T00:00:00")}
+                        onSelect={(d) => {
+                          if (d) handlePaymentDateChange(d.toISOString().split("T")[0]);
+                        }}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div>
+                  <Label>Status</Label>
+                  <Select
+                    value={form.paymentStatus}
+                    onValueChange={(v) => update("paymentStatus", v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pago">Pago</SelectItem>
+                      <SelectItem value="pendente">Pendente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {form.paymentDate > todayInAppTz() && form.paymentStatus === "pendente" && (
+                  <p className="col-span-2 text-[11px] text-muted-foreground">
+                    Data futura: a venda será registrada como valor a receber.
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Campos de parcelamento/recorrência */}
             {(form.paymentMode === "recorrente" || isVehicleRental) && (
               <>
