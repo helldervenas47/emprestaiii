@@ -373,7 +373,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
         return !/cart[aã]o[:\s]/i.test(n);
       })
       .filter((e) => !e.paid)
-      .reduce((s, e) => s + e.amount, 0);
+      .reduce((s, e) => s + (e.type === "recorrente" && e.installments && e.installments > 1 ? e.amount / e.installments : e.amount), 0);
     const openingsPending = openings
       .filter((o) => o.cardId === card.id)
       .reduce((s, o) => {
