@@ -1853,6 +1853,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 key={sale.id}
                 sale={sale}
                 onEdit={() => setEditingSale(sale)}
+                onDelete={() => onDeleteSale(sale.id)}
                 onUpdate={(data) => onUpdateSale(sale.id, data)}
                 formatCurrency={formatCurrency}
                 readOnly={readOnly}
