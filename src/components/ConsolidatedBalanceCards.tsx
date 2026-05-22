@@ -223,7 +223,7 @@ export function ConsolidatedBalanceCards() {
           <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
             <div className="flex items-center justify-center gap-1.5">
               <Landmark className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
-              <p className="text-[11px] sm:text-xs text-muted-foreground">Saldo total: conta + dinheiro</p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Saldo total</p>
             </div>
             <p className={`text-base sm:text-xl font-bold truncate leading-tight mt-0.5 ${contaMaisDinheiro < 0 ? "text-destructive" : "text-foreground"}`}>
               {formatBRL(contaMaisDinheiro)}
