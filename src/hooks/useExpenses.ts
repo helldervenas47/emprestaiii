@@ -22,7 +22,59 @@ function rowToExpense(e: any): Expense {
     parentExpenseId: e.parent_expense_id ?? undefined,
     scope: (e.scope as "business" | "personal") ?? "business",
     paymentMethodId: e.payment_method_id ?? null,
+    generateIncomeOnPay: !!e.generate_income_on_pay,
+    generatedIncomeId: e.generated_income_id ?? null,
   };
+}
+
+/** Cria receita vinculada a uma despesa paga (idempotente via marker em notes). */
+async function createLinkedIncome(opts: {
+  ownerId: string;
+  expenseId: string;           // referência usada como marker e dedup
+  description: string;
+  amount: number;
+  category: string | null;
+  paymentMethodId: string | null;
+  date: string;
+  parentExpenseId?: string | null;
+}): Promise<string | null> {
+  const marker = `[FromExpense:${opts.expenseId}]`;
+  // Dedup: já existe?
+  const { data: existing } = await supabase
+    .from("incomes" as any)
+    .select("id")
+    .eq("user_id", opts.ownerId)
+    .ilike("notes", `%${marker}%`)
+    .limit(1);
+  if (existing && existing.length > 0) return (existing[0] as any).id as string;
+
+  const payload: any = {
+    user_id: opts.ownerId,
+    description: opts.description,
+    amount: opts.amount,
+    category: opts.category,
+    client_id: null,
+    source: "expense",
+    payment_method_id: opts.paymentMethodId,
+    received_date: opts.date,
+    actual_received_date: opts.date,
+    status: "received",
+    notes: `Gerada automaticamente pela despesa\n${marker}`,
+    recurrence: "once",
+    parent_id: null,
+  };
+  const { data, error } = await supabase.from("incomes" as any).insert(payload).select("id").single();
+  if (error || !data) return null;
+  return (data as any).id as string;
+}
+
+async function deleteLinkedIncomeFor(ownerId: string, expenseId: string): Promise<void> {
+  const marker = `[FromExpense:${expenseId}]`;
+  await supabase
+    .from("incomes" as any)
+    .delete()
+    .eq("user_id", ownerId)
+    .ilike("notes", `%${marker}%`);
 }
 
 export function useExpenses(enabled = true) {
