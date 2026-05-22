@@ -250,7 +250,7 @@ export function useExpenses(enabled = true) {
       await supabase.from("expenses").update(parentUpdate).eq("id", id);
 
       // Saída no extrato: parcela paga (apenas business; despesas de veículos NÃO
-      // entram no extrato — são debitadas exclusivamente do "Saldo em Conta" da aba Receitas).
+      // entram no extrato — são debitadas exclusivamente do "Saldo em Conta" da aba Veículos).
       if (!skipBalanceAdjust && (expense.scope ?? "business") === "business" && !isVehicleExpenseForVehicles(expense)) {
         await recordLedger({
           direction: "out", category: "expense", amount: installmentAmount,
@@ -259,6 +259,9 @@ export function useExpenses(enabled = true) {
           payment_method_id: expense.paymentMethodId ?? null,
           metadata: { parent_expense_id: id, category: expense.category },
         });
+      } else if (!skipBalanceAdjust && isVehicleExpenseForVehicles(expense)) {
+        // Debita o "Saldo em Conta" da aba Veículos.
+        await adjustVehicleBalance(-installmentAmount);
       }
 
       // Receita gerada automaticamente (flag opt-in na despesa pai)
