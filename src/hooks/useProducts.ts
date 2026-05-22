@@ -211,6 +211,7 @@ export function useProducts(enabled = true) {
       locador_id: s.locadorId || null,
       notes: s.notes || "",
       category: s.category || null,
+      payment_history: s.paymentHistory ?? null,
     } as any).select().single();
 
     if (error) {
