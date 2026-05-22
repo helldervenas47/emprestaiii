@@ -155,6 +155,20 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       ? installmentRows.map(r => r.date)
       : null;
     const encodedNotes = encodeNotesWithMerchandise(form.notes, merchandise);
+
+    // Status pago/pendente aplica-se a vendas à vista (fixa) que não sejam aluguel
+    const useStatus = !isVehicleRental && !isRecorrente;
+    const isPaid = useStatus ? form.paymentStatus === "pago" : false;
+    const saleDate = useStatus ? form.paymentDate : form.firstInstallmentDate;
+    const paymentHistory = isPaid
+      ? [{
+          amount: total,
+          date: form.paymentDate,
+          type: "full" as const,
+          installmentNumber: 1,
+        }]
+      : undefined;
+
     onAdd({
       productId: form.businessType === "venda" ? (form.productId || undefined) : undefined,
       productName: form.description,
@@ -164,18 +178,19 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       cost: 0,
       total,
       customerName: form.customerName,
-      date: form.firstInstallmentDate,
+      date: saleDate,
       notes: encodedNotes,
       businessType: form.businessType as BusinessType,
       paymentMode: form.paymentMode,
       installments: isRecorrente ? installmentsNum : 1,
-      paidInstallments: 0,
+      paidInstallments: isPaid ? 1 : 0,
       downPayment: 0,
       frequency: isRecorrente ? form.frequency : "Mensal",
       installmentValue: null,
       installmentAmounts: amounts,
       installmentDates: dates,
       partialPaid: 0,
+      paymentHistory,
       locadorId: form.businessType === "aluguel_veiculo" ? (form.locadorId || null) : null,
       category: form.category || null,
     });
