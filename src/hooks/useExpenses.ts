@@ -248,8 +248,9 @@ export function useExpenses(enabled = true) {
       await supabase.from("expenses").insert(childPayload as any);
       await supabase.from("expenses").update(parentUpdate).eq("id", id);
 
-      // Saída no extrato: parcela paga (apenas business)
-      if (!skipBalanceAdjust && (expense.scope ?? "business") === "business") {
+      // Saída no extrato: parcela paga (apenas business; despesas de veículos NÃO
+      // entram no extrato — são debitadas exclusivamente do "Saldo em Conta" da aba Receitas).
+      if (!skipBalanceAdjust && (expense.scope ?? "business") === "business" && !isVehicleExpenseForVehicles(expense)) {
         await recordLedger({
           direction: "out", category: "expense", amount: installmentAmount,
           description: `Despesa - ${expense.description} (${newPaid}/${expense.installments})`,
