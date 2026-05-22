@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import {
   Search, Trash2, CheckCircle, Receipt, Calendar, Tag,
   CircleDollarSign, ChevronLeft, ChevronRight, Undo2, Pencil, Check, CalendarCheck,
