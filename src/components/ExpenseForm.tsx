@@ -218,6 +218,26 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
               showError={showFormError}
             />
 
+            {scope === "business" && (
+              <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/40 p-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="generate-income" className="text-sm font-medium">
+                    Gerar receita ao pagar
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Ao marcar como paga, cria automaticamente uma receita do mesmo valor que entra no saldo em conta.
+                  </p>
+                </div>
+                <Switch
+                  id="generate-income"
+                  checked={generateIncomeOnPay}
+                  onCheckedChange={setGenerateIncomeOnPay}
+                />
+              </div>
+            )}
+
+
+
             <div>
               <Label htmlFor="notes">Observações</Label>
               <Textarea
