@@ -308,7 +308,10 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
               <div>
                 <Label>Produto</Label>
                 {(() => {
-                  const available = products.filter((p) => p.stock > 0);
+                  const available = products
+                    .filter((p) => p.stock > 0)
+                    .slice()
+                    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
                   if (available.length === 0) {
                     return (
                       <div className="text-sm text-muted-foreground border border-dashed rounded-md p-3">
