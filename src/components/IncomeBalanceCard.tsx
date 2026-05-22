@@ -157,7 +157,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .reduce((s, i) => s + i.amount, 0);
     const totalSalesReceived = sales.reduce((s, sale) => s + saleReceivedTotal(sale), 0);
     const totalExpensePaid = expenses
-      .filter((e) => e.paid && (e.scope ?? "business") === "personal" && !isCreditCardExpense(e))
+      .filter((e) => e.paid && !isCreditCardExpense(e) && ((e.scope ?? "business") === "personal" || isVehicleExpenseForVehicles(e)))
       .reduce((s, e) => s + e.amount, 0);
     const balance = totalIncomeReceived + totalSalesReceived - totalExpensePaid - cardInvoicePaidTotal - piggyNetTotal;
 
