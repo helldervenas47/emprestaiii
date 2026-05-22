@@ -335,32 +335,26 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         cycleUnpaidExpenseIds: string[];
       }
     >();
+    const expandedAll = expandCreditCardExpenses(expenses);
     cards.forEach((card) => {
       const baseCycle = referenceMonth
         ? getCycleForDueMonth(referenceMonth, card.closingDay, card.dueDay)
         : getCurrentCycle(card.closingDay, card.dueDay);
       const cardTag = (card.nickname || card.lastFour || "").toLowerCase();
-      const matchesCard = (e: typeof expenses[number]) => {
+      const matchesCard = (e: typeof expandedAll[number]) => {
         if (!cardTag) return true;
         const n = (e.notes ?? "").toLowerCase();
         if (n.includes(cardTag)) return true;
         return !/cart[aã]o[:\s]/i.test(n);
       };
-      const cardExpenses = expenses
+      const cardExpenses = expandedAll
         .filter((e) => e.scope === "personal")
         .filter((e) => /\[\s*cr[eé]dito\s*\]/i.test(e.notes ?? ""))
         .filter(matchesCard);
 
       const expensesPending = cardExpenses
         .filter((e) => !e.paid)
-        .reduce((s, e) => {
-          const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
-          const inst = isRec ? e.amount / e.installments! : e.amount;
-          const remaining = isRec
-            ? Math.max(0, e.installments! - (e.paidInstallments ?? 0)) * inst
-            : inst;
-          return s + remaining;
-        }, 0);
+        .reduce((s, e) => s + e.amount, 0);
       const openingsPending = openings
         .filter((o) => o.cardId === card.id)
         .reduce((s, o) => s + (o.openingAmount ?? 0), 0);
@@ -372,27 +366,18 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
           const d = new Date(e.dueDate + "T00:00:00");
           return d >= cycle.from && d < cycle.to;
         });
-        const transactions = inCycle.reduce((s, e) => {
-          const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
-          return s + (isRec ? e.amount / e.installments! : e.amount);
-        }, 0);
+        const transactions = inCycle.reduce((s, e) => s + e.amount, 0);
         const cycleKey = cycleKeyFromDate(cycle.to);
         const op = getOpening(card.id, cycleKey);
         const opening = op?.openingAmount ?? 0;
         const cycleUnpaidExpenseIds = inCycle.filter((e) => !e.paid).map((e) => e.id);
         const cycleExpensesPending = inCycle
           .filter((e) => !e.paid)
-          .reduce((s, e) => {
-            const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
-            return s + (isRec ? e.amount / e.installments! : e.amount);
-          }, 0);
+          .reduce((s, e) => s + e.amount, 0);
         const cyclePendingTotal = cycleExpensesPending + opening;
         const itemsPaidTotal = inCycle
           .filter((e) => e.paid)
-          .reduce((s, e) => {
-            const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
-            return s + (isRec ? e.amount / e.installments! : e.amount);
-          }, 0);
+          .reduce((s, e) => s + e.amount, 0);
         const paidOverride = readPaidOverride(op?.notes);
         const openingPaidFlag = /\[PAGA\]/i.test(op?.notes ?? "");
         const paidTotal = paidOverride ?? Number((itemsPaidTotal + (openingPaidFlag ? opening : 0)).toFixed(2));
