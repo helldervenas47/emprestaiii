@@ -205,6 +205,19 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
             <Label htmlFor="edit-notes">Observações</Label>
             <Textarea id="edit-notes" value={form.notes} onChange={e => update("notes", e.target.value)} rows={2} />
           </div>
+          <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/40 p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="edit-gen-income" className="text-sm font-medium">Gerar receita ao pagar</Label>
+              <p className="text-xs text-muted-foreground">
+                Ao marcar como paga, cria automaticamente uma receita do mesmo valor que entra no saldo em conta.
+              </p>
+            </div>
+            <Switch
+              id="edit-gen-income"
+              checked={form.generateIncomeOnPay}
+              onCheckedChange={(v) => setForm(prev => ({ ...prev, generateIncomeOnPay: v }))}
+            />
+          </div>
           {parseFloat(form.amount) > 0 && form.kind === "parcelada" && parseInt(form.installments) > 1 && (
             <div className="rounded-lg bg-muted p-3">
               <p className="text-sm text-muted-foreground">
