@@ -201,9 +201,13 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
     }
   };
 
+  const userOverrideRef = useRef(false);
+
   useEffect(() => {
+    userOverrideRef.current = false;
     setCycleOffset(initialOffset);
   }, [initialOffset]);
+
 
   const ref = useMemo(() => {
     const d = new Date();
