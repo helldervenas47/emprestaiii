@@ -187,15 +187,28 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
   const handleBusinessTypeChange = (value: string) => {
     update("businessType", value);
     if (value === "aluguel_veiculo") {
-      setForm((p) => ({ ...p, businessType: value, paymentMode: "recorrente" as PaymentMode, frequency: "Diário" }));
+      setForm((p) => ({ ...p, businessType: value, paymentMode: "recorrente" as PaymentMode, frequency: "Diário", category: p.category === "Venda" ? "" : p.category }));
       rebuildRows(installmentsNum, firstDate, "Diário", totalNum);
     } else {
+      const nextCategory = value === "venda" ? (form.category || "Venda") : (form.category === "Venda" ? "" : form.category);
       // Volta para Mensal ao sair de aluguel para outros tipos
       if (form.frequency === "Diário") {
-        setForm((p) => ({ ...p, businessType: value as BusinessType, frequency: "Mensal" }));
+        setForm((p) => ({ ...p, businessType: value as BusinessType, frequency: "Mensal", category: nextCategory }));
         rebuildRows(installmentsNum, firstDate, "Mensal", totalNum);
+      } else {
+        setForm((p) => ({ ...p, businessType: value as BusinessType, category: nextCategory }));
       }
     }
+  };
+
+  // Auto status (pago/pendente) ao mudar a data de pagamento
+  const handlePaymentDateChange = (newDate: string) => {
+    const today = todayInAppTz();
+    setForm((p) => ({
+      ...p,
+      paymentDate: newDate,
+      paymentStatus: newDate > today ? "pendente" : p.paymentStatus,
+    }));
   };
 
   // Labels adaptados por tipo
