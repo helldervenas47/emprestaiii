@@ -266,4 +266,6 @@ export interface Expense {
   parentExpenseId?: string;
   scope?: "business" | "personal";
   paymentMethodId?: string | null;
+  generateIncomeOnPay?: boolean;
+  generatedIncomeId?: string | null;
 }
