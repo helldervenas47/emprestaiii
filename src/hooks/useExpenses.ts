@@ -297,8 +297,9 @@ export function useExpenses(enabled = true) {
 
       await supabase.from("expenses").update(updatePayload).eq("id", id);
 
-      // Saída no extrato: despesa simples paga (apenas business)
-      if (!skipBalanceAdjust && (expense.scope ?? "business") === "business") {
+      // Saída no extrato: despesa simples paga (apenas business; despesas de veículos NÃO
+      // entram no extrato — são debitadas exclusivamente do "Saldo em Conta" da aba Receitas).
+      if (!skipBalanceAdjust && (expense.scope ?? "business") === "business" && !isVehicleExpenseForVehicles(expense)) {
         await recordLedger({
           direction: "out", category: "expense", amount: finalAmount,
           description: `Despesa - ${expense.description}`,
