@@ -1108,6 +1108,17 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
               <Pencil className="h-4 w-4" />
             </Button>
           )}
+          {!readOnly && !isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              title="Excluir"
+              onClick={(e) => { e.stopPropagation(); setConfirmDeleteSale(true); }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       ) : (
         <div className="shrink-0 flex items-center justify-end gap-1">
