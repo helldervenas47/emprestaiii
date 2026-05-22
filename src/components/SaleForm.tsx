@@ -61,7 +61,9 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     frequency: defaultBusinessType === "aluguel_veiculo" ? "Diário" : "Mensal",
     firstInstallmentDate: todayInAppTz(),
     locadorId: defaultLocadorId,
-    category: "",
+    category: defaultBusinessType === "venda" ? "Venda" : "",
+    paymentDate: todayInAppTz(),
+    paymentStatus: "pago" as "pago" | "pendente",
   });
   const [merchEnabled, setMerchEnabled] = useState(false);
   const [merchDescricao, setMerchDescricao] = useState("");
