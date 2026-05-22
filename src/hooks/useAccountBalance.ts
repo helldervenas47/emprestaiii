@@ -7,6 +7,7 @@ import { useExternalAccountSources } from "@/hooks/useExternalAccountSources";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { creditCardInvoiceExtraPaid, creditCardLedgerHandled, cycleKeyForDate, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
+import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
 import type { Sale } from "@/types/loan";
 
 /**
@@ -75,7 +76,7 @@ export function useAccountBalance() {
       return false;
     };
     const totalExpensePaid = expenses
-      .filter((e: any) => e.paid && (e.scope ?? "business") === "personal")
+      .filter((e: any) => e.paid && ((e.scope ?? "business") === "personal" || isVehicleExpenseForVehicles(e)))
       .filter((e: any) => !expenseInLedgerCycle(e))
       .reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
     const totalPiggyManualDeposits = piggyDeposits

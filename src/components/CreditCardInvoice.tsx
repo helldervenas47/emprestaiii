@@ -176,24 +176,19 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
       }
 
       // Remove os lançamentos do extrato (ledger) referentes a esta fatura.
-      // Restitui o saldo das carteiras (Conta/Dinheiro) automaticamente via syncBalance.
+      // Como o pagamento da fatura não toca no saldo das carteiras (Conta/Dinheiro)
+      // do Dashboard — debita apenas o "Saldo em Conta" da aba Receitas via leitura
+      // do extrato —, ao excluir basta remover os lançamentos. NÃO estornar saldo.
       try {
         const { data: ledgerRows } = await supabase
           .from("account_ledger")
-          .select("id, direction, amount, wallet")
+          .select("id")
           .eq("metadata->>credit_card_id", card.id)
           .eq("metadata->>cycle_key", entry.cycleKey)
           .eq("metadata->>kind", "credit_card_invoice_payment");
         if (ledgerRows && ledgerRows.length > 0) {
           const ids = ledgerRows.map((r: any) => r.id);
           await supabase.from("account_ledger").delete().in("id", ids);
-          // Estorna saldos das carteiras impactadas
-          const { adjustBalance } = await import("@/lib/balance");
-          for (const r of ledgerRows as any[]) {
-            const w = (r.wallet as "account" | "cash") || "account";
-            const delta = r.direction === "in" ? -Number(r.amount) : Number(r.amount);
-            if (delta !== 0) await adjustBalance(delta, w);
-          }
           window.dispatchEvent(new CustomEvent("ledger:changed"));
         }
       } catch { /* noop */ }
@@ -530,6 +525,10 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
             source: "auto",
             wallet: payWallet,
             metadata: { credit_card_id: card.id, cycle_key: cycleKey, kind: "credit_card_invoice_payment" },
+            // O pagamento de fatura deve debitar APENAS o "Saldo em Conta" da aba Receitas
+            // (que lê este lançamento do extrato). Não tocar no saldo do Dashboard
+            // para evitar duplo débito no Total em Mãos.
+            syncBalance: false,
           });
           setInvoiceLedgerPaid(Number((ledgerPaid + ledgerAmount).toFixed(2)));
         } catch {
