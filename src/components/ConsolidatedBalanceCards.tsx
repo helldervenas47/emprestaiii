@@ -99,6 +99,7 @@ export function ConsolidatedBalanceCards() {
   const [vehicleBalance, setVehicleBalance] = useState(0);
   const [openRua, setOpenRua] = useState(false);
   const [openMaos, setOpenMaos] = useState(false);
+  const [openTotal, setOpenTotal] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
   const [visibility, setVisibility] = useState<MaosVisibility>(() => {
     if (typeof window === "undefined") return DEFAULT_VIS;
@@ -219,7 +220,7 @@ export function ConsolidatedBalanceCards() {
   return (
     <>
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
-        <Card no3d>
+        <Card no3d className="cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => setOpenTotal(true)}>
           <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
             <div className="flex items-center justify-center gap-1.5">
               <Landmark className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
@@ -230,6 +231,7 @@ export function ConsolidatedBalanceCards() {
             </p>
           </CardContent>
         </Card>
+
         <Card no3d className="cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => setOpenMaos(true)}>
           <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
             <div className="flex items-center justify-center gap-1.5">
@@ -280,6 +282,26 @@ export function ConsolidatedBalanceCards() {
               <span className="text-sm font-semibold">Total consolidado</span>
               <span className={`text-base font-bold tabular-nums ${totalNaRua < 0 ? "text-destructive" : "text-foreground"}`}>
                 {formatBRL(totalNaRua)}
+              </span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openTotal} onOpenChange={setOpenTotal}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Landmark className="h-4 w-4 text-primary" /> Saldo total
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1">
+            <Row label="Saldo em conta" value={dashboardAccount} />
+            <Row label="Dinheiro em mãos" value={dashboardCash} />
+            <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
+              <span className="text-sm font-semibold">Total</span>
+              <span className={`text-base font-bold tabular-nums ${contaMaisDinheiro < 0 ? "text-destructive" : "text-foreground"}`}>
+                {formatBRL(contaMaisDinheiro)}
               </span>
             </div>
           </div>
