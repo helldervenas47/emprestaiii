@@ -219,7 +219,7 @@ export function ConsolidatedBalanceCards() {
   return (
     <>
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
-        <Card no3d>
+        <Card no3d className="cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => setOpenTotal(true)}>
           <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
             <div className="flex items-center justify-center gap-1.5">
               <Landmark className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
@@ -230,6 +230,7 @@ export function ConsolidatedBalanceCards() {
             </p>
           </CardContent>
         </Card>
+
         <Card no3d className="cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => setOpenMaos(true)}>
           <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
             <div className="flex items-center justify-center gap-1.5">
