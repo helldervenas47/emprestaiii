@@ -306,6 +306,24 @@ export function useExpenses(enabled = true) {
         });
       }
 
+      // Receita gerada automaticamente (flag opt-in)
+      if (expense.generateIncomeOnPay && (expense.scope ?? "business") === "business") {
+        const incomeId = await createLinkedIncome({
+          ownerId: dataOwnerId,
+          expenseId: id,
+          description: expense.description,
+          amount: finalAmount,
+          category: expense.category,
+          paymentMethodId: expense.paymentMethodId ?? null,
+          date: today,
+        });
+        if (incomeId) {
+          await supabase.from("expenses").update({ generated_income_id: incomeId } as any).eq("id", id);
+          setExpenses((prev) => prev.map((e) => e.id === id ? { ...e, generatedIncomeId: incomeId } : e));
+        }
+      }
+
+
       // Piggy bank credit: only when the piggy expense is paid.
       const piggyId = extractPiggyId(expense.notes);
       if (piggyId) {
