@@ -335,7 +335,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
       }
     >();
     cards.forEach((card) => {
-      const cycle = referenceMonth
+      const baseCycle = referenceMonth
         ? getCycleForDueMonth(referenceMonth, card.closingDay, card.dueDay)
         : getCurrentCycle(card.closingDay, card.dueDay);
       const cardTag = (card.nickname || card.lastFour || "").toLowerCase();
@@ -349,14 +349,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         .filter((e) => e.scope === "personal")
         .filter((e) => /\[\s*cr[eé]dito\s*\]/i.test(e.notes ?? ""))
         .filter(matchesCard);
-      const inCycle = cardExpenses.filter((e) => {
-        const d = new Date(e.dueDate + "T00:00:00");
-        return d >= cycle.from && d < cycle.to;
-      });
-      const transactions = inCycle.reduce((s, e) => {
-        const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
-        return s + (isRec ? e.amount / e.installments! : e.amount);
-      }, 0);
+
       const expensesPending = cardExpenses
         .filter((e) => !e.paid)
         .reduce((s, e) => {
@@ -372,43 +365,87 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         .reduce((s, o) => s + (o.openingAmount ?? 0), 0);
       const pendingTotal = expensesPending + openingsPending;
       const unpaidExpenseIds = cardExpenses.filter((e) => !e.paid).map((e) => e.id);
-      const cycleKey = cycleKeyFromDate(cycle.to);
-      const op = getOpening(card.id, cycleKey);
-      const opening = op?.openingAmount ?? 0;
-      // Pendentes apenas do ciclo selecionado (para o botão "Pagar fatura")
-      const cycleUnpaidExpenseIds = inCycle.filter((e) => !e.paid).map((e) => e.id);
-      const cycleExpensesPending = inCycle
-        .filter((e) => !e.paid)
-        .reduce((s, e) => {
+
+      const computeCycle = (cycle: ReturnType<typeof getCurrentCycle>) => {
+        const inCycle = cardExpenses.filter((e) => {
+          const d = new Date(e.dueDate + "T00:00:00");
+          return d >= cycle.from && d < cycle.to;
+        });
+        const transactions = inCycle.reduce((s, e) => {
           const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
           return s + (isRec ? e.amount / e.installments! : e.amount);
         }, 0);
-      const cyclePendingTotal = cycleExpensesPending + opening;
-      // Soma dos itens já pagos dentro do ciclo (refletindo ajustes/edições).
-      // Override manual em opening.notes ([PAID:xxx]) tem precedência.
-      const itemsPaidTotal = inCycle
-        .filter((e) => e.paid)
-        .reduce((s, e) => {
-          const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
-          return s + (isRec ? e.amount / e.installments! : e.amount);
-        }, 0);
-      const paidOverride = readPaidOverride(op?.notes);
-      const paidTotal = paidOverride ?? itemsPaidTotal;
+        const cycleKey = cycleKeyFromDate(cycle.to);
+        const op = getOpening(card.id, cycleKey);
+        const opening = op?.openingAmount ?? 0;
+        const cycleUnpaidExpenseIds = inCycle.filter((e) => !e.paid).map((e) => e.id);
+        const cycleExpensesPending = inCycle
+          .filter((e) => !e.paid)
+          .reduce((s, e) => {
+            const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
+            return s + (isRec ? e.amount / e.installments! : e.amount);
+          }, 0);
+        const cyclePendingTotal = cycleExpensesPending + opening;
+        const itemsPaidTotal = inCycle
+          .filter((e) => e.paid)
+          .reduce((s, e) => {
+            const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
+            return s + (isRec ? e.amount / e.installments! : e.amount);
+          }, 0);
+        const paidOverride = readPaidOverride(op?.notes);
+        const openingPaidFlag = /\[PAGA\]/i.test(op?.notes ?? "");
+        const paidTotal = paidOverride ?? Number((itemsPaidTotal + (openingPaidFlag ? opening : 0)).toFixed(2));
+        const total = transactions + opening;
+        const remaining = Math.max(0, Number((total - paidTotal).toFixed(2)));
+        const everHadValue = inCycle.length > 0 || opening > 0 || openingPaidFlag || paidOverride !== null;
+        const isPaid = everHadValue && remaining <= 0.005;
+        return {
+          cycle,
+          cycleKey,
+          op,
+          opening,
+          transactions,
+          total,
+          paidTotal,
+          cyclePendingTotal,
+          cycleUnpaidExpenseIds,
+          isPaid,
+        };
+      };
+
+      // Avança para a próxima fatura em aberto a partir do ciclo base.
+      // Se nenhuma futura estiver aberta, mantém o ciclo base (consulta).
+      let chosen = computeCycle(baseCycle);
+      if (chosen.isPaid) {
+        const baseRef = new Date(baseCycle.dueDate);
+        for (let i = 1; i <= 24; i++) {
+          const d = new Date(baseRef);
+          d.setMonth(d.getMonth() + i);
+          const nextCycle = getCycleForRef(d, card.closingDay, card.dueDay);
+          const candidate = computeCycle(nextCycle);
+          if (!candidate.isPaid) {
+            chosen = candidate;
+            break;
+          }
+        }
+      }
+
       map.set(card.id, {
-        transactions,
-        opening,
-        total: transactions + opening,
-        paidTotal,
+        transactions: chosen.transactions,
+        opening: chosen.opening,
+        total: chosen.total,
+        paidTotal: chosen.paidTotal,
         pendingTotal,
-        cyclePendingTotal,
-        dueDate: cycle.dueDate,
-        cycleKey,
-        openingNotes: op?.notes ?? null,
-        hasOpening: !!op,
+        cyclePendingTotal: chosen.cyclePendingTotal,
+        dueDate: chosen.cycle.dueDate,
+        cycleKey: chosen.cycleKey,
+        openingNotes: chosen.op?.notes ?? null,
+        hasOpening: !!chosen.op,
         unpaidExpenseIds,
-        cycleUnpaidExpenseIds,
+        cycleUnpaidExpenseIds: chosen.cycleUnpaidExpenseIds,
       });
     });
+
     return map;
   }, [cards, expenses, openings, getOpening, referenceMonth]);
 
