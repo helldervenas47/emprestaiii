@@ -288,6 +288,26 @@ export function ConsolidatedBalanceCards() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={openTotal} onOpenChange={setOpenTotal}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Landmark className="h-4 w-4 text-primary" /> Saldo total
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1">
+            <Row label="Saldo em conta" value={dashboardAccount} />
+            <Row label="Dinheiro em mãos" value={dashboardCash} />
+            <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
+              <span className="text-sm font-semibold">Total</span>
+              <span className={`text-base font-bold tabular-nums ${contaMaisDinheiro < 0 ? "text-destructive" : "text-foreground"}`}>
+                {formatBRL(contaMaisDinheiro)}
+              </span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={openMaos} onOpenChange={setOpenMaos}>
         <DialogContent
           className="!p-0 overflow-hidden border-border/60 bg-gradient-to-br from-background via-background to-muted/30 backdrop-blur-xl max-sm:!fixed max-sm:!inset-0 max-sm:!left-0 max-sm:!top-0 max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!max-w-none max-sm:!w-screen max-sm:!h-screen max-sm:!max-h-screen max-sm:!rounded-none max-sm:!flex max-sm:!flex-col max-sm:!gap-0 sm:max-w-md"
