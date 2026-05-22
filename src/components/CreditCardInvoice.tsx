@@ -343,30 +343,20 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
       const everHadValue = cItems.length > 0 || openingAmt > 0 || opPaidFlag || paidOv !== null;
       return { paid: everHadValue && remaining <= 0.005, hasData: everHadValue };
     };
+    // Estratégia: começa no mês filtrado. Se estiver paga, avança até achar
+    // uma fatura em aberto. Se nenhuma futura está aberta, mantém o ciclo filtrado.
     let target = initialOffset;
-    let lastWithData = initialOffset;
     for (let i = 0; i < 24; i++) {
       const candidate = initialOffset + i;
-      const { paid, hasData } = isCyclePaidAt(candidate);
-      if (hasData) lastWithData = candidate;
+      const { paid } = isCyclePaidAt(candidate);
       if (!paid) {
         target = candidate;
-        if (i === 0 || hasData || candidate === initialOffset) {
-          // próxima em aberto encontrada (ou a do mês filtrado já está aberta)
-        }
-        if (!paid && (hasData || candidate === initialOffset || i > 0)) {
-          target = candidate;
-          break;
-        }
+        break;
       }
-    }
-    // Se nenhum ciclo aberto foi encontrado, mantém o último com dados
-    if (target === initialOffset) {
-      const first = isCyclePaidAt(initialOffset);
-      if (first.paid) target = lastWithData;
     }
     setCycleOffset(target);
   }, [initialOffset, expandedExpenses, openings, card.id, card.closingDay, card.dueDay, cardTag]);
+
 
 
 
