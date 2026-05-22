@@ -99,6 +99,7 @@ export function ConsolidatedBalanceCards() {
   const [vehicleBalance, setVehicleBalance] = useState(0);
   const [openRua, setOpenRua] = useState(false);
   const [openMaos, setOpenMaos] = useState(false);
+  const [openTotal, setOpenTotal] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
   const [visibility, setVisibility] = useState<MaosVisibility>(() => {
     if (typeof window === "undefined") return DEFAULT_VIS;
