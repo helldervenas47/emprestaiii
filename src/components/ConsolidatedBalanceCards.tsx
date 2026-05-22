@@ -201,6 +201,12 @@ export function ConsolidatedBalanceCards() {
   const totalEmMaos =
     dashboardAccount + dashboardCash + incomesBalance + piggyTotal + vehicleBalance;
 
+  const contaMaisDinheiro = dashboardAccount + dashboardCash;
+  const stockValue = useMemo(
+    () => products.reduce((s, p) => s + (p.price || 0) * Math.max(0, p.stock || 0), 0),
+    [products],
+  );
+
   const Row = ({ label, value }: { label: string; value: number }) => (
     <div className="flex items-center justify-between py-2 border-b border-border/40 last:border-0">
       <span className="text-sm text-muted-foreground">{label}</span>
@@ -213,6 +219,28 @@ export function ConsolidatedBalanceCards() {
   return (
     <>
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        <Card no3d>
+          <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
+            <div className="flex items-center justify-center gap-1.5">
+              <Landmark className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Saldo total: conta + dinheiro</p>
+            </div>
+            <p className={`text-base sm:text-xl font-bold truncate leading-tight mt-0.5 ${contaMaisDinheiro < 0 ? "text-destructive" : "text-foreground"}`}>
+              {formatBRL(contaMaisDinheiro)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card no3d className="cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => setOpenMaos(true)}>
+          <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
+            <div className="flex items-center justify-center gap-1.5">
+              <Wallet className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-success" />
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Saldo total em mãos</p>
+            </div>
+            <p className={`text-base sm:text-xl font-bold truncate leading-tight mt-0.5 ${totalEmMaos < 0 ? "text-destructive" : "text-foreground"}`}>
+              {formatBRL(totalEmMaos)}
+            </p>
+          </CardContent>
+        </Card>
         <Card no3d className="cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => setOpenRua(true)}>
           <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
             <div className="flex items-center justify-center gap-1.5">
@@ -224,18 +252,19 @@ export function ConsolidatedBalanceCards() {
             </p>
           </CardContent>
         </Card>
-        <Card no3d className="cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => setOpenMaos(true)}>
+        <Card no3d>
           <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
             <div className="flex items-center justify-center gap-1.5">
-              <Wallet className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-success" />
-              <p className="text-[11px] sm:text-xs text-muted-foreground">Saldo Total em Mãos</p>
+              <PiggyBank className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Saldo em estoque</p>
             </div>
-            <p className={`text-base sm:text-xl font-bold truncate leading-tight mt-0.5 ${totalEmMaos < 0 ? "text-destructive" : "text-foreground"}`}>
-              {formatBRL(totalEmMaos)}
+            <p className={`text-base sm:text-xl font-bold truncate leading-tight mt-0.5 ${stockValue < 0 ? "text-destructive" : "text-foreground"}`}>
+              {formatBRL(stockValue)}
             </p>
           </CardContent>
         </Card>
       </div>
+
 
       <Dialog open={openRua} onOpenChange={setOpenRua}>
         <DialogContent className="max-w-sm">
