@@ -7,6 +7,7 @@ import { extractPiggyId } from "./usePiggyBanks";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 import { recordLedger, removeLedgerByRef } from "@/lib/ledger";
 import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
+import { adjustVehicleBalance } from "@/lib/vehicleBalance";
 import {
   cacheRows, getCachedRows, upsertCachedRow, removeCachedRow,
   enqueueMutation, rewritePendingRecordId,
