@@ -179,31 +179,6 @@ export function LedgerView({ readOnly = false }: Props) {
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      {/* Saldos por carteira */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-3">
-        <Card no3d>
-          <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
-            <div className="flex items-center justify-center gap-1.5">
-              <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
-              <p className="text-[11px] sm:text-xs text-muted-foreground">Conta</p>
-            </div>
-            <p className={`text-base sm:text-xl font-bold truncate leading-tight mt-0.5 ${balances.account < 0 ? "text-destructive" : "text-foreground"}`}>
-              {formatBRL(balances.account)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card no3d>
-          <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
-            <div className="flex items-center justify-center gap-1.5">
-              <Banknote className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-success" />
-              <p className="text-[11px] sm:text-xs text-muted-foreground">Dinheiro</p>
-            </div>
-            <p className={`text-base sm:text-xl font-bold truncate leading-tight mt-0.5 ${balances.cash < 0 ? "text-destructive" : "text-foreground"}`}>
-              {formatBRL(balances.cash)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Indicadores consolidados */}
       <ConsolidatedBalanceCards />
