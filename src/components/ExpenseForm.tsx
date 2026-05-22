@@ -44,6 +44,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
   const [submitting, setSubmitting] = useState(false);
   const [showFormError, setShowFormError] = useState(false);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
+  const [generateIncomeOnPay, setGenerateIncomeOnPay] = useState(false);
   const { suggestions, record } = useDescriptionHistory(`expense-${scope}`);
   const [form, setForm] = useState({
     description: defaults?.description ?? "",
