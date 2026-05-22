@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, X } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Expense } from "@/types/loan";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { MoneyInput } from "@/components/ui/money-input";
@@ -43,6 +44,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
   const [submitting, setSubmitting] = useState(false);
   const [showFormError, setShowFormError] = useState(false);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
+  const [generateIncomeOnPay, setGenerateIncomeOnPay] = useState(false);
   const { suggestions, record } = useDescriptionHistory(`expense-${scope}`);
   const [form, setForm] = useState({
     description: defaults?.description ?? "",
@@ -76,6 +78,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
         notes: form.notes,
         scope,
         paymentMethodId,
+        generateIncomeOnPay,
       };
     } else if (form.kind === "fixa") {
       payload = {
@@ -89,6 +92,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
         notes: form.notes,
         scope,
         paymentMethodId,
+        generateIncomeOnPay,
       };
     } else {
       payload = {
@@ -100,6 +104,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
         notes: form.notes,
         scope,
         paymentMethodId,
+        generateIncomeOnPay,
       };
     }
 
@@ -212,6 +217,26 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
               required
               showError={showFormError}
             />
+
+            {scope === "business" && (
+              <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/40 p-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="generate-income" className="text-sm font-medium">
+                    Gerar receita ao pagar
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Ao marcar como paga, cria automaticamente uma receita do mesmo valor que entra no saldo em conta.
+                  </p>
+                </div>
+                <Switch
+                  id="generate-income"
+                  checked={generateIncomeOnPay}
+                  onCheckedChange={setGenerateIncomeOnPay}
+                />
+              </div>
+            )}
+
+
 
             <div>
               <Label htmlFor="notes">Observações</Label>

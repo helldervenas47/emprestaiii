@@ -1042,6 +1042,8 @@ export type Database = {
           created_at: string
           description: string
           due_date: string
+          generate_income_on_pay: boolean
+          generated_income_id: string | null
           id: string
           installments: number | null
           notes: string | null
@@ -1060,6 +1062,8 @@ export type Database = {
           created_at?: string
           description: string
           due_date: string
+          generate_income_on_pay?: boolean
+          generated_income_id?: string | null
           id?: string
           installments?: number | null
           notes?: string | null
@@ -1078,6 +1082,8 @@ export type Database = {
           created_at?: string
           description?: string
           due_date?: string
+          generate_income_on_pay?: boolean
+          generated_income_id?: string | null
           id?: string
           installments?: number | null
           notes?: string | null

@@ -22,7 +22,59 @@ function rowToExpense(e: any): Expense {
     parentExpenseId: e.parent_expense_id ?? undefined,
     scope: (e.scope as "business" | "personal") ?? "business",
     paymentMethodId: e.payment_method_id ?? null,
+    generateIncomeOnPay: !!e.generate_income_on_pay,
+    generatedIncomeId: e.generated_income_id ?? null,
   };
+}
+
+/** Cria receita vinculada a uma despesa paga (idempotente via marker em notes). */
+async function createLinkedIncome(opts: {
+  ownerId: string;
+  expenseId: string;           // referência usada como marker e dedup
+  description: string;
+  amount: number;
+  category: string | null;
+  paymentMethodId: string | null;
+  date: string;
+  parentExpenseId?: string | null;
+}): Promise<string | null> {
+  const marker = `[FromExpense:${opts.expenseId}]`;
+  // Dedup: já existe?
+  const { data: existing } = await supabase
+    .from("incomes" as any)
+    .select("id")
+    .eq("user_id", opts.ownerId)
+    .ilike("notes", `%${marker}%`)
+    .limit(1);
+  if (existing && existing.length > 0) return (existing[0] as any).id as string;
+
+  const payload: any = {
+    user_id: opts.ownerId,
+    description: opts.description,
+    amount: opts.amount,
+    category: opts.category,
+    client_id: null,
+    source: "expense",
+    payment_method_id: opts.paymentMethodId,
+    received_date: opts.date,
+    actual_received_date: opts.date,
+    status: "received",
+    notes: `Gerada automaticamente pela despesa\n${marker}`,
+    recurrence: "once",
+    parent_id: null,
+  };
+  const { data, error } = await supabase.from("incomes" as any).insert(payload).select("id").single();
+  if (error || !data) return null;
+  return (data as any).id as string;
+}
+
+async function deleteLinkedIncomeFor(ownerId: string, expenseId: string): Promise<void> {
+  const marker = `[FromExpense:${expenseId}]`;
+  await supabase
+    .from("incomes" as any)
+    .delete()
+    .eq("user_id", ownerId)
+    .ilike("notes", `%${marker}%`);
 }
 
 export function useExpenses(enabled = true) {
@@ -89,6 +141,7 @@ export function useExpenses(enabled = true) {
       notes: expense.notes ?? null,
       scope: expense.scope ?? "business",
       payment_method_id: expense.paymentMethodId ?? null,
+      generate_income_on_pay: !!expense.generateIncomeOnPay,
     };
 
     await upsertCachedRow("expenses", { ...insertPayload, created_at: optimistic.createdAt });
@@ -204,6 +257,20 @@ export function useExpenses(enabled = true) {
           metadata: { parent_expense_id: id, category: expense.category },
         });
       }
+
+      // Receita gerada automaticamente (flag opt-in na despesa pai)
+      if (expense.generateIncomeOnPay && (expense.scope ?? "business") === "business") {
+        await createLinkedIncome({
+          ownerId: dataOwnerId,
+          expenseId: childTempId,
+          description: `${expense.description} (${newPaid}/${expense.installments})`,
+          amount: installmentAmount,
+          category: expense.category,
+          paymentMethodId: expense.paymentMethodId ?? null,
+          date: today,
+          parentExpenseId: id,
+        });
+      }
     } else {
       // Simple fixa expense — if a different paid amount was provided, update the amount
       // and stash the original in notes so we can restore it on unpay.
@@ -238,6 +305,24 @@ export function useExpenses(enabled = true) {
           metadata: { category: expense.category },
         });
       }
+
+      // Receita gerada automaticamente (flag opt-in)
+      if (expense.generateIncomeOnPay && (expense.scope ?? "business") === "business") {
+        const incomeId = await createLinkedIncome({
+          ownerId: dataOwnerId,
+          expenseId: id,
+          description: expense.description,
+          amount: finalAmount,
+          category: expense.category,
+          paymentMethodId: expense.paymentMethodId ?? null,
+          date: today,
+        });
+        if (incomeId) {
+          await supabase.from("expenses").update({ generated_income_id: incomeId } as any).eq("id", id);
+          setExpenses((prev) => prev.map((e) => e.id === id ? { ...e, generatedIncomeId: incomeId } : e));
+        }
+      }
+
 
       // Piggy bank credit: only when the piggy expense is paid.
       const piggyId = extractPiggyId(expense.notes);
@@ -331,6 +416,8 @@ export function useExpenses(enabled = true) {
         if ((expense.scope ?? "business") === "business") {
           await removeLedgerByRef({ expense_id: latestChildId, category: "expense" });
         }
+        // Remove receita gerada para esta parcela específica, se existir
+        if (dataOwnerId) await deleteLinkedIncomeFor(dataOwnerId, latestChildId);
         await supabase.from("expenses").delete().eq("id", latestChildId);
       }
       await supabase.from("expenses").update(parentUpdate).eq("id", id);
@@ -358,12 +445,19 @@ export function useExpenses(enabled = true) {
         await removeLedgerByRef({ expense_id: id, category: "expense" });
       }
 
+      // Remove receita gerada (se houver) e limpa o vínculo
+      if (dataOwnerId) {
+        await deleteLinkedIncomeFor(dataOwnerId, id);
+        await supabase.from("expenses").update({ generated_income_id: null } as any).eq("id", id);
+        setExpenses((prev) => prev.map((e) => e.id === id ? { ...e, generatedIncomeId: null } : e));
+      }
+
       // Reverse piggy bank credit when unpaying a piggy expense.
       if (extractPiggyId(expense.notes)) {
         await supabase.from("piggy_bank_deposits" as any).delete().eq("expense_id", id);
       }
     }
-  }, [expenses]);
+  }, [expenses, dataOwnerId]);
 
   const deleteExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
     const expense = expenses.find((e) => e.id === id);
@@ -379,9 +473,12 @@ export function useExpenses(enabled = true) {
     // Remove lançamento do extrato (reverte saldo na carteira correta automaticamente)
     await removeLedgerByRef({ expense_id: id, category: "expense" });
 
+    // Remove receita gerada vinculada (se houver)
+    if (dataOwnerId) await deleteLinkedIncomeFor(dataOwnerId, id);
+
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) await enqueueMutation({ table: "expenses", op: "delete", recordId: id });
-  }, [expenses]);
+  }, [expenses, dataOwnerId]);
 
   const updateExpense = useCallback(async (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => {
     setExpenses((prev) => prev.map((e) => e.id === id ? { ...e, ...data } : e));
@@ -391,6 +488,7 @@ export function useExpenses(enabled = true) {
       paid_installments: data.paidInstallments, due_date: data.dueDate,
       paid: data.paid, paid_date: data.paidDate, notes: data.notes,
       payment_method_id: data.paymentMethodId,
+      generate_income_on_pay: data.generateIncomeOnPay,
     };
     Object.keys(updatePayload).forEach(k => updatePayload[k] === undefined && delete updatePayload[k]);
     if (!isOnline()) {
@@ -400,6 +498,7 @@ export function useExpenses(enabled = true) {
     const { error } = await supabase.from("expenses").update(updatePayload).eq("id", id);
     if (error) await enqueueMutation({ table: "expenses", op: "update", recordId: id, payload: updatePayload });
   }, []);
+
 
   return { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense };
 }

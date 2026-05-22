@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import {
   Search, Trash2, CheckCircle, Receipt, Calendar, Tag,
   CircleDollarSign, ChevronLeft, ChevronRight, Undo2, Pencil, Check, CalendarCheck,
@@ -79,6 +80,7 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
     installments: String(expense.installments && expense.installments < FIXED_RECURRING_INSTALLMENTS ? expense.installments : 1),
     dueDate: expense.dueDate,
     notes: expense.notes || "",
+    generateIncomeOnPay: !!expense.generateIncomeOnPay,
   });
 
   useEffect(() => {
@@ -96,6 +98,7 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
         installments: String(expense.installments && expense.installments < FIXED_RECURRING_INSTALLMENTS ? expense.installments : 1),
         dueDate: expense.dueDate,
         notes: expense.notes || "",
+        generateIncomeOnPay: !!expense.generateIncomeOnPay,
       });
     }
   }, [open, expense]);
@@ -114,6 +117,7 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
         installments: inst,
         dueDate: form.dueDate,
         notes: form.notes || undefined,
+        generateIncomeOnPay: form.generateIncomeOnPay,
       };
     } else if (form.kind === "fixa") {
       patch = {
@@ -124,6 +128,7 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
         installments: FIXED_RECURRING_INSTALLMENTS,
         dueDate: form.dueDate,
         notes: form.notes || undefined,
+        generateIncomeOnPay: form.generateIncomeOnPay,
       };
     } else {
       patch = {
@@ -134,6 +139,7 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
         installments: undefined,
         dueDate: form.dueDate,
         notes: form.notes || undefined,
+        generateIncomeOnPay: form.generateIncomeOnPay,
       };
     }
     onSave(patch);
@@ -198,6 +204,19 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
           <div>
             <Label htmlFor="edit-notes">Observações</Label>
             <Textarea id="edit-notes" value={form.notes} onChange={e => update("notes", e.target.value)} rows={2} />
+          </div>
+          <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/40 p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="edit-gen-income" className="text-sm font-medium">Gerar receita ao pagar</Label>
+              <p className="text-xs text-muted-foreground">
+                Ao marcar como paga, cria automaticamente uma receita do mesmo valor que entra no saldo em conta.
+              </p>
+            </div>
+            <Switch
+              id="edit-gen-income"
+              checked={form.generateIncomeOnPay}
+              onCheckedChange={(v) => setForm(prev => ({ ...prev, generateIncomeOnPay: v }))}
+            />
           </div>
           {parseFloat(form.amount) > 0 && form.kind === "parcelada" && parseInt(form.installments) > 1 && (
             <div className="rounded-lg bg-muted p-3">
