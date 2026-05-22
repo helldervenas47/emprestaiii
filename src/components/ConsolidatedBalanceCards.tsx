@@ -297,7 +297,7 @@ export function ConsolidatedBalanceCards() {
           </DialogHeader>
           <div className="space-y-1">
             <Row label="Saldo em conta" value={dashboardAccount} />
-            <Row label="Dinheiro em mãos" value={dashboardCash} />
+            <Row label="Dinheiro" value={dashboardCash} />
             <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
               <span className="text-sm font-semibold">Total</span>
               <span className={`text-base font-bold tabular-nums ${contaMaisDinheiro < 0 ? "text-destructive" : "text-foreground"}`}>
