@@ -7,6 +7,7 @@ import { useExternalAccountSources } from "@/hooks/useExternalAccountSources";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { creditCardInvoiceExtraPaid, creditCardLedgerHandled, cycleKeyForDate, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
+import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
 import type { Sale } from "@/types/loan";
 
 /**
