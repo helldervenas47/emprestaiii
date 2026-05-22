@@ -78,6 +78,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
         notes: form.notes,
         scope,
         paymentMethodId,
+        generateIncomeOnPay,
       };
     } else if (form.kind === "fixa") {
       payload = {
@@ -91,6 +92,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
         notes: form.notes,
         scope,
         paymentMethodId,
+        generateIncomeOnPay,
       };
     } else {
       payload = {
@@ -102,6 +104,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
         notes: form.notes,
         scope,
         paymentMethodId,
+        generateIncomeOnPay,
       };
     }
 
