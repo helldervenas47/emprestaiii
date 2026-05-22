@@ -378,7 +378,7 @@ export function ConsolidatedBalanceCards() {
                   <Item key="account" icon={Landmark} label="Conta" hint="Saldo bancário (Dashboard)" value={dashboardAccount} tint="bg-primary/15 text-primary" />
                 ),
                 visibility.cash && (
-                  <Item key="cash" icon={Banknote} label="Dinheiro em mãos" hint="Carteira (Dashboard)" value={dashboardCash} tint="bg-success/15 text-success" />
+                  <Item key="cash" icon={Banknote} label="Dinheiro" hint="Carteira (Dashboard)" value={dashboardCash} tint="bg-success/15 text-success" />
                 ),
                 visibility.incomes && (
                   <Item key="incomes" icon={ArrowDownCircle} label="Saldo em Conta (Receitas)" hint="Receitas − Despesas pessoais" value={baseReceitas} tint="bg-warning/15 text-warning" />
