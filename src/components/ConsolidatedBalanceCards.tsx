@@ -297,7 +297,7 @@ export function ConsolidatedBalanceCards() {
           </DialogHeader>
           <div className="space-y-1">
             <Row label="Saldo em conta" value={dashboardAccount} />
-            <Row label="Dinheiro em mãos" value={dashboardCash} />
+            <Row label="Dinheiro" value={dashboardCash} />
             <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
               <span className="text-sm font-semibold">Total</span>
               <span className={`text-base font-bold tabular-nums ${contaMaisDinheiro < 0 ? "text-destructive" : "text-foreground"}`}>
@@ -378,7 +378,7 @@ export function ConsolidatedBalanceCards() {
                   <Item key="account" icon={Landmark} label="Conta" hint="Saldo bancário (Dashboard)" value={dashboardAccount} tint="bg-primary/15 text-primary" />
                 ),
                 visibility.cash && (
-                  <Item key="cash" icon={Banknote} label="Dinheiro em mãos" hint="Carteira (Dashboard)" value={dashboardCash} tint="bg-success/15 text-success" />
+                  <Item key="cash" icon={Banknote} label="Dinheiro" hint="Carteira (Dashboard)" value={dashboardCash} tint="bg-success/15 text-success" />
                 ),
                 visibility.incomes && (
                   <Item key="incomes" icon={ArrowDownCircle} label="Saldo em Conta (Receitas)" hint="Receitas − Despesas pessoais" value={baseReceitas} tint="bg-warning/15 text-warning" />
