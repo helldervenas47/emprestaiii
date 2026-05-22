@@ -302,7 +302,7 @@ export function useExpenses(enabled = true) {
       await supabase.from("expenses").update(updatePayload).eq("id", id);
 
       // Saída no extrato: despesa simples paga (apenas business; despesas de veículos NÃO
-      // entram no extrato — são debitadas exclusivamente do "Saldo em Conta" da aba Receitas).
+      // entram no extrato — são debitadas exclusivamente do "Saldo em Conta" da aba Veículos).
       if (!skipBalanceAdjust && (expense.scope ?? "business") === "business" && !isVehicleExpenseForVehicles(expense)) {
         await recordLedger({
           direction: "out", category: "expense", amount: finalAmount,
@@ -311,6 +311,9 @@ export function useExpenses(enabled = true) {
           payment_method_id: expense.paymentMethodId ?? null,
           metadata: { category: expense.category },
         });
+      } else if (!skipBalanceAdjust && isVehicleExpenseForVehicles(expense)) {
+        // Debita o "Saldo em Conta" da aba Veículos.
+        await adjustVehicleBalance(-finalAmount);
       }
 
       // Receita gerada automaticamente (flag opt-in)
