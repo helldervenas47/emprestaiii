@@ -139,7 +139,12 @@ export function IncomePendingCalendar({
   const [editValue, setEditValue] = useState("");
   const [editDate, setEditDate] = useState<string>("");
 
-  const { sales } = useProducts(true);
+  const { sales: rawSales } = useProducts(true);
+  // Aluguéis de veículo são isolados na aba "Veículos" e não devem aparecer aqui.
+  const sales = useMemo(
+    () => (rawSales || []).filter((s) => s.businessType !== "aluguel_veiculo"),
+    [rawSales],
+  );
   const { deposits: piggyDeposits, piggyBanks } = usePiggyBanks();
 
   // Saldo em conta (mesma fórmula do IncomeBalanceCard)
