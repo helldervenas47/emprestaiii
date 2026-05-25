@@ -560,8 +560,17 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         interestByPaymentId.set(p.id, interest);
         loanInterestRemaining.set(p.loanId, Math.max(0, rem - interest));
       } else {
+        // Parcela regular: juros proporcional à composição da operação
+        // (cada parcela contém a mesma proporção de juros/principal).
+        const loan = loans.find((l) => l.id === p.loanId);
+        const totalWithInterest = loan
+          ? calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments)
+          : 0;
+        const ratio = totalWithInterest > 0 && loan
+          ? Math.max(0, 1 - loan.amount / totalWithInterest)
+          : 0;
         const rem = loanInterestRemaining.get(p.loanId) ?? 0;
-        const interest = Math.min(amt, rem);
+        const interest = Math.min(rem, Math.max(0, amt * ratio));
         interestByPaymentId.set(p.id, interest);
         loanInterestRemaining.set(p.loanId, Math.max(0, rem - interest));
       }
