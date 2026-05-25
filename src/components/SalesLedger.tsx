@@ -21,6 +21,7 @@ interface Movement {
   type: SalePaymentRecord["type"] | "downpayment";
   paymentMethodName: string;
   status: "paid" | "partial" | "pending";
+  isAvulsa: boolean;
 }
 
 function fmt(v: number) {
@@ -56,6 +57,7 @@ export function SalesLedger({ sales }: { sales: Sale[] }) {
         : (sale.paidInstallments > 0 || (sale.partialPaid || 0) > 0 || (sale.downPayment || 0) > 0)
           ? "partial"
           : "pending";
+      const isAvulsa = sale.businessType === "venda" && !sale.productId;
 
       // Merchandise as part of payment: subtract proportional share from each cash movement
       const parsed = parseNotesWithMerchandise(sale.notes);
@@ -79,6 +81,7 @@ export function SalesLedger({ sales }: { sales: Sale[] }) {
             type: "downpayment",
             paymentMethodName: pmName,
             status,
+            isAvulsa,
           });
         }
       }
@@ -95,6 +98,7 @@ export function SalesLedger({ sales }: { sales: Sale[] }) {
           type: p.type,
           paymentMethodName: pmName,
           status,
+          isAvulsa,
         });
       });
     });
@@ -198,7 +202,12 @@ export function SalesLedger({ sales }: { sales: Sale[] }) {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">{m.customerName}</p>
-                      <p className="text-xs text-muted-foreground truncate">{m.description}</p>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="text-xs text-muted-foreground truncate">{m.description}</p>
+                        {m.isAvulsa && (
+                          <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-primary/40 text-primary shrink-0">Avulsa</Badge>
+                        )}
+                      </div>
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-sm font-bold text-success tabular-nums">{hideValues ? "•••" : fmt(m.amount)}</p>
@@ -239,7 +248,14 @@ export function SalesLedger({ sales }: { sales: Sale[] }) {
                     <tr key={m.id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-2.5 text-foreground tabular-nums">{format(parseISO(m.date), "dd/MM/yyyy")}</td>
                       <td className="px-4 py-2.5 text-foreground">{m.customerName}</td>
-                      <td className="px-4 py-2.5 text-muted-foreground max-w-[260px] truncate">{m.description}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground max-w-[260px]">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{m.description}</span>
+                          {m.isAvulsa && (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-primary/40 text-primary shrink-0">Avulsa</Badge>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-2.5 text-foreground">{m.paymentMethodName}</td>
                       <td className="px-4 py-2.5 text-muted-foreground">{typeLabel(m.type)}</td>
                       <td className="px-4 py-2.5 text-right font-semibold text-success tabular-nums">{hideValues ? "•••" : fmt(m.amount)}</td>
