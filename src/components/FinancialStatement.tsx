@@ -132,6 +132,7 @@ export function FinancialStatement() {
       .map((e: Expense) => ({
         id: `e-${e.id}`,
         date: e.paidDate!,
+        ts: buildSortTs(e.paidDate!, e.createdAt),
         description: e.description,
         category: e.category || "Outros",
         type: "expense",
