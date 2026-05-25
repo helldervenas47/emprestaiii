@@ -158,7 +158,14 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
               <Input
                 id="description"
                 value={form.description}
-                onChange={(e) => update("description", e.target.value)}
+                onChange={(e) => {
+                  update("description", e.target.value);
+                  // datalist selection fires onChange with the chosen value
+                  if (suggestions.some((s) => s.toLowerCase() === e.target.value.trim().toLowerCase())) {
+                    applyTemplateFromDescription(e.target.value);
+                  }
+                }}
+                onBlur={(e) => applyTemplateFromDescription(e.target.value)}
                 placeholder="Ex: Aluguel do escritório"
                 list="expense-desc-history"
                 required
