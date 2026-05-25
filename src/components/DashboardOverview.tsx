@@ -1441,7 +1441,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const interestChart = useMemo(() => {
     return interestChartBase.map((m) => ({
       month: m.month,
-      juros: m.juros > 0 ? m.juros : (interestOverrides[m.month] ?? 0),
+      juros: interestOverrides[m.month] !== undefined ? interestOverrides[m.month] : m.juros,
     }));
   }, [interestChartBase, interestOverrides]);
 
