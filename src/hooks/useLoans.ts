@@ -1256,12 +1256,21 @@ export function useLoans() {
       payment_method_id: paymentMethodId ?? null,
       metadata: amortizationMetadata,
     };
+    // IMPORTANTE: a amortização NÃO altera o valor original do empréstimo
+    // (loan.amount), nem a configuração de juros (custom_interest_value), nem
+    // a data de criação, cliente, ou histórico original. Apenas atualiza o
+    // SALDO DEVEDOR (remaining_amount) e recalcula as parcelas FUTURAS via
+    // loan_installments. O custom_installment_value só é tocado quando o
+    // contrato não possui cronograma persistido (fallback de exibição).
+    const hasSchedule = installmentSchedules.some(
+      (s) => s.loanId === loanId && s.installmentNumber > loan.paidInstallments,
+    );
     const loanUpdate: any = {
-      amount: newPrincipal,
       remaining_amount: newRemaining,
-      custom_interest_value: newCustomInterest,
-      custom_installment_value: newInstallmentValue,
     };
+    if (!hasSchedule) {
+      loanUpdate.custom_installment_value = newInstallmentValue;
+    }
 
     // Atualização otimista
     setPayments((prev) => [
@@ -1270,10 +1279,8 @@ export function useLoans() {
     ]);
     setLoans((prev) => prev.map((l) => l.id === loanId ? {
       ...l,
-      amount: newPrincipal,
       remainingAmount: newRemaining,
-      customInterestValue: newCustomInterest,
-      customInstallmentValue: newInstallmentValue,
+      ...(hasSchedule ? {} : { customInstallmentValue: newInstallmentValue }),
     } : l));
     await upsertCachedRow("payments", { ...paymentPayload, created_at: new Date().toISOString() });
 
