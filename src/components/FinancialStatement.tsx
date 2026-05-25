@@ -109,6 +109,21 @@ function buildSortTs(
     if (!Number.isNaN(d.getTime())) {
       // Compara dia no fuso do app (não no fuso do dispositivo).
       if (formatYmdInTz(d, tz) === date) return d.getTime();
+      // Registros antigos / retroativos: a data do evento difere do dia em que
+      // o lançamento foi gravado (created_at). Para preservar a ordem em que
+      // foram lançados dentro do mesmo dia do extrato, aplica o "horário" do
+      // created_at (no fuso do app) sobre a data efetiva do evento.
+      try {
+        const parts = new Intl.DateTimeFormat("en-GB", {
+          timeZone: tz,
+          hour12: false,
+          hour: "2-digit", minute: "2-digit", second: "2-digit",
+        }).formatToParts(d);
+        const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "00";
+        const hhmmss = `${get("hour")}:${get("minute")}:${get("second")}`;
+        const t = wallClockInTz(date, hhmmss, tz);
+        if (!Number.isNaN(t)) return t;
+      } catch { /* fallback below */ }
     }
   }
   return wallClockInTz(date, "12:00:00", tz);
