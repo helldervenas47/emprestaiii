@@ -1362,13 +1362,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [tempInterestOverrides, setTempInterestOverrides] = useState<Record<string, string>>({});
 
   const interestChartBase = useMemo(() => {
-    // Aplica a MESMA regra "juros primeiro por contrato" usada no card "Juros Recebidos no Mês".
-    // 1) Ordena pagamentos cronologicamente.
-    // 2) Para cada pagamento: se installmentNumber === 0 → 100% juros; senão amortiza primeiro
-    //    o juros restante do contrato, o restante vai para principal.
-    // 3) Em contratos quitados, redistribui o lucro residual (totalPago − principal − juros já alocado)
-    //    para o último pagamento — capturando bônus/descontos na quitação.
-    // 4) Agrupa o juros alocado por mês do pagamento.
+    // Usa a MESMA contabilidade do card "Juros Recebidos no Mês":
+    // alocação PROPORCIONAL (cada parcela contém a mesma proporção juros/principal),
+    // com tratamento especial para installmentNumber 0 / -1 / -2 / -3 e
+    // redistribuição do lucro residual no último pagamento de contratos quitados.
     const paymentsSorted = [...payments].sort((a, b) => {
       const d = a.date.localeCompare(b.date);
       if (d !== 0) return d;
@@ -1383,13 +1380,23 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     paymentsSorted.forEach((p) => {
       const amt = Number(p.amount) || 0;
       if (amt <= 0) { interestByPaymentId.set(p.id, 0); return; }
-      if (p.installmentNumber === 0) {
+      if (p.installmentNumber === 0 || p.installmentNumber === -2) {
         interestByPaymentId.set(p.id, amt);
         const rem = loanInterestRemaining.get(p.loanId) ?? 0;
         loanInterestRemaining.set(p.loanId, Math.max(0, rem - amt));
+      } else if (p.installmentNumber === -3) {
+        interestByPaymentId.set(p.id, 0);
       } else {
+        // Parcela regular ou parcial (-1): juros proporcional à composição da operação
+        const loan = loans.find((l) => l.id === p.loanId);
+        const totalWithInterest = loan
+          ? calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments)
+          : 0;
+        const ratio = totalWithInterest > 0 && loan
+          ? Math.max(0, 1 - loan.amount / totalWithInterest)
+          : 0;
         const rem = loanInterestRemaining.get(p.loanId) ?? 0;
-        const interest = Math.min(amt, rem);
+        const interest = Math.min(rem, Math.max(0, amt * ratio));
         interestByPaymentId.set(p.id, interest);
         loanInterestRemaining.set(p.loanId, Math.max(0, rem - interest));
       }
