@@ -207,6 +207,7 @@ export function FinancialStatement() {
         saleRows.push({
           id: `s-${s.id}-legacy`,
           date: s.date,
+          ts: buildSortTs(s.date),
           description: desc,
           category: "Vendas",
           type: "income",
