@@ -545,6 +545,20 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         interestByPaymentId.set(p.id, amt);
         const rem = loanInterestRemaining.get(p.loanId) ?? 0;
         loanInterestRemaining.set(p.loanId, Math.max(0, rem - amt));
+      } else if (p.installmentNumber === -1) {
+        // Pagamento parcial: aloca juros proporcionalmente à composição da operação
+        // (juros total / total com juros), abatendo o restante do principal.
+        const loan = loans.find((l) => l.id === p.loanId);
+        const totalWithInterest = loan
+          ? calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments)
+          : 0;
+        const ratio = totalWithInterest > 0 && loan
+          ? Math.max(0, 1 - loan.amount / totalWithInterest)
+          : 0;
+        const rem = loanInterestRemaining.get(p.loanId) ?? 0;
+        const interest = Math.min(rem, Math.max(0, amt * ratio));
+        interestByPaymentId.set(p.id, interest);
+        loanInterestRemaining.set(p.loanId, Math.max(0, rem - interest));
       } else {
         const rem = loanInterestRemaining.get(p.loanId) ?? 0;
         const interest = Math.min(amt, rem);
