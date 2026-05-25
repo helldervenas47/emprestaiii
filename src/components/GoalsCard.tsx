@@ -298,8 +298,15 @@ function computeProfitRealized(loans: Loan[], payments: Payment[], m: string): n
       interestByPaymentId.set(p.id, interest);
       loanInterestRemaining.set(loanId, Math.max(0, rem - interest));
     } else {
+      // Parcela regular: juros proporcional à composição da operação
+      const loan = loans.find((l: any) => l.id === loanId);
+      const principal = Number((loan as any)?.amount) || 0;
+      const rate = Number((loan as any)?.interestRate ?? (loan as any)?.interest_rate) || 0;
+      const inst = Number((loan as any)?.installments) || 1;
+      const totalWithInterest = loan ? calculateTotalWithInterest(principal, rate, inst) : 0;
+      const ratio = totalWithInterest > 0 ? Math.max(0, 1 - principal / totalWithInterest) : 0;
       const rem = loanInterestRemaining.get(loanId) ?? 0;
-      const interest = Math.min(amt, rem);
+      const interest = Math.min(rem, Math.max(0, amt * ratio));
       interestByPaymentId.set(p.id, interest);
       loanInterestRemaining.set(loanId, Math.max(0, rem - interest));
     }
