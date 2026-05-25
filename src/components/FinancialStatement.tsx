@@ -184,9 +184,11 @@ export function FinancialStatement() {
         const amt = Number(p.amount) || 0;
         if (amt <= 0) return;
         const isFull = p.type !== "partial";
+        const saleDate = p.date || s.date;
         saleRows.push({
           id: `s-${s.id}-p${idx}`,
-          date: p.date || s.date,
+          date: saleDate,
+          ts: buildSortTs(saleDate, null, p.time),
           description: desc,
           category: "Vendas",
           type: "income",
