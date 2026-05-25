@@ -1428,12 +1428,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     return months.map(({ month, juros }) => ({ month, juros }));
   }, [loans, payments]);
 
-  // Override SUBSTITUI o valor calculado (semântica absoluta) — antes era diff somado,
-  // o que distorcia o gráfico quando a fórmula de cálculo era ajustada.
+  // Override só é aplicado quando NÃO há juros calculados a partir de pagamentos reais
+  // do mês. Assim, novos pagamentos de juros sempre refletem no gráfico, e ajustes manuais
+  // só preenchem meses sem dados reais (ex.: histórico antigo importado).
   const interestChart = useMemo(() => {
     return interestChartBase.map((m) => ({
       month: m.month,
-      juros: interestOverrides[m.month] !== undefined ? interestOverrides[m.month] : m.juros,
+      juros: m.juros > 0 ? m.juros : (interestOverrides[m.month] ?? 0),
     }));
   }, [interestChartBase, interestOverrides]);
 
