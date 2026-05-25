@@ -15,7 +15,7 @@ import { Loan, Sale, Payment, Expense, InstallmentSchedule, Client } from "@/typ
 import { ManagerCommissionsChart } from "@/components/ManagerCommissionsChart";
 import { GoalsCard } from "@/components/GoalsCard";
 import { calculateInstallment, calculateTotalWithInterest, getLoanRemainingAmount } from "@/hooks/useLoans";
-import { getInstallmentAmount, getOverdueAmount } from "@/lib/loanInstallmentAmount";
+import { getInstallmentAmount, getOverdueAmount, getOverdueInstallments } from "@/lib/loanInstallmentAmount";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -197,7 +197,7 @@ function summarizeMonthMetrics(loans: Loan[], sales: Sale[], payments: Payment[]
 
   const overdueBase = activeLoans.filter((loan) => isInRange(loan.dueDate, start, end));
   const todayStr = todayInAppTz();
-  const overdueLoans = overdueBase.filter((loan) => loan.dueDate < todayStr);
+  const overdueLoans = overdueBase.filter((loan) => getOverdueInstallments(loan, installmentSchedules, todayStr).length > 0);
   const overdueAmount = overdueLoans.reduce((sum, loan) => sum + getOverdueAmount(loan, installmentSchedules, todayStr), 0);
   const overdueRate = overdueBase.length > 0 ? overdueLoans.length / overdueBase.length : 0;
   const top3Share = revenue > 0
@@ -810,7 +810,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
     // Overdue — soma todas as parcelas vencidas, sem saldo futuro ou multa/juros.
     const todayStr = todayInAppTz();
-    const overdueLoans = activeLoans.filter((l) => l.dueDate < todayStr);
+    const overdueLoans = activeLoans.filter((l) => getOverdueInstallments(l, installmentSchedules, todayStr).length > 0);
     const overdueAmount = overdueLoans.reduce((s, l) => s + getOverdueAmount(l, installmentSchedules, todayStr), 0);
     const pendingReceivable = activeLoans.reduce((s, l) => s + getLoanRemainingAmount(l, payments), 0);
 
@@ -1024,10 +1024,15 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const riskReturn = useMemo(() => {
     const activeLoans = loans.filter((loan) => loan.status !== "paid");
     const today = new Date(`${todayInAppTz()}T00:00:00`);
-    const overdueLoans = activeLoans.filter((loan) => new Date(`${loan.dueDate}T00:00:00`) < today);
+    const todayStrForOverdue = todayInAppTz();
+    const overdueLoans = activeLoans
+      .map((loan) => ({ loan, items: getOverdueInstallments(loan, installmentSchedules, todayStrForOverdue) }))
+      .filter((x) => x.items.length > 0);
     const averageDelayDays = overdueLoans.length > 0
-      ? overdueLoans.reduce((sum, loan) => {
-          const dueDate = new Date(`${loan.dueDate}T00:00:00`);
+      ? overdueLoans.reduce((sum, { items }) => {
+          // usa a parcela vencida mais antiga para medir o atraso
+          const oldest = items.reduce((a, b) => (a.dueDate < b.dueDate ? a : b));
+          const dueDate = new Date(`${oldest.dueDate}T00:00:00`);
           const diff = Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
           return sum + diff;
         }, 0) / overdueLoans.length
