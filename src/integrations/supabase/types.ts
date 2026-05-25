@@ -439,6 +439,7 @@ export type Database = {
           emprestado: number | null
           id: string
           juros: number | null
+          juros_manual: boolean
           month_label: string
           recebido: number | null
           updated_at: string
@@ -449,6 +450,7 @@ export type Database = {
           emprestado?: number | null
           id?: string
           juros?: number | null
+          juros_manual?: boolean
           month_label: string
           recebido?: number | null
           updated_at?: string
@@ -459,6 +461,7 @@ export type Database = {
           emprestado?: number | null
           id?: string
           juros?: number | null
+          juros_manual?: boolean
           month_label?: string
           recebido?: number | null
           updated_at?: string

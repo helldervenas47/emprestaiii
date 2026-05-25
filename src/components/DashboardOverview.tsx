@@ -1459,8 +1459,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       if (raw === undefined || raw === "") return;
       const totalVal = parseFloat(raw);
       if (!Number.isFinite(totalVal)) return;
-      // Só grava override se diferir do valor calculado
-      if (Math.abs(totalVal - m.juros) > 0.005) newOverrides[m.month] = totalVal;
+      newOverrides[m.month] = totalVal;
     });
     setInterestOverrides(newOverrides);
     setEditingInterest(false);
