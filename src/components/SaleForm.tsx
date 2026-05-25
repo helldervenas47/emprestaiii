@@ -436,7 +436,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                   }} placeholder="0,00" required />
                 </div>
               </div>
-              {isVenda && form.productId && (
+              {isVenda && form.productId && !isAvulsa && (
                 <div>
                   <Label>Desconto (R$)</Label>
                   <Input type="number" step="0.01" min="0" value={form.discount} onChange={(e) => {
