@@ -53,7 +53,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
-  const { suggestions, record } = useDescriptionHistory("income");
+  const { suggestions, record, findTemplate } = useDescriptionHistory("income");
 
   const allCategories = useMemo(() => {
     const customKeys = new Set(customCategories.map((c) => incomeCategoryKey(c.name)));
