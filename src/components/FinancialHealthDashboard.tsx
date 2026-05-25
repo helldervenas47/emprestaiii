@@ -189,7 +189,12 @@ function computeScore(m: MonthMetrics, piggyBalance: number, avgExpense: number)
 export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props) {
   const { hidden } = useHideValues();
   const { deposits } = usePiggyBanks();
-  const { sales } = useProducts(true);
+  const { sales: rawSales } = useProducts(true);
+  // Aluguéis de veículo são isolados na aba "Veículos" e não impactam Receitas e Despesas.
+  const sales = useMemo(
+    () => rawSales.filter((s) => s.businessType !== "aluguel_veiculo"),
+    [rawSales],
+  );
   const { cards } = useCreditCards();
   const { openings } = useCreditCardOpenings();
   const monthFlow = useMonthFlow(monthKey);
