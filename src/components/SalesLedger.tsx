@@ -248,7 +248,14 @@ export function SalesLedger({ sales }: { sales: Sale[] }) {
                     <tr key={m.id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-2.5 text-foreground tabular-nums">{format(parseISO(m.date), "dd/MM/yyyy")}</td>
                       <td className="px-4 py-2.5 text-foreground">{m.customerName}</td>
-                      <td className="px-4 py-2.5 text-muted-foreground max-w-[260px] truncate">{m.description}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground max-w-[260px]">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{m.description}</span>
+                          {m.isAvulsa && (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-primary/40 text-primary shrink-0">Avulsa</Badge>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-2.5 text-foreground">{m.paymentMethodName}</td>
                       <td className="px-4 py-2.5 text-muted-foreground">{typeLabel(m.type)}</td>
                       <td className="px-4 py-2.5 text-right font-semibold text-success tabular-nums">{hideValues ? "•••" : fmt(m.amount)}</td>
