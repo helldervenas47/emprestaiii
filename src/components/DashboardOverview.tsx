@@ -540,11 +540,15 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         interestByPaymentId.set(p.id, 0);
         return;
       }
-      if (p.installmentNumber === 0) {
-        // Juros avulso / juros sobre saldo: 100% juros
+      if (p.installmentNumber === 0 || p.installmentNumber === -2) {
+        // Juros avulso / juros sobre saldo / multa-encargos (late_fee): 100% juros
         interestByPaymentId.set(p.id, amt);
+        // Não capa por loanInterestRemaining — juros excedente (rolagem, multa) é receita real
         const rem = loanInterestRemaining.get(p.loanId) ?? 0;
         loanInterestRemaining.set(p.loanId, Math.max(0, rem - amt));
+      } else if (p.installmentNumber === -3) {
+        // Amortização: 100% principal, 0% juros
+        interestByPaymentId.set(p.id, 0);
       } else if (p.installmentNumber === -1) {
         // Pagamento parcial: aloca juros proporcionalmente à composição da operação
         // (juros total / total com juros), abatendo o restante do principal.
