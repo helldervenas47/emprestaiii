@@ -80,6 +80,7 @@ export function getOverdueInstallments(
     return [];
   }
 
+  const hasAnySchedule = schedules.some((s) => s.loanId === loan.id);
   const loanSchedules = schedules
     .filter((s) => s.loanId === loan.id && s.installmentNumber > paid && s.dueDate < todayStr)
     .sort((a, b) => a.installmentNumber - b.installmentNumber);
@@ -95,7 +96,12 @@ export function getOverdueInstallments(
     }));
   }
 
-  // Fallback: somente próxima parcela se vencida
+  // Se já existe cronograma carregado para este contrato e nenhuma parcela vencida foi
+  // encontrada acima, NÃO usar loan.dueDate como fallback — ele pode estar desatualizado
+  // (renegociações, pagamentos antecipados). O cronograma é a fonte da verdade.
+  if (hasAnySchedule) return [];
+
+  // Fallback: somente próxima parcela se vencida (contratos sem cronograma persistido)
   if (loan.dueDate < todayStr) {
     return [{
       installmentNumber: paid + 1,
