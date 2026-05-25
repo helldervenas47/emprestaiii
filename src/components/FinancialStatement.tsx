@@ -104,17 +104,21 @@ export function FinancialStatement() {
   const rows = useMemo<Row[]>(() => {
     const incomeRows: Row[] = incomes
       .filter((i) => i.status === "received" && i.source !== "Ajuste manual")
-      .map((i: Income) => ({
-        id: `i-${i.id}`,
-        date: i.actualReceivedDate || i.receivedDate,
-        description: i.description,
-        category: i.category || "Outros",
-        type: "income",
-        origin: "income",
-        amount: i.amount,
-        paymentMethod: methodName(i.paymentMethodId),
-        account: clientName(i.clientId) || i.source || "—",
-      }));
+      .map((i: Income) => {
+        const date = i.actualReceivedDate || i.receivedDate;
+        return {
+          id: `i-${i.id}`,
+          date,
+          ts: buildSortTs(date, i.createdAt),
+          description: i.description,
+          category: i.category || "Outros",
+          type: "income",
+          origin: "income",
+          amount: i.amount,
+          paymentMethod: methodName(i.paymentMethodId),
+          account: clientName(i.clientId) || i.source || "—",
+        };
+      });
     const expenseRows: Row[] = expenses
       .filter(
         (e) =>
