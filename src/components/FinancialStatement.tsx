@@ -30,6 +30,8 @@ type RowOrigin = "income" | "expense" | "sale-full" | "sale-partial";
 type Row = {
   id: string;
   date: string; // YYYY-MM-DD
+  /** Timestamp completo (ms) para ordenação cronológica precisa. */
+  ts: number;
   description: string;
   category: string;
   type: "income" | "expense";
@@ -41,6 +43,33 @@ type Row = {
 
 function fmtBRL(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+/**
+ * Constrói um timestamp (ms) para ordenação cronológica do extrato.
+ * Prioridade:
+ *  1. Hora explícita HH:mm[:ss] (ex.: paymentHistory de vendas).
+ *  2. ISO timestamp (created_at) quando cai no mesmo dia local do evento.
+ *  3. Fallback: meio-dia local da data, evitando shift de timezone.
+ */
+function buildSortTs(
+  date: string,
+  isoTimestamp?: string | null,
+  explicitTime?: string | null,
+): number {
+  if (explicitTime && /^\d{2}:\d{2}/.test(explicitTime)) {
+    const hhmmss = explicitTime.length >= 8 ? explicitTime.slice(0, 8) : `${explicitTime.slice(0, 5)}:00`;
+    const t = new Date(`${date}T${hhmmss}`).getTime();
+    if (!Number.isNaN(t)) return t;
+  }
+  if (isoTimestamp) {
+    const d = new Date(isoTimestamp);
+    if (!Number.isNaN(d.getTime())) {
+      const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      if (localDate === date) return d.getTime();
+    }
+  }
+  return new Date(`${date}T12:00:00`).getTime();
 }
 
 const PAGE_SIZE = 30;
@@ -75,17 +104,21 @@ export function FinancialStatement() {
   const rows = useMemo<Row[]>(() => {
     const incomeRows: Row[] = incomes
       .filter((i) => i.status === "received" && i.source !== "Ajuste manual")
-      .map((i: Income) => ({
-        id: `i-${i.id}`,
-        date: i.actualReceivedDate || i.receivedDate,
-        description: i.description,
-        category: i.category || "Outros",
-        type: "income",
-        origin: "income",
-        amount: i.amount,
-        paymentMethod: methodName(i.paymentMethodId),
-        account: clientName(i.clientId) || i.source || "—",
-      }));
+      .map((i: Income) => {
+        const date = i.actualReceivedDate || i.receivedDate;
+        return {
+          id: `i-${i.id}`,
+          date,
+          ts: buildSortTs(date, i.createdAt),
+          description: i.description,
+          category: i.category || "Outros",
+          type: "income",
+          origin: "income",
+          amount: i.amount,
+          paymentMethod: methodName(i.paymentMethodId),
+          account: clientName(i.clientId) || i.source || "—",
+        };
+      });
     const expenseRows: Row[] = expenses
       .filter(
         (e) =>
@@ -99,6 +132,7 @@ export function FinancialStatement() {
       .map((e: Expense) => ({
         id: `e-${e.id}`,
         date: e.paidDate!,
+        ts: buildSortTs(e.paidDate!, e.createdAt),
         description: e.description,
         category: e.category || "Outros",
         type: "expense",
@@ -123,6 +157,7 @@ export function FinancialStatement() {
       return {
         id: `cc-${inv.card.id}-${inv.cycleKey}`,
         date: inv.paidDate,
+        ts: buildSortTs(inv.paidDate),
         description: `Fatura ${label}`,
         category: CREDIT_CARD_INVOICE_CATEGORY,
         type: "expense",
@@ -149,9 +184,11 @@ export function FinancialStatement() {
         const amt = Number(p.amount) || 0;
         if (amt <= 0) return;
         const isFull = p.type !== "partial";
+        const saleDate = p.date || s.date;
         saleRows.push({
           id: `s-${s.id}-p${idx}`,
-          date: p.date || s.date,
+          date: saleDate,
+          ts: buildSortTs(saleDate, null, p.time),
           description: desc,
           category: "Vendas",
           type: "income",
@@ -170,6 +207,7 @@ export function FinancialStatement() {
         saleRows.push({
           id: `s-${s.id}-legacy`,
           date: s.date,
+          ts: buildSortTs(s.date),
           description: desc,
           category: "Vendas",
           type: "income",
@@ -202,7 +240,7 @@ export function FinancialStatement() {
         if (q && !`${r.description} ${r.category} ${r.account}`.toLowerCase().includes(q)) return false;
         return true;
       })
-      .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+      .sort((a, b) => b.ts - a.ts || b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
   }, [rows, from, to, typeFilter, categoryFilter, search]);
 
   const totals = useMemo(() => {
