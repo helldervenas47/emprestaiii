@@ -128,7 +128,13 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
       recurrence,
       parentId: initial?.parentId || null,
     });
-    record(description);
+    record(description, {
+      amount: Number(amount),
+      category: displayIncomeCategory(category),
+      notes: notes.trim(),
+      paymentMethodId: paymentMethodId || null,
+      clientName: clientName.trim(),
+    });
     setSaving(false);
     onClose();
   };
