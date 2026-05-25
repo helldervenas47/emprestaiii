@@ -7,6 +7,7 @@ interface ChartOverrideRow {
   emprestado: number;
   recebido: number;
   juros: number;
+  juros_manual: boolean;
 }
 
 interface ChartOverrides {
@@ -16,6 +17,9 @@ interface ChartOverrides {
 interface InterestOverrides {
   [month: string]: number;
 }
+
+const hasOwnMonthOverride = (overrides: InterestOverrides, month: string) =>
+  Object.prototype.hasOwnProperty.call(overrides, month);
 
 export function useChartOverrides() {
   const { user, dataOwnerId } = useAuth();
@@ -27,7 +31,7 @@ export function useChartOverrides() {
     if (!user) return;
     const { data } = await supabase
       .from("chart_overrides")
-      .select("month_label, emprestado, recebido, juros");
+      .select("month_label, emprestado, recebido, juros, juros_manual");
     if (data) {
       const chart: ChartOverrides = {};
       const interest: InterestOverrides = {};
@@ -41,7 +45,7 @@ export function useChartOverrides() {
             ...(rec !== 0 ? { recebido: rec } : {}),
           };
         }
-        if (jur !== 0) {
+        if (row.juros_manual) {
           interest[row.month_label] = jur;
         }
       });
@@ -68,7 +72,8 @@ export function useChartOverrides() {
       emprestado: overrides[month]?.emprestado ?? 0,
       recebido: overrides[month]?.recebido ?? 0,
       juros: interestOverrides[month] ?? 0,
-    })).filter((r) => r.emprestado !== 0 || r.recebido !== 0 || r.juros !== 0);
+      juros_manual: hasOwnMonthOverride(interestOverrides, month),
+    })).filter((r) => r.emprestado !== 0 || r.recebido !== 0 || r.juros !== 0 || r.juros_manual);
 
     if (rows.length > 0) {
       await supabase.from("chart_overrides").insert(rows);
@@ -88,7 +93,8 @@ export function useChartOverrides() {
       emprestado: chartOverrides[month]?.emprestado ?? 0,
       recebido: chartOverrides[month]?.recebido ?? 0,
       juros: overrides[month] ?? 0,
-    })).filter((r) => r.emprestado !== 0 || r.recebido !== 0 || r.juros !== 0);
+      juros_manual: hasOwnMonthOverride(overrides, month),
+    })).filter((r) => r.emprestado !== 0 || r.recebido !== 0 || r.juros !== 0 || r.juros_manual);
 
     if (rows.length > 0) {
       await supabase.from("chart_overrides").insert(rows);
