@@ -810,7 +810,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
     // Overdue — soma todas as parcelas vencidas, sem saldo futuro ou multa/juros.
     const todayStr = todayInAppTz();
-    const overdueLoans = activeLoans.filter((l) => l.dueDate < todayStr);
+    const overdueLoans = activeLoans.filter((l) => getOverdueInstallments(l, installmentSchedules, todayStr).length > 0);
     const overdueAmount = overdueLoans.reduce((s, l) => s + getOverdueAmount(l, installmentSchedules, todayStr), 0);
     const pendingReceivable = activeLoans.reduce((s, l) => s + getLoanRemainingAmount(l, payments), 0);
 
