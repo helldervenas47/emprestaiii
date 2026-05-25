@@ -177,7 +177,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       : undefined;
 
     onAdd({
-      productId: form.businessType === "venda" ? (form.productId || undefined) : undefined,
+      productId: form.businessType === "venda" && !isAvulsa ? (form.productId || undefined) : undefined,
       productName: form.description,
       description: form.description,
       quantity: parseInt(form.quantity) || 1,
