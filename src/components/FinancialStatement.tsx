@@ -240,7 +240,7 @@ export function FinancialStatement() {
         if (q && !`${r.description} ${r.category} ${r.account}`.toLowerCase().includes(q)) return false;
         return true;
       })
-      .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+      .sort((a, b) => b.ts - a.ts || b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
   }, [rows, from, to, typeFilter, categoryFilter, search]);
 
   const totals = useMemo(() => {
