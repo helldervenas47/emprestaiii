@@ -21,6 +21,7 @@ interface Movement {
   type: SalePaymentRecord["type"] | "downpayment";
   paymentMethodName: string;
   status: "paid" | "partial" | "pending";
+  isAvulsa: boolean;
 }
 
 function fmt(v: number) {
