@@ -24,6 +24,7 @@ import {
   listPaidInvoicesInRange,
   CREDIT_CARD_INVOICE_CATEGORY,
 } from "@/lib/creditCardInvoiceTotals";
+import { getAppTimezone, formatYmdInTz } from "@/lib/timezone";
 
 type RowOrigin = "income" | "expense" | "sale-full" | "sale-partial";
 
@@ -47,29 +48,70 @@ function fmtBRL(n: number) {
 
 /**
  * Constrói um timestamp (ms) para ordenação cronológica do extrato.
+ * SEMPRE usa o fuso horário definido nas configurações do app
+ * (`getAppTimezone()`) para comparar a data do evento — assim a hora real do
+ * pagamento é preservada mesmo quando o fuso do dispositivo difere do
+ * configurado.
+ *
  * Prioridade:
- *  1. Hora explícita HH:mm[:ss] (ex.: paymentHistory de vendas).
- *  2. ISO timestamp (created_at) quando cai no mesmo dia local do evento.
- *  3. Fallback: meio-dia local da data, evitando shift de timezone.
+ *  1. Hora explícita HH:mm[:ss] (ex.: paymentHistory de vendas) — interpretada
+ *     como horário do app tz, convertida para um instante absoluto.
+ *  2. ISO timestamp (created_at/paid_at) quando cai no mesmo dia do evento
+ *     no fuso do app.
+ *  3. Fallback: meio-dia do app tz para a data, evitando shift entre fusos.
  */
+function tzOffsetMinutes(date: Date, tz: string): number {
+  // Diferença (em minutos) entre o "wall clock" do tz e UTC para o instante dado.
+  try {
+    const dtf = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      hour12: false,
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit",
+    });
+    const parts = dtf.formatToParts(date);
+    const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
+    const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+    return (asUtc - date.getTime()) / 60000;
+  } catch {
+    return -date.getTimezoneOffset();
+  }
+}
+
+/** Retorna o instante absoluto (ms) para "YYYY-MM-DD HH:mm:ss" no fuso `tz`. */
+function wallClockInTz(date: string, hhmmss: string, tz: string): number {
+  // Estima o instante assumindo UTC, depois corrige pelo offset do tz nesse instante.
+  const guess = Date.UTC(
+    Number(date.slice(0, 4)),
+    Number(date.slice(5, 7)) - 1,
+    Number(date.slice(8, 10)),
+    Number(hhmmss.slice(0, 2)),
+    Number(hhmmss.slice(3, 5)),
+    Number(hhmmss.slice(6, 8) || "0"),
+  );
+  const offset = tzOffsetMinutes(new Date(guess), tz);
+  return guess - offset * 60000;
+}
+
 function buildSortTs(
   date: string,
   isoTimestamp?: string | null,
   explicitTime?: string | null,
 ): number {
+  const tz = getAppTimezone();
   if (explicitTime && /^\d{2}:\d{2}/.test(explicitTime)) {
     const hhmmss = explicitTime.length >= 8 ? explicitTime.slice(0, 8) : `${explicitTime.slice(0, 5)}:00`;
-    const t = new Date(`${date}T${hhmmss}`).getTime();
+    const t = wallClockInTz(date, hhmmss, tz);
     if (!Number.isNaN(t)) return t;
   }
   if (isoTimestamp) {
     const d = new Date(isoTimestamp);
     if (!Number.isNaN(d.getTime())) {
-      const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      if (localDate === date) return d.getTime();
+      // Compara dia no fuso do app (não no fuso do dispositivo).
+      if (formatYmdInTz(d, tz) === date) return d.getTime();
     }
   }
-  return new Date(`${date}T12:00:00`).getTime();
+  return wallClockInTz(date, "12:00:00", tz);
 }
 
 const PAGE_SIZE = 30;
