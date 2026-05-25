@@ -2551,7 +2551,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
       {/* Interest Detail Sheet */}
       <Sheet open={showInterestDetail} onOpenChange={setShowInterestDetail}>
-        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
           <SheetHeader>
             <SheetTitle>Juros Recebidos — {range.label}</SheetTitle>
           </SheetHeader>
@@ -2633,7 +2633,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       </Sheet>
       {/* Interest Expected Detail Sheet */}
       <Sheet open={showInterestExpectedDetail} onOpenChange={setShowInterestExpectedDetail}>
-        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
           <SheetHeader>
             <SheetTitle>{interestExpectedFilter === "pending" ? "Juros Pendentes do Mês" : "Juros a Receber no Mês"} — {range.label}</SheetTitle>
           </SheetHeader>
