@@ -53,7 +53,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
-  const { suggestions, record } = useDescriptionHistory("income");
+  const { suggestions, record, findTemplate } = useDescriptionHistory("income");
 
   const allCategories = useMemo(() => {
     const customKeys = new Set(customCategories.map((c) => incomeCategoryKey(c.name)));
@@ -128,7 +128,13 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
       recurrence,
       parentId: initial?.parentId || null,
     });
-    record(description);
+    record(description, {
+      amount: Number(amount),
+      category: displayIncomeCategory(category),
+      notes: notes.trim(),
+      paymentMethodId: paymentMethodId || null,
+      clientName: clientName.trim(),
+    });
     setSaving(false);
     onClose();
   };
@@ -147,7 +153,31 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
             <Label>Descrição</Label>
             <Input
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setDescription(v);
+                if (initial) return;
+                if (suggestions.some((s) => s.toLowerCase() === v.trim().toLowerCase())) {
+                  const tpl = findTemplate(v);
+                  if (tpl) {
+                    if (!amount && tpl.amount != null) setAmount(String(tpl.amount));
+                    if ((category === "Vendas" || !category) && tpl.category) setCategory(String(tpl.category));
+                    if (!notes && tpl.notes) setNotes(String(tpl.notes));
+                    if (!paymentMethodId && tpl.paymentMethodId) setPaymentMethodId(String(tpl.paymentMethodId));
+                    if (!clientName && tpl.clientName) setClientName(String(tpl.clientName));
+                  }
+                }
+              }}
+              onBlur={(e) => {
+                if (initial) return;
+                const tpl = findTemplate(e.target.value);
+                if (!tpl) return;
+                if (!amount && tpl.amount != null) setAmount(String(tpl.amount));
+                if ((category === "Vendas" || !category) && tpl.category) setCategory(String(tpl.category));
+                if (!notes && tpl.notes) setNotes(String(tpl.notes));
+                if (!paymentMethodId && tpl.paymentMethodId) setPaymentMethodId(String(tpl.paymentMethodId));
+                if (!clientName && tpl.clientName) setClientName(String(tpl.clientName));
+              }}
               placeholder="Ex.: Venda do produto X"
               list="income-desc-history"
             />

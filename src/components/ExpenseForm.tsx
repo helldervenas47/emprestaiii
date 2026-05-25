@@ -45,7 +45,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
   const [showFormError, setShowFormError] = useState(false);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [generateIncomeOnPay, setGenerateIncomeOnPay] = useState(false);
-  const { suggestions, record } = useDescriptionHistory(`expense-${scope}`);
+  const { suggestions, record, findTemplate } = useDescriptionHistory(`expense-${scope}`);
   const [form, setForm] = useState({
     description: defaults?.description ?? "",
     amount: defaults?.amount != null ? String(defaults.amount) : "",
@@ -55,6 +55,18 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
     dueDate: defaults?.dueDate ?? todayInAppTz(),
     notes: defaults?.notes ?? "",
   });
+
+  const applyTemplateFromDescription = (desc: string) => {
+    const tpl = findTemplate(desc);
+    if (!tpl) return;
+    setForm((prev) => ({
+      ...prev,
+      amount: prev.amount || (tpl.amount != null ? String(tpl.amount) : ""),
+      category: prev.category || ((tpl.category as string) ?? ""),
+      notes: prev.notes || ((tpl.notes as string) ?? ""),
+    }));
+    if (!paymentMethodId && tpl.paymentMethodId) setPaymentMethodId(tpl.paymentMethodId);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +122,12 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
 
     try {
       await onAdd(payload);
-      record(form.description);
+      record(form.description, {
+        amount: parsedAmount,
+        category: form.category,
+        notes: form.notes,
+        paymentMethodId,
+      });
       setShowSuccess(true);
     } finally {
       setSubmitting(false);
@@ -141,7 +158,14 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
               <Input
                 id="description"
                 value={form.description}
-                onChange={(e) => update("description", e.target.value)}
+                onChange={(e) => {
+                  update("description", e.target.value);
+                  // datalist selection fires onChange with the chosen value
+                  if (suggestions.some((s) => s.toLowerCase() === e.target.value.trim().toLowerCase())) {
+                    applyTemplateFromDescription(e.target.value);
+                  }
+                }}
+                onBlur={(e) => applyTemplateFromDescription(e.target.value)}
                 placeholder="Ex: Aluguel do escritório"
                 list="expense-desc-history"
                 required
