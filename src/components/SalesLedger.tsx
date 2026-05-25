@@ -57,6 +57,7 @@ export function SalesLedger({ sales }: { sales: Sale[] }) {
         : (sale.paidInstallments > 0 || (sale.partialPaid || 0) > 0 || (sale.downPayment || 0) > 0)
           ? "partial"
           : "pending";
+      const isAvulsa = sale.businessType === "venda" && !sale.productId;
 
       // Merchandise as part of payment: subtract proportional share from each cash movement
       const parsed = parseNotesWithMerchandise(sale.notes);
@@ -80,6 +81,7 @@ export function SalesLedger({ sales }: { sales: Sale[] }) {
             type: "downpayment",
             paymentMethodName: pmName,
             status,
+            isAvulsa,
           });
         }
       }
@@ -96,6 +98,7 @@ export function SalesLedger({ sales }: { sales: Sale[] }) {
           type: p.type,
           paymentMethodName: pmName,
           status,
+          isAvulsa,
         });
       });
     });
