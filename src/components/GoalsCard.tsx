@@ -281,10 +281,14 @@ function computeProfitRealized(loans: Loan[], payments: Payment[], m: string): n
     const amt = Number(p.amount) || 0;
     if (amt <= 0) { interestByPaymentId.set(p.id, 0); return; }
     const loanId = getLoanId(p);
-    if (getInstNum(p) === 0) {
+    if (getInstNum(p) === 0 || getInstNum(p) === -2) {
+      // Juros avulso / multa-encargos (late_fee): 100% juros
       interestByPaymentId.set(p.id, amt);
       const rem = loanInterestRemaining.get(loanId) ?? 0;
       loanInterestRemaining.set(loanId, Math.max(0, rem - amt));
+    } else if (getInstNum(p) === -3) {
+      // Amortização: 100% principal
+      interestByPaymentId.set(p.id, 0);
     } else if (getInstNum(p) === -1) {
       // Pagamento parcial: juros proporcional à composição da operação
       const loan = loans.find((l: any) => l.id === loanId);
