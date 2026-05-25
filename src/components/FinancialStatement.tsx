@@ -157,6 +157,7 @@ export function FinancialStatement() {
       return {
         id: `cc-${inv.card.id}-${inv.cycleKey}`,
         date: inv.paidDate,
+        ts: buildSortTs(inv.paidDate),
         description: `Fatura ${label}`,
         category: CREDIT_CARD_INVOICE_CATEGORY,
         type: "expense",
