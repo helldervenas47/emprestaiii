@@ -1345,10 +1345,8 @@ export function useLoans() {
       await Promise.all([
         supabase.from("payments").delete().eq("id", tempPaymentId),
         supabase.from("loans").update({
-          amount: oldPrincipal,
           remaining_amount: loan.remainingAmount ?? null,
-          custom_interest_value: loan.customInterestValue ?? null,
-          custom_installment_value: loan.customInstallmentValue ?? null,
+          ...(hasSchedule ? {} : { custom_installment_value: loan.customInstallmentValue ?? null }),
         }).eq("id", loanId),
       ]);
       await revert();
