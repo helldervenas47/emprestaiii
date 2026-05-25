@@ -289,7 +289,7 @@ function computeProfitRealized(loans: Loan[], payments: Payment[], m: string): n
       // Pagamento parcial: juros proporcional à composição da operação
       const loan = loans.find((l: any) => l.id === loanId);
       const principal = Number(loan?.amount) || 0;
-      const rate = Number(loan?.interestRate ?? loan?.interest_rate) || 0;
+      const rate = Number((loan as any)?.interestRate ?? (loan as any)?.interest_rate) || 0;
       const inst = Number(loan?.installments) || 1;
       const totalWithInterest = loan ? calculateTotalWithInterest(principal, rate, inst) : 0;
       const ratio = totalWithInterest > 0 ? Math.max(0, 1 - principal / totalWithInterest) : 0;
