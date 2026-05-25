@@ -96,17 +96,19 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     }
   };
 
+  const isAvulsa = form.productId === "__avulsa__";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const valorRecebido = parseFloat(form.total) || 0;
     if (!form.description || valorRecebido <= 0 || !form.customerName) return;
 
-    // Para vendas de produto: exige produto cadastrado com estoque
-    if (form.businessType === "venda") {
+    // Para vendas de produto cadastrado: valida estoque. Vendas avulsas não exigem produto.
+    if (form.businessType === "venda" && !isAvulsa && form.productId) {
       const selectedProduct = products.find((p) => p.id === form.productId);
       if (!selectedProduct) {
         const { toast } = await import("sonner");
-        toast.error("Selecione um produto cadastrado no estoque.");
+        toast.error("Selecione um produto ou use Venda avulsa.");
         return;
       }
       const qty = parseInt(form.quantity) || 1;
@@ -120,6 +122,11 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
         toast.error(`Estoque insuficiente (disponível: ${selectedProduct.stock}).`);
         return;
       }
+    }
+    if (form.businessType === "venda" && !form.productId) {
+      const { toast } = await import("sonner");
+      toast.error('Selecione um produto ou marque como "Venda avulsa".');
+      return;
     }
 
 
