@@ -312,59 +312,84 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
               )}
               </>
             ) : form.businessType === "venda" ? (
-              <div>
-                <Label>Produto</Label>
-                {(() => {
-                  const available = products
-                    .filter((p) => p.stock > 0)
-                    .slice()
-                    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
-                  if (available.length === 0) {
+              <div className="space-y-3">
+                <div>
+                  <Label>Produto</Label>
+                  {(() => {
+                    const available = products
+                      .filter((p) => p.stock > 0)
+                      .slice()
+                      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
                     return (
-                      <div className="text-sm text-muted-foreground border border-dashed rounded-md p-3">
-                        Nenhum produto com estoque disponível. Cadastre um produto e registre entrada/compra na aba Estoque.
-                      </div>
-                    );
-                  }
-                  return (
-                    <Select
-                      value={form.productId}
-                      onValueChange={(v) => {
-                        const prod = products.find((p) => p.id === v);
-                        const qty = parseInt(form.quantity) || 1;
-                        const disc = parseFloat(form.discount) || 0;
-                        const base = (prod?.price || 0) * qty;
-                        const newTotal = Math.max(0, base - disc).toFixed(2);
-                        setForm((p) => ({
-                          ...p,
-                          productId: v,
-                          description: prod?.name || "",
-                          total: prod ? newTotal : p.total,
-                        }));
-                        if (prod && form.paymentMode === "recorrente") {
-                          const count = parseInt(form.installments) || 1;
-                          const totalVal = parseFloat(newTotal);
-                          if (totalVal > 0 && count > 0) {
-                            const newInstVal = (totalVal / count).toFixed(2);
-                            setForm((pp) => ({ ...pp, installmentValue: newInstVal }));
-                            setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: newInstVal }));
+                      <Select
+                        value={form.productId}
+                        onValueChange={(v) => {
+                          if (v === "__avulsa__") {
+                            setForm((p) => ({
+                              ...p,
+                              productId: "__avulsa__",
+                              description: "",
+                              discount: "",
+                            }));
+                            return;
                           }
-                        }
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um produto do estoque" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {available.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name} — {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(p.price)} (estoque: {p.stock})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  );
-                })()}
+                          const prod = products.find((p) => p.id === v);
+                          const qty = parseInt(form.quantity) || 1;
+                          const disc = parseFloat(form.discount) || 0;
+                          const base = (prod?.price || 0) * qty;
+                          const newTotal = Math.max(0, base - disc).toFixed(2);
+                          setForm((p) => ({
+                            ...p,
+                            productId: v,
+                            description: prod?.name || "",
+                            total: prod ? newTotal : p.total,
+                          }));
+                          if (prod && form.paymentMode === "recorrente") {
+                            const count = parseInt(form.installments) || 1;
+                            const totalVal = parseFloat(newTotal);
+                            if (totalVal > 0 && count > 0) {
+                              const newInstVal = (totalVal / count).toFixed(2);
+                              setForm((pp) => ({ ...pp, installmentValue: newInstVal }));
+                              setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: newInstVal }));
+                            }
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um produto ou venda avulsa" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__avulsa__">📝 Venda avulsa (sem cadastro)</SelectItem>
+                          {available.length === 0 ? (
+                            <div className="px-2 py-2 text-xs text-muted-foreground">
+                              Nenhum produto com estoque. Use Venda avulsa acima.
+                            </div>
+                          ) : (
+                            available.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.name} — {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(p.price)} (estoque: {p.stock})
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                    );
+                  })()}
+                </div>
+                {isAvulsa && (
+                  <div>
+                    <Label>Descrição do item</Label>
+                    <Input
+                      value={form.description}
+                      onChange={(e) => update("description", e.target.value)}
+                      placeholder="Ex: Serviço de instalação, item sem cadastro..."
+                      required
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Venda avulsa não consome estoque nem exige cadastro de produto.
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <div>
