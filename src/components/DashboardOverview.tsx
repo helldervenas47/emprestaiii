@@ -197,7 +197,7 @@ function summarizeMonthMetrics(loans: Loan[], sales: Sale[], payments: Payment[]
 
   const overdueBase = activeLoans.filter((loan) => isInRange(loan.dueDate, start, end));
   const todayStr = todayInAppTz();
-  const overdueLoans = overdueBase.filter((loan) => loan.dueDate < todayStr);
+  const overdueLoans = overdueBase.filter((loan) => getOverdueInstallments(loan, installmentSchedules, todayStr).length > 0);
   const overdueAmount = overdueLoans.reduce((sum, loan) => sum + getOverdueAmount(loan, installmentSchedules, todayStr), 0);
   const overdueRate = overdueBase.length > 0 ? overdueLoans.length / overdueBase.length : 0;
   const top3Share = revenue > 0
