@@ -45,7 +45,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
   const [showFormError, setShowFormError] = useState(false);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [generateIncomeOnPay, setGenerateIncomeOnPay] = useState(false);
-  const { suggestions, record } = useDescriptionHistory(`expense-${scope}`);
+  const { suggestions, record, findTemplate } = useDescriptionHistory(`expense-${scope}`);
   const [form, setForm] = useState({
     description: defaults?.description ?? "",
     amount: defaults?.amount != null ? String(defaults.amount) : "",
@@ -55,6 +55,18 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
     dueDate: defaults?.dueDate ?? todayInAppTz(),
     notes: defaults?.notes ?? "",
   });
+
+  const applyTemplateFromDescription = (desc: string) => {
+    const tpl = findTemplate(desc);
+    if (!tpl) return;
+    setForm((prev) => ({
+      ...prev,
+      amount: prev.amount || (tpl.amount != null ? String(tpl.amount) : ""),
+      category: prev.category || ((tpl.category as string) ?? ""),
+      notes: prev.notes || ((tpl.notes as string) ?? ""),
+    }));
+    if (!paymentMethodId && tpl.paymentMethodId) setPaymentMethodId(tpl.paymentMethodId);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
