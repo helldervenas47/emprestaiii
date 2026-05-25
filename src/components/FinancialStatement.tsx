@@ -30,6 +30,8 @@ type RowOrigin = "income" | "expense" | "sale-full" | "sale-partial";
 type Row = {
   id: string;
   date: string; // YYYY-MM-DD
+  /** Timestamp completo (ms) para ordenação cronológica precisa. */
+  ts: number;
   description: string;
   category: string;
   type: "income" | "expense";
@@ -41,6 +43,33 @@ type Row = {
 
 function fmtBRL(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+/**
+ * Constrói um timestamp (ms) para ordenação cronológica do extrato.
+ * Prioridade:
+ *  1. Hora explícita HH:mm[:ss] (ex.: paymentHistory de vendas).
+ *  2. ISO timestamp (created_at) quando cai no mesmo dia local do evento.
+ *  3. Fallback: meio-dia local da data, evitando shift de timezone.
+ */
+function buildSortTs(
+  date: string,
+  isoTimestamp?: string | null,
+  explicitTime?: string | null,
+): number {
+  if (explicitTime && /^\d{2}:\d{2}/.test(explicitTime)) {
+    const hhmmss = explicitTime.length >= 8 ? explicitTime.slice(0, 8) : `${explicitTime.slice(0, 5)}:00`;
+    const t = new Date(`${date}T${hhmmss}`).getTime();
+    if (!Number.isNaN(t)) return t;
+  }
+  if (isoTimestamp) {
+    const d = new Date(isoTimestamp);
+    if (!Number.isNaN(d.getTime())) {
+      const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      if (localDate === date) return d.getTime();
+    }
+  }
+  return new Date(`${date}T12:00:00`).getTime();
 }
 
 const PAGE_SIZE = 30;
