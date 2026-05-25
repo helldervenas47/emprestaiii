@@ -122,7 +122,12 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
 
     try {
       await onAdd(payload);
-      record(form.description);
+      record(form.description, {
+        amount: parsedAmount,
+        category: form.category,
+        notes: form.notes,
+        paymentMethodId,
+      });
       setShowSuccess(true);
     } finally {
       setSubmitting(false);
