@@ -2551,7 +2551,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
       {/* Interest Detail Sheet */}
       <Sheet open={showInterestDetail} onOpenChange={setShowInterestDetail}>
-        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
           <SheetHeader>
             <SheetTitle>Juros Recebidos — {range.label}</SheetTitle>
           </SheetHeader>
