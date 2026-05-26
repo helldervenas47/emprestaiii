@@ -3,6 +3,8 @@ export interface Loan {
   borrowerName: string;
   borrowerId?: string;
   amount: number;
+  /** Principal original do contrato — definido na criação e imutável. Usado em apurações históricas (lucro, juros recebidos). */
+  originalAmount: number;
   interestRate: number;
   interestType: string;
   paymentType: string;
