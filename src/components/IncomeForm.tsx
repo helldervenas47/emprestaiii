@@ -53,7 +53,27 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
-  const { suggestions, record, findTemplate } = useDescriptionHistory("income");
+  const { suggestions, record, findTemplate, seed } = useDescriptionHistory("income");
+  const { incomes } = useIncomes();
+
+  // Seed templates from previously stored incomes for autofill.
+  useEffect(() => {
+    if (!incomes?.length) return;
+    const entries = incomes
+      .filter((i) => i.description)
+      .map((i) => {
+        const clientObj = clients.find((c) => c.id === i.clientId);
+        return {
+          description: i.description,
+          amount: Number(i.amount),
+          category: displayIncomeCategory(i.category),
+          notes: i.notes ?? "",
+          paymentMethodId: i.paymentMethodId ?? null,
+          clientName: clientObj?.name || i.source || "",
+        };
+      });
+    seed(entries);
+  }, [incomes, clients, seed]);
 
   const allCategories = useMemo(() => {
     const customKeys = new Set(customCategories.map((c) => incomeCategoryKey(c.name)));
