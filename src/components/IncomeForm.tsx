@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Income, IncomeRecurrence, IncomeStatus } from "@/hooks/useIncomes";
+import { Income, IncomeRecurrence, IncomeStatus, useIncomes } from "@/hooks/useIncomes";
 import { useClients } from "@/hooks/useClients";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { useIncomeCategories } from "@/hooks/useIncomeCategories";
