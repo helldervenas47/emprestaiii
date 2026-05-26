@@ -82,20 +82,16 @@ export function CreditCardItem({ card, onEdit, onDelete, readOnly }: Props) {
 
       {/* Ações */}
       {!readOnly && (
-        <div className="mt-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button variant="ghost" size="sm" onClick={onEdit}>
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onDelete}
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+        <div className="mt-2 flex justify-end">
+          <RowActions
+            actions={[
+              { label: "Editar", icon: <Pencil className="h-3.5 w-3.5" />, onClick: () => onEdit?.() },
+              { label: "Excluir", icon: <Trash2 className="h-3.5 w-3.5" />, destructive: true, onClick: () => onDelete?.() },
+            ]}
+          />
         </div>
       )}
+
     </div>
   );
 }
