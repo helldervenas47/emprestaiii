@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { LocadorInfo } from "@/hooks/useLocadorInfo";
 import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { Pencil, Check, X, Plus, Trash2, Car, User, ChevronDown, ChevronUp } from "lucide-react";
+import { RowActions } from "@/components/ui/row-actions";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
