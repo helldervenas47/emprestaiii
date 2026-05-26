@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, Clock, CalendarDays, TrendingUp, AlertTriangle, ShieldCheck, Wallet, Sparkles, Shield, SlidersHorizontal } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { RowActions } from "@/components/ui/row-actions";
 import { ClientDetailDialog } from "@/components/ClientDetailDialog";
 import { CreditLimitDialog } from "@/components/CreditLimitDialog";
 import { RecentLimitAdjustmentsDialog } from "@/components/RecentLimitAdjustmentsDialog";
