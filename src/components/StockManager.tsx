@@ -34,7 +34,8 @@ const fmtBRL = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency"
 interface Props { readOnly?: boolean; }
 
 export function StockManager({ readOnly = false }: Props) {
-  const { products, updateProduct } = useProducts(true);
+  const { products, updateProduct, deleteProduct } = useProducts(true);
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const { addExpense, payExpense } = useExpenses(true);
   const { movements, recordMovement, deleteMovement } = useStockMovements(true);
   const ownerId = useDataOwner();
