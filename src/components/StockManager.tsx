@@ -143,16 +143,16 @@ export function StockManager({ readOnly = false }: Props) {
           <div className="rounded-lg border bg-card overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs text-muted-foreground">
-                <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:font-medium">
+                <tr className="[&>th]:px-2 sm:[&>th]:px-3 [&>th]:py-2 [&>th]:font-medium">
                   <th className="text-left">Produto</th>
                   <th className="hidden sm:table-cell text-right">Preço venda</th>
                   <th className="hidden md:table-cell text-right">Preço compra</th>
                   <th className="hidden lg:table-cell text-right">Últ. compra</th>
                   <th className="hidden md:table-cell text-right">Sugerido</th>
                   <th className="hidden sm:table-cell text-right">Margem</th>
-                  <th className="text-right">Estoque</th>
-                  <th className="text-left">Status</th>
-                  {!readOnly && <th className="w-10"></th>}
+                  <th className="text-right">Est.</th>
+                  <th className="text-left hidden xs:table-cell">Status</th>
+                  {!readOnly && <th className="w-8"></th>}
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -163,8 +163,19 @@ export function StockManager({ readOnly = false }: Props) {
                   const hasMargin = p.cost > 0 && p.price > 0;
                   const marginPct = hasMargin ? ((p.price - p.cost) / p.cost) * 100 : null;
                   return (
-                    <tr key={p.id} className="hover:bg-muted/40 transition-colors [&>td]:px-3 [&>td]:py-2.5">
-                      <td className="font-medium truncate max-w-[200px]">{p.name}</td>
+                    <tr key={p.id} className="hover:bg-muted/40 transition-colors [&>td]:px-2 sm:[&>td]:px-3 [&>td]:py-2.5">
+                      <td className="font-medium">
+                        <div className="truncate max-w-[140px] sm:max-w-[200px]">{p.name}</div>
+                        <div className="sm:hidden mt-0.5">
+                          {out ? (
+                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0"><AlertTriangle className="h-2.5 w-2.5 mr-0.5" />Sem estoque</Badge>
+                          ) : low ? (
+                            <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] px-1.5 py-0">Estoque baixo</Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Em estoque</Badge>
+                          )}
+                        </div>
+                      </td>
                       <td className="hidden sm:table-cell text-right tabular-nums">{fmtBRL(p.price)}</td>
                       <td className="hidden md:table-cell text-right tabular-nums text-muted-foreground">{p.cost > 0 ? fmtBRL(p.cost) : "—"}</td>
                       <td className="hidden lg:table-cell text-right tabular-nums text-muted-foreground">{p.lastPurchasePrice && p.lastPurchasePrice > 0 ? fmtBRL(p.lastPurchasePrice) : "—"}</td>
@@ -173,7 +184,7 @@ export function StockManager({ readOnly = false }: Props) {
                         {marginPct == null ? "—" : `${marginPct.toFixed(1)}%`}
                       </td>
                       <td className="text-right font-bold tabular-nums">{p.stock}</td>
-                      <td>
+                      <td className="hidden xs:table-cell">
                         {out ? (
                           <Badge variant="destructive"><AlertTriangle className="h-3 w-3 mr-1" />Sem estoque</Badge>
                         ) : low ? (
@@ -184,12 +195,12 @@ export function StockManager({ readOnly = false }: Props) {
                       </td>
                       {!readOnly && (
                         <td>
-                          <div className="flex items-center gap-1 justify-end">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingProduct(p)} aria-label="Editar produto">
-                              <Pencil className="h-4 w-4" />
+                          <div className="flex items-center gap-0.5 sm:gap-1 justify-end">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" onClick={() => setEditingProduct(p)} aria-label="Editar produto">
+                              <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeletingProduct(p)} aria-label="Excluir produto">
-                              <Trash2 className="h-4 w-4" />
+                            <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 text-destructive hover:text-destructive" onClick={() => setDeletingProduct(p)} aria-label="Excluir produto">
+                              <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                             </Button>
                           </div>
                         </td>
