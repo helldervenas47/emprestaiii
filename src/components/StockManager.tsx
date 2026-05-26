@@ -237,7 +237,7 @@ export function StockManager({ readOnly = false }: Props) {
         )}
       </TabsContent>
 
-      <TabsContent value="historico" className="space-y-3">
+      <TabsContent value="historico" className="space-y-3 pb-24 sm:pb-4">
         <div className="flex flex-col sm:flex-row gap-2">
           <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Tipo" /></SelectTrigger>
