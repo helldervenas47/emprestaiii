@@ -121,7 +121,7 @@ export async function recordLedger(input: RecordLedgerInput): Promise<void> {
 
   const wallet = await resolveWallet(input.wallet, input.payment_method_id);
 
-  await supabase.from("account_ledger").insert({
+  const { error: insertErr } = await supabase.from("account_ledger").insert({
     user_id: ownerId,
     direction: input.direction,
     category: input.category,
@@ -136,6 +136,10 @@ export async function recordLedger(input: RecordLedgerInput): Promise<void> {
     wallet,
     payment_method_id: input.payment_method_id ?? null,
   } as any);
+  if (insertErr) {
+    console.error("[recordLedger] insert failed", { input, error: insertErr });
+    throw new Error(insertErr.message || "Falha ao gravar lançamento no extrato");
+  }
   notifyLedgerChanged();
 
   if (syncBalance) {
