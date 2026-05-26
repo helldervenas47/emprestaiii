@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { todayInAppTz } from "@/lib/timezone";
 import { useDataOwner } from "@/hooks/useDataOwner";
 import { supabase } from "@/integrations/supabase/client";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
 const movementMeta: Record<StockMovementType, { label: string; icon: any; cls: string; sign: "+" | "-" }> = {
   entrada_manual: { label: "Entrada manual", icon: PackagePlus, cls: "bg-blue-500/10 text-blue-600 border-blue-500/20", sign: "+" },
@@ -34,7 +35,8 @@ const fmtBRL = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency"
 interface Props { readOnly?: boolean; }
 
 export function StockManager({ readOnly = false }: Props) {
-  const { products, updateProduct } = useProducts(true);
+  const { products, updateProduct, deleteProduct } = useProducts(true);
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const { addExpense, payExpense } = useExpenses(true);
   const { movements, recordMovement, deleteMovement } = useStockMovements(true);
   const ownerId = useDataOwner();
@@ -182,9 +184,14 @@ export function StockManager({ readOnly = false }: Props) {
                       </td>
                       {!readOnly && (
                         <td>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingProduct(p)} aria-label="Editar produto">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-1 justify-end">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingProduct(p)} aria-label="Editar produto">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeletingProduct(p)} aria-label="Excluir produto">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -367,6 +374,19 @@ export function StockManager({ readOnly = false }: Props) {
           onClose={() => setEditingProduct(null)}
         />
       )}
+      <ConfirmDeleteDialog
+        open={!!deletingProduct}
+        onOpenChange={(o) => { if (!o) setDeletingProduct(null); }}
+        title="Excluir produto"
+        description={deletingProduct ? `Tem certeza que deseja excluir "${deletingProduct.name}"? As vendas associadas também serão removidas. Esta ação não pode ser desfeita.` : ""}
+        onConfirm={async () => {
+          if (!deletingProduct) return;
+          const id = deletingProduct.id;
+          setDeletingProduct(null);
+          await deleteProduct(id);
+          toast.success("Produto excluído");
+        }}
+      />
     </Tabs>
   );
 }
