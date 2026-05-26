@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { todayInAppTz } from "@/lib/timezone";
 import { SuccessAnimation } from "@/components/SuccessAnimation";
 import { DatePickerField } from "@/components/ui/date-picker-field";
@@ -14,6 +14,7 @@ import { Expense } from "@/types/loan";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { MoneyInput } from "@/components/ui/money-input";
 import { useDescriptionHistory } from "@/hooks/useDescriptionHistory";
+import { useExpenses } from "@/hooks/useExpenses";
 
 const categories = [
   "Aluguel", "Energia", "Água", "Internet", "Telefone",
@@ -45,7 +46,29 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
   const [showFormError, setShowFormError] = useState(false);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [generateIncomeOnPay, setGenerateIncomeOnPay] = useState(false);
-  const { suggestions, record, findTemplate } = useDescriptionHistory(`expense-${scope}`);
+  const { suggestions, record, findTemplate, seed } = useDescriptionHistory(`expense-${scope}`);
+  const { expenses } = useExpenses();
+
+  // Seed templates with existing expenses of the same scope so previously
+  // registered descriptions can pre-fill the form on first use.
+  useEffect(() => {
+    if (!expenses?.length) return;
+    const entries = expenses
+      .filter((e) => (e.scope ?? "business") === scope && e.description)
+      .map((e) => {
+        const installments = Math.max(1, e.installments ?? 1);
+        const isRecurring = e.type === "recorrente" && installments > 1;
+        const unit = isRecurring ? e.amount / installments : e.amount;
+        return {
+          description: e.description,
+          amount: Number(unit.toFixed(2)),
+          category: e.category,
+          notes: e.notes ?? "",
+          paymentMethodId: e.paymentMethodId ?? null,
+        };
+      });
+    seed(entries);
+  }, [expenses, scope, seed]);
   const [form, setForm] = useState({
     description: defaults?.description ?? "",
     amount: defaults?.amount != null ? String(defaults.amount) : "",
