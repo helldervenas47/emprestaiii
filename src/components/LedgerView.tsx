@@ -144,6 +144,44 @@ export function LedgerView({ readOnly = false }: Props) {
     [filtered],
   );
 
+  // Agrupa entradas que pertencem ao mesmo empréstimo (desembolso split)
+  // ou ao mesmo pagamento (recebimento split em mais de um método).
+  type GroupedItem =
+    | { kind: "single"; entry: LedgerEntry }
+    | { kind: "group"; key: string; entries: LedgerEntry[]; total: number };
+
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const toggleGroup = useCallback((key: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const groupKeyFor = (e: LedgerEntry): string | null => {
+    if (e.category === "loan" && e.direction === "out" && e.loan_id) return `loan:${e.loan_id}`;
+    if (e.category === "payment" && e.direction === "in" && e.payment_id) return `payment:${e.payment_id}`;
+    return null;
+  };
+
+  const groupedItems = useMemo<GroupedItem[]>(() => {
+    const buckets = new Map<string, LedgerEntry[]>();
+    const order: string[] = [];
+    for (const e of filteredList) {
+      const k = groupKeyFor(e) ?? `single:${e.id}`;
+      if (!buckets.has(k)) { buckets.set(k, []); order.push(k); }
+      buckets.get(k)!.push(e);
+    }
+    return order.map((k) => {
+      const arr = buckets.get(k)!;
+      if (arr.length === 1) return { kind: "single", entry: arr[0] } as GroupedItem;
+      const total = arr.reduce((a, e) => a + Number(e.amount), 0);
+      return { kind: "group", key: k, entries: arr, total } as GroupedItem;
+    });
+  }, [filteredList]);
+
+
   const totals = useMemo(() => {
     const totalIn = filtered.filter((e) => e.direction === "in").reduce((a, e) => a + Number(e.amount), 0);
     const totalOut = filtered.filter((e) => e.direction === "out").reduce((a, e) => a + Number(e.amount), 0);
