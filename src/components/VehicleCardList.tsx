@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { Pencil, Check, X, Trash2, Car, Search, Plus } from "lucide-react";
+import { RowActions } from "@/components/ui/row-actions";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
@@ -169,15 +170,17 @@ export function VehicleCardList({ vehicles, onAdd, onUpdate, onDelete, readOnly 
                     </div>
                   </div>
                   {!readOnly && (
-                    <div className="flex gap-1 shrink-0">
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(v)}>
-                        <Pencil className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteId(v.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    <div className="shrink-0">
+                      <RowActions
+                        size="md"
+                        actions={[
+                          { label: "Editar", icon: <Pencil className="h-4 w-4" />, onClick: () => startEdit(v) },
+                          { label: "Excluir", icon: <Trash2 className="h-4 w-4" />, destructive: true, onClick: () => setDeleteId(v.id) },
+                        ]}
+                      />
                     </div>
                   )}
+
                 </div>
               )}
             </CardContent>

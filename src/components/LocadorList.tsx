@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LocadorInfo } from "@/hooks/useLocadorInfo";
 import { Pencil, Check, X, Trash2, Plus, User, Search } from "lucide-react";
+import { RowActions } from "@/components/ui/row-actions";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
@@ -179,15 +180,15 @@ export function LocadorList({ locadores, onSave, onDelete, readOnly = false }: P
                   </div>
                 </div>
                 {!readOnly && (
-                  <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(l)}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(l.id!)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                  <RowActions
+                    size="md"
+                    actions={[
+                      { label: "Editar", icon: <Pencil className="h-4 w-4" />, onClick: () => startEdit(l) },
+                      { label: "Excluir", icon: <Trash2 className="h-4 w-4" />, destructive: true, onClick: () => setDeleteId(l.id!) },
+                    ]}
+                  />
                 )}
+
               </div>
             </CardContent>
           </Card>

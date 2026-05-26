@@ -26,6 +26,7 @@ import { PiggyBanksSummaryCard } from "./PiggyBanksSummaryCard";
 import { IncomeTelegramBotButton } from "./IncomeTelegramBotButton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Plus, Search, Copy, Pencil, Trash2, CheckCircle2, Clock, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, CalendarCheck, ChevronDown } from "lucide-react";
+import { RowActions } from "@/components/ui/row-actions";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { validateIncomeDate } from "@/lib/paymentValidation";
@@ -384,18 +385,32 @@ export function IncomeList({ readOnly }: Props) {
                               <span className="hidden md:inline">Pagar</span>
                             </Button>
                           )}
-                          <Button variant="ghost" onClick={() => { setEditing(i); setFormOpen(true); }} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Editar" aria-label="Editar">
+                          {/* Desktop: ações inline */}
+                          <Button variant="ghost" onClick={() => { setEditing(i); setFormOpen(true); }} className="hidden md:flex h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Editar" aria-label="Editar">
                             <Pencil className="h-4 w-4" />
                             <span className="hidden md:inline">Editar</span>
                           </Button>
-                          <Button variant="ghost" onClick={() => duplicateIncome(i.id)} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Duplicar" aria-label="Duplicar">
+                          <Button variant="ghost" onClick={() => duplicateIncome(i.id)} className="hidden md:flex h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Duplicar" aria-label="Duplicar">
                             <Copy className="h-4 w-4" />
                             <span className="hidden md:inline">Duplicar</span>
                           </Button>
-                          <Button variant="ghost" onClick={() => { setDeleteTarget(i); setDeleteScope("single"); }} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0 text-destructive hover:text-destructive" title="Excluir" aria-label="Excluir">
+                          <Button variant="ghost" onClick={() => { setDeleteTarget(i); setDeleteScope("single"); }} className="hidden md:flex h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0 text-destructive hover:text-destructive" title="Excluir" aria-label="Excluir">
                             <Trash2 className="h-4 w-4" />
                             <span className="hidden md:inline">Excluir</span>
                           </Button>
+                          {/* Mobile: menu kebab */}
+                          <div className="md:hidden">
+                            <RowActions
+                              alwaysKebab
+                              size="md"
+                              actions={[
+                                { label: "Editar", icon: <Pencil className="h-4 w-4" />, onClick: () => { setEditing(i); setFormOpen(true); } },
+                                { label: "Duplicar", icon: <Copy className="h-4 w-4" />, onClick: () => duplicateIncome(i.id) },
+                                { label: "Excluir", icon: <Trash2 className="h-4 w-4" />, destructive: true, onClick: () => { setDeleteTarget(i); setDeleteScope("single"); } },
+                              ]}
+                            />
+                          </div>
+
                        </div>
                     )}
                   </div>

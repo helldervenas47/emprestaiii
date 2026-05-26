@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { PiggyBank, Plus, TrendingUp, Trash2, Pencil, Sparkles, Wallet, History, ArrowDownCircle, ArrowUpCircle, Repeat, Receipt, Percent, CalendarClock, Coins, RefreshCw, Zap } from "lucide-react";
+import { RowActions } from "@/components/ui/row-actions";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -404,24 +405,15 @@ export function PiggyBankList({ readOnly = false }: Props) {
                         )}
                       </Button>
                       {!readOnly && (
-                        <>
-                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openAdjust(pb)} title="Ajustar saldo">
-                            <Wallet className="h-3 w-3" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(pb)} title="Editar">
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteId(pb.id)}
-                            title="Excluir"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </>
+                        <RowActions
+                          actions={[
+                            { label: "Ajustar saldo", icon: <Wallet className="h-3.5 w-3.5" />, onClick: () => openAdjust(pb) },
+                            { label: "Editar", icon: <Pencil className="h-3.5 w-3.5" />, onClick: () => openEdit(pb) },
+                            { label: "Excluir", icon: <Trash2 className="h-3.5 w-3.5" />, destructive: true, onClick: () => setDeleteId(pb.id) },
+                          ]}
+                        />
                       )}
+
                     </div>
                   </div>
                 </div>
@@ -712,27 +704,16 @@ export function PiggyBankList({ readOnly = false }: Props) {
                         </div>
                       </div>
                       {!readOnly && (
-                        <div className="flex gap-0.5 shrink-0">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            onClick={() => openEditDeposit(d)}
-                            title="Editar lançamento"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteDepositId(d.id)}
-                            title="Excluir lançamento"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                        <div className="shrink-0">
+                          <RowActions
+                            actions={[
+                              { label: "Editar lançamento", icon: <Pencil className="h-3.5 w-3.5" />, onClick: () => openEditDeposit(d) },
+                              { label: "Excluir lançamento", icon: <Trash2 className="h-3.5 w-3.5" />, destructive: true, onClick: () => setDeleteDepositId(d.id) },
+                            ]}
+                          />
                         </div>
                       )}
+
                     </li>
                   );
                 })}
