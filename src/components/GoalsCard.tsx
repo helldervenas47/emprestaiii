@@ -326,7 +326,8 @@ function computeProfitRealized(loans: Loan[], payments: Payment[], m: string): n
     const loanPays = payments.filter((p: any) => getLoanId(p) === l.id);
     const totalPaid = loanPays.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
     const allocated = loanPays.reduce((s: number, p: any) => s + (interestByPaymentId.get(p.id) ?? 0), 0);
-    const diff = (totalPaid - Number(l.amount || 0)) - allocated;
+    const principalRef = Number(l.originalAmount ?? l.original_amount ?? l.amount ?? 0);
+    const diff = (totalPaid - principalRef) - allocated;
     if (Math.abs(diff) < 0.005) return;
     const cur = interestByPaymentId.get(lastId) ?? 0;
     interestByPaymentId.set(lastId, Math.max(0, cur + diff));
