@@ -403,14 +403,51 @@ export function useLoans() {
       // Helper: outflow ledger entries (one per split part, or one combined)
       const recordDisbursement = async () => {
         if (normalizedDisbSplit) {
-          for (const part of normalizedDisbSplit.parts) {
-            await recordLedger({
-              direction: "out", category: "loan", amount: Number(part.amount),
-              description: `Empréstimo concedido - ${loan.borrowerName}`,
-              occurred_on: loan.startDate, loan_id: data.id, source: "auto", syncBalance: false,
-              payment_method_id: part.paymentMethodId ?? null,
-              metadata: { split_part: true, total_amount: loan.amount },
-            });
+          const parts = normalizedDisbSplit.parts;
+          const failures: number[] = [];
+          for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            try {
+              await recordLedger({
+                direction: "out", category: "loan", amount: Number(part.amount),
+                description: `Empréstimo concedido - ${loan.borrowerName}`,
+                occurred_on: loan.startDate, loan_id: data.id, source: "auto", syncBalance: false,
+                payment_method_id: part.paymentMethodId ?? null,
+                metadata: {
+                  split_part: true,
+                  split_index: i,
+                  split_count: parts.length,
+                  total_amount: loan.amount,
+                },
+              });
+            } catch (e) {
+              console.error(`[recordDisbursement] part ${i + 1}/${parts.length} failed`, e);
+              failures.push(i);
+            }
+          }
+          if (failures.length > 0) {
+            // Retry once after a short delay to mitigate transient errors
+            await new Promise((r) => setTimeout(r, 250));
+            for (const i of failures) {
+              const part = parts[i];
+              try {
+                await recordLedger({
+                  direction: "out", category: "loan", amount: Number(part.amount),
+                  description: `Empréstimo concedido - ${loan.borrowerName}`,
+                  occurred_on: loan.startDate, loan_id: data.id, source: "auto", syncBalance: false,
+                  payment_method_id: part.paymentMethodId ?? null,
+                  metadata: {
+                    split_part: true,
+                    split_index: i,
+                    split_count: parts.length,
+                    total_amount: loan.amount,
+                    retry: true,
+                  },
+                });
+              } catch (e) {
+                console.error(`[recordDisbursement] retry of part ${i + 1}/${parts.length} failed`, e);
+              }
+            }
           }
         } else {
           await recordLedger({
