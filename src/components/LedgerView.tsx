@@ -312,50 +312,126 @@ export function LedgerView({ readOnly = false }: Props) {
         <>
           {/* Mobile */}
           <div className="sm:hidden space-y-2">
-            {filteredList.map((e) => {
-              const w = (e.wallet ?? "account") as WalletType;
-              const methodName = getMethodName(e);
-              return (
-                <Card no3d key={e.id}>
-                  <CardContent className="p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground line-clamp-2">{e.description}</p>
-                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                          <span className="text-[11px] text-muted-foreground tabular-nums">
-                            {e.occurred_on}
-                            {formatTimeInAppTz(e.created_at) && (
-                              <span className="ml-1 opacity-80">· {formatTimeInAppTz(e.created_at)}</span>
+            {groupedItems.map((item) => {
+              if (item.kind === "single") {
+                const e = item.entry;
+                const w = (e.wallet ?? "account") as WalletType;
+                const methodName = getMethodName(e);
+                return (
+                  <Card no3d key={e.id}>
+                    <CardContent className="p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground line-clamp-2">{e.description}</p>
+                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            <span className="text-[11px] text-muted-foreground tabular-nums">
+                              {e.occurred_on}
+                              {formatTimeInAppTz(e.created_at) && (
+                                <span className="ml-1 opacity-80">· {formatTimeInAppTz(e.created_at)}</span>
+                              )}
+                            </span>
+                            <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                              {categoryLabels[e.category]}
+                            </Badge>
+                            <Badge variant="secondary" className="text-[10px] h-4 px-1.5 inline-flex items-center gap-1">
+                              {w === "cash" ? <Banknote className="h-2.5 w-2.5" /> : <Building2 className="h-2.5 w-2.5" />}
+                              {walletLabel(w)}
+                            </Badge>
+                            {methodName && (
+                              <span className="text-[10px] text-muted-foreground">· {methodName}</span>
                             )}
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end shrink-0">
+                          <span className={`text-sm font-semibold whitespace-nowrap ${e.direction === "in" ? "text-success" : "text-destructive"}`}>
+                            {e.direction === "in" ? "+" : "−"} {formatBRL(Number(e.amount))}
                           </span>
+                          {!readOnly && (
+                            <div className="flex items-center gap-0.5 mt-1">
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditEntry(e)} title="Editar">
+                                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDelete(e.id)} title="Excluir">
+                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              }
+              // Grupo (empréstimo/pagamento dividido em múltiplos métodos)
+              const first = item.entries[0];
+              const w = (first.wallet ?? "account") as WalletType;
+              const methodNames = Array.from(new Set(
+                item.entries.map(getMethodName).filter((n): n is string => !!n)
+              ));
+              const expanded = expandedGroups.has(item.key);
+              return (
+                <Card no3d key={item.key}>
+                  <CardContent className="p-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(item.key)}
+                      className="w-full flex items-start justify-between gap-2 text-left"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1">
+                          {expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                          <p className="text-sm font-medium text-foreground line-clamp-2">{first.description}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap pl-4">
+                          <span className="text-[11px] text-muted-foreground tabular-nums">{first.occurred_on}</span>
                           <Badge variant="outline" className="text-[10px] h-4 px-1.5">
-                            {categoryLabels[e.category]}
+                            {categoryLabels[first.category]}
                           </Badge>
                           <Badge variant="secondary" className="text-[10px] h-4 px-1.5 inline-flex items-center gap-1">
                             {w === "cash" ? <Banknote className="h-2.5 w-2.5" /> : <Building2 className="h-2.5 w-2.5" />}
                             {walletLabel(w)}
                           </Badge>
-                          {methodName && (
-                            <span className="text-[10px] text-muted-foreground">· {methodName}</span>
+                          <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                            {item.entries.length}× dividido
+                          </Badge>
+                          {methodNames.length > 0 && (
+                            <span className="text-[10px] text-muted-foreground">· {methodNames.join(" + ")}</span>
                           )}
                         </div>
                       </div>
-                      <div className="flex flex-col items-end shrink-0">
-                        <span className={`text-sm font-semibold whitespace-nowrap ${e.direction === "in" ? "text-success" : "text-destructive"}`}>
-                          {e.direction === "in" ? "+" : "−"} {formatBRL(Number(e.amount))}
-                        </span>
-                        {!readOnly && (
-                          <div className="flex items-center gap-0.5 mt-1">
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditEntry(e)} title="Editar">
-                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDelete(e.id)} title="Excluir">
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                            </Button>
-                          </div>
-                        )}
+                      <span className={`text-sm font-semibold whitespace-nowrap shrink-0 ${first.direction === "in" ? "text-success" : "text-destructive"}`}>
+                        {first.direction === "in" ? "+" : "−"} {formatBRL(item.total)}
+                      </span>
+                    </button>
+                    {expanded && (
+                      <div className="mt-2 pl-4 border-l border-border space-y-1.5">
+                        {item.entries.map((e) => {
+                          const mn = getMethodName(e);
+                          return (
+                            <div key={e.id} className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] text-muted-foreground truncate">
+                                {mn ?? "—"}
+                              </span>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <span className={`text-xs tabular-nums ${e.direction === "in" ? "text-success" : "text-destructive"}`}>
+                                  {formatBRL(Number(e.amount))}
+                                </span>
+                                {!readOnly && (
+                                  <>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditEntry(e)}>
+                                      <Pencil className="h-3 w-3 text-muted-foreground" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDelete(e.id)}>
+                                      <Trash2 className="h-3 w-3 text-destructive" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -377,47 +453,126 @@ export function LedgerView({ readOnly = false }: Props) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredList.map((e) => {
-                    const w = (e.wallet ?? "account") as WalletType;
-                    const methodName = getMethodName(e);
-                    return (
-                      <TableRow key={e.id}>
-                        <TableCell className="whitespace-nowrap text-sm tabular-nums">
-                          <div className="flex flex-col leading-tight">
-                            <span>{e.occurred_on}</span>
-                            {formatTimeInAppTz(e.created_at) && (
-                              <span className="text-[11px] text-muted-foreground">{formatTimeInAppTz(e.created_at)}</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm">{e.description}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-[10px]">
-                            {categoryLabels[e.category]}{methodName ? ` · ${methodName}` : ""}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="text-[10px] inline-flex items-center gap-1">
-                            {w === "cash" ? <Banknote className="h-3 w-3" /> : <Building2 className="h-3 w-3" />}
-                            {walletLabel(w)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className={`text-right font-semibold ${e.direction === "in" ? "text-success" : "text-destructive"}`}>
-                          {e.direction === "in" ? "+" : "−"} {formatBRL(Number(e.amount))}
-                        </TableCell>
-                        {!readOnly && (
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditEntry(e)}>
-                                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(e.id)}>
-                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                              </Button>
+                  {groupedItems.map((item) => {
+                    if (item.kind === "single") {
+                      const e = item.entry;
+                      const w = (e.wallet ?? "account") as WalletType;
+                      const methodName = getMethodName(e);
+                      return (
+                        <TableRow key={e.id}>
+                          <TableCell className="whitespace-nowrap text-sm tabular-nums">
+                            <div className="flex flex-col leading-tight">
+                              <span>{e.occurred_on}</span>
+                              {formatTimeInAppTz(e.created_at) && (
+                                <span className="text-[11px] text-muted-foreground">{formatTimeInAppTz(e.created_at)}</span>
+                              )}
                             </div>
                           </TableCell>
-                        )}
-                      </TableRow>
+                          <TableCell className="text-sm">{e.description}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-[10px]">
+                              {categoryLabels[e.category]}{methodName ? ` · ${methodName}` : ""}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className="text-[10px] inline-flex items-center gap-1">
+                              {w === "cash" ? <Banknote className="h-3 w-3" /> : <Building2 className="h-3 w-3" />}
+                              {walletLabel(w)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className={`text-right font-semibold ${e.direction === "in" ? "text-success" : "text-destructive"}`}>
+                            {e.direction === "in" ? "+" : "−"} {formatBRL(Number(e.amount))}
+                          </TableCell>
+                          {!readOnly && (
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditEntry(e)}>
+                                  <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(e.id)}>
+                                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      );
+                    }
+                    // Grupo
+                    const first = item.entries[0];
+                    const w = (first.wallet ?? "account") as WalletType;
+                    const methodNames = Array.from(new Set(
+                      item.entries.map(getMethodName).filter((n): n is string => !!n)
+                    ));
+                    const expanded = expandedGroups.has(item.key);
+                    return (
+                      <>
+                        <TableRow key={item.key} className="cursor-pointer hover:bg-muted/40" onClick={() => toggleGroup(item.key)}>
+                          <TableCell className="whitespace-nowrap text-sm tabular-nums">
+                            <div className="flex flex-col leading-tight">
+                              <span>{first.occurred_on}</span>
+                              {formatTimeInAppTz(first.created_at) && (
+                                <span className="text-[11px] text-muted-foreground">{formatTimeInAppTz(first.created_at)}</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <div className="flex items-center gap-1">
+                              {expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                              <span>{first.description}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <Badge variant="outline" className="text-[10px]">
+                                {categoryLabels[first.category]}
+                              </Badge>
+                              <Badge variant="outline" className="text-[10px]">
+                                {item.entries.length}× dividido
+                              </Badge>
+                              {methodNames.length > 0 && (
+                                <span className="text-[10px] text-muted-foreground">{methodNames.join(" + ")}</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className="text-[10px] inline-flex items-center gap-1">
+                              {w === "cash" ? <Banknote className="h-3 w-3" /> : <Building2 className="h-3 w-3" />}
+                              {walletLabel(w)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className={`text-right font-semibold ${first.direction === "in" ? "text-success" : "text-destructive"}`}>
+                            {first.direction === "in" ? "+" : "−"} {formatBRL(item.total)}
+                          </TableCell>
+                          {!readOnly && <TableCell />}
+                        </TableRow>
+                        {expanded && item.entries.map((e) => {
+                          const mn = getMethodName(e);
+                          return (
+                            <TableRow key={e.id} className="bg-muted/20">
+                              <TableCell />
+                              <TableCell className="text-xs text-muted-foreground pl-8">↳ parte {(e.metadata as any)?.split_index ? `${(e.metadata as any).split_index}/${(e.metadata as any).split_count}` : ""}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{mn ?? "—"}</TableCell>
+                              <TableCell />
+                              <TableCell className={`text-right text-xs tabular-nums ${e.direction === "in" ? "text-success" : "text-destructive"}`}>
+                                {formatBRL(Number(e.amount))}
+                              </TableCell>
+                              {!readOnly && (
+                                <TableCell>
+                                  <div className="flex items-center gap-1">
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditEntry(e)}>
+                                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(e.id)}>
+                                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          );
+                        })}
+                      </>
                     );
                   })}
                 </TableBody>
@@ -425,6 +580,7 @@ export function LedgerView({ readOnly = false }: Props) {
             </CardContent>
           </Card>
         </>
+
       )}
 
       <AdjustBalanceDialog open={adjustOpen} onOpenChange={setAdjustOpen} balances={balances} onSaved={reload} />
