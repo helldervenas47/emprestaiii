@@ -16,6 +16,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Trash2, Loader2, CheckCircle2, XCircle, Eye, EyeOff, ShieldCheck, Bot, Wallet, BarChart3, Unlink, Link2 } from "lucide-react";
+import { RowActions } from "@/components/ui/row-actions";
 import { toast } from "sonner";
 
 interface ConnectedLink {
