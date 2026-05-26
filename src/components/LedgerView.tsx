@@ -389,7 +389,7 @@ export function LedgerView({ readOnly = false }: Props) {
                       >
                         <div className="flex items-center gap-1">
                           {expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
-                          <p className="text-sm font-medium text-foreground line-clamp-2">{first.description}</p>
+                          <p className="text-sm font-medium text-foreground line-clamp-2 break-words">{first.description}</p>
                         </div>
                         <div className="flex items-center gap-1.5 mt-1 flex-wrap pl-4">
                           <span className="text-[11px] text-muted-foreground tabular-nums">{first.occurred_on}</span>
