@@ -1,4 +1,5 @@
 import { CreditCard as CreditCardIcon, Pencil, Trash2, Wifi } from "lucide-react";
+import { RowActions } from "@/components/ui/row-actions";
 import { Button } from "@/components/ui/button";
 import { CreditCard } from "@/hooks/useCreditCards";
 import { getBank, brandLabel } from "@/lib/creditCardBanks";
