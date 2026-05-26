@@ -373,6 +373,19 @@ export function StockManager({ readOnly = false }: Props) {
           onClose={() => setEditingProduct(null)}
         />
       )}
+      <ConfirmDeleteDialog
+        open={!!deletingProduct}
+        onOpenChange={(o) => { if (!o) setDeletingProduct(null); }}
+        title="Excluir produto"
+        description={deletingProduct ? `Tem certeza que deseja excluir "${deletingProduct.name}"? As vendas associadas também serão removidas. Esta ação não pode ser desfeita.` : ""}
+        onConfirm={async () => {
+          if (!deletingProduct) return;
+          const id = deletingProduct.id;
+          setDeletingProduct(null);
+          await deleteProduct(id);
+          toast.success("Produto excluído");
+        }}
+      />
     </Tabs>
   );
 }
