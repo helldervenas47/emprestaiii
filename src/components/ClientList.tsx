@@ -577,7 +577,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                           <span className={`text-sm font-bold ${cs.color}`}>{cs.score}</span>
                         </div>
                         {!readOnly && (
-                          <div className="flex gap-0.5 sm:gap-1">
+                          <div className="flex gap-0.5 sm:gap-1 items-center">
                             <Button
                               size="icon"
                               variant="ghost"
@@ -587,13 +587,15 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                             >
                               {client.active ? <ToggleRight className="h-4 w-4 text-success" /> : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}
                             </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(client)} title="Editar">
-                              <Pencil className="h-4 w-4 text-muted-foreground" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteClientId(client.id)} title="Excluir">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <RowActions
+                              size="md"
+                              actions={[
+                                { label: "Editar", icon: <Pencil className="h-4 w-4" />, onClick: () => startEdit(client) },
+                                { label: "Excluir", icon: <Trash2 className="h-4 w-4" />, destructive: true, onClick: () => setDeleteClientId(client.id) },
+                              ]}
+                            />
                           </div>
+
                         )}
                       </div>
                     </div>
