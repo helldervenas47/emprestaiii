@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowDownRight, ArrowUpRight, Plus, Trash2, Wallet, ListFilter, RefreshCw, Pencil, Banknote, Building2, ArrowLeftRight } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Plus, Trash2, Wallet, ListFilter, RefreshCw, Pencil, Banknote, Building2, ArrowLeftRight, ChevronDown, ChevronRight } from "lucide-react";
 import {
   listLedger, recordLedger, deleteLedgerEntry, updateLedgerEntry,
   recomputeBalanceFromLedger, recordTransfer,
