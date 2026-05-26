@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { ChevronDown, Pencil, Trash2, RefreshCw } from "lucide-react";
+import { RowActions } from "@/components/ui/row-actions";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
@@ -193,18 +194,16 @@ export function PlanSubscribers() {
   const getPlanLabel = (productId: string) => PRODUCT_LABEL_MAP[productId] || productId;
 
   const actionButtons = (sub: Subscriber) => (
-    <div className="flex items-center gap-1">
-      <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar" onClick={() => openEdit(sub)}>
-        <Pencil className="h-3.5 w-3.5" />
-      </Button>
-      <Button variant="ghost" size="icon" className="h-8 w-8" title="Definir Plano" onClick={() => openChangePlan(sub)}>
-        <RefreshCw className="h-3.5 w-3.5" />
-      </Button>
-      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" title="Excluir" onClick={() => setDeleteSubId(sub.id)}>
-        <Trash2 className="h-3.5 w-3.5" />
-      </Button>
-    </div>
+    <RowActions
+      size="md"
+      actions={[
+        { label: "Editar", icon: <Pencil className="h-4 w-4" />, onClick: () => openEdit(sub) },
+        { label: "Definir Plano", icon: <RefreshCw className="h-4 w-4" />, onClick: () => openChangePlan(sub) },
+        { label: "Excluir", icon: <Trash2 className="h-4 w-4" />, destructive: true, onClick: () => setDeleteSubId(sub.id) },
+      ]}
+    />
   );
+
 
   if (loading) {
     return (

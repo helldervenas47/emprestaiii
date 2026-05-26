@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Wallet, Plus, Trash2, Pencil, Check, X } from "lucide-react";
+import { RowActions } from "@/components/ui/row-actions";
 import { usePaymentMethods, PaymentMethod } from "@/hooks/usePaymentMethods";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
@@ -131,17 +132,13 @@ export function PaymentMethodsManager({ readOnly = false }: Props) {
                         {m.active ? "Ativa" : "Inativa"}
                       </span>
                     </div>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(m)}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 text-destructive hover:text-destructive"
-                      onClick={() => setDeleteId(m.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <RowActions
+                      actions={[
+                        { label: "Editar", icon: <Pencil className="h-3.5 w-3.5" />, onClick: () => startEdit(m) },
+                        { label: "Excluir", icon: <Trash2 className="h-3.5 w-3.5" />, destructive: true, onClick: () => setDeleteId(m.id) },
+                      ]}
+                    />
+
                   </>
                 ) : null}
               </div>

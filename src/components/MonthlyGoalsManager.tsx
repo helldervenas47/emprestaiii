@@ -11,6 +11,7 @@ import {
   HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus, Copy,
   ChevronLeft, ChevronRight, RefreshCw,
 } from "lucide-react";
+import { RowActions } from "@/components/ui/row-actions";
 import { toast } from "sonner";
 import { useMonthlyGoals, GoalType, currentMonthKey, formatMonthLabel } from "@/hooks/useMonthlyGoals";
 import { computeActual as computeActualFromGoalsCard } from "@/components/GoalsCard";
@@ -341,15 +342,16 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
                               {formatMonthLabel(g.month)}
                             </Badge>
                             {!readOnly && (
-                              <div className="flex gap-0.5 shrink-0 -mr-1">
-                                <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted" onClick={() => handleEdit(g)}>
-                                  <Pencil className="h-3 w-3" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-destructive/10" onClick={() => setDeleteId(g.id)}>
-                                  <Trash2 className="h-3 w-3 text-destructive" />
-                                </Button>
+                              <div className="shrink-0 -mr-1">
+                                <RowActions
+                                  actions={[
+                                    { label: "Editar", icon: <Pencil className="h-3.5 w-3.5" />, onClick: () => handleEdit(g) },
+                                    { label: "Excluir", icon: <Trash2 className="h-3.5 w-3.5" />, destructive: true, onClick: () => setDeleteId(g.id) },
+                                  ]}
+                                />
                               </div>
                             )}
+
                           </div>
 
                           <div className="flex items-baseline justify-between gap-1 border-b border-border/50 pb-1.5">

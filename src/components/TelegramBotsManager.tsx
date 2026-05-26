@@ -16,6 +16,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Trash2, Loader2, CheckCircle2, XCircle, Eye, EyeOff, ShieldCheck, Bot, Wallet, BarChart3, Unlink, Link2 } from "lucide-react";
+import { RowActions } from "@/components/ui/row-actions";
 import { toast } from "sonner";
 
 interface ConnectedLink {
@@ -352,13 +353,14 @@ export function TelegramBotsManager() {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Switch checked={b.active} onCheckedChange={() => toggleActive(b)} />
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(b)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteTarget(b)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <RowActions
+                        size="md"
+                        actions={[
+                          { label: "Editar", icon: <Pencil className="h-4 w-4" />, onClick: () => openEdit(b) },
+                          { label: "Excluir", icon: <Trash2 className="h-4 w-4" />, destructive: true, onClick: () => setDeleteTarget(b) },
+                        ]}
+                      />
+
                     </div>
                   </li>
                 ))}

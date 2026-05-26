@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Star, LayoutGrid } from "lucide-react";
+import { RowActions } from "@/components/ui/row-actions";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -168,17 +169,15 @@ export function PlanManagement() {
                   {plan.highlight && <Star className="h-4 w-4 text-primary fill-primary" />}
                   {plan.name}
                 </CardTitle>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Abas permitidas" onClick={() => openTabsConfig(plan)}>
-                    <LayoutGrid className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(plan)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(plan.id)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                <RowActions
+                  size="md"
+                  actions={[
+                    { label: "Abas permitidas", icon: <LayoutGrid className="h-4 w-4" />, onClick: () => openTabsConfig(plan) },
+                    { label: "Editar", icon: <Pencil className="h-4 w-4" />, onClick: () => openEdit(plan) },
+                    { label: "Excluir", icon: <Trash2 className="h-4 w-4" />, destructive: true, onClick: () => setDeleteId(plan.id) },
+                  ]}
+                />
+
               </div>
             </CardHeader>
             <CardContent className="space-y-2">

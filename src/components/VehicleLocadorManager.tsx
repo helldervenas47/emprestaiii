@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { LocadorInfo } from "@/hooks/useLocadorInfo";
 import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { Pencil, Check, X, Plus, Trash2, Car, User, ChevronDown, ChevronUp } from "lucide-react";
+import { RowActions } from "@/components/ui/row-actions";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
@@ -215,15 +216,15 @@ export function VehicleLocadorManager({
                         {v.renavam && <p className="text-xs text-muted-foreground">Renavam: {v.renavam}</p>}
                       </div>
                       {!readOnly && (
-                        <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEditVehicle(v)}>
-                            <Pencil className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteVehicleId(v.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <RowActions
+                          size="md"
+                          actions={[
+                            { label: "Editar", icon: <Pencil className="h-4 w-4" />, onClick: () => startEditVehicle(v) },
+                            { label: "Excluir", icon: <Trash2 className="h-4 w-4" />, destructive: true, onClick: () => setDeleteVehicleId(v.id) },
+                          ]}
+                        />
                       )}
+
                     </div>
                   )}
                 </CardContent>
