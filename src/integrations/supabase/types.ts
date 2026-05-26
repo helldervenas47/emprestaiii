@@ -1777,6 +1777,81 @@ export type Database = {
         }
         Relationships: []
       }
+      my_boletos: {
+        Row: {
+          amount: number
+          attachment_path: string | null
+          bank_code: string | null
+          bank_name: string | null
+          barcode: string | null
+          beneficiary: string | null
+          category: string | null
+          created_at: string
+          description: string
+          digits: string | null
+          due_date: string | null
+          id: string
+          kind: string | null
+          notes: string | null
+          owner_id: string
+          paid_at: string | null
+          pix_brcode: string | null
+          segment: string | null
+          segment_label: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          attachment_path?: string | null
+          bank_code?: string | null
+          bank_name?: string | null
+          barcode?: string | null
+          beneficiary?: string | null
+          category?: string | null
+          created_at?: string
+          description: string
+          digits?: string | null
+          due_date?: string | null
+          id?: string
+          kind?: string | null
+          notes?: string | null
+          owner_id: string
+          paid_at?: string | null
+          pix_brcode?: string | null
+          segment?: string | null
+          segment_label?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          attachment_path?: string | null
+          bank_code?: string | null
+          bank_name?: string | null
+          barcode?: string | null
+          beneficiary?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string
+          digits?: string | null
+          due_date?: string | null
+          id?: string
+          kind?: string | null
+          notes?: string | null
+          owner_id?: string
+          paid_at?: string | null
+          pix_brcode?: string | null
+          segment?: string | null
+          segment_label?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           created_at: string | null
