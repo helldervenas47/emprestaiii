@@ -81,7 +81,7 @@ export function StockManager({ readOnly = false }: Props) {
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="estoque" className="space-y-3">
+      <TabsContent value="estoque" className="space-y-3 pb-24 sm:pb-4">
         {!readOnly && (
           <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
             <Button onClick={() => setEntryOpen(true)} disabled={products.length === 0} className="w-full sm:w-auto">
