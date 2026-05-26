@@ -171,31 +171,14 @@ const MiniCreditCard = React.forwardRef<HTMLDivElement, MiniCardProps>(({
               {card.nickname || bank.name}
             </p>
             {!readOnly && (
-              <div className="flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit?.();
-                  }}
-                >
-                  <Pencil className="h-3 w-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 text-destructive hover:text-destructive"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete?.();
-                  }}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
+              <RowActions
+                actions={[
+                  { label: "Editar", icon: <Pencil className="h-3.5 w-3.5" />, onClick: () => onEdit?.() },
+                  { label: "Excluir", icon: <Trash2 className="h-3.5 w-3.5" />, destructive: true, onClick: () => onDelete?.() },
+                ]}
+              />
             )}
+
           </div>
 
           <div className="flex items-baseline justify-between gap-2">
