@@ -331,7 +331,7 @@ export function LedgerView({ readOnly = false }: Props) {
                     <CardContent className="p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-foreground line-clamp-2">{e.description}</p>
+                          <p className="text-sm font-medium text-foreground line-clamp-2 break-words">{e.description}</p>
                           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                             <span className="text-[11px] text-muted-foreground tabular-nums">
                               {e.occurred_on}
