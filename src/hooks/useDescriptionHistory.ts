@@ -87,5 +87,45 @@ export function useDescriptionHistory(scope: string) {
     [templates],
   );
 
-  return { suggestions, record, findTemplate };
+  /**
+   * Bulk-seed templates and suggestions from existing data (e.g. historical
+   * rows loaded from the database). Stored/manual entries always take
+   * precedence — seeded values only fill gaps. Does not persist to storage.
+   */
+  const seed = useCallback(
+    (entries: DescriptionTemplate[]) => {
+      if (!Array.isArray(entries) || entries.length === 0) return;
+      // Templates: only add when not already present (preserve user-saved).
+      setTemplates((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        for (const entry of entries) {
+          const key = (entry.description ?? "").trim().toLowerCase();
+          if (!key) continue;
+          if (!next[key]) {
+            next[key] = { ...entry, description: entry.description.trim() };
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+      // Suggestions: append missing descriptions (case-insensitive).
+      setSuggestions((prev) => {
+        const have = new Set(prev.map((p) => p.toLowerCase()));
+        const additions: string[] = [];
+        for (const entry of entries) {
+          const d = (entry.description ?? "").trim();
+          if (d && !have.has(d.toLowerCase())) {
+            have.add(d.toLowerCase());
+            additions.push(d);
+          }
+        }
+        if (additions.length === 0) return prev;
+        return [...prev, ...additions].slice(0, MAX * 4);
+      });
+    },
+    [],
+  );
+
+  return { suggestions, record, findTemplate, seed };
 }
