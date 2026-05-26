@@ -567,7 +567,18 @@ export function LedgerView({ readOnly = false }: Props) {
                           <TableCell className={`text-right font-semibold ${first.direction === "in" ? "text-success" : "text-destructive"}`}>
                             {first.direction === "in" ? "+" : "−"} {formatBRL(item.total)}
                           </TableCell>
-                          {!readOnly && <TableCell />}
+                          {!readOnly && (
+                            <TableCell onClick={(ev) => ev.stopPropagation()}>
+                              <div className="flex items-center gap-1">
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditEntry(first)} title="Editar partes">
+                                  <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteGroup(item.entries)} title="Excluir tudo">
+                                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          )}
                         </TableRow>
                         {expanded && item.entries.map((e) => {
                           const mn = getMethodName(e);
