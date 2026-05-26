@@ -225,7 +225,7 @@ export function LedgerView({ readOnly = false }: Props) {
   };
 
   return (
-    <div className="space-y-3 sm:space-y-4">
+    <div className="space-y-3 sm:space-y-4 w-full max-w-full min-w-0 overflow-x-hidden">
 
       {/* Indicadores consolidados */}
       <ConsolidatedBalanceCards />
