@@ -1003,7 +1003,7 @@ const Index = () => {
           </SubscriptionGate>
         )}
         {tab === "boletos" && (
-          <BoletoSearchTab readOnly={isReadOnly} />
+          <BoletosTab readOnly={isReadOnly} />
         )}
         {tab === "overdue" && (
           <SubscriptionGate requiredTier={2} featureName="Relatórios">
