@@ -703,27 +703,16 @@ export function PiggyBankList({ readOnly = false }: Props) {
                         </div>
                       </div>
                       {!readOnly && (
-                        <div className="flex gap-0.5 shrink-0">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            onClick={() => openEditDeposit(d)}
-                            title="Editar lançamento"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteDepositId(d.id)}
-                            title="Excluir lançamento"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                        <div className="shrink-0">
+                          <RowActions
+                            actions={[
+                              { label: "Editar lançamento", icon: <Pencil className="h-3.5 w-3.5" />, onClick: () => openEditDeposit(d) },
+                              { label: "Excluir lançamento", icon: <Trash2 className="h-3.5 w-3.5" />, destructive: true, onClick: () => setDeleteDepositId(d.id) },
+                            ]}
+                          />
                         </div>
                       )}
+
                     </li>
                   );
                 })}
