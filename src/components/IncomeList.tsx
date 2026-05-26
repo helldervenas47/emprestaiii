@@ -26,6 +26,7 @@ import { PiggyBanksSummaryCard } from "./PiggyBanksSummaryCard";
 import { IncomeTelegramBotButton } from "./IncomeTelegramBotButton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Plus, Search, Copy, Pencil, Trash2, CheckCircle2, Clock, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, CalendarCheck, ChevronDown } from "lucide-react";
+import { RowActions } from "@/components/ui/row-actions";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { validateIncomeDate } from "@/lib/paymentValidation";
