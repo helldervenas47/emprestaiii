@@ -1415,7 +1415,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       const loanPays = payments.filter((p) => p.loanId === l.id);
       const totalPaid = loanPays.reduce((s, p) => s + (Number(p.amount) || 0), 0);
       const allocated = loanPays.reduce((s, p) => s + (interestByPaymentId.get(p.id) ?? 0), 0);
-      const realProfit = totalPaid - l.amount;
+      // Usa principal ORIGINAL (imutável) para apurar o lucro real e não inflar
+      // por amortizações que reduziram o saldo vigente.
+      const principalRef = l.originalAmount != null && l.originalAmount > 0 ? l.originalAmount : l.amount;
+      const realProfit = totalPaid - principalRef;
       const diff = realProfit - allocated;
       if (Math.abs(diff) < 0.005) return;
       const cur = interestByPaymentId.get(lastId) ?? 0;
