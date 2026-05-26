@@ -404,24 +404,15 @@ export function PiggyBankList({ readOnly = false }: Props) {
                         )}
                       </Button>
                       {!readOnly && (
-                        <>
-                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openAdjust(pb)} title="Ajustar saldo">
-                            <Wallet className="h-3 w-3" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(pb)} title="Editar">
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteId(pb.id)}
-                            title="Excluir"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </>
+                        <RowActions
+                          actions={[
+                            { label: "Ajustar saldo", icon: <Wallet className="h-3.5 w-3.5" />, onClick: () => openAdjust(pb) },
+                            { label: "Editar", icon: <Pencil className="h-3.5 w-3.5" />, onClick: () => openEdit(pb) },
+                            { label: "Excluir", icon: <Trash2 className="h-3.5 w-3.5" />, destructive: true, onClick: () => setDeleteId(pb.id) },
+                          ]}
+                        />
                       )}
+
                     </div>
                   </div>
                 </div>
