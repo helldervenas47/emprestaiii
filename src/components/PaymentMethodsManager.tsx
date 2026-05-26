@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Wallet, Plus, Trash2, Pencil, Check, X } from "lucide-react";
+import { RowActions } from "@/components/ui/row-actions";
 import { usePaymentMethods, PaymentMethod } from "@/hooks/usePaymentMethods";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
