@@ -1472,6 +1472,7 @@ export type Database = {
           manager_commission_rate: number
           manager_id: string | null
           notes: string | null
+          original_amount: number
           original_due_date: string | null
           paid_installments: number
           payment_method_split: Json | null
@@ -1505,6 +1506,7 @@ export type Database = {
           manager_commission_rate?: number
           manager_id?: string | null
           notes?: string | null
+          original_amount: number
           original_due_date?: string | null
           paid_installments?: number
           payment_method_split?: Json | null
@@ -1538,6 +1540,7 @@ export type Database = {
           manager_commission_rate?: number
           manager_id?: string | null
           notes?: string | null
+          original_amount?: number
           original_due_date?: string | null
           paid_installments?: number
           payment_method_split?: Json | null

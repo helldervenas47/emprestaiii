@@ -594,14 +594,19 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       const totalPaid = payments
         .filter((p) => p.loanId === l.id)
         .reduce((s, p) => s + (Number(p.amount) || 0), 0);
-      const totalExpected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-      const expectedInterest = Math.max(0, totalExpected - l.amount);
+      // Principal de referência para apurar o lucro real: usa o PRINCIPAL ORIGINAL
+      // (imutável). Cair em l.amount apenas como fallback para contratos legados
+      // sem o campo populado. Isso evita superestimar o lucro quando há
+      // amortizações que reduziram o saldo principal vigente.
+      const principalRef = l.originalAmount != null && l.originalAmount > 0 ? l.originalAmount : l.amount;
+      const totalExpected = calculateTotalWithInterest(principalRef, l.interestRate, l.installments);
+      const expectedInterest = Math.max(0, totalExpected - principalRef);
       // Juros já alocado para este contrato
       const allocatedInterest = payments
         .filter((p) => p.loanId === l.id)
         .reduce((s, p) => s + (interestByPaymentId.get(p.id) ?? 0), 0);
-      // Lucro real = totalPago - principal (incl. acordos com bônus ou desconto)
-      const realProfit = totalPaid - l.amount;
+      // Lucro real = totalPago - principal original (incl. acordos com bônus ou desconto)
+      const realProfit = totalPaid - principalRef;
       const diff = realProfit - allocatedInterest;
       if (Math.abs(diff) < 0.005) return;
       const cur = interestByPaymentId.get(lastId) ?? 0;
@@ -1410,7 +1415,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       const loanPays = payments.filter((p) => p.loanId === l.id);
       const totalPaid = loanPays.reduce((s, p) => s + (Number(p.amount) || 0), 0);
       const allocated = loanPays.reduce((s, p) => s + (interestByPaymentId.get(p.id) ?? 0), 0);
-      const realProfit = totalPaid - l.amount;
+      // Usa principal ORIGINAL (imutável) para apurar o lucro real e não inflar
+      // por amortizações que reduziram o saldo vigente.
+      const principalRef = l.originalAmount != null && l.originalAmount > 0 ? l.originalAmount : l.amount;
+      const realProfit = totalPaid - principalRef;
       const diff = realProfit - allocated;
       if (Math.abs(diff) < 0.005) return;
       const cur = interestByPaymentId.get(lastId) ?? 0;
