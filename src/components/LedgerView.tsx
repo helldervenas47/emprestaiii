@@ -209,6 +209,15 @@ export function LedgerView({ readOnly = false }: Props) {
     toast.success("Lançamento removido");
   };
 
+  const handleDeleteGroup = async (entries: LedgerEntry[]) => {
+    if (!confirm(`Excluir as ${entries.length} partes deste lançamento? O saldo será ajustado automaticamente.`)) return;
+    for (const e of entries) {
+      try { await deleteLedgerEntry(e.id); } catch {}
+    }
+    await reload();
+    toast.success("Lançamento removido");
+  };
+
   const handleRecompute = async () => {
     await recomputeBalanceFromLedger();
     await reload();
@@ -372,12 +381,12 @@ export function LedgerView({ readOnly = false }: Props) {
               return (
                 <Card no3d key={item.key}>
                   <CardContent className="p-3">
-                    <button
-                      type="button"
-                      onClick={() => toggleGroup(item.key)}
-                      className="w-full flex items-start justify-between gap-2 text-left"
-                    >
-                      <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleGroup(item.key)}
+                        className="min-w-0 flex-1 text-left"
+                      >
                         <div className="flex items-center gap-1">
                           {expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
                           <p className="text-sm font-medium text-foreground line-clamp-2">{first.description}</p>
@@ -398,11 +407,23 @@ export function LedgerView({ readOnly = false }: Props) {
                             <span className="text-[10px] text-muted-foreground">· {methodNames.join(" + ")}</span>
                           )}
                         </div>
+                      </button>
+                      <div className="flex flex-col items-end shrink-0">
+                        <span className={`text-sm font-semibold whitespace-nowrap ${first.direction === "in" ? "text-success" : "text-destructive"}`}>
+                          {first.direction === "in" ? "+" : "−"} {formatBRL(item.total)}
+                        </span>
+                        {!readOnly && (
+                          <div className="flex items-center gap-0.5 mt-1">
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditEntry(first)} title="Editar partes">
+                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDeleteGroup(item.entries)} title="Excluir tudo">
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
-                      <span className={`text-sm font-semibold whitespace-nowrap shrink-0 ${first.direction === "in" ? "text-success" : "text-destructive"}`}>
-                        {first.direction === "in" ? "+" : "−"} {formatBRL(item.total)}
-                      </span>
-                    </button>
+                    </div>
                     {expanded && (
                       <div className="mt-2 pl-4 border-l border-border space-y-1.5">
                         {item.entries.map((e) => {
@@ -435,6 +456,7 @@ export function LedgerView({ readOnly = false }: Props) {
                   </CardContent>
                 </Card>
               );
+
             })}
           </div>
 
@@ -545,7 +567,18 @@ export function LedgerView({ readOnly = false }: Props) {
                           <TableCell className={`text-right font-semibold ${first.direction === "in" ? "text-success" : "text-destructive"}`}>
                             {first.direction === "in" ? "+" : "−"} {formatBRL(item.total)}
                           </TableCell>
-                          {!readOnly && <TableCell />}
+                          {!readOnly && (
+                            <TableCell onClick={(ev) => ev.stopPropagation()}>
+                              <div className="flex items-center gap-1">
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditEntry(first)} title="Editar partes">
+                                  <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteGroup(item.entries)} title="Excluir tudo">
+                                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          )}
                         </TableRow>
                         {expanded && item.entries.map((e) => {
                           const mn = getMethodName(e);
