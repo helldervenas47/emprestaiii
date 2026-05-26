@@ -506,8 +506,9 @@ export function LedgerView({ readOnly = false }: Props) {
                     ));
                     const expanded = expandedGroups.has(item.key);
                     return (
-                      <>
-                        <TableRow key={item.key} className="cursor-pointer hover:bg-muted/40" onClick={() => toggleGroup(item.key)}>
+                      <Fragment key={item.key}>
+                        <TableRow className="cursor-pointer hover:bg-muted/40" onClick={() => toggleGroup(item.key)}>
+
                           <TableCell className="whitespace-nowrap text-sm tabular-nums">
                             <div className="flex flex-col leading-tight">
                               <span>{first.occurred_on}</span>
