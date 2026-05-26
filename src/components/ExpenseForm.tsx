@@ -14,6 +14,7 @@ import { Expense } from "@/types/loan";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { MoneyInput } from "@/components/ui/money-input";
 import { useDescriptionHistory } from "@/hooks/useDescriptionHistory";
+import { useExpenses } from "@/hooks/useExpenses";
 
 const categories = [
   "Aluguel", "Energia", "Água", "Internet", "Telefone",
