@@ -56,7 +56,7 @@ const WhatsappAssistantCard = lazy(() => import("@/components/WhatsappAssistantC
 const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })));
 const SystemSettings = lazy(() => import("@/components/SystemSettings").then(m => ({ default: m.SystemSettings })));
 const SalaryTab = lazy(() => import("@/components/salary/SalaryTab").then(m => ({ default: m.SalaryTab })));
-const BoletoSearchTab = lazy(() => import("@/components/boletos/BoletoSearchTab").then(m => ({ default: m.BoletoSearchTab })));
+const BoletosTab = lazy(() => import("@/components/boletos/BoletosTab").then(m => ({ default: m.BoletosTab })));
 
 // Direct import for the constant used at render time
 import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
@@ -1003,7 +1003,7 @@ const Index = () => {
           </SubscriptionGate>
         )}
         {tab === "boletos" && (
-          <BoletoSearchTab readOnly={isReadOnly} />
+          <BoletosTab readOnly={isReadOnly} />
         )}
         {tab === "overdue" && (
           <SubscriptionGate requiredTier={2} featureName="Relatórios">
