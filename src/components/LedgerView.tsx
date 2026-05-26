@@ -573,7 +573,7 @@ export function LedgerView({ readOnly = false }: Props) {
                             </TableRow>
                           );
                         })}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </TableBody>
