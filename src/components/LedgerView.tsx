@@ -209,6 +209,15 @@ export function LedgerView({ readOnly = false }: Props) {
     toast.success("Lançamento removido");
   };
 
+  const handleDeleteGroup = async (entries: LedgerEntry[]) => {
+    if (!confirm(`Excluir as ${entries.length} partes deste lançamento? O saldo será ajustado automaticamente.`)) return;
+    for (const e of entries) {
+      try { await deleteLedgerEntry(e.id); } catch {}
+    }
+    await reload();
+    toast.success("Lançamento removido");
+  };
+
   const handleRecompute = async () => {
     await recomputeBalanceFromLedger();
     await reload();
