@@ -184,7 +184,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Pr
                 onChange={(e) => {
                   update("description", e.target.value);
                   // datalist selection fires onChange with the chosen value
-                  if (suggestions.some((s) => s.toLowerCase() === e.target.value.trim().toLowerCase())) {
+                  if (findTemplate(e.target.value)) {
                     applyTemplateFromDescription(e.target.value);
                   }
                 }}

@@ -177,7 +177,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
                 const v = e.target.value;
                 setDescription(v);
                 if (initial) return;
-                if (suggestions.some((s) => s.toLowerCase() === v.trim().toLowerCase())) {
+                if (findTemplate(v)) {
                   const tpl = findTemplate(v);
                   if (tpl) {
                     if (!amount && tpl.amount != null) setAmount(String(tpl.amount));

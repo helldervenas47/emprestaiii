@@ -16,12 +16,28 @@ export type DescriptionTemplate = {
 };
 
 /**
+ * Canonical key used to compare descriptions: trim, collapse internal
+ * whitespace, lowercase, strip diacritics. "  Café  da  Manhã " and
+ * "cafe da manha" map to the same key.
+ */
+export function normalizeDescription(value: string): string {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+/**
  * Local-only suggestion store for "descrição" inputs.
  * Saves into localStorage scoped by `scope` (e.g. "expense", "income", "personal-expense").
  * Use with a native <datalist> for instant, zero-cost autocomplete.
  *
  * Also stores per-description templates so subsequent entries with the same
  * description can pre-fill amount, category, notes, etc.
+ *
+ * Matching is accent/case/whitespace-insensitive via `normalizeDescription`.
  */
 export function useDescriptionHistory(scope: string) {
   const key = KEY_PREFIX + scope;
@@ -43,7 +59,17 @@ export function useDescriptionHistory(scope: string) {
       const raw = localStorage.getItem(tKey);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === "object") setTemplates(parsed);
+        if (parsed && typeof parsed === "object") {
+          // Re-key legacy entries under the normalized key so old data still
+          // matches the new normalization rules.
+          const rekeyed: Record<string, DescriptionTemplate> = {};
+          for (const [, tpl] of Object.entries(parsed as Record<string, DescriptionTemplate>)) {
+            if (!tpl || typeof tpl !== "object") continue;
+            const k = normalizeDescription(tpl.description ?? "");
+            if (k && !rekeyed[k]) rekeyed[k] = tpl;
+          }
+          setTemplates(rekeyed);
+        }
       }
     } catch {
       /* ignore */
@@ -53,9 +79,10 @@ export function useDescriptionHistory(scope: string) {
   const record = useCallback(
     (value: string, template?: Omit<DescriptionTemplate, "description">) => {
       const v = (value ?? "").trim();
-      if (!v) return;
+      const k = normalizeDescription(v);
+      if (!k) return;
       setSuggestions((prev) => {
-        const next = [v, ...prev.filter((p) => p.toLowerCase() !== v.toLowerCase())].slice(0, MAX);
+        const next = [v, ...prev.filter((p) => normalizeDescription(p) !== k)].slice(0, MAX);
         try {
           localStorage.setItem(key, JSON.stringify(next));
         } catch {
@@ -65,7 +92,7 @@ export function useDescriptionHistory(scope: string) {
       });
       if (template) {
         setTemplates((prev) => {
-          const next = { ...prev, [v.toLowerCase()]: { description: v, ...template } };
+          const next = { ...prev, [k]: { description: v, ...template } };
           try {
             localStorage.setItem(tKey, JSON.stringify(next));
           } catch {
@@ -80,9 +107,9 @@ export function useDescriptionHistory(scope: string) {
 
   const findTemplate = useCallback(
     (value: string): DescriptionTemplate | null => {
-      const v = (value ?? "").trim().toLowerCase();
-      if (!v) return null;
-      return templates[v] ?? null;
+      const k = normalizeDescription(value);
+      if (!k) return null;
+      return templates[k] ?? null;
     },
     [templates],
   );
@@ -95,28 +122,27 @@ export function useDescriptionHistory(scope: string) {
   const seed = useCallback(
     (entries: DescriptionTemplate[]) => {
       if (!Array.isArray(entries) || entries.length === 0) return;
-      // Templates: only add when not already present (preserve user-saved).
       setTemplates((prev) => {
         let changed = false;
         const next = { ...prev };
         for (const entry of entries) {
-          const key = (entry.description ?? "").trim().toLowerCase();
-          if (!key) continue;
-          if (!next[key]) {
-            next[key] = { ...entry, description: entry.description.trim() };
+          const k = normalizeDescription(entry.description ?? "");
+          if (!k) continue;
+          if (!next[k]) {
+            next[k] = { ...entry, description: (entry.description ?? "").trim() };
             changed = true;
           }
         }
         return changed ? next : prev;
       });
-      // Suggestions: append missing descriptions (case-insensitive).
       setSuggestions((prev) => {
-        const have = new Set(prev.map((p) => p.toLowerCase()));
+        const have = new Set(prev.map((p) => normalizeDescription(p)));
         const additions: string[] = [];
         for (const entry of entries) {
           const d = (entry.description ?? "").trim();
-          if (d && !have.has(d.toLowerCase())) {
-            have.add(d.toLowerCase());
+          const k = normalizeDescription(d);
+          if (k && !have.has(k)) {
+            have.add(k);
             additions.push(d);
           }
         }
