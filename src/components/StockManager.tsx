@@ -124,10 +124,10 @@ export function StockManager({ readOnly = false }: Props) {
               </CardContent>
             </Card>
           </div>
-          <div className="flex items-center gap-2 justify-end">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2 sm:justify-end">
             <Label className="text-xs text-muted-foreground">Classificar por</Label>
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="h-9 w-[200px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-9 w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="name-asc">Descrição (A-Z)</SelectItem>
                 <SelectItem value="name-desc">Descrição (Z-A)</SelectItem>
