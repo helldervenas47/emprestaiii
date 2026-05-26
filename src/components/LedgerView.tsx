@@ -225,7 +225,7 @@ export function LedgerView({ readOnly = false }: Props) {
   };
 
   return (
-    <div className="space-y-3 sm:space-y-4">
+    <div className="space-y-3 sm:space-y-4 w-full max-w-full min-w-0 overflow-x-hidden">
 
       {/* Indicadores consolidados */}
       <ConsolidatedBalanceCards />
@@ -331,7 +331,7 @@ export function LedgerView({ readOnly = false }: Props) {
                     <CardContent className="p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-foreground line-clamp-2">{e.description}</p>
+                          <p className="text-sm font-medium text-foreground line-clamp-2 break-words">{e.description}</p>
                           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                             <span className="text-[11px] text-muted-foreground tabular-nums">
                               {e.occurred_on}
@@ -389,7 +389,7 @@ export function LedgerView({ readOnly = false }: Props) {
                       >
                         <div className="flex items-center gap-1">
                           {expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
-                          <p className="text-sm font-medium text-foreground line-clamp-2">{first.description}</p>
+                          <p className="text-sm font-medium text-foreground line-clamp-2 break-words">{first.description}</p>
                         </div>
                         <div className="flex items-center gap-1.5 mt-1 flex-wrap pl-4">
                           <span className="text-[11px] text-muted-foreground tabular-nums">{first.occurred_on}</span>
