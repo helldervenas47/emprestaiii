@@ -35,6 +35,7 @@ import { parsePixBrCode } from "@/lib/boleto/pixBrCode";
 import { useMyBoletos, type MyBoleto, type MyBoletoStatus } from "@/hooks/useMyBoletos";
 import { BoletoPaymentDialog } from "./BoletoPaymentDialog";
 import { BoletoHistoryDialog } from "./BoletoHistoryDialog";
+import { BoletoFormDialog } from "./BoletoFormDialog";
 import { cn } from "@/lib/utils";
 
 
