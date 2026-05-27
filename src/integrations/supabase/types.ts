@@ -1777,6 +1777,56 @@ export type Database = {
         }
         Relationships: []
       }
+      my_boleto_payments: {
+        Row: {
+          amount: number
+          boleto_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          owner_id: string
+          paid_at: string
+          payment_method: string | null
+          status: string
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          amount?: number
+          boleto_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          owner_id: string
+          paid_at?: string
+          payment_method?: string | null
+          status?: string
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          amount?: number
+          boleto_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          paid_at?: string
+          payment_method?: string | null
+          status?: string
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "my_boleto_payments_boleto_id_fkey"
+            columns: ["boleto_id"]
+            isOneToOne: false
+            referencedRelation: "my_boletos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       my_boletos: {
         Row: {
           amount: number

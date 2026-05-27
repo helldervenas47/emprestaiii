@@ -27,9 +27,30 @@ export interface MyBoleto {
   updated_at: string;
 }
 
+export interface MyBoletoPayment {
+  id: string;
+  boleto_id: string;
+  paid_at: string;
+  amount: number;
+  payment_method: string | null;
+  status: string;
+  notes: string | null;
+  user_name: string | null;
+  user_id: string;
+  created_at: string;
+}
+
 export type MyBoletoInput = Omit<MyBoleto, "id" | "created_at" | "updated_at" | "status"> & {
   status?: MyBoletoStatus;
 };
+
+export interface PaymentInput {
+  paid_at?: string;
+  amount: number;
+  payment_method?: string | null;
+  status?: string;
+  notes?: string | null;
+}
 
 export function useMyBoletos() {
   const { user } = useAuth();
@@ -54,6 +75,7 @@ export function useMyBoletos() {
     const ch = supabase
       .channel("my_boletos_changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "my_boletos" }, () => fetchItems())
+      .on("postgres_changes", { event: "*", schema: "public", table: "my_boleto_payments" }, () => fetchItems())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user, fetchItems]);
@@ -88,10 +110,58 @@ export function useMyBoletos() {
     await fetchItems();
   }, [items, fetchItems]);
 
+  const recordPayment = useCallback(async (boletoId: string, payment: PaymentInput) => {
+    if (!user) throw new Error("not-auth");
+    const { data: ownerRow } = await supabase.rpc("get_data_owner_id", { _user_id: user.id });
+    const owner_id = (ownerRow as unknown as string) ?? user.id;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const paid_at = payment.paid_at ?? new Date().toISOString().slice(0, 10);
+    const status = payment.status ?? "pago";
+    const { error: insErr } = await supabase.from("my_boleto_payments").insert({
+      boleto_id: boletoId,
+      owner_id,
+      user_id: user.id,
+      paid_at,
+      amount: payment.amount,
+      payment_method: payment.payment_method ?? null,
+      status,
+      notes: payment.notes ?? null,
+      user_name: profile?.display_name ?? user.email ?? null,
+    });
+    if (insErr) throw insErr;
+    if (status === "pago") {
+      await update(boletoId, { status: "pago", paid_at });
+    }
+  }, [user, update]);
+
   const markPaid = useCallback(async (id: string) => {
-    const today = new Date().toISOString().slice(0, 10);
-    await update(id, { status: "pago", paid_at: today });
-  }, [update]);
+    const b = items.find((x) => x.id === id);
+    await recordPayment(id, {
+      amount: Number(b?.amount) || 0,
+      payment_method: null,
+      status: "pago",
+    });
+  }, [items, recordPayment]);
+
+  const listPayments = useCallback(async (boletoId: string): Promise<MyBoletoPayment[]> => {
+    const { data, error } = await supabase
+      .from("my_boleto_payments")
+      .select("*")
+      .eq("boleto_id", boletoId)
+      .order("paid_at", { ascending: false })
+      .order("created_at", { ascending: false });
+    if (error) return [];
+    return (data ?? []) as MyBoletoPayment[];
+  }, []);
+
+  const deletePayment = useCallback(async (paymentId: string) => {
+    const { error } = await supabase.from("my_boleto_payments").delete().eq("id", paymentId);
+    if (error) throw error;
+  }, []);
 
   const uploadAttachment = useCallback(async (file: File): Promise<string> => {
     if (!user) throw new Error("not-auth");
@@ -113,5 +183,9 @@ export function useMyBoletos() {
     return data?.signedUrl ?? null;
   }, []);
 
-  return { items, loading, add, update, remove, markPaid, uploadAttachment, getAttachmentUrl, refresh: fetchItems };
+  return {
+    items, loading, add, update, remove, markPaid,
+    recordPayment, listPayments, deletePayment,
+    uploadAttachment, getAttachmentUrl, refresh: fetchItems,
+  };
 }
