@@ -20,7 +20,7 @@ const subTabs: { id: SubTab; label: string; icon: any }[] = [
 interface Props { readOnly?: boolean }
 
 export function SalaryTab({ readOnly }: Props) {
-  const [sub, setSub] = useState<SubTab>("dashboard");
+  const [sub, setSub] = useState<SubTab>("payroll");
 
   useEffect(() => {
     // Ao abrir a aba Salário, desfoca qualquer input para evitar que o teclado suba automaticamente no mobile
