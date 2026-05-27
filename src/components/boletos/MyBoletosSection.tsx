@@ -484,7 +484,7 @@ export function MyBoletosSection({ readOnly }: Props) {
 
       {/* Dialog cadastro/edição */}
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetDraft(); }}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>{editingId ? "Editar boleto" : "Novo boleto"}</DialogTitle>
           </DialogHeader>
@@ -554,10 +554,10 @@ export function MyBoletosSection({ readOnly }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Anexo (PDF ou imagem do boleto)</Label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <Input type="file" accept="application/pdf,image/*"
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) onFileSelected(f); }}
-                  className="text-xs" />
+                  className="text-xs min-w-0 flex-1" />
                 {draft.attachmentFile && (
                   <Badge variant="outline" className="text-[10px] shrink-0">
                     <Upload className="h-3 w-3" /> {draft.attachmentFile.name.slice(0, 20)}
