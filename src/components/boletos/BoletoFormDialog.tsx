@@ -268,6 +268,32 @@ export function BoletoFormDialog({
                 onChange={(e) => setDraft((d) => ({ ...d, dueDate: e.target.value }))} />
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Situação</Label>
+              <Select
+                value={draft.status}
+                onValueChange={(v) => setDraft((d) => ({
+                  ...d,
+                  status: v as "pendente" | "pago",
+                  paidAt: v === "pago" ? (d.paidAt || new Date().toISOString().slice(0, 10)) : "",
+                }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="pago">Pago</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {draft.status === "pago" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Pago em</Label>
+                <Input type="date" value={draft.paidAt}
+                  onChange={(e) => setDraft((d) => ({ ...d, paidAt: e.target.value }))} />
+              </div>
+            )}
+          </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Observações</Label>
             <Textarea value={draft.notes}
