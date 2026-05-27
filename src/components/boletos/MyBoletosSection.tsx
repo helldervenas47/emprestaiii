@@ -773,23 +773,28 @@ function StatusBadge({ status }: { status: MyBoletoStatus }) {
   </Badge>;
 }
 
-function SummaryTile({ icon, label, value, sub, tone }: {
+function SummaryTile({ icon, label, value, sub, tone, delay = 0 }: {
   icon: React.ReactNode; label: string; value: string; sub?: string;
   tone: "amber" | "rose" | "emerald" | "primary";
+  delay?: number;
 }) {
-  const toneCls = {
-    amber: "text-amber-600",
-    rose: "text-rose-600",
-    emerald: "text-emerald-600",
-    primary: "text-primary",
+  const toneMap = {
+    amber: { text: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10" },
+    rose: { text: "text-rose-600 dark:text-rose-400", bg: "bg-rose-500/10" },
+    emerald: { text: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10" },
+    primary: { text: "text-primary", bg: "bg-primary/10" },
   }[tone];
   return (
-    <div className="rounded-lg border bg-card p-2.5">
-      <div className={`flex items-center gap-1.5 text-[10px] uppercase tracking-wide ${toneCls}`}>
-        {icon}<span>{label}</span>
+    <div
+      className="rounded-2xl p-3 sm:p-4 bg-foreground/[0.04] dark:bg-white/[0.05] border border-border/40 shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.25)] animate-fade-in flex flex-col items-center text-center"
+      style={{ animationDelay: `${delay}ms`, animationFillMode: 'backwards' }}
+    >
+      <div className={`h-8 w-8 rounded-lg ${toneMap.bg} flex items-center justify-center mb-2`}>
+        <span className={toneMap.text}>{icon}</span>
       </div>
-      <div className="mt-0.5 font-semibold text-sm truncate">{value}</div>
-      {sub && <div className="text-[10px] text-muted-foreground truncate">{sub}</div>}
+      <p className="text-[10px] sm:text-xs text-muted-foreground">{label}</p>
+      <p className={`text-sm sm:text-xl font-bold mt-0.5 ${toneMap.text}`}>{value}</p>
+      {sub && <p className="text-[10px] text-muted-foreground mt-1 truncate max-w-full">{sub}</p>}
     </div>
   );
 }
