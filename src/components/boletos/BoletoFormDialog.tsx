@@ -107,6 +107,8 @@ export function BoletoFormDialog({
         attachmentFile: null,
         attachmentPath: editing.attachment_path,
         pix_brcode: editing.pix_brcode ?? "",
+        status: editing.status === "pago" ? "pago" : "pendente",
+        paidAt: editing.paid_at ?? "",
       });
     } else {
       setDraft({ ...emptyDraft, ...(initialDraft ?? {}) });
