@@ -4,7 +4,7 @@ import { ptBR } from "date-fns/locale";
 import {
   Plus, Search, Upload, Paperclip, ExternalLink, CheckCircle2,
   Clock, AlertTriangle, Wallet, Pencil, Trash2, FileText,
-  ChevronDown, ChevronRight, History, Folder,
+  ChevronDown, ChevronRight, History, Folder, Link2, Link2Off,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +33,7 @@ import { parsePixBrCode } from "@/lib/boleto/pixBrCode";
 import { useMyBoletos, type MyBoleto, type MyBoletoStatus } from "@/hooks/useMyBoletos";
 import { BoletoPaymentDialog } from "./BoletoPaymentDialog";
 import { BoletoHistoryDialog } from "./BoletoHistoryDialog";
+import { BoletoLinkExpenseDialog } from "./BoletoLinkExpenseDialog";
 import { cn } from "@/lib/utils";
 
 const BRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -122,7 +123,7 @@ interface Props { readOnly?: boolean }
 
 export function MyBoletosSection({ readOnly }: Props) {
   const {
-    items, add, update, remove, recordPayment,
+    items, add, update, remove, recordPayment, unlinkExpense,
     uploadAttachment, getAttachmentUrl,
   } = useMyBoletos();
   const [query, setQuery] = useState("");
@@ -136,6 +137,7 @@ export function MyBoletosSection({ readOnly }: Props) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [payTarget, setPayTarget] = useState<MyBoleto | null>(null);
   const [historyTarget, setHistoryTarget] = useState<MyBoleto | null>(null);
+  const [linkTarget, setLinkTarget] = useState<MyBoleto | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const computed = useMemo<Sortable[]>(
@@ -414,6 +416,8 @@ export function MyBoletosSection({ readOnly }: Props) {
                 onEdit={() => openEdit(g.items[0])}
                 onDelete={() => setDeleteId(g.items[0].id)}
                 onHistory={() => setHistoryTarget(g.items[0])}
+                onLink={() => setLinkTarget(g.items[0])}
+                onUnlink={async () => { await unlinkExpense(g.items[0].id); toast.success("Despesa desvinculada"); }}
                 onAttach={openAttachment} />;
             }
 
@@ -465,6 +469,8 @@ export function MyBoletosSection({ readOnly }: Props) {
                           onEdit={() => openEdit(b)}
                           onDelete={() => setDeleteId(b.id)}
                           onHistory={() => setHistoryTarget(b)}
+                          onLink={() => setLinkTarget(b)}
+                          onUnlink={async () => { await unlinkExpense(b.id); toast.success("Despesa desvinculada"); }}
                           onAttach={openAttachment} />
                       ))}
                     </div>
@@ -597,6 +603,12 @@ export function MyBoletosSection({ readOnly }: Props) {
         readOnly={readOnly}
       />
 
+      <BoletoLinkExpenseDialog
+        boleto={linkTarget}
+        open={!!linkTarget}
+        onOpenChange={(v) => !v && setLinkTarget(null)}
+      />
+
       <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -630,10 +642,12 @@ interface BoletoCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onHistory: () => void;
+  onLink: () => void;
+  onUnlink: () => void | Promise<void>;
   onAttach: (path: string) => void;
 }
 
-function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, onAttach }: BoletoCardProps) {
+function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, onLink, onUnlink, onAttach }: BoletoCardProps) {
   const tone = b.status === "pago"
     ? "border-l-emerald-500 bg-emerald-500/[0.03]"
     : b.status === "vencido"
@@ -655,6 +669,11 @@ function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, 
             </button>
             <StatusBadge status={b.status} />
             {b.category && <Badge variant="outline" className="text-[10px]">{b.category}</Badge>}
+            {b.expense_id && (
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-[10px]">
+                <Link2 className="h-3 w-3" /> Despesa vinculada
+              </Badge>
+            )}
           </div>
           {b.beneficiary && (
             <div className="text-xs text-muted-foreground truncate">{b.beneficiary}</div>
@@ -683,6 +702,16 @@ function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, 
         {!readOnly && b.status !== "pago" && (
           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-emerald-600" onClick={onPay}>
             <CheckCircle2 className="h-3 w-3" /> Registrar pagamento
+          </Button>
+        )}
+        {!readOnly && !b.expense_id && (
+          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-primary" onClick={onLink}>
+            <Link2 className="h-3 w-3" /> Vincular despesa
+          </Button>
+        )}
+        {!readOnly && b.expense_id && (
+          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => onUnlink()}>
+            <Link2Off className="h-3 w-3" /> Desvincular
           </Button>
         )}
         {!readOnly && (

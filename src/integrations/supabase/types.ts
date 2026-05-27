@@ -1840,6 +1840,7 @@ export type Database = {
           description: string
           digits: string | null
           due_date: string | null
+          expense_id: string | null
           id: string
           kind: string | null
           notes: string | null
@@ -1864,6 +1865,7 @@ export type Database = {
           description: string
           digits?: string | null
           due_date?: string | null
+          expense_id?: string | null
           id?: string
           kind?: string | null
           notes?: string | null
@@ -1888,6 +1890,7 @@ export type Database = {
           description?: string
           digits?: string | null
           due_date?: string | null
+          expense_id?: string | null
           id?: string
           kind?: string | null
           notes?: string | null
@@ -1900,7 +1903,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "my_boletos_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_preferences: {
         Row: {
