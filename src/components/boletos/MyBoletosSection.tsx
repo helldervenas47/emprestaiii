@@ -688,15 +688,15 @@ function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, 
           )}
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-1 pt-2 border-t border-border/50">
-        <Button size="sm" variant="ghost" className="h-8 px-2 text-xs gap-1" onClick={onHistory}>
-          <History className="h-3.5 w-3.5" /> Histórico
+      <div className="flex flex-nowrap items-center gap-0.5 sm:gap-1 pt-2 border-t border-border/50 overflow-hidden">
+        <Button size="sm" variant="ghost" className="h-8 px-1.5 sm:px-2 text-xs gap-1 shrink-0" onClick={onHistory} title="Histórico" aria-label="Histórico">
+          <History className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Histórico</span>
         </Button>
         {(b.digits || b.barcode) && (
           <Button
             size="sm"
             variant="ghost"
-            className="h-8 px-2 text-xs gap-1"
+            className="h-8 px-1.5 sm:px-2 text-xs gap-1 shrink-0"
             onClick={async () => {
               const code = (b.digits || b.barcode || "").replace(/\s/g, "");
               try {
@@ -711,33 +711,34 @@ function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, 
               } catch { toast.error("Não foi possível copiar"); }
             }}
             title="Copiar código de barras"
+            aria-label="Copiar código de barras"
           >
-            <Copy className="h-3.5 w-3.5" /> Copiar
+            <Copy className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Copiar</span>
           </Button>
         )}
         {b.attachment_path && (
-          <Button size="sm" variant="ghost" className="h-8 px-2 text-xs gap-1"
-            onClick={() => onAttach(b.attachment_path!)}>
-            <Paperclip className="h-3.5 w-3.5" /> Anexo
+          <Button size="sm" variant="ghost" className="h-8 px-1.5 sm:px-2 text-xs gap-1 shrink-0"
+            onClick={() => onAttach(b.attachment_path!)} title="Anexo" aria-label="Anexo">
+            <Paperclip className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Anexo</span>
           </Button>
         )}
         {!readOnly && b.status !== "pago" && (
-          <Button size="sm" variant="ghost" className="h-8 px-2 text-xs gap-1 text-emerald-600 hover:text-emerald-700" onClick={onPay}>
-            <CheckCircle2 className="h-3.5 w-3.5" /> Pagar
+          <Button size="sm" variant="ghost" className="h-8 px-1.5 sm:px-2 text-xs gap-1 text-emerald-600 hover:text-emerald-700 shrink-0" onClick={onPay} title="Pagar" aria-label="Pagar">
+            <CheckCircle2 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Pagar</span>
           </Button>
         )}
         {!readOnly && !b.expense_id && (
-          <Button size="sm" variant="ghost" className="h-8 px-2 text-xs gap-1 text-primary" onClick={onLink}>
-            <Link2 className="h-3.5 w-3.5" /> Vincular
+          <Button size="sm" variant="ghost" className="h-8 px-1.5 sm:px-2 text-xs gap-1 text-primary shrink-0" onClick={onLink} title="Vincular" aria-label="Vincular">
+            <Link2 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Vincular</span>
           </Button>
         )}
         {!readOnly && b.expense_id && (
-          <Button size="sm" variant="ghost" className="h-8 px-2 text-xs gap-1" onClick={() => onUnlink()}>
-            <Link2Off className="h-3.5 w-3.5" /> Desvincular
+          <Button size="sm" variant="ghost" className="h-8 px-1.5 sm:px-2 text-xs gap-1 shrink-0" onClick={() => onUnlink()} title="Desvincular" aria-label="Desvincular">
+            <Link2Off className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Desvincular</span>
           </Button>
         )}
         {!readOnly && (
-          <div className="flex items-center gap-1 ml-auto">
+          <div className="flex items-center gap-0.5 sm:gap-1 ml-auto shrink-0">
             <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={onEdit} title="Editar" aria-label="Editar">
               <Pencil className="h-3.5 w-3.5" />
             </Button>
@@ -747,6 +748,7 @@ function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, 
           </div>
         )}
       </div>
+
 
     </CardContent>
   );
