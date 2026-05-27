@@ -24,6 +24,7 @@ import {
 import { PersonalCategoryCreator } from "@/components/PersonalCategoryCreator";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ExpenseEditDialog } from "@/components/ExpenseEditDialog";
+import { ExpenseBoletoLinkButton } from "@/components/ExpenseBoletoLinkButton";
 import { supabase } from "@/integrations/supabase/client";
 import { InstallmentSummaryDialog } from "@/components/InstallmentSummaryDialog";
 import { personalCategories, getPersonalCategory, resolvePersonalIcon, getIconName, type PersonalCategory } from "@/lib/personalExpenseCategories";
