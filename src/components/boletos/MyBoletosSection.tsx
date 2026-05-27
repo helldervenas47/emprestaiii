@@ -142,6 +142,22 @@ export function MyBoletosSection({ readOnly }: Props) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [expenseMap, setExpenseMap] = useState<Record<string, string>>({});
 
+  useEffect(() => {
+    const ids = Array.from(new Set(items.map((b) => b.expense_id).filter(Boolean) as string[]));
+    if (ids.length === 0) { setExpenseMap({}); return; }
+    let active = true;
+    (async () => {
+      const { data } = await supabase.from("expenses").select("id, description").in("id", ids);
+      if (!active) return;
+      const map: Record<string, string> = {};
+      (data ?? []).forEach((r: any) => { map[r.id] = r.description; });
+      setExpenseMap(map);
+    })();
+    return () => { active = false; };
+  }, [items]);
+
+
+
 
   const computed = useMemo<Sortable[]>(
     () => items.map((b) => ({ ...b, status: computedStatus(b) })),
