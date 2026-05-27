@@ -37,12 +37,15 @@ interface DraftForm {
   attachmentFile: File | null;
   attachmentPath: string | null;
   pix_brcode: string;
+  status: "pendente" | "pago";
+  paidAt: string;
 }
 
 const emptyDraft: DraftForm = {
   digits: "", description: "", beneficiary: "", category: "Outros",
   amount: "", dueDate: "", notes: "", parsed: null,
   attachmentFile: null, attachmentPath: null, pix_brcode: "",
+  status: "pendente", paidAt: "",
 };
 
 function autoDescription(p: ParsedBoleto | null, pixName?: string): string {
@@ -104,6 +107,8 @@ export function BoletoFormDialog({
         attachmentFile: null,
         attachmentPath: editing.attachment_path,
         pix_brcode: editing.pix_brcode ?? "",
+        status: editing.status === "pago" ? "pago" : "pendente",
+        paidAt: editing.paid_at ?? "",
       });
     } else {
       setDraft({ ...emptyDraft, ...(initialDraft ?? {}) });
@@ -159,13 +164,16 @@ export function BoletoFormDialog({
       const digits = draft.digits.replace(/\D+/g, "") || null;
       const parsed = digits ? parseLinhaDigitavel(digits) : null;
       const valid = parsed && !("error" in parsed) ? parsed : null;
+      const isPago = draft.status === "pago";
+      const paidAt = isPago ? (draft.paidAt || new Date().toISOString().slice(0, 10)) : null;
       const payload = {
         description: draft.description.trim(),
         beneficiary: draft.beneficiary.trim() || null,
         category: draft.category || null,
         amount: Number(draft.amount.replace(",", ".")) || 0,
         due_date: draft.dueDate || null,
-        paid_at: null,
+        paid_at: paidAt,
+        status: draft.status,
         digits,
         barcode: valid?.barcode ?? null,
         bank_code: valid?.bankCode ?? null,
@@ -259,6 +267,32 @@ export function BoletoFormDialog({
               <Input type="date" value={draft.dueDate}
                 onChange={(e) => setDraft((d) => ({ ...d, dueDate: e.target.value }))} />
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Situação</Label>
+              <Select
+                value={draft.status}
+                onValueChange={(v) => setDraft((d) => ({
+                  ...d,
+                  status: v as "pendente" | "pago",
+                  paidAt: v === "pago" ? (d.paidAt || new Date().toISOString().slice(0, 10)) : "",
+                }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="pago">Pago</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {draft.status === "pago" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Pago em</Label>
+                <Input type="date" value={draft.paidAt}
+                  onChange={(e) => setDraft((d) => ({ ...d, paidAt: e.target.value }))} />
+              </div>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Observações</Label>
