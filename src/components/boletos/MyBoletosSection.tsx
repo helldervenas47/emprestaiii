@@ -122,7 +122,7 @@ interface Props { readOnly?: boolean }
 
 export function MyBoletosSection({ readOnly }: Props) {
   const {
-    items, add, update, remove, recordPayment,
+    items, add, update, remove, recordPayment, unlinkExpense,
     uploadAttachment, getAttachmentUrl,
   } = useMyBoletos();
   const [query, setQuery] = useState("");
@@ -136,6 +136,7 @@ export function MyBoletosSection({ readOnly }: Props) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [payTarget, setPayTarget] = useState<MyBoleto | null>(null);
   const [historyTarget, setHistoryTarget] = useState<MyBoleto | null>(null);
+  const [linkTarget, setLinkTarget] = useState<MyBoleto | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const computed = useMemo<Sortable[]>(
