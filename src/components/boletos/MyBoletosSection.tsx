@@ -484,7 +484,7 @@ export function MyBoletosSection({ readOnly }: Props) {
 
       {/* Dialog cadastro/edição */}
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetDraft(); }}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>{editingId ? "Editar boleto" : "Novo boleto"}</DialogTitle>
           </DialogHeader>
