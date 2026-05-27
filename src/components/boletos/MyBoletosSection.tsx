@@ -35,6 +35,7 @@ import { parsePixBrCode } from "@/lib/boleto/pixBrCode";
 import { useMyBoletos, type MyBoleto, type MyBoletoStatus } from "@/hooks/useMyBoletos";
 import { BoletoPaymentDialog } from "./BoletoPaymentDialog";
 import { BoletoHistoryDialog } from "./BoletoHistoryDialog";
+import { BoletoFormDialog } from "./BoletoFormDialog";
 import { cn } from "@/lib/utils";
 
 
@@ -510,107 +511,11 @@ export function MyBoletosSection({ readOnly }: Props) {
       )}
 
       {/* Dialog cadastro/edição */}
-      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetDraft(); }}>
-        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="w-[calc(100vw-1rem)] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
-          <DialogHeader>
-            <DialogTitle>{editingId ? "Editar boleto" : "Novo boleto"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Linha digitável ou código de barras (opcional)</Label>
-              <Textarea value={draft.digits}
-                onChange={(e) => setDraft((d) => ({ ...d, digits: e.target.value }))}
-                onBlur={(e) => handleParseDigits(e.target.value)}
-                placeholder="47 ou 48 dígitos — preenche descrição, valor e vencimento automaticamente"
-                className="font-mono text-xs min-h-[60px]" />
-              {draft.parsed && (
-                <div className="flex items-center justify-between gap-2 rounded-md bg-primary/5 border border-primary/20 px-2 py-1.5">
-                  <div className="text-[11px] text-muted-foreground truncate">
-                    Detectado: <span className="text-foreground font-medium">{autoDescription(draft.parsed)}</span>
-                    {draft.parsed.amount > 0 && ` · ${BRL(draft.parsed.amount)}`}
-                  </div>
-                  <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={applySuggestion}>
-                    Usar sugestão
-                  </Button>
-                </div>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Descrição *</Label>
-              <Input value={draft.description}
-                onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
-                placeholder="Ex.: Aluguel novembro" />
-              <p className="text-[10px] text-muted-foreground">
-                Boletos com o mesmo nome ficam agrupados na pasta automaticamente.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Beneficiário</Label>
-                <Input value={draft.beneficiary}
-                  onChange={(e) => setDraft((d) => ({ ...d, beneficiary: e.target.value }))}
-                  placeholder="Empresa / pessoa" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Categoria</Label>
-                <Select value={draft.category} onValueChange={(v) => setDraft((d) => ({ ...d, category: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Valor (R$)</Label>
-                <Input type="number" step="0.01" inputMode="decimal" value={draft.amount}
-                  onChange={(e) => setDraft((d) => ({ ...d, amount: e.target.value }))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Vencimento</Label>
-                <Input type="date" value={draft.dueDate}
-                  onChange={(e) => setDraft((d) => ({ ...d, dueDate: e.target.value }))} />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Observações</Label>
-              <Textarea value={draft.notes}
-                onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))}
-                className="min-h-[60px]" placeholder="Notas internas, número do contrato, etc." />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Anexo (PDF ou imagem do boleto)</Label>
-              <div className="flex items-center gap-2 min-w-0">
-                <Input type="file" accept="application/pdf,image/*"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) onFileSelected(f); }}
-                  className="text-xs min-w-0 flex-1" />
-                {draft.attachmentFile && (
-                  <Badge variant="outline" className="text-[10px] shrink-0">
-                    <Upload className="h-3 w-3" /> {draft.attachmentFile.name.slice(0, 20)}
-                  </Badge>
-                )}
-                {!draft.attachmentFile && draft.attachmentPath && (
-                  <Badge variant="outline" className="text-[10px] shrink-0">
-                    <Paperclip className="h-3 w-3" /> Anexo atual
-                  </Badge>
-                )}
-              </div>
-            </div>
-            {draft.parsed && (
-              <div className="rounded-md bg-muted/40 p-2 text-[11px] text-muted-foreground font-mono break-all">
-                {formatLinhaDigitavel(draft.parsed.digits)}
-              </div>
-            )}
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? "Salvando…" : editingId ? "Salvar alterações" : "Cadastrar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <BoletoFormDialog
+        open={open}
+        onOpenChange={(v) => { setOpen(v); if (!v) setEditingId(null); }}
+        editing={editingId ? items.find((b) => b.id === editingId) ?? null : null}
+      />
 
       <BoletoPaymentDialog
         boleto={payTarget}

@@ -82,18 +82,19 @@ export function useMyBoletos() {
     return () => { supabase.removeChannel(ch); };
   }, [user, fetchItems]);
 
-  const add = useCallback(async (input: MyBoletoInput) => {
+  const add = useCallback(async (input: MyBoletoInput): Promise<string> => {
     if (!user) throw new Error("not-auth");
     const { data: ownerRow } = await supabase.rpc("get_data_owner_id", { _user_id: user.id });
     const owner_id = (ownerRow as unknown as string) ?? user.id;
-    const { error } = await supabase.from("my_boletos").insert({
+    const { data, error } = await supabase.from("my_boletos").insert({
       ...input,
       user_id: user.id,
       owner_id,
       status: input.status ?? "pendente",
-    });
+    }).select("id").single();
     if (error) throw error;
     await fetchItems();
+    return (data as any).id as string;
   }, [user, fetchItems]);
 
   const syncExpensePaid = useCallback(async (expenseId: string | null | undefined, paid: boolean, paidDate: string | null) => {
