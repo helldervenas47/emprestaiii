@@ -21,6 +21,7 @@ import {
   CircleDollarSign, ChevronLeft, ChevronRight, Undo2, Pencil, Check, CalendarCheck,
 } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { ExpenseBoletoLinkButton } from "@/components/ExpenseBoletoLinkButton";
 
 const categories = [
   "Aluguel", "Energia", "Água", "Internet", "Telefone",
@@ -540,6 +541,9 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                               <Pencil className="h-4 w-4" />
                               <span className="hidden md:inline">Editar</span>
                             </Button>
+                          )}
+                          {!readOnly && (
+                            <ExpenseBoletoLinkButton expenseId={expense.id} className="h-9 w-9 flex-1 md:flex-none min-h-0" />
                           )}
                           {!readOnly && (
                           <Button variant="ghost" className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0 text-destructive hover:bg-destructive hover:text-destructive-foreground" title="Excluir" aria-label="Excluir" onClick={() => setDeleteExpenseId(expense.id)}>
