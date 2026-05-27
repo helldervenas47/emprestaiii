@@ -345,17 +345,10 @@ export function MyBoletosSection({ readOnly }: Props) {
       {/* Toolbar */}
       <Card>
         <CardContent className="p-3 space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input value={query} onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar por nome, beneficiário ou código" className="pl-9" />
-            </div>
-            {!readOnly && (
-              <Button onClick={openNew} size="sm" className="shrink-0">
-                <Plus className="h-4 w-4" /> Novo
-              </Button>
-            )}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={query} onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar por nome, beneficiário ou código" className="pl-9" />
           </div>
           <div className="grid grid-cols-3 gap-2">
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
