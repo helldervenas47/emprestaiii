@@ -466,9 +466,10 @@ export function MyBoletosSection({ readOnly }: Props) {
                           onEdit={() => openEdit(b)}
                           onDelete={() => setDeleteId(b.id)}
                           onHistory={() => setHistoryTarget(b)}
-                          onLink={() => setLinkTarget(b)}
                           onUnlink={async () => { await unlinkExpense(b.id); toast.success("Despesa desvinculada"); }}
+                          linkedExpenseDescription={b.expense_id ? expenseMap[b.expense_id] : undefined}
                           onAttach={openAttachment} />
+
                       ))}
                     </div>
                   </CollapsibleContent>
