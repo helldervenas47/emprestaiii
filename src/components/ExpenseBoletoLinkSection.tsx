@@ -11,6 +11,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { BoletoFormDialog } from "@/components/boletos/BoletoFormDialog";
 
 const BRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -28,6 +29,7 @@ export function ExpenseBoletoLinkSection({ expenseId }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const linked = useMemo(
     () => items.find((b) => b.expense_id === expenseId) ?? null,
