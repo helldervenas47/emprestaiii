@@ -30,11 +30,17 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, onOpenAutoFocus, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      // Regra global: nunca focar automaticamente ao abrir — evita teclado
+      // sendo aberto em mobile. Pode ser sobrescrito caso necessário.
+      onOpenAutoFocus={(e) => {
+        e.preventDefault();
+        onOpenAutoFocus?.(e);
+      }}
       style={{
         paddingTop: "calc(1.5rem + env(safe-area-inset-top))",
         paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))",
@@ -47,6 +53,7 @@ const DialogContent = React.forwardRef<
       )}
       {...props}
     >
+
       {children}
       <DialogPrimitive.Close
         style={{
