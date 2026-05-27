@@ -36,6 +36,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ExpenseBoletoLinkSection } from "@/components/ExpenseBoletoLinkSection";
+
+
 
 export type EditScope = "this" | "pending" | "all";
 
@@ -362,6 +365,9 @@ export function ExpenseEditDialog({
               placeholder="Detalhes adicionais (opcional)"
             />
           </div>
+
+          <ExpenseBoletoLinkSection expenseId={expense.id} />
+
 
           {showScopeSelector && (
             <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-2">

@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
 import { format, parseISO, isBefore, startOfToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -33,8 +35,8 @@ import { parsePixBrCode } from "@/lib/boleto/pixBrCode";
 import { useMyBoletos, type MyBoleto, type MyBoletoStatus } from "@/hooks/useMyBoletos";
 import { BoletoPaymentDialog } from "./BoletoPaymentDialog";
 import { BoletoHistoryDialog } from "./BoletoHistoryDialog";
-import { BoletoLinkExpenseDialog } from "./BoletoLinkExpenseDialog";
 import { cn } from "@/lib/utils";
+
 
 const BRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -137,8 +139,25 @@ export function MyBoletosSection({ readOnly }: Props) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [payTarget, setPayTarget] = useState<MyBoleto | null>(null);
   const [historyTarget, setHistoryTarget] = useState<MyBoleto | null>(null);
-  const [linkTarget, setLinkTarget] = useState<MyBoleto | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [expenseMap, setExpenseMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const ids = Array.from(new Set(items.map((b) => b.expense_id).filter(Boolean) as string[]));
+    if (ids.length === 0) { setExpenseMap({}); return; }
+    let active = true;
+    (async () => {
+      const { data } = await supabase.from("expenses").select("id, description").in("id", ids);
+      if (!active) return;
+      const map: Record<string, string> = {};
+      (data ?? []).forEach((r: any) => { map[r.id] = r.description; });
+      setExpenseMap(map);
+    })();
+    return () => { active = false; };
+  }, [items]);
+
+
+
 
   const computed = useMemo<Sortable[]>(
     () => items.map((b) => ({ ...b, status: computedStatus(b) })),
@@ -409,9 +428,10 @@ export function MyBoletosSection({ readOnly }: Props) {
                 onEdit={() => openEdit(g.items[0])}
                 onDelete={() => setDeleteId(g.items[0].id)}
                 onHistory={() => setHistoryTarget(g.items[0])}
-                onLink={() => setLinkTarget(g.items[0])}
                 onUnlink={async () => { await unlinkExpense(g.items[0].id); toast.success("Despesa desvinculada"); }}
+                linkedExpenseDescription={g.items[0].expense_id ? expenseMap[g.items[0].expense_id] : undefined}
                 onAttach={openAttachment} />;
+
             }
 
             return (
@@ -462,9 +482,10 @@ export function MyBoletosSection({ readOnly }: Props) {
                           onEdit={() => openEdit(b)}
                           onDelete={() => setDeleteId(b.id)}
                           onHistory={() => setHistoryTarget(b)}
-                          onLink={() => setLinkTarget(b)}
                           onUnlink={async () => { await unlinkExpense(b.id); toast.success("Despesa desvinculada"); }}
+                          linkedExpenseDescription={b.expense_id ? expenseMap[b.expense_id] : undefined}
                           onAttach={openAttachment} />
+
                       ))}
                     </div>
                   </CollapsibleContent>
@@ -609,11 +630,8 @@ export function MyBoletosSection({ readOnly }: Props) {
         readOnly={readOnly}
       />
 
-      <BoletoLinkExpenseDialog
-        boleto={linkTarget}
-        open={!!linkTarget}
-        onOpenChange={(v) => !v && setLinkTarget(null)}
-      />
+
+
 
       <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>
         <AlertDialogContent>
@@ -648,12 +666,13 @@ interface BoletoCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onHistory: () => void;
-  onLink: () => void;
   onUnlink: () => void | Promise<void>;
   onAttach: (path: string) => void;
+  linkedExpenseDescription?: string;
 }
 
-function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, onLink, onUnlink, onAttach }: BoletoCardProps) {
+function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, onUnlink, onAttach, linkedExpenseDescription }: BoletoCardProps) {
+
   const tone = b.status === "pago"
     ? "border-l-emerald-500 bg-emerald-500/[0.03]"
     : b.status === "vencido"
@@ -676,10 +695,12 @@ function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, 
             <StatusBadge status={b.status} />
             {b.category && <Badge variant="outline" className="text-[10px]">{b.category}</Badge>}
             {b.expense_id && (
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-[10px]">
-                <Link2 className="h-3 w-3" /> Despesa vinculada
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-[10px] max-w-[180px] truncate">
+                <Link2 className="h-3 w-3" />{" "}
+                {linkedExpenseDescription ? `Despesa: ${linkedExpenseDescription}` : "Despesa vinculada"}
               </Badge>
             )}
+
           </div>
           {b.beneficiary && (
             <div className="text-xs text-muted-foreground truncate">{b.beneficiary}</div>
@@ -733,12 +754,8 @@ function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, 
             <CheckCircle2 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Pagar</span>
           </Button>
         )}
-        {!readOnly && !b.expense_id && (
-          <Button size="sm" variant="ghost" className="h-8 px-1.5 sm:px-2 text-xs gap-1 text-primary shrink-0" onClick={onLink} title="Vincular" aria-label="Vincular">
-            <Link2 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Vincular</span>
-          </Button>
-        )}
         {!readOnly && b.expense_id && (
+
           <Button size="sm" variant="ghost" className="h-8 px-1.5 sm:px-2 text-xs gap-1 shrink-0" onClick={() => onUnlink()} title="Desvincular" aria-label="Desvincular">
             <Link2Off className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Desvincular</span>
           </Button>
