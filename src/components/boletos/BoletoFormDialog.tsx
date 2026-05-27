@@ -164,13 +164,16 @@ export function BoletoFormDialog({
       const digits = draft.digits.replace(/\D+/g, "") || null;
       const parsed = digits ? parseLinhaDigitavel(digits) : null;
       const valid = parsed && !("error" in parsed) ? parsed : null;
+      const isPago = draft.status === "pago";
+      const paidAt = isPago ? (draft.paidAt || new Date().toISOString().slice(0, 10)) : null;
       const payload = {
         description: draft.description.trim(),
         beneficiary: draft.beneficiary.trim() || null,
         category: draft.category || null,
         amount: Number(draft.amount.replace(",", ".")) || 0,
         due_date: draft.dueDate || null,
-        paid_at: null,
+        paid_at: paidAt,
+        status: draft.status,
         digits,
         barcode: valid?.barcode ?? null,
         bank_code: valid?.bankCode ?? null,
