@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, Link2Off, Search, RefreshCw } from "lucide-react";
+import { FileText, Link2Off, Search, RefreshCw, Plus } from "lucide-react";
 import { useMyBoletos } from "@/hooks/useMyBoletos";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { BoletoFormDialog } from "@/components/boletos/BoletoFormDialog";
 
 const BRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -29,6 +30,7 @@ export function ExpenseBoletoLinkButton({ expenseId, className }: Props) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const linked = useMemo(
     () => items.find((b) => b.expense_id === expenseId) ?? null,
