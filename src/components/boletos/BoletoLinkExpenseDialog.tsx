@@ -67,7 +67,7 @@ export function BoletoLinkExpenseDialog({ boleto, open, onOpenChange }: Props) {
       const [exp, linkedRows] = await Promise.all([
         supabase
           .from("expenses")
-          .select("id, description, amount, due_date, category, scope, paid")
+          .select("id, description, amount, due_date, category, scope, paid, type, installments, paid_installments")
           .eq("user_id", ownerId)
           .order("due_date", { ascending: false })
           .limit(300),
@@ -75,16 +75,26 @@ export function BoletoLinkExpenseDialog({ boleto, open, onOpenChange }: Props) {
       ]);
       if (!active) return;
       const linkedSet = new Set((linkedRows.data ?? []).map((r: any) => r.expense_id as string));
-      const rows: ExpenseRow[] = (exp.data ?? []).map((e: any) => ({
-        id: e.id,
-        description: e.description,
-        amount: Number(e.amount) || 0,
-        due_date: e.due_date,
-        category: e.category,
-        scope: e.scope ?? "business",
-        paid: !!e.paid,
-        linked: linkedSet.has(e.id),
-      }));
+      const rows: ExpenseRow[] = (exp.data ?? []).map((e: any) => {
+        const total = Number(e.amount) || 0;
+        const inst = Number(e.installments) || 0;
+        const isParcelada = e.type === "recorrente" && inst > 1;
+        const monthly = isParcelada ? total / inst : total;
+        return {
+          id: e.id,
+          description: e.description,
+          amount: total,
+          monthlyAmount: monthly,
+          installments: isParcelada ? inst : null,
+          paidInstallments: e.paid_installments ?? null,
+          type: e.type ?? null,
+          due_date: e.due_date,
+          category: e.category,
+          scope: e.scope ?? "business",
+          paid: !!e.paid,
+          linked: linkedSet.has(e.id),
+        };
+      });
       setExpenses(rows);
       setLoading(false);
     })();
