@@ -633,10 +633,12 @@ interface BoletoCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onHistory: () => void;
+  onLink: () => void;
+  onUnlink: () => void | Promise<void>;
   onAttach: (path: string) => void;
 }
 
-function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, onAttach }: BoletoCardProps) {
+function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, onLink, onUnlink, onAttach }: BoletoCardProps) {
   const tone = b.status === "pago"
     ? "border-l-emerald-500 bg-emerald-500/[0.03]"
     : b.status === "vencido"
