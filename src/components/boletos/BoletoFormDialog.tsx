@@ -280,7 +280,7 @@ export function BoletoFormDialog({
                 }))}
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[2147483652]">
                   <SelectItem value="pendente">Pendente</SelectItem>
                   <SelectItem value="pago">Pago</SelectItem>
                 </SelectContent>
