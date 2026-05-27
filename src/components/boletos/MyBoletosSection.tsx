@@ -475,6 +475,19 @@ export function MyBoletosSection({ readOnly }: Props) {
         </div>
       )}
 
+      {!readOnly && (
+        <button
+          type="button"
+          onClick={openNew}
+          aria-label="Novo boleto"
+          title="Novo boleto"
+          className="group fixed z-50 h-11 w-11 md:h-12 md:w-12 rounded-full flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200 hover:scale-105 active:scale-95 gradient-primary text-primary-foreground shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.6)] hover:shadow-[0_12px_32px_-8px_hsl(var(--primary)/0.8)]"
+          style={{ right: `calc(env(safe-area-inset-right) + 16px)`, bottom: `calc(env(safe-area-inset-bottom) + 76px)` }}
+        >
+          <Plus className="h-5 w-5 relative drop-shadow-[0_1px_2px_hsl(var(--primary)/0.5)]" strokeWidth={2.75} />
+        </button>
+      )}
+
       {/* Dialog cadastro/edição */}
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetDraft(); }}>
         <DialogContent className="w-[calc(100vw-1rem)] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
