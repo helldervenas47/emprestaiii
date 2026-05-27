@@ -915,10 +915,12 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                                       Editar
                                     </Button>
                                   )}
+                                  <ExpenseBoletoLinkButton expenseId={expense.id} className="h-7 w-7" />
                                   <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteId(expense.id)}>
                                     <Trash2 className="h-3 w-3 mr-1" />
                                     Excluir
                                   </Button>
+
                                 </div>
                               )}
                             </div>
