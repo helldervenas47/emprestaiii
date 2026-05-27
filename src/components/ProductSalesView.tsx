@@ -50,6 +50,7 @@ import { VehicleLocadorManager } from "@/components/VehicleLocadorManager";
 import { useLocadorInfo, LocadorInfo } from "@/hooks/useLocadorInfo";
 import { useVehicleRegistry, VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { ExpenseBoletoLinkSection } from "@/components/ExpenseBoletoLinkSection";
+import { ExpenseBoletoLinkButton } from "@/components/ExpenseBoletoLinkButton";
 
 
 interface Props {
@@ -2535,6 +2536,9 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                                   <Button size="sm" variant="ghost" onClick={() => setEditingExpenseId(exp.id)} className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground shrink-0">
                                     <Pencil className="h-3.5 w-3.5" />
                                   </Button>
+                                )}
+                                {!readOnly && (
+                                  <ExpenseBoletoLinkButton expenseId={exp.id} />
                                 )}
                                 {!readOnly && onDeleteExpense && (
                                   <Button size="sm" variant="ghost" onClick={() => setDeleteExpenseId(exp.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive shrink-0">
