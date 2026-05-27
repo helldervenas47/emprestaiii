@@ -182,10 +182,27 @@ export function BoletoLinkExpenseDialog({ boleto, open, onOpenChange }: Props) {
           </TabsList>
 
           <TabsContent value="link" className="mt-3 space-y-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar despesa por descrição ou categoria" className="pl-9" />
+            <div className="grid grid-cols-[1fr_auto] gap-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input value={search} onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar por descrição ou categoria" className="pl-9" />
+              </div>
+              <Select value={month} onValueChange={setMonth}>
+                <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={boletoMonth}>
+                    {monthLabel(boletoMonth)} (boleto)
+                  </SelectItem>
+                  {availableMonths.filter((m) => m !== boletoMonth).map((m) => (
+                    <SelectItem key={m} value={m}>{monthLabel(m)}</SelectItem>
+                  ))}
+                  <SelectItem value="__all__">Todos os meses</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              Vinculando despesa da competência <span className="font-medium text-foreground">{month === "__all__" ? "todas" : monthLabel(month)}</span>.
             </div>
             <div className="space-y-1 max-h-[40vh] overflow-y-auto">
               {loading ? (
