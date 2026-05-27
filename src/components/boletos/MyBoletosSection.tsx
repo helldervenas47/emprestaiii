@@ -738,12 +738,8 @@ function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, 
             <CheckCircle2 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Pagar</span>
           </Button>
         )}
-        {!readOnly && !b.expense_id && (
-          <Button size="sm" variant="ghost" className="h-8 px-1.5 sm:px-2 text-xs gap-1 text-primary shrink-0" onClick={onLink} title="Vincular" aria-label="Vincular">
-            <Link2 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Vincular</span>
-          </Button>
-        )}
         {!readOnly && b.expense_id && (
+
           <Button size="sm" variant="ghost" className="h-8 px-1.5 sm:px-2 text-xs gap-1 shrink-0" onClick={() => onUnlink()} title="Desvincular" aria-label="Desvincular">
             <Link2Off className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Desvincular</span>
           </Button>
