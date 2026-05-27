@@ -72,11 +72,10 @@ export function useMyBoletos() {
   useEffect(() => {
     fetchItems();
     if (!user) return;
-    const ch = supabase
-      .channel("my_boletos_changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "my_boletos" }, () => fetchItems())
-      .on("postgres_changes", { event: "*", schema: "public", table: "my_boleto_payments" }, () => fetchItems())
-      .subscribe();
+    const ch = supabase.channel(`my_boletos_changes_${crypto.randomUUID()}`);
+    ch.on("postgres_changes", { event: "*", schema: "public", table: "my_boletos" }, () => fetchItems());
+    ch.on("postgres_changes", { event: "*", schema: "public", table: "my_boleto_payments" }, () => fetchItems());
+    ch.subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user, fetchItems]);
 
