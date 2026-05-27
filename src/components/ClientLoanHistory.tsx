@@ -230,25 +230,41 @@ export function ClientLoanHistory({ loans, payments }: Props) {
     const grandTotal = summary?.total ?? 0;
 
     // Juros recebidos / a receber — apenas contratos da aba Empréstimos (loans)
+    // Regra: juros recebidos = total pago - amortização do principal (juros vêm primeiro).
+    //  - Pagamentos com installmentNumber === 0 (juros-only) são 100% juros.
+    //  - Demais pagamentos quitam principal proporcionalmente ao valor pago.
+    //  - Para contratos quitados, juros recebidos = juros total do contrato.
     let interestReceived = 0;
     let interestPending = 0;
     clientLoans.forEach((l) => {
+      const principal = l.amount || 0;
       const totalInterest = Math.max(
         0,
-        calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - (l.amount || 0),
+        calculateTotalWithInterest(principal, l.interestRate, l.installments) - principal,
       );
-      const installments = Math.max(1, l.installments || 1);
-      const paidInst = Math.min(installments, l.paidInstallments || 0);
-      const interestOnly = payments
-        .filter((p) => p.loanId === l.id && p.installmentNumber === 0)
+
+      if (l.status === "paid") {
+        interestReceived += totalInterest;
+        return;
+      }
+
+      const loanPayments = payments.filter((p) => p.loanId === l.id);
+      const totalPaid = loanPayments.reduce((s, p) => s + (p.amount || 0), 0);
+      const interestOnlyPaid = loanPayments
+        .filter((p) => p.installmentNumber === 0)
         .reduce((s, p) => s + (p.amount || 0), 0);
 
-      const receivedFromInstallments =
-        l.status === "paid" ? totalInterest : (totalInterest * paidInst) / installments;
-      interestReceived += receivedFromInstallments + interestOnly;
-      if (l.status !== "paid") {
-        interestPending += Math.max(0, totalInterest - (totalInterest * paidInst) / installments);
-      }
+      // Principal já amortizado = total pago em parcelas - juros embutidos nessas parcelas.
+      // Como remainingAmount já reflete o saldo do principal, usamos ele quando disponível.
+      const principalRemaining =
+        l.remainingAmount != null && l.remainingAmount >= 0 ? l.remainingAmount : principal;
+      const principalPaid = Math.max(0, Math.min(principal, principal - principalRemaining));
+
+      const installmentInterestPaid = Math.max(0, totalPaid - interestOnlyPaid - principalPaid);
+      const received = installmentInterestPaid + interestOnlyPaid;
+
+      interestReceived += received;
+      interestPending += Math.max(0, totalInterest - installmentInterestPaid);
     });
 
     return (
