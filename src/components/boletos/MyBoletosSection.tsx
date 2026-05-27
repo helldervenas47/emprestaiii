@@ -33,6 +33,7 @@ import { parsePixBrCode } from "@/lib/boleto/pixBrCode";
 import { useMyBoletos, type MyBoleto, type MyBoletoStatus } from "@/hooks/useMyBoletos";
 import { BoletoPaymentDialog } from "./BoletoPaymentDialog";
 import { BoletoHistoryDialog } from "./BoletoHistoryDialog";
+import { BoletoLinkExpenseDialog } from "./BoletoLinkExpenseDialog";
 import { cn } from "@/lib/utils";
 
 const BRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
