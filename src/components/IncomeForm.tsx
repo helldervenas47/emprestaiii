@@ -18,6 +18,7 @@ import { todayInAppTz } from "@/lib/timezone";
 import { MoneyInput } from "@/components/ui/money-input";
 import { useDescriptionHistory } from "@/hooks/useDescriptionHistory";
 import { displayIncomeCategory, incomeCategoryKey } from "@/lib/incomeCategory";
+import { IncomeBoletoLinkSection } from "@/components/IncomeBoletoLinkSection";
 
 export const INCOME_CATEGORIES = [
   "Vendas",
@@ -309,6 +310,9 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
             <Label>Observações</Label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
           </div>
+          {initial?.id && (
+            <IncomeBoletoLinkSection incomeId={initial.id} />
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>

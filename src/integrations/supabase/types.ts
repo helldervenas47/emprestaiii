@@ -1842,6 +1842,7 @@ export type Database = {
           due_date: string | null
           expense_id: string | null
           id: string
+          income_id: string | null
           kind: string | null
           notes: string | null
           owner_id: string
@@ -1867,6 +1868,7 @@ export type Database = {
           due_date?: string | null
           expense_id?: string | null
           id?: string
+          income_id?: string | null
           kind?: string | null
           notes?: string | null
           owner_id: string
@@ -1892,6 +1894,7 @@ export type Database = {
           due_date?: string | null
           expense_id?: string | null
           id?: string
+          income_id?: string | null
           kind?: string | null
           notes?: string | null
           owner_id?: string

@@ -24,6 +24,7 @@ export interface MyBoleto {
   attachment_path: string | null;
   pix_brcode: string | null;
   expense_id: string | null;
+  income_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -41,8 +42,8 @@ export interface MyBoletoPayment {
   created_at: string;
 }
 
-export type MyBoletoInput = Partial<Pick<MyBoleto, "expense_id">> &
-  Omit<MyBoleto, "id" | "created_at" | "updated_at" | "status" | "expense_id"> & {
+export type MyBoletoInput = Partial<Pick<MyBoleto, "expense_id" | "income_id">> &
+  Omit<MyBoleto, "id" | "created_at" | "updated_at" | "status" | "expense_id" | "income_id"> & {
     status?: MyBoletoStatus;
   };
 
@@ -236,6 +237,20 @@ export function useMyBoletos() {
     await fetchItems();
   }, [fetchItems]);
 
+  const linkIncome = useCallback(async (boletoId: string, incomeId: string) => {
+    // Garante 1:1 — desvincula qualquer outro boleto que já aponte para essa receita
+    await supabase.from("my_boletos").update({ income_id: null }).eq("income_id", incomeId);
+    const { error } = await supabase.from("my_boletos").update({ income_id: incomeId }).eq("id", boletoId);
+    if (error) throw error;
+    await fetchItems();
+  }, [fetchItems]);
+
+  const unlinkIncome = useCallback(async (boletoId: string) => {
+    const { error } = await supabase.from("my_boletos").update({ income_id: null }).eq("id", boletoId);
+    if (error) throw error;
+    await fetchItems();
+  }, [fetchItems]);
+
   const createExpenseFromBoleto = useCallback(async (
     boletoId: string,
     opts: { scope: "business" | "personal"; category: string; type?: "fixa" | "recorrente" },
@@ -270,5 +285,6 @@ export function useMyBoletos() {
     recordPayment, listPayments, deletePayment,
     uploadAttachment, getAttachmentUrl, refresh: fetchItems,
     linkExpense, unlinkExpense, createExpenseFromBoleto,
+    linkIncome, unlinkIncome,
   };
 }
