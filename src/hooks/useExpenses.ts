@@ -504,6 +504,7 @@ export function useExpenses(enabled = true) {
       }
 
       await supabase.from("expenses").update(updatePayload).eq("id", id);
+      await syncLinkedBoletoPaid(id, false, null, 0);
 
       // Reverte saída do extrato (despesa simples) - apenas business não-veículo
       if ((expense.scope ?? "business") === "business" && !isVehicleExpenseForVehicles(expense)) {
