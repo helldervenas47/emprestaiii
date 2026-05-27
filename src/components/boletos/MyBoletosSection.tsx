@@ -603,6 +603,12 @@ export function MyBoletosSection({ readOnly }: Props) {
         readOnly={readOnly}
       />
 
+      <BoletoLinkExpenseDialog
+        boleto={linkTarget}
+        open={!!linkTarget}
+        onOpenChange={(v) => !v && setLinkTarget(null)}
+      />
+
       <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
