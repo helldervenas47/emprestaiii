@@ -332,14 +332,14 @@ export function MyBoletosSection({ readOnly }: Props) {
     <div className="space-y-4">
       {/* Resumo */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-        <SummaryTile icon={<FileText className="h-4 w-4" />} label="Total" value={String(summary.total)}
-          sub={BRL(summary.totalPending + summary.totalPaid + summary.totalOverdue)} tone="primary" delay={0} />
+        <SummaryTile icon={<FileText className="h-4 w-4" />} label="Total"
+          value={BRL(summary.totalPending + summary.totalPaid + summary.totalOverdue)} sub={`${summary.total} boletos`} tone="primary" delay={0} />
         <SummaryTile icon={<CheckCircle2 className="h-4 w-4" />} label="Pagos"
-          value={String(summary.paid)} sub={BRL(summary.totalPaid)} tone="emerald" delay={80} />
+          value={BRL(summary.totalPaid)} sub={`${summary.paid} boletos`} tone="emerald" delay={80} />
         <SummaryTile icon={<Clock className="h-4 w-4" />} label="Pendentes"
-          value={String(summary.pending)} sub={BRL(summary.totalPending)} tone="amber" delay={160} />
+          value={BRL(summary.totalPending)} sub={`${summary.pending} boletos`} tone="amber" delay={160} />
         <SummaryTile icon={<AlertTriangle className="h-4 w-4" />} label="Vencidos"
-          value={String(summary.overdue)} sub={BRL(summary.totalOverdue)} tone="rose" delay={240} />
+          value={BRL(summary.totalOverdue)} sub={`${summary.overdue} boletos`} tone="rose" delay={240} />
       </div>
 
       {/* Toolbar */}
