@@ -139,8 +139,9 @@ export function MyBoletosSection({ readOnly }: Props) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [payTarget, setPayTarget] = useState<MyBoleto | null>(null);
   const [historyTarget, setHistoryTarget] = useState<MyBoleto | null>(null);
-  const [linkTarget, setLinkTarget] = useState<MyBoleto | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [expenseMap, setExpenseMap] = useState<Record<string, string>>({});
+
 
   const computed = useMemo<Sortable[]>(
     () => items.map((b) => ({ ...b, status: computedStatus(b) })),
