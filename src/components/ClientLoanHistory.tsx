@@ -314,7 +314,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           <h2 className="text-base font-semibold truncate">{selectedClient}</h2>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-2 sm:gap-3">
           <Card>
             <CardContent className="p-3 flex flex-col items-center justify-center text-center">
               <div className="text-[11px] text-muted-foreground mb-0.5">Emprestado</div>
