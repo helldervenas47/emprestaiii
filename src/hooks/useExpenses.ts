@@ -290,6 +290,7 @@ export function useExpenses(enabled = true) {
 
       await supabase.from("expenses").insert(childPayload as any);
       await supabase.from("expenses").update(parentUpdate).eq("id", id);
+      if (fullyPaid) await syncLinkedBoletoPaid(id, true, today, installmentAmount);
 
       // Saída no extrato: parcela paga (apenas business; despesas de veículos NÃO
       // entram no extrato — são debitadas exclusivamente do "Saldo em Conta" da aba Veículos).
