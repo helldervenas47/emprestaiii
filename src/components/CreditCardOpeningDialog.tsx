@@ -48,14 +48,10 @@ export function CreditCardOpeningDialog({
     if (open) {
       setAmountStr(initialAmount && initialAmount > 0 ? String(initialAmount).replace(".", ",") : "");
       setNotes(initialNotes ?? "");
-      // Focus + select after the dialog mounts so the user can type/replace immediately
-      const t = window.setTimeout(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-      }, 80);
-      return () => window.clearTimeout(t);
+      // Regra global: NÃO focar automaticamente para não abrir o teclado em mobile.
     }
   }, [open, initialAmount, initialNotes]);
+
 
   const parsedAmount = useMemo(() => {
     const v = parseFloat(amountStr.replace(/\./g, "").replace(",", "."));
