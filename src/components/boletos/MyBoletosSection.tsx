@@ -412,9 +412,10 @@ export function MyBoletosSection({ readOnly }: Props) {
                 onEdit={() => openEdit(g.items[0])}
                 onDelete={() => setDeleteId(g.items[0].id)}
                 onHistory={() => setHistoryTarget(g.items[0])}
-                onLink={() => setLinkTarget(g.items[0])}
                 onUnlink={async () => { await unlinkExpense(g.items[0].id); toast.success("Despesa desvinculada"); }}
+                linkedExpenseDescription={g.items[0].expense_id ? expenseMap[g.items[0].expense_id] : undefined}
                 onAttach={openAttachment} />;
+
             }
 
             return (
