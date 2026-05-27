@@ -2,8 +2,11 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+// Global rule: o teclado NÃO deve abrir automaticamente. Ignoramos qualquer
+// `autoFocus` passado a Input — o foco só ocorre por interação manual do
+// usuário. Para casos legítimos use `data-allow-autofocus` + foco programático.
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+  ({ className, type, autoFocus: _autoFocus, ...props }, ref) => {
     return (
       <input
         type={type}
