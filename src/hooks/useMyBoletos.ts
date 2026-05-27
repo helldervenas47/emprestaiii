@@ -23,6 +23,7 @@ export interface MyBoleto {
   notes: string | null;
   attachment_path: string | null;
   pix_brcode: string | null;
+  expense_id: string | null;
   created_at: string;
   updated_at: string;
 }
