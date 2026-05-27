@@ -186,25 +186,20 @@ export function useMyBoletos() {
     const { error } = await supabase.from("my_boleto_payments").delete().eq("id", paymentId);
     if (error) throw error;
 
-    if (!boletoId) return;
-    // Se não há mais pagamentos "pago", reverte boleto e despesa para pendente
-    const { data: remaining } = await supabase
-      .from("my_boleto_payments")
-      .select("id")
-      .eq("boleto_id", boletoId)
-      .eq("status", "pago")
-      .limit(1);
-    if (!remaining || remaining.length === 0) {
-      await supabase.from("my_boletos").update({ status: "pendente", paid_at: null }).eq("id", boletoId);
-      const { data: b } = await supabase
-        .from("my_boletos")
-        .select("expense_id")
-        .eq("id", boletoId)
-        .maybeSingle();
-      const expId = (b as any)?.expense_id as string | null | undefined;
-      if (expId) await syncExpensePaid(expId, false, null);
+    if (!boletoId) {
       await fetchItems();
+      return;
     }
+    // Sempre reverte o boleto para pendente ao excluir um pagamento
+    await supabase.from("my_boletos").update({ status: "pendente", paid_at: null }).eq("id", boletoId);
+    const { data: b } = await supabase
+      .from("my_boletos")
+      .select("expense_id")
+      .eq("id", boletoId)
+      .maybeSingle();
+    const expId = (b as any)?.expense_id as string | null | undefined;
+    if (expId) await syncExpensePaid(expId, false, null);
+    await fetchItems();
   }, [syncExpensePaid, fetchItems]);
 
   const uploadAttachment = useCallback(async (file: File): Promise<string> => {
