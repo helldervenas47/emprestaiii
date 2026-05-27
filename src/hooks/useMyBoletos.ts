@@ -184,9 +184,53 @@ export function useMyBoletos() {
     return data?.signedUrl ?? null;
   }, []);
 
+  const linkExpense = useCallback(async (boletoId: string, expenseId: string) => {
+    // Garante 1:1 — desvincula qualquer outro boleto que já aponte para essa despesa
+    await supabase.from("my_boletos").update({ expense_id: null }).eq("expense_id", expenseId);
+    const { error } = await supabase.from("my_boletos").update({ expense_id: expenseId }).eq("id", boletoId);
+    if (error) throw error;
+    await fetchItems();
+  }, [fetchItems]);
+
+  const unlinkExpense = useCallback(async (boletoId: string) => {
+    const { error } = await supabase.from("my_boletos").update({ expense_id: null }).eq("id", boletoId);
+    if (error) throw error;
+    await fetchItems();
+  }, [fetchItems]);
+
+  const createExpenseFromBoleto = useCallback(async (
+    boletoId: string,
+    opts: { scope: "business" | "personal"; category: string; type?: "fixa" | "recorrente" },
+  ): Promise<string> => {
+    if (!user) throw new Error("not-auth");
+    const { data: ownerRow } = await supabase.rpc("get_data_owner_id", { _user_id: user.id });
+    const owner_id = (ownerRow as unknown as string) ?? user.id;
+    const b = items.find((x) => x.id === boletoId);
+    if (!b) throw new Error("Boleto não encontrado");
+    const today = new Date().toISOString().slice(0, 10);
+    const { data, error } = await supabase
+      .from("expenses")
+      .insert({
+        user_id: owner_id,
+        description: b.description,
+        amount: Number(b.amount) || 0,
+        category: opts.category,
+        type: opts.type ?? "fixa",
+        due_date: b.due_date ?? today,
+        notes: `Gerada a partir do boleto "${b.description}"`,
+        scope: opts.scope,
+      })
+      .select("id")
+      .single();
+    if (error || !data) throw error ?? new Error("Falha ao criar despesa");
+    await linkExpense(boletoId, (data as any).id);
+    return (data as any).id as string;
+  }, [user, items, linkExpense]);
+
   return {
     items, loading, add, update, remove, markPaid,
     recordPayment, listPayments, deletePayment,
     uploadAttachment, getAttachmentUrl, refresh: fetchItems,
+    linkExpense, unlinkExpense, createExpenseFromBoleto,
   };
 }
