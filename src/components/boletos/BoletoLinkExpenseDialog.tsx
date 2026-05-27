@@ -31,6 +31,10 @@ interface ExpenseRow {
   id: string;
   description: string;
   amount: number;
+  monthlyAmount: number;
+  installments: number | null;
+  paidInstallments: number | null;
+  type: string | null;
   due_date: string;
   category: string;
   scope: string;
