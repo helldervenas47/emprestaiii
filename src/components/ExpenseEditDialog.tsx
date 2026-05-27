@@ -36,6 +36,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ExpenseBoletoLinkSection } from "@/components/ExpenseBoletoLinkSection";
+
+
 
 export type EditScope = "this" | "pending" | "all";
 
