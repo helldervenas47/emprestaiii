@@ -662,6 +662,11 @@ function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, 
             </button>
             <StatusBadge status={b.status} />
             {b.category && <Badge variant="outline" className="text-[10px]">{b.category}</Badge>}
+            {b.expense_id && (
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-[10px]">
+                <Link2 className="h-3 w-3" /> Despesa vinculada
+              </Badge>
+            )}
           </div>
           {b.beneficiary && (
             <div className="text-xs text-muted-foreground truncate">{b.beneficiary}</div>
