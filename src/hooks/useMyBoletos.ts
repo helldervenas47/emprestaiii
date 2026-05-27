@@ -95,6 +95,16 @@ export function useMyBoletos() {
     await fetchItems();
   }, [user, fetchItems]);
 
+  const syncExpensePaid = useCallback(async (expenseId: string | null | undefined, paid: boolean, paidDate: string | null) => {
+    if (!expenseId) return;
+    try {
+      await supabase
+        .from("expenses")
+        .update({ paid, paid_date: paid ? paidDate : null })
+        .eq("id", expenseId);
+    } catch { /* noop */ }
+  }, []);
+
   const update = useCallback(async (id: string, patch: Partial<MyBoletoInput & { status: MyBoletoStatus }>) => {
     const { error } = await supabase.from("my_boletos").update(patch).eq("id", id);
     if (error) throw error;
@@ -103,13 +113,16 @@ export function useMyBoletos() {
 
   const remove = useCallback(async (id: string) => {
     const item = items.find((i) => i.id === id);
+    if (item?.expense_id) {
+      await syncExpensePaid(item.expense_id, false, null);
+    }
     if (item?.attachment_path) {
       await supabase.storage.from("boleto-attachments").remove([item.attachment_path]).catch(() => {});
     }
     const { error } = await supabase.from("my_boletos").delete().eq("id", id);
     if (error) throw error;
     await fetchItems();
-  }, [items, fetchItems]);
+  }, [items, fetchItems, syncExpensePaid]);
 
   const recordPayment = useCallback(async (boletoId: string, payment: PaymentInput) => {
     if (!user) throw new Error("not-auth");
@@ -136,8 +149,10 @@ export function useMyBoletos() {
     if (insErr) throw insErr;
     if (status === "pago") {
       await update(boletoId, { status: "pago", paid_at });
+      const b = items.find((x) => x.id === boletoId);
+      if (b?.expense_id) await syncExpensePaid(b.expense_id, true, paid_at);
     }
-  }, [user, update]);
+  }, [user, update, items, syncExpensePaid]);
 
   const markPaid = useCallback(async (id: string) => {
     const b = items.find((x) => x.id === id);
@@ -160,9 +175,37 @@ export function useMyBoletos() {
   }, []);
 
   const deletePayment = useCallback(async (paymentId: string) => {
+    // Descobre o boleto vinculado antes de excluir
+    const { data: payRow } = await supabase
+      .from("my_boleto_payments")
+      .select("boleto_id")
+      .eq("id", paymentId)
+      .maybeSingle();
+    const boletoId = (payRow as any)?.boleto_id as string | undefined;
+
     const { error } = await supabase.from("my_boleto_payments").delete().eq("id", paymentId);
     if (error) throw error;
-  }, []);
+
+    if (!boletoId) return;
+    // Se não há mais pagamentos "pago", reverte boleto e despesa para pendente
+    const { data: remaining } = await supabase
+      .from("my_boleto_payments")
+      .select("id")
+      .eq("boleto_id", boletoId)
+      .eq("status", "pago")
+      .limit(1);
+    if (!remaining || remaining.length === 0) {
+      await supabase.from("my_boletos").update({ status: "pendente", paid_at: null }).eq("id", boletoId);
+      const { data: b } = await supabase
+        .from("my_boletos")
+        .select("expense_id")
+        .eq("id", boletoId)
+        .maybeSingle();
+      const expId = (b as any)?.expense_id as string | null | undefined;
+      if (expId) await syncExpensePaid(expId, false, null);
+      await fetchItems();
+    }
+  }, [syncExpensePaid, fetchItems]);
 
   const uploadAttachment = useCallback(async (file: File): Promise<string> => {
     if (!user) throw new Error("not-auth");
