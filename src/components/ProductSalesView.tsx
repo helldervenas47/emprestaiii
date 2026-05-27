@@ -2007,6 +2007,8 @@ function VehicleExpenseEditDialog({ expense, open, onOpenChange, onSave, formatC
             <Label htmlFor="edit-notes">Observações</Label>
             <Textarea id="edit-notes" value={form.notes} onChange={e => update("notes", e.target.value)} rows={2} />
           </div>
+          <ExpenseBoletoLinkSection expenseId={expense.id} />
+
           {parseFloat(form.amount) > 0 && form.type === "recorrente" && parseInt(form.installments) > 1 && (
             <div className="rounded-lg bg-muted p-3">
               <p className="text-sm text-muted-foreground">
