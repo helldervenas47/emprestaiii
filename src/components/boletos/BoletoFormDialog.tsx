@@ -37,12 +37,15 @@ interface DraftForm {
   attachmentFile: File | null;
   attachmentPath: string | null;
   pix_brcode: string;
+  status: "pendente" | "pago";
+  paidAt: string;
 }
 
 const emptyDraft: DraftForm = {
   digits: "", description: "", beneficiary: "", category: "Outros",
   amount: "", dueDate: "", notes: "", parsed: null,
   attachmentFile: null, attachmentPath: null, pix_brcode: "",
+  status: "pendente", paidAt: "",
 };
 
 function autoDescription(p: ParsedBoleto | null, pixName?: string): string {
