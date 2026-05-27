@@ -697,6 +697,16 @@ function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, 
             <CheckCircle2 className="h-3 w-3" /> Registrar pagamento
           </Button>
         )}
+        {!readOnly && !b.expense_id && (
+          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-primary" onClick={onLink}>
+            <Link2 className="h-3 w-3" /> Vincular despesa
+          </Button>
+        )}
+        {!readOnly && b.expense_id && (
+          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => onUnlink()}>
+            <Link2Off className="h-3 w-3" /> Desvincular
+          </Button>
+        )}
         {!readOnly && (
           <>
             <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={onEdit}>
