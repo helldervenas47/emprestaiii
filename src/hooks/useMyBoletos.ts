@@ -41,9 +41,10 @@ export interface MyBoletoPayment {
   created_at: string;
 }
 
-export type MyBoletoInput = Omit<MyBoleto, "id" | "created_at" | "updated_at" | "status"> & {
-  status?: MyBoletoStatus;
-};
+export type MyBoletoInput = Partial<Pick<MyBoleto, "expense_id">> &
+  Omit<MyBoleto, "id" | "created_at" | "updated_at" | "status" | "expense_id"> & {
+    status?: MyBoletoStatus;
+  };
 
 export interface PaymentInput {
   paid_at?: string;
