@@ -18,7 +18,7 @@ async function syncLinkedBoletoPaid(expenseId: string, paid: boolean, paidDate: 
   try {
     const { data: boleto } = await supabase
       .from("my_boletos")
-      .select("id, status, amount, owner_id")
+      .select("id, status, amount, owner_id, due_date")
       .eq("expense_id", expenseId)
       .maybeSingle();
     if (!boleto) return;
@@ -46,8 +46,11 @@ async function syncLinkedBoletoPaid(expenseId: string, paid: boolean, paidDate: 
         });
       }
     } else {
+      // Restaura o status anterior: "vencido" se a data já passou, senão "pendente"
+      const today = new Date().toISOString().slice(0, 10);
+      const restoredStatus = b.due_date && b.due_date < today ? "vencido" : "pendente";
       await supabase.from("my_boletos")
-        .update({ status: "pendente", paid_at: null })
+        .update({ status: restoredStatus, paid_at: null })
         .eq("id", b.id);
       await supabase.from("my_boleto_payments").delete().eq("boleto_id", b.id);
     }
