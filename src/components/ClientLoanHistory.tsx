@@ -235,7 +235,6 @@ export function ClientLoanHistory({ loans, payments }: Props) {
     //  - Demais pagamentos quitam principal proporcionalmente ao valor pago.
     //  - Para contratos quitados, juros recebidos = juros total do contrato.
     let interestReceived = 0;
-    let interestPending = 0;
     clientLoans.forEach((l) => {
       const principal = l.amount || 0;
       const totalInterest = Math.max(
@@ -254,23 +253,16 @@ export function ClientLoanHistory({ loans, payments }: Props) {
         .filter((p) => p.installmentNumber === 0)
         .reduce((s, p) => s + (p.amount || 0), 0);
 
-      // Principal já amortizado = total pago em parcelas - juros embutidos nessas parcelas.
-      // Como remainingAmount já reflete o saldo do principal, usamos ele quando disponível.
       const principalRemaining =
         l.remainingAmount != null && l.remainingAmount >= 0 ? l.remainingAmount : principal;
       const principalPaid = Math.max(0, Math.min(principal, principal - principalRemaining));
 
       const installmentInterestPaid = Math.max(0, totalPaid - interestOnlyPaid - principalPaid);
-      const received = installmentInterestPaid + interestOnlyPaid;
-
-      // Juros a receber = saldo total esperado do contrato - principal ainda em aberto.
-      const expectedTotal = principal + totalInterest;
-      const totalToReceive = Math.max(0, expectedTotal - (totalPaid - interestOnlyPaid));
-      const pending = Math.max(0, totalToReceive - principalRemaining);
-
-      interestReceived += received;
-      interestPending += pending;
+      interestReceived += installmentInterestPaid + interestOnlyPaid;
     });
+
+    // Juros a receber = Pendente - Emprestado
+    const interestPending = Math.max(0, pendingTotal - borrowed);
 
     return (
       <div className="space-y-3 animate-in fade-in slide-in-from-right-4 duration-200">
