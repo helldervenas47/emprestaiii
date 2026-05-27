@@ -263,8 +263,13 @@ export function ClientLoanHistory({ loans, payments }: Props) {
       const installmentInterestPaid = Math.max(0, totalPaid - interestOnlyPaid - principalPaid);
       const received = installmentInterestPaid + interestOnlyPaid;
 
+      // Juros a receber = saldo total esperado do contrato - principal ainda em aberto.
+      const expectedTotal = principal + totalInterest;
+      const totalToReceive = Math.max(0, expectedTotal - (totalPaid - interestOnlyPaid));
+      const pending = Math.max(0, totalToReceive - principalRemaining);
+
       interestReceived += received;
-      interestPending += Math.max(0, totalInterest - installmentInterestPaid);
+      interestPending += pending;
     });
 
     return (
