@@ -49,6 +49,8 @@ import { VehicleExpenseForm, isVehicleExpenseForVehicles, vehicleExpenseCategori
 import { VehicleLocadorManager } from "@/components/VehicleLocadorManager";
 import { useLocadorInfo, LocadorInfo } from "@/hooks/useLocadorInfo";
 import { useVehicleRegistry, VehicleInfo } from "@/hooks/useVehicleRegistry";
+import { ExpenseBoletoLinkSection } from "@/components/ExpenseBoletoLinkSection";
+
 
 interface Props {
   sales: Sale[];
