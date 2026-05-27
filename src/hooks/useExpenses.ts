@@ -14,6 +14,48 @@ import {
 } from "@/lib/offline/sync";
 import { isOnline } from "@/lib/offline/status";
 
+async function syncLinkedBoletoPaid(expenseId: string, paid: boolean, paidDate: string | null, amount: number) {
+  try {
+    const { data: boleto } = await supabase
+      .from("my_boletos")
+      .select("id, status, amount, owner_id")
+      .eq("expense_id", expenseId)
+      .maybeSingle();
+    if (!boleto) return;
+    const b: any = boleto;
+    if (paid) {
+      if (b.status === "pago") return;
+      await supabase.from("my_boletos")
+        .update({ status: "pago", paid_at: paidDate })
+        .eq("id", b.id);
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth.user?.id;
+      if (uid) {
+        const { data: profile } = await supabase
+          .from("profiles").select("display_name").eq("user_id", uid).maybeSingle();
+        await supabase.from("my_boleto_payments").insert({
+          boleto_id: b.id,
+          owner_id: b.owner_id,
+          user_id: uid,
+          paid_at: paidDate ?? new Date().toISOString().slice(0, 10),
+          amount: Number(amount) || Number(b.amount) || 0,
+          payment_method: null,
+          status: "pago",
+          notes: "Pago automaticamente ao quitar a despesa vinculada",
+          user_name: (profile as any)?.display_name ?? auth.user?.email ?? null,
+        });
+      }
+    } else {
+      await supabase.from("my_boletos")
+        .update({ status: "pendente", paid_at: null })
+        .eq("id", b.id);
+      await supabase.from("my_boleto_payments").delete().eq("boleto_id", b.id);
+    }
+  } catch { /* noop */ }
+}
+
+
+
 function rowToExpense(e: any): Expense {
   return {
     id: e.id, description: e.description, amount: Number(e.amount),
