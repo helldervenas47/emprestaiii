@@ -16,43 +16,63 @@ import { isOnline } from "@/lib/offline/status";
 
 async function syncLinkedBoletoPaid(expenseId: string, paid: boolean, paidDate: string | null, amount: number) {
   try {
-    const { data: boleto } = await supabase
+    // Resolve all expense ids in this chain (parent + all its children).
+    // Boletos may be linked to either the parent expense or a specific installment child.
+    const idSet = new Set<string>([expenseId]);
+    const { data: expRow } = await supabase
+      .from("expenses")
+      .select("id, parent_expense_id")
+      .eq("id", expenseId)
+      .maybeSingle();
+    const parentId = (expRow as any)?.parent_expense_id ?? expenseId;
+    idSet.add(parentId);
+    const { data: children } = await supabase
+      .from("expenses")
+      .select("id")
+      .eq("parent_expense_id", parentId);
+    for (const c of (children ?? [])) idSet.add((c as any).id);
+
+    const { data: boletos } = await supabase
       .from("my_boletos")
       .select("id, status, amount, owner_id, due_date")
-      .eq("expense_id", expenseId)
-      .maybeSingle();
-    if (!boleto) return;
-    const b: any = boleto;
-    if (paid) {
-      if (b.status === "pago") return;
-      await supabase.from("my_boletos")
-        .update({ status: "pago", paid_at: paidDate })
-        .eq("id", b.id);
-      const { data: auth } = await supabase.auth.getUser();
-      const uid = auth.user?.id;
-      if (uid) {
-        const { data: profile } = await supabase
-          .from("profiles").select("display_name").eq("user_id", uid).maybeSingle();
-        await supabase.from("my_boleto_payments").insert({
-          boleto_id: b.id,
-          owner_id: b.owner_id,
-          user_id: uid,
-          paid_at: paidDate ?? new Date().toISOString().slice(0, 10),
-          amount: Number(amount) || Number(b.amount) || 0,
-          payment_method: null,
-          status: "pago",
-          notes: "Pago automaticamente ao quitar a despesa vinculada",
-          user_name: (profile as any)?.display_name ?? auth.user?.email ?? null,
-        });
+      .in("expense_id", Array.from(idSet));
+    if (!boletos || boletos.length === 0) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth.user?.id;
+    const { data: profile } = uid
+      ? await supabase.from("profiles").select("display_name").eq("user_id", uid).maybeSingle()
+      : { data: null as any };
+
+    for (const boleto of boletos) {
+      const b: any = boleto;
+      if (paid) {
+        if (b.status === "pago") continue;
+        await supabase.from("my_boletos")
+          .update({ status: "pago", paid_at: paidDate })
+          .eq("id", b.id);
+        if (uid) {
+          await supabase.from("my_boleto_payments").insert({
+            boleto_id: b.id,
+            owner_id: b.owner_id,
+            user_id: uid,
+            paid_at: paidDate ?? today,
+            amount: Number(amount) || Number(b.amount) || 0,
+            payment_method: null,
+            status: "pago",
+            notes: "Pago automaticamente ao quitar a despesa vinculada",
+            user_name: (profile as any)?.display_name ?? auth.user?.email ?? null,
+          });
+        }
+      } else {
+        // Restaura o status anterior: "vencido" se a data já passou, senão "pendente"
+        const restoredStatus = b.due_date && b.due_date < today ? "vencido" : "pendente";
+        await supabase.from("my_boletos")
+          .update({ status: restoredStatus, paid_at: null })
+          .eq("id", b.id);
+        await supabase.from("my_boleto_payments").delete().eq("boleto_id", b.id);
       }
-    } else {
-      // Restaura o status anterior: "vencido" se a data já passou, senão "pendente"
-      const today = new Date().toISOString().slice(0, 10);
-      const restoredStatus = b.due_date && b.due_date < today ? "vencido" : "pendente";
-      await supabase.from("my_boletos")
-        .update({ status: restoredStatus, paid_at: null })
-        .eq("id", b.id);
-      await supabase.from("my_boleto_payments").delete().eq("boleto_id", b.id);
     }
   } catch { /* noop */ }
 }
