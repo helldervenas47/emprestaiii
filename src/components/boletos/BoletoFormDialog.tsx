@@ -250,7 +250,7 @@ export function BoletoFormDialog({
               <Label className="text-xs">Categoria</Label>
               <Select value={draft.category} onValueChange={(v) => setDraft((d) => ({ ...d, category: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[2147483652]">
                   {BOLETO_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
