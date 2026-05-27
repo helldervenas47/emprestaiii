@@ -688,15 +688,15 @@ function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, 
           )}
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-1">
-        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={onHistory}>
-          <History className="h-3 w-3" /> Histórico
+      <div className="flex flex-wrap items-center gap-1 pt-2 border-t border-border/50">
+        <Button size="sm" variant="ghost" className="h-8 px-2 text-xs gap-1" onClick={onHistory}>
+          <History className="h-3.5 w-3.5" /> Histórico
         </Button>
         {(b.digits || b.barcode) && (
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 px-2 text-xs"
+            className="h-8 px-2 text-xs gap-1"
             onClick={async () => {
               const code = (b.digits || b.barcode || "").replace(/\s/g, "");
               try {
@@ -712,42 +712,42 @@ function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, 
             }}
             title="Copiar código de barras"
           >
-            <Copy className="h-3 w-3" /> Copiar código
+            <Copy className="h-3.5 w-3.5" /> Copiar
           </Button>
         )}
         {b.attachment_path && (
-          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs"
+          <Button size="sm" variant="ghost" className="h-8 px-2 text-xs gap-1"
             onClick={() => onAttach(b.attachment_path!)}>
-            <Paperclip className="h-3 w-3" /> Anexo
-            <ExternalLink className="h-3 w-3" />
+            <Paperclip className="h-3.5 w-3.5" /> Anexo
           </Button>
         )}
         {!readOnly && b.status !== "pago" && (
-          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-emerald-600" onClick={onPay}>
-            <CheckCircle2 className="h-3 w-3" /> Registrar pagamento
+          <Button size="sm" variant="ghost" className="h-8 px-2 text-xs gap-1 text-emerald-600 hover:text-emerald-700" onClick={onPay}>
+            <CheckCircle2 className="h-3.5 w-3.5" /> Pagar
           </Button>
         )}
         {!readOnly && !b.expense_id && (
-          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-primary" onClick={onLink}>
-            <Link2 className="h-3 w-3" /> Vincular despesa
+          <Button size="sm" variant="ghost" className="h-8 px-2 text-xs gap-1 text-primary" onClick={onLink}>
+            <Link2 className="h-3.5 w-3.5" /> Vincular
           </Button>
         )}
         {!readOnly && b.expense_id && (
-          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => onUnlink()}>
-            <Link2Off className="h-3 w-3" /> Desvincular
+          <Button size="sm" variant="ghost" className="h-8 px-2 text-xs gap-1" onClick={() => onUnlink()}>
+            <Link2Off className="h-3.5 w-3.5" /> Desvincular
           </Button>
         )}
         {!readOnly && (
-          <>
-            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={onEdit}>
-              <Pencil className="h-3 w-3" /> Editar
+          <div className="flex items-center gap-1 ml-auto">
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={onEdit} title="Editar" aria-label="Editar">
+              <Pencil className="h-3.5 w-3.5" />
             </Button>
-            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive" onClick={onDelete}>
-              <Trash2 className="h-3 w-3" /> Excluir
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={onDelete} title="Excluir" aria-label="Excluir">
+              <Trash2 className="h-3.5 w-3.5" />
             </Button>
-          </>
+          </div>
         )}
       </div>
+
     </CardContent>
   );
 
