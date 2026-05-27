@@ -241,6 +241,11 @@ export function BoletoLinkExpenseDialog({ boleto, open, onOpenChange }: Props) {
                           {e.scope === "personal" ? "Pessoal" : "Financeiro"}
                         </Badge>
                         <Badge variant="outline" className="text-[10px]">{e.category}</Badge>
+                        {e.installments && e.installments > 1 && (
+                          <Badge variant="outline" className="text-[10px]">
+                            {(e.paidInstallments ?? 0) + 1}/{e.installments}
+                          </Badge>
+                        )}
                         {e.paid && (
                           <Badge variant="outline"
                             className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 text-[10px]">
@@ -250,7 +255,12 @@ export function BoletoLinkExpenseDialog({ boleto, open, onOpenChange }: Props) {
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="font-semibold text-sm">{BRL(e.amount)}</div>
+                      <div className="font-semibold text-sm">{BRL(e.monthlyAmount)}</div>
+                      {e.installments && e.installments > 1 && (
+                        <div className="text-[10px] text-muted-foreground">
+                          total {BRL(e.amount)}
+                        </div>
+                      )}
                       <div className="text-[10px] text-muted-foreground">
                         {format(parseISO(e.due_date), "dd/MM/yy", { locale: ptBR })}
                       </div>
