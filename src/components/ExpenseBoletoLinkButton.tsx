@@ -151,14 +151,25 @@ export function ExpenseBoletoLinkButton({ expenseId, className }: Props) {
             </div>
           )}
 
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar boleto"
-              className="pl-9"
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar boleto"
+                className="pl-9"
+              />
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-9 px-2 gap-1 shrink-0"
+              onClick={() => setCreateOpen(true)}
+            >
+              <Plus className="h-4 w-4" /> Novo
+            </Button>
           </div>
 
           <div className="space-y-1 max-h-[45vh] overflow-y-auto">
@@ -209,6 +220,21 @@ export function ExpenseBoletoLinkButton({ expenseId, className }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BoletoFormDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onSaved={async (newId) => {
+          try {
+            if (linked && linked.id !== newId) await unlinkExpense(linked.id);
+            await linkExpense(newId, expenseId);
+            toast.success("Boleto criado e vinculado");
+            setOpen(false);
+          } catch (e: any) {
+            toast.error(e?.message ?? "Boleto criado, mas falhou ao vincular");
+          }
+        }}
+      />
     </>
   );
 }
