@@ -87,10 +87,17 @@ export function BoletoLinkExpenseDialog({ boleto, open, onOpenChange }: Props) {
     return () => { active = false; };
   }, [open, ownerId]);
 
+  const boletoMonth = useMemo(() => {
+    const d = boleto?.due_date ?? null;
+    return d ? d.slice(0, 7) : new Date().toISOString().slice(0, 7);
+  }, [boleto]);
+  const [month, setMonth] = useState<string>(boletoMonth);
+
   useEffect(() => {
     if (!open) return;
     setMode("link");
     setSearch("");
+    setMonth(boletoMonth);
     // sugere categoria com base no boleto
     if (boleto?.category && FINANCEIRO_CATEGORIES.includes(boleto.category)) {
       setCategory(boleto.category);
@@ -98,19 +105,33 @@ export function BoletoLinkExpenseDialog({ boleto, open, onOpenChange }: Props) {
     } else {
       setCategory("Outros");
     }
-  }, [open, boleto]);
+  }, [open, boleto, boletoMonth]);
+
+  // Meses disponíveis (ordenado desc), garante presença do mês do boleto
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    set.add(boletoMonth);
+    expenses.forEach((e) => { if (e.due_date) set.add(e.due_date.slice(0, 7)); });
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [expenses, boletoMonth]);
+
+  const monthLabel = (m: string) => {
+    try {
+      return format(parseISO(`${m}-01`), "MMMM 'de' yyyy", { locale: ptBR });
+    } catch { return m; }
+  };
 
   const categories = scope === "business" ? FINANCEIRO_CATEGORIES : FINANCEIRO_CATEGORIES;
-  // Caso queira veículo, a tab de criar mostra opções específicas:
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return expenses.filter((e) => {
       if (e.linked) return false;
+      if (month !== "__all__" && (e.due_date ?? "").slice(0, 7) !== month) return false;
       if (!q) return true;
       return (e.description ?? "").toLowerCase().includes(q)
         || (e.category ?? "").toLowerCase().includes(q);
     });
-  }, [expenses, search]);
+  }, [expenses, search, month]);
 
   const handleLink = async (expenseId: string) => {
     if (!boleto) return;
