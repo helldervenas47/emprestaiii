@@ -31,6 +31,10 @@ interface ExpenseRow {
   id: string;
   description: string;
   amount: number;
+  monthlyAmount: number;
+  installments: number | null;
+  paidInstallments: number | null;
+  type: string | null;
   due_date: string;
   category: string;
   scope: string;
@@ -63,7 +67,7 @@ export function BoletoLinkExpenseDialog({ boleto, open, onOpenChange }: Props) {
       const [exp, linkedRows] = await Promise.all([
         supabase
           .from("expenses")
-          .select("id, description, amount, due_date, category, scope, paid")
+          .select("id, description, amount, due_date, category, scope, paid, type, installments, paid_installments")
           .eq("user_id", ownerId)
           .order("due_date", { ascending: false })
           .limit(300),
@@ -71,16 +75,26 @@ export function BoletoLinkExpenseDialog({ boleto, open, onOpenChange }: Props) {
       ]);
       if (!active) return;
       const linkedSet = new Set((linkedRows.data ?? []).map((r: any) => r.expense_id as string));
-      const rows: ExpenseRow[] = (exp.data ?? []).map((e: any) => ({
-        id: e.id,
-        description: e.description,
-        amount: Number(e.amount) || 0,
-        due_date: e.due_date,
-        category: e.category,
-        scope: e.scope ?? "business",
-        paid: !!e.paid,
-        linked: linkedSet.has(e.id),
-      }));
+      const rows: ExpenseRow[] = (exp.data ?? []).map((e: any) => {
+        const total = Number(e.amount) || 0;
+        const inst = Number(e.installments) || 0;
+        const isParcelada = e.type === "recorrente" && inst > 1;
+        const monthly = isParcelada ? total / inst : total;
+        return {
+          id: e.id,
+          description: e.description,
+          amount: total,
+          monthlyAmount: monthly,
+          installments: isParcelada ? inst : null,
+          paidInstallments: e.paid_installments ?? null,
+          type: e.type ?? null,
+          due_date: e.due_date,
+          category: e.category,
+          scope: e.scope ?? "business",
+          paid: !!e.paid,
+          linked: linkedSet.has(e.id),
+        };
+      });
       setExpenses(rows);
       setLoading(false);
     })();
@@ -227,6 +241,11 @@ export function BoletoLinkExpenseDialog({ boleto, open, onOpenChange }: Props) {
                           {e.scope === "personal" ? "Pessoal" : "Financeiro"}
                         </Badge>
                         <Badge variant="outline" className="text-[10px]">{e.category}</Badge>
+                        {e.installments && e.installments > 1 && (
+                          <Badge variant="outline" className="text-[10px]">
+                            {(e.paidInstallments ?? 0) + 1}/{e.installments}
+                          </Badge>
+                        )}
                         {e.paid && (
                           <Badge variant="outline"
                             className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 text-[10px]">
@@ -236,7 +255,12 @@ export function BoletoLinkExpenseDialog({ boleto, open, onOpenChange }: Props) {
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="font-semibold text-sm">{BRL(e.amount)}</div>
+                      <div className="font-semibold text-sm">{BRL(e.monthlyAmount)}</div>
+                      {e.installments && e.installments > 1 && (
+                        <div className="text-[10px] text-muted-foreground">
+                          total {BRL(e.amount)}
+                        </div>
+                      )}
                       <div className="text-[10px] text-muted-foreground">
                         {format(parseISO(e.due_date), "dd/MM/yy", { locale: ptBR })}
                       </div>
