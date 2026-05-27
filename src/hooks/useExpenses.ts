@@ -485,6 +485,7 @@ export function useExpenses(enabled = true) {
         await supabase.from("expenses").delete().eq("id", latestChildId);
       }
       await supabase.from("expenses").update(parentUpdate).eq("id", id);
+      if (wasFullyPaid) await syncLinkedBoletoPaid(id, false, null, 0);
     } else if (expense.paid) {
       // Restore original amount if we stashed it on pay.
       const m = (expense.notes ?? "").match(/\[Original:\s*([\d.]+)\]/i);
