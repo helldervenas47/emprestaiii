@@ -343,6 +343,7 @@ export function useExpenses(enabled = true) {
       }
 
       await supabase.from("expenses").update(updatePayload).eq("id", id);
+      await syncLinkedBoletoPaid(id, true, today, finalAmount);
 
       // Saída no extrato: despesa simples paga (apenas business; despesas de veículos NÃO
       // entram no extrato — são debitadas exclusivamente do "Saldo em Conta" da aba Veículos).
