@@ -97,11 +97,12 @@ export function useMyBoletos() {
 
   const syncExpensePaid = useCallback(async (expenseId: string | null | undefined, paid: boolean, paidDate: string | null) => {
     if (!expenseId) return;
-    await supabase
-      .from("expenses")
-      .update({ paid, paid_date: paid ? paidDate : null })
-      .eq("id", expenseId)
-      .catch(() => {});
+    try {
+      await supabase
+        .from("expenses")
+        .update({ paid, paid_date: paid ? paidDate : null })
+        .eq("id", expenseId);
+    } catch { /* noop */ }
   }, []);
 
   const update = useCallback(async (id: string, patch: Partial<MyBoletoInput & { status: MyBoletoStatus }>) => {
