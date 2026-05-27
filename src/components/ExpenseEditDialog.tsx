@@ -366,6 +366,9 @@ export function ExpenseEditDialog({
             />
           </div>
 
+          <ExpenseBoletoLinkSection expenseId={expense.id} />
+
+
           {showScopeSelector && (
             <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-2">
               <Label className="text-xs font-semibold">Aplicar alteração em</Label>
