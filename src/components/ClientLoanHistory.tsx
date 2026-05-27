@@ -229,6 +229,28 @@ export function ClientLoanHistory({ loans, payments }: Props) {
     const pendingTotal = summary?.pending ?? 0;
     const grandTotal = summary?.total ?? 0;
 
+    // Juros recebidos / a receber — apenas contratos da aba Empréstimos (loans)
+    let interestReceived = 0;
+    let interestPending = 0;
+    clientLoans.forEach((l) => {
+      const totalInterest = Math.max(
+        0,
+        calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - (l.amount || 0),
+      );
+      const installments = Math.max(1, l.installments || 1);
+      const paidInst = Math.min(installments, l.paidInstallments || 0);
+      const interestOnly = payments
+        .filter((p) => p.loanId === l.id && p.installmentNumber === 0)
+        .reduce((s, p) => s + (p.amount || 0), 0);
+
+      const receivedFromInstallments =
+        l.status === "paid" ? totalInterest : (totalInterest * paidInst) / installments;
+      interestReceived += receivedFromInstallments + interestOnly;
+      if (l.status !== "paid") {
+        interestPending += Math.max(0, totalInterest - (totalInterest * paidInst) / installments);
+      }
+    });
+
     return (
       <div className="space-y-3 animate-in fade-in slide-in-from-right-4 duration-200">
         <div className="flex items-center gap-2">
@@ -244,7 +266,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           <h2 className="text-base font-semibold truncate">{selectedClient}</h2>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
           <Card>
             <CardContent className="p-3 flex flex-col items-center justify-center text-center">
               <div className="text-[11px] text-muted-foreground mb-0.5">Emprestado</div>
@@ -274,6 +296,22 @@ export function ClientLoanHistory({ loans, payments }: Props) {
               <div className="text-[11px] text-muted-foreground mb-0.5">Total</div>
               <div className="font-bold tabular-nums text-primary text-sm sm:text-base">
                 {mask(formatCurrency(grandTotal))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+              <div className="text-[11px] text-muted-foreground mb-0.5">Juros Recebidos</div>
+              <div className="font-bold tabular-nums text-success text-sm sm:text-base">
+                {mask(formatCurrency(interestReceived))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+              <div className="text-[11px] text-muted-foreground mb-0.5">Juros a Receber</div>
+              <div className="font-bold tabular-nums text-warning text-sm sm:text-base">
+                {mask(formatCurrency(interestPending))}
               </div>
             </CardContent>
           </Card>
