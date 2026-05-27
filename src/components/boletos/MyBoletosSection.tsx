@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
 import { format, parseISO, isBefore, startOfToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
