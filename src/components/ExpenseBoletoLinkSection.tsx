@@ -39,7 +39,7 @@ export function ExpenseBoletoLinkSection({ expenseId }: Props) {
   const available = useMemo(() => {
     const q = search.trim().toLowerCase();
     return items
-      .filter((b) => !b.expense_id)
+      .filter((b) => !b.expense_id && !b.income_id)
       .filter(
         (b) =>
           !q ||
