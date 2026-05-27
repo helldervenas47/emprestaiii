@@ -692,6 +692,29 @@ function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, 
         <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={onHistory}>
           <History className="h-3 w-3" /> Histórico
         </Button>
+        {(b.digits || b.barcode) && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-xs"
+            onClick={async () => {
+              const code = (b.digits || b.barcode || "").replace(/\s/g, "");
+              try {
+                if (navigator.clipboard?.writeText) {
+                  await navigator.clipboard.writeText(code);
+                } else {
+                  const ta = document.createElement("textarea");
+                  ta.value = code; document.body.appendChild(ta);
+                  ta.select(); document.execCommand("copy"); ta.remove();
+                }
+                toast.success("Código de barras copiado");
+              } catch { toast.error("Não foi possível copiar"); }
+            }}
+            title="Copiar código de barras"
+          >
+            <Copy className="h-3 w-3" /> Copiar código
+          </Button>
+        )}
         {b.attachment_path && (
           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs"
             onClick={() => onAttach(b.attachment_path!)}>
