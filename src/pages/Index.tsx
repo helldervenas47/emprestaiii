@@ -351,7 +351,7 @@ const Index = () => {
   const needsProducts = tab === "overview" || tab === "products" || tab === "vehicles" || tab === "calendar" || tab === "settings";
   const needsExpenses = tab === "overview" || tab === "expenses" || tab === "vehicles" || tab === "overdue" || tab === "accountant" || tab === "settings";
   const needsVehicles = tab === "clients" || tab === "vehicles";
-  const needsLocadores = tab === "vehicles" || tab === "settings";
+  const needsLocadores = tab === "vehicles" || tab === "settings" || tab === "clients";
 
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts(needsProducts);
   const { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense } = useExpenses(needsExpenses);
