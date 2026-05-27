@@ -4,7 +4,7 @@ import { ptBR } from "date-fns/locale";
 import {
   Plus, Search, Upload, Paperclip, ExternalLink, CheckCircle2,
   Clock, AlertTriangle, Wallet, Pencil, Trash2, FileText,
-  ChevronDown, ChevronRight, History, Folder, Link2, Link2Off,
+  ChevronDown, ChevronRight, History, Folder, Link2, Link2Off, Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
