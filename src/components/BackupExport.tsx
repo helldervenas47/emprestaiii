@@ -1,12 +1,15 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { todayInAppTz } from "@/lib/timezone";
-import { Download, Upload, FileDown, Database } from "lucide-react";
+import { Download, Upload, FileDown, Database, FileJson, Loader2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loan, Payment, Client, Sale, Expense } from "@/types/loan";
 import { exportLoansToCSV, exportClientsToCSV, exportSalesToCSV, importLoansFromCSV, importClientsFromCSV, importSalesFromCSV, downloadCSV } from "@/lib/csv";
 import { toast } from "sonner";
 import { AutoBackupCard } from "./AutoBackupCard";
+import { supabase } from "@/integrations/supabase/client";
+import { RestoreBackupDialog } from "./RestoreBackupDialog";
+import { useBoletoHistory } from "@/hooks/useBoletoHistory";
 
 interface BackupExportProps {
   loans: Loan[];
