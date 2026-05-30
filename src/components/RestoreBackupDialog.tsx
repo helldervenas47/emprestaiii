@@ -25,10 +25,11 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   history: BackupHistoryItem[];
   onRestored?: () => void;
+  defaultSource?: "drive" | "upload";
 }
 
-export function RestoreBackupDialog({ open, onOpenChange, history, onRestored }: Props) {
-  const [source, setSource] = useState<"drive" | "upload">("drive");
+export function RestoreBackupDialog({ open, onOpenChange, history, onRestored, defaultSource = "drive" }: Props) {
+  const [source, setSource] = useState<"drive" | "upload">(defaultSource);
   const [mode, setMode] = useState<"merge" | "replace">("merge");
   const [selectedFileId, setSelectedFileId] = useState<string>("");
   const [uploadContent, setUploadContent] = useState<string>("");
