@@ -55,15 +55,20 @@ const Auth = () => {
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: window.location.origin,
+          queryParams: { prompt: "select_account" },
+        },
       });
-      if (result.error) {
+      if (error) {
         toast.error("Erro ao conectar com Google");
+        setGoogleLoading(false);
       }
+      // Em sucesso, o browser redireciona para o Google.
     } catch {
       toast.error("Erro ao conectar com Google");
-    } finally {
       setGoogleLoading(false);
     }
   };
