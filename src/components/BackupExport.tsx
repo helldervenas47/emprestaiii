@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { AutoBackupCard } from "./AutoBackupCard";
 import { supabase } from "@/integrations/supabase/client";
 import { RestoreBackupDialog } from "./RestoreBackupDialog";
-import { useBoletoHistory } from "@/hooks/useBoletoHistory";
+
 
 interface BackupExportProps {
   loans: Loan[];
