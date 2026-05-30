@@ -2880,6 +2880,39 @@ export type Database = {
         }
         Relationships: []
       }
+      system_audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json
+          id: string
+          ip: string | null
+          owner_id: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json
+          id?: string
+          ip?: string | null
+          owner_id: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          ip?: string | null
+          owner_id?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       system_telegram_bots: {
         Row: {
           active: boolean

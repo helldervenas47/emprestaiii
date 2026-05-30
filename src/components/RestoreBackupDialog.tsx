@@ -25,10 +25,11 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   history: BackupHistoryItem[];
   onRestored?: () => void;
+  defaultSource?: "drive" | "upload";
 }
 
-export function RestoreBackupDialog({ open, onOpenChange, history, onRestored }: Props) {
-  const [source, setSource] = useState<"drive" | "upload">("drive");
+export function RestoreBackupDialog({ open, onOpenChange, history, onRestored, defaultSource = "drive" }: Props) {
+  const [source, setSource] = useState<"drive" | "upload">(defaultSource);
   const [mode, setMode] = useState<"merge" | "replace">("merge");
   const [selectedFileId, setSelectedFileId] = useState<string>("");
   const [uploadContent, setUploadContent] = useState<string>("");
@@ -102,17 +103,27 @@ export function RestoreBackupDialog({ open, onOpenChange, history, onRestored }:
             <div className="rounded-md border border-border/40 max-h-72 overflow-auto text-xs">
               <table className="w-full">
                 <thead className="bg-muted/40 sticky top-0">
-                  <tr><th className="text-left p-2">Tabela</th><th className="text-right p-2">Inseridos</th><th className="text-right p-2">Ignorados</th>{result.mode === "replace" && <th className="text-right p-2">Apagados</th>}</tr>
+                  <tr>
+                    <th className="text-left p-2">Tabela</th>
+                    <th className="text-right p-2">Esperado</th>
+                    <th className="text-right p-2">Inseridos</th>
+                    <th className="text-right p-2">Ignorados</th>
+                    {result.mode === "replace" && <th className="text-right p-2">Apagados</th>}
+                  </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(result.summary || {}).map(([tbl, s]: any) => (
-                    <tr key={tbl} className="border-t border-border/30">
-                      <td className="p-2">{tbl}{s.errors?.length > 0 && <span className="text-destructive"> ⚠</span>}</td>
-                      <td className="p-2 text-right">{s.inserted}</td>
-                      <td className="p-2 text-right">{s.skipped}</td>
-                      {result.mode === "replace" && <td className="p-2 text-right">{s.deleted ?? 0}</td>}
-                    </tr>
-                  ))}
+                  {Object.entries(result.summary || {}).map(([tbl, s]: any) => {
+                    const divergent = s.expected != null && s.expected !== s.inserted && s.inserted < s.expected;
+                    return (
+                      <tr key={tbl} className={`border-t border-border/30 ${divergent ? "text-destructive" : ""}`}>
+                        <td className="p-2">{tbl}{s.errors?.length > 0 && <span className="text-destructive"> ⚠</span>}</td>
+                        <td className="p-2 text-right">{s.expected ?? "—"}</td>
+                        <td className="p-2 text-right">{s.inserted}</td>
+                        <td className="p-2 text-right">{s.skipped}</td>
+                        {result.mode === "replace" && <td className="p-2 text-right">{s.deleted ?? 0}</td>}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

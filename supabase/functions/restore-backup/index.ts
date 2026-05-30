@@ -1,5 +1,6 @@
 // Restaura backup JSON (do Drive ou upload) para o owner autenticado
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { BACKUP_TABLES, sha256Hex } from "../_shared/backup-tables.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,54 +8,7 @@ const corsHeaders = {
 };
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_drive";
-
-// Mesma lista do daily-backup. Ordem: pais antes de filhos (para insert).
-// Para delete em modo replace, percorre na ordem inversa.
-const TABLES: Array<{ name: string; ownerCol: string; replaceSafe?: boolean }> = [
-  { name: "account_settings", ownerCol: "owner_id" },
-  { name: "profiles", ownerCol: "user_id" },
-  { name: "payment_methods", ownerCol: "user_id" },
-  { name: "income_categories", ownerCol: "user_id" },
-  { name: "personal_expense_categories", ownerCol: "user_id" },
-  { name: "clients", ownerCol: "user_id", replaceSafe: true },
-  { name: "client_financial_profiles", ownerCol: "owner_id", replaceSafe: true },
-  { name: "client_credit_reports", ownerCol: "owner_id", replaceSafe: true },
-  { name: "client_analysis_events", ownerCol: "owner_id", replaceSafe: true },
-  { name: "credit_limits", ownerCol: "user_id", replaceSafe: true },
-  { name: "credit_limit_history", ownerCol: "user_id", replaceSafe: true },
-  { name: "credit_cards", ownerCol: "user_id", replaceSafe: true },
-  { name: "credit_card_invoice_openings", ownerCol: "user_id", replaceSafe: true },
-  { name: "loans", ownerCol: "user_id", replaceSafe: true },
-  { name: "loan_installments", ownerCol: "user_id", replaceSafe: true },
-  { name: "loan_renegotiations", ownerCol: "user_id", replaceSafe: true },
-  { name: "payments", ownerCol: "user_id", replaceSafe: true },
-  { name: "products", ownerCol: "user_id", replaceSafe: true },
-  { name: "sales", ownerCol: "user_id", replaceSafe: true },
-  { name: "vehicle_registry", ownerCol: "user_id", replaceSafe: true },
-  { name: "vehicle_balance", ownerCol: "user_id", replaceSafe: true },
-  { name: "expenses", ownerCol: "user_id", replaceSafe: true },
-  { name: "expense_category_hints", ownerCol: "user_id" },
-  { name: "incomes", ownerCol: "user_id", replaceSafe: true },
-  { name: "income_category_hints", ownerCol: "user_id" },
-  { name: "monthly_goals", ownerCol: "user_id", replaceSafe: true },
-  { name: "monthly_goal_snapshots", ownerCol: "owner_id", replaceSafe: true },
-  { name: "monthly_opening_balances", ownerCol: "owner_id", replaceSafe: true },
-  { name: "active_capital_snapshots", ownerCol: "owner_id", replaceSafe: true },
-  { name: "personal_budgets", ownerCol: "user_id", replaceSafe: true },
-  { name: "piggy_banks", ownerCol: "user_id", replaceSafe: true },
-  { name: "piggy_bank_recurrences", ownerCol: "user_id", replaceSafe: true },
-  { name: "piggy_bank_rate_history", ownerCol: "user_id", replaceSafe: true },
-  { name: "piggy_bank_deposits", ownerCol: "user_id", replaceSafe: true },
-  { name: "manager_commissions", ownerCol: "user_id", replaceSafe: true },
-  { name: "tracking_providers", ownerCol: "owner_id", replaceSafe: true },
-  { name: "tracking_positions", ownerCol: "owner_id", replaceSafe: true },
-  { name: "balance", ownerCol: "user_id", replaceSafe: true },
-  { name: "chart_overrides", ownerCol: "user_id", replaceSafe: true },
-  { name: "locador_info", ownerCol: "user_id", replaceSafe: true },
-  { name: "simulation_settings", ownerCol: "owner_id", replaceSafe: true },
-  { name: "user_goal_prefs", ownerCol: "user_id", replaceSafe: true },
-  { name: "webhook_settings", ownerCol: "user_id", replaceSafe: true },
-];
+const SUPPORTED_VERSIONS = [2, 3];
 
 function driveHeaders() {
   const lov = Deno.env.get("LOVABLE_API_KEY");
@@ -94,7 +48,6 @@ Deno.serve(async (req) => {
   const { data: ownerIdData } = await admin.rpc("get_data_owner_id", { _user_id: userRes.user.id });
   const ownerId: string = ownerIdData || userRes.user.id;
 
-  // Só o próprio owner pode restaurar (não sub-conta operadora)
   if (ownerId !== userRes.user.id) {
     return new Response(JSON.stringify({ error: "Apenas o dono da conta pode restaurar backups" }), {
       status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -110,7 +63,6 @@ Deno.serve(async (req) => {
   try {
     if (source === "drive") {
       if (!body.driveFileId) throw new Error("driveFileId obrigatório");
-      // Verifica que o backup pertence ao usuário (existe no histórico dele)
       const { data: hist } = await admin
         .from("backup_history")
         .select("id, owner_id")
@@ -134,33 +86,55 @@ Deno.serve(async (req) => {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+  const version = Number(snapshot.__meta.version) || 0;
+  if (!SUPPORTED_VERSIONS.includes(version)) {
+    return new Response(JSON.stringify({ error: `Versão de backup não suportada: ${version}. Versões aceitas: ${SUPPORTED_VERSIONS.join(", ")}` }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
   if (snapshot.__meta.owner_id !== ownerId) {
     return new Response(JSON.stringify({ error: "Este backup pertence a outro usuário" }), {
       status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  const summary: Record<string, { inserted: number; skipped: number; deleted?: number; errors: string[] }> = {};
+  // Validação de integridade (v3+): recalcula checksum
+  let checksumValid: boolean | null = null;
+  if (version >= 3 && snapshot.__meta.checksum) {
+    const provided = snapshot.__meta.checksum as string;
+    const cloneMeta = { ...snapshot.__meta, checksum: "" };
+    const { __meta: _omit, ...tables } = snapshot;
+    const recomputed = await sha256Hex(JSON.stringify({ __meta: cloneMeta, ...tables }));
+    checksumValid = recomputed === provided;
+    if (!checksumValid && body.allowChecksumMismatch !== true) {
+      return new Response(JSON.stringify({
+        error: "Checksum inválido — o arquivo de backup pode estar corrompido. Envie novamente com allowChecksumMismatch=true para forçar.",
+      }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+  }
 
-  // Modo replace: deleta na ordem inversa (filhos primeiro)
+  const summary: Record<string, { inserted: number; skipped: number; expected: number; deleted?: number; errors: string[] }> = {};
+
   if (mode === "replace") {
-    for (let i = TABLES.length - 1; i >= 0; i--) {
-      const t = TABLES[i];
+    for (let i = BACKUP_TABLES.length - 1; i >= 0; i--) {
+      const t = BACKUP_TABLES[i];
       if (!t.replaceSafe) continue;
       const { error, count } = await admin.from(t.name).delete({ count: "exact" }).eq(t.ownerCol, ownerId);
-      summary[t.name] = summary[t.name] || { inserted: 0, skipped: 0, errors: [] };
+      summary[t.name] = summary[t.name] || { inserted: 0, skipped: 0, expected: 0, errors: [] };
       summary[t.name].deleted = count || 0;
       if (error) summary[t.name].errors.push(`delete: ${error.message}`);
     }
   }
 
-  // Insert/upsert na ordem normal
-  for (const t of TABLES) {
+  for (const t of BACKUP_TABLES) {
     const rows: any[] | undefined = snapshot[t.name];
-    if (!Array.isArray(rows) || rows.length === 0) continue;
-    summary[t.name] = summary[t.name] || { inserted: 0, skipped: 0, errors: [] };
+    if (!Array.isArray(rows) || rows.length === 0) {
+      summary[t.name] = summary[t.name] || { inserted: 0, skipped: 0, expected: 0, errors: [] };
+      continue;
+    }
+    summary[t.name] = summary[t.name] || { inserted: 0, skipped: 0, expected: 0, errors: [] };
+    summary[t.name].expected = rows.length;
 
-    // Sanitiza: força ownerCol para o ownerId atual (segurança)
     const sanitized = rows.map((r) => ({ ...r, [t.ownerCol]: ownerId }));
 
     for (const part of chunk(sanitized, 500)) {
@@ -177,7 +151,19 @@ Deno.serve(async (req) => {
     }
   }
 
-  return new Response(JSON.stringify({ ok: true, mode, summary }), {
+  // Auditoria
+  try {
+    await admin.from("system_audit_logs").insert({
+      user_id: userRes.user.id,
+      owner_id: ownerId,
+      action: "restore_backup",
+      details: { mode, source, version, checksum_valid: checksumValid, summary },
+      ip: req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || null,
+      user_agent: req.headers.get("user-agent") || null,
+    });
+  } catch { /* não bloqueia */ }
+
+  return new Response(JSON.stringify({ ok: true, mode, version, checksum_valid: checksumValid, summary }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });

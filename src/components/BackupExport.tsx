@@ -1,12 +1,15 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { todayInAppTz } from "@/lib/timezone";
-import { Download, Upload, FileDown, Database } from "lucide-react";
+import { Download, Upload, FileDown, Database, FileJson, Loader2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loan, Payment, Client, Sale, Expense } from "@/types/loan";
 import { exportLoansToCSV, exportClientsToCSV, exportSalesToCSV, importLoansFromCSV, importClientsFromCSV, importSalesFromCSV, downloadCSV } from "@/lib/csv";
 import { toast } from "sonner";
 import { AutoBackupCard } from "./AutoBackupCard";
+import { supabase } from "@/integrations/supabase/client";
+import { RestoreBackupDialog } from "./RestoreBackupDialog";
+
 
 interface BackupExportProps {
   loans: Loan[];
@@ -112,8 +115,53 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
   const vehicleFileRef = useRef<HTMLInputElement>(null);
   const expenseFileRef = useRef<HTMLInputElement>(null);
   const paymentFileRef = useRef<HTMLInputElement>(null);
+  const [downloadingFull, setDownloadingFull] = useState(false);
+  const [restoreOpen, setRestoreOpen] = useState(false);
 
   const handleFileImport = (ref: React.RefObject<HTMLInputElement>) => ref.current?.click();
+
+  async function handleDownloadFullBackup() {
+    setDownloadingFull(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sessão expirada");
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-full-backup`;
+      const r = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
+        throw new Error(err.error || `HTTP ${r.status}`);
+      }
+      const blob = await r.blob();
+      const text = await blob.text();
+      const parsed = JSON.parse(text);
+      const meta = parsed.__meta || {};
+      const total = Object.values<number>(meta.table_counts || {}).reduce((a, b) => a + Number(b || 0), 0);
+      const filename = `empresta-ai-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      const objUrl = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+      const a = document.createElement("a");
+      a.href = objUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objUrl);
+      const sizeKb = (text.length / 1024).toFixed(1);
+      toast.success(`Backup completo baixado · ${total} registros · ${sizeKb} KB`);
+      if (meta.errors && Object.keys(meta.errors).length > 0) {
+        toast.warning(`Algumas tabelas falharam ao ser exportadas: ${Object.keys(meta.errors).join(", ")}`);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao baixar backup");
+    } finally {
+      setDownloadingFull(false);
+    }
+  }
 
   const processFile = (e: React.ChangeEvent<HTMLInputElement>, handler: (csv: string) => void) => {
     const file = e.target.files?.[0];
@@ -259,6 +307,38 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
   return (
     <div className="space-y-6">
       <AutoBackupCard />
+
+      {/* Backup completo em JSON */}
+      <Card className="border-primary/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileJson className="h-4 w-4 text-primary" /> Backup completo (JSON)
+          </CardTitle>
+          <CardDescription>
+            Pacote único com todas as tabelas, relacionamentos, configurações e metadados.
+            Ideal para migrar a conta para outro ambiente ou guardar uma cópia integral fora do Google Drive.
+            O arquivo inclui um checksum de integridade.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button onClick={handleDownloadFullBackup} disabled={downloadingFull} className="gap-2">
+            {downloadingFull ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Baixar backup completo
+          </Button>
+          <Button variant="outline" onClick={() => setRestoreOpen(true)} className="gap-2">
+            <RotateCcw className="h-4 w-4" />
+            Restaurar backup completo
+          </Button>
+        </CardContent>
+      </Card>
+
+      <RestoreBackupDialog
+        open={restoreOpen}
+        onOpenChange={setRestoreOpen}
+        history={[]}
+        defaultSource="upload"
+      />
+
 
       {/* Hidden file inputs */}
       {sections.map((s) => s.fileRef && (
