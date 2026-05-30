@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,12 +49,19 @@ const Cadastro = () => {
       if (inviteCode && inviteState.valid) {
         sessionStorage.setItem("pending_invite_code", inviteCode);
       }
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: window.location.origin,
+          queryParams: { prompt: "select_account" },
+        },
       });
-      if (result.error) {
+      if (error) {
         toast.error("Erro ao conectar com Google");
+        setGoogleLoading(false);
+        return;
       }
+      // Em sucesso, o browser redireciona para o Google.
     } catch {
       toast.error("Erro ao conectar com Google");
     } finally {
