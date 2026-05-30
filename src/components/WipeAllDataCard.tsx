@@ -37,7 +37,7 @@ export function WipeAllDataCard() {
     return () => clearInterval(id);
   }, [step2Open]);
 
-  if (role !== "admin") return null;
+  
 
   const phraseValid = confirmText === CONFIRMATION_PHRASE;
   const canContinue = phraseValid && understood && !running;
