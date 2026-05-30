@@ -15,7 +15,7 @@ import { toast } from "sonner";
 const CONFIRMATION_PHRASE = "EXCLUIR TODOS OS DADOS";
 
 export function WipeAllDataCard() {
-  const { role, signOut } = useAuth();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
   const [step1Open, setStep1Open] = useState(false);
   const [step2Open, setStep2Open] = useState(false);
@@ -37,7 +37,7 @@ export function WipeAllDataCard() {
     return () => clearInterval(id);
   }, [step2Open]);
 
-  if (role !== "admin") return null;
+  
 
   const phraseValid = confirmText === CONFIRMATION_PHRASE;
   const canContinue = phraseValid && understood && !running;
