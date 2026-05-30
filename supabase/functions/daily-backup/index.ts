@@ -95,25 +95,34 @@ async function backupOwner(supabase: any, ownerId: string, profile: { display_na
     const userIds = Array.from(new Set([ownerId, ...((linked || []).map((r: any) => r.user_id))]));
 
     // Snapshot
-    const snapshot: Record<string, any> = {
-      __meta: {
-        version: 2,
-        owner_id: ownerId,
-        member_user_ids: userIds,
-        generated_at: new Date().toISOString(),
-        triggered_by: triggeredBy,
-      },
-    };
+    const tableCounts: Record<string, number> = {};
+    const errorsByTable: Record<string, string> = {};
+    const dataByTable: Record<string, any[]> = {};
     for (const t of TABLES) {
       const filterValues = t.ownerCol === "owner_id" ? [ownerId] : userIds;
       const { data, error } = await supabase.from(t.name).select("*").in(t.ownerCol, filterValues);
       if (error) {
-        snapshot[t.name] = { __error: error.message };
+        errorsByTable[t.name] = error.message;
+        dataByTable[t.name] = [];
+        tableCounts[t.name] = 0;
       } else {
-        snapshot[t.name] = data || [];
+        dataByTable[t.name] = data || [];
+        tableCounts[t.name] = (data || []).length;
       }
     }
-    const json = JSON.stringify(snapshot);
+    const meta: any = {
+      version: BACKUP_VERSION,
+      owner_id: ownerId,
+      member_user_ids: userIds,
+      generated_at: new Date().toISOString(),
+      triggered_by: triggeredBy,
+      table_counts: tableCounts,
+      errors: errorsByTable,
+      checksum: "",
+    };
+    const withoutChecksum = JSON.stringify({ __meta: { ...meta, checksum: "" }, ...dataByTable });
+    meta.checksum = await sha256Hex(withoutChecksum);
+    const json = JSON.stringify({ __meta: meta, ...dataByTable });
 
     // Pasta raiz e do usuário
     const root = await ensureFolder(ROOT_FOLDER_NAME);
