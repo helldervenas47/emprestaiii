@@ -2,6 +2,7 @@
 // - Modo cron: chamada com Authorization: Bearer <SERVICE_ROLE_KEY> → processa TODOS os owners com auto_backup_enabled
 // - Modo manual: chamada com JWT do usuário → processa apenas esse owner
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { BACKUP_TABLES as TABLES, BACKUP_VERSION, sha256Hex } from "../_shared/backup-tables.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,53 +11,6 @@ const corsHeaders = {
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_drive";
 const ROOT_FOLDER_NAME = "Empresta.aí Backups";
-
-// Tabelas para backup (nome, coluna do dono)
-const TABLES: Array<{ name: string; ownerCol: string }> = [
-  { name: "account_settings", ownerCol: "owner_id" },
-  { name: "active_capital_snapshots", ownerCol: "owner_id" },
-  { name: "balance", ownerCol: "user_id" },
-  { name: "chart_overrides", ownerCol: "user_id" },
-  { name: "client_analysis_events", ownerCol: "owner_id" },
-  { name: "client_credit_reports", ownerCol: "owner_id" },
-  { name: "client_financial_profiles", ownerCol: "owner_id" },
-  { name: "clients", ownerCol: "user_id" },
-  { name: "credit_card_invoice_openings", ownerCol: "user_id" },
-  { name: "credit_cards", ownerCol: "user_id" },
-  { name: "credit_limit_history", ownerCol: "user_id" },
-  { name: "credit_limits", ownerCol: "user_id" },
-  { name: "expense_category_hints", ownerCol: "user_id" },
-  { name: "expenses", ownerCol: "user_id" },
-  { name: "income_categories", ownerCol: "user_id" },
-  { name: "income_category_hints", ownerCol: "user_id" },
-  { name: "incomes", ownerCol: "user_id" },
-  { name: "loan_installments", ownerCol: "user_id" },
-  { name: "loan_renegotiations", ownerCol: "user_id" },
-  { name: "loans", ownerCol: "user_id" },
-  { name: "locador_info", ownerCol: "user_id" },
-  { name: "manager_commissions", ownerCol: "user_id" },
-  { name: "monthly_goal_snapshots", ownerCol: "owner_id" },
-  { name: "monthly_goals", ownerCol: "user_id" },
-  { name: "monthly_opening_balances", ownerCol: "owner_id" },
-  { name: "payment_methods", ownerCol: "user_id" },
-  { name: "payments", ownerCol: "user_id" },
-  { name: "personal_budgets", ownerCol: "user_id" },
-  { name: "personal_expense_categories", ownerCol: "user_id" },
-  { name: "piggy_bank_deposits", ownerCol: "user_id" },
-  { name: "piggy_bank_rate_history", ownerCol: "user_id" },
-  { name: "piggy_bank_recurrences", ownerCol: "user_id" },
-  { name: "piggy_banks", ownerCol: "user_id" },
-  { name: "products", ownerCol: "user_id" },
-  { name: "profiles", ownerCol: "user_id" },
-  { name: "sales", ownerCol: "user_id" },
-  { name: "simulation_settings", ownerCol: "owner_id" },
-  { name: "tracking_positions", ownerCol: "owner_id" },
-  { name: "tracking_providers", ownerCol: "owner_id" },
-  { name: "user_goal_prefs", ownerCol: "user_id" },
-  { name: "vehicle_balance", ownerCol: "user_id" },
-  { name: "vehicle_registry", ownerCol: "user_id" },
-  { name: "webhook_settings", ownerCol: "user_id" },
-];
 
 function driveHeaders() {
   const lov = Deno.env.get("LOVABLE_API_KEY");
