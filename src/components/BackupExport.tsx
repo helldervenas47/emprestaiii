@@ -308,6 +308,38 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
     <div className="space-y-6">
       <AutoBackupCard />
 
+      {/* Backup completo em JSON */}
+      <Card className="border-primary/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileJson className="h-4 w-4 text-primary" /> Backup completo (JSON)
+          </CardTitle>
+          <CardDescription>
+            Pacote único com todas as tabelas, relacionamentos, configurações e metadados.
+            Ideal para migrar a conta para outro ambiente ou guardar uma cópia integral fora do Google Drive.
+            O arquivo inclui um checksum de integridade.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button onClick={handleDownloadFullBackup} disabled={downloadingFull} className="gap-2">
+            {downloadingFull ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Baixar backup completo
+          </Button>
+          <Button variant="outline" onClick={() => setRestoreOpen(true)} className="gap-2">
+            <RotateCcw className="h-4 w-4" />
+            Restaurar backup completo
+          </Button>
+        </CardContent>
+      </Card>
+
+      <RestoreBackupDialog
+        open={restoreOpen}
+        onOpenChange={setRestoreOpen}
+        history={[]}
+        defaultSource="upload"
+      />
+
+
       {/* Hidden file inputs */}
       {sections.map((s) => s.fileRef && (
         <input
