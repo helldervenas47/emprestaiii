@@ -45,13 +45,13 @@ export function useMonthlyOpeningBalances() {
     const missing = Object.entries(legacy).filter(([m]) => next[m] === undefined);
     if (missing.length > 0) {
       const rows = missing.map(([month, amount]) => ({
-        owner_id: ownerId,
+        user_id: ownerId,
         month,
         amount,
       }));
       const { error: upErr } = await supabase
         .from("monthly_opening_balances")
-        .upsert(rows, { onConflict: "owner_id,month" });
+        .upsert(rows, { onConflict: "user_id,month" });
       if (!upErr) {
         for (const [m, a] of missing) next[m] = a;
         try { window.localStorage.removeItem(LEGACY_KEY); } catch { /* ignore */ }
@@ -73,8 +73,8 @@ export function useMonthlyOpeningBalances() {
       const { error } = await supabase
         .from("monthly_opening_balances")
         .upsert(
-          { owner_id: ownerId, month, amount },
-          { onConflict: "owner_id,month" },
+          { user_id: ownerId, month, amount },
+          { onConflict: "user_id,month" },
         );
       if (error) {
         setMap(prev);
@@ -96,7 +96,7 @@ export function useMonthlyOpeningBalances() {
       const { error } = await supabase
         .from("monthly_opening_balances")
         .delete()
-        .eq("owner_id", ownerId)
+        .eq("user_id", ownerId)
         .eq("month", month);
       if (error) {
         setMap(prev);

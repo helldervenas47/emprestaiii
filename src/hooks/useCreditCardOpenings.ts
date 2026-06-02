@@ -14,8 +14,8 @@ export interface InvoiceOpening {
 
 const fromRow = (r: any): InvoiceOpening => ({
   id: r.id,
-  cardId: r.card_id,
-  cycleKey: r.cycle_key,
+  cardId: r.credit_card_id,
+  cycleKey: r.month_label,
   openingAmount: Number(r.opening_amount ?? 0),
   notes: r.notes ?? null,
 });
@@ -75,12 +75,12 @@ export function useCreditCardOpenings() {
       .upsert(
         {
           user_id: ownerId,
-          card_id: cardId,
-          cycle_key: cycleKey,
+          credit_card_id: cardId,
+          month_label: cycleKey,
           opening_amount: amount,
           notes: notes ?? null,
-        },
-        { onConflict: "card_id,cycle_key" }
+        } as any,
+        { onConflict: "credit_card_id,month_label" }
       )
       .select()
       .single();

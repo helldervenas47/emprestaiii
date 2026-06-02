@@ -87,14 +87,14 @@ export function useBalanceAdjustments() {
         .from("balance_adjustments")
         .upsert(
           {
-            owner_id: ownerId,
+            user_id: ownerId,
             adjustment_date: date,
             amount,
             previous_amount: previousAmount,
             adjusted_by: user?.id ?? null,
             notes: notes ?? null,
           },
-          { onConflict: "owner_id,adjustment_date" },
+          { onConflict: "user_id,adjustment_date" },
         );
       if (error) {
         setMap(prev);
@@ -119,7 +119,7 @@ export function useBalanceAdjustments() {
       const { error } = await supabase
         .from("balance_adjustments")
         .delete()
-        .eq("owner_id", ownerId)
+        .eq("user_id", ownerId)
         .eq("adjustment_date", date);
       if (error) {
         setMap(prev);
