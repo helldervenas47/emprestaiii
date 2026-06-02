@@ -102,13 +102,24 @@ Deno.serve(async (req) => {
         .select("bot_code, expires_at")
         .gte("expires_at", new Date().toISOString())
         .order("expires_at", { ascending: false })
-        .limit(3);
-      const hint = (recent && recent.length > 0)
-        ? ` Códigos ativos agora: ${recent.map((r: any) => r.bot_code).join(", ")}.`
-        : " Nenhum código ativo no momento — envie /code no bot agora.";
+        .limit(5);
+
+      const { count: botCount } = await admin
+        .from("system_telegram_bots")
+        .select("*", { count: "exact", head: true })
+        .eq("active", true);
+
+      let hint = "";
+      if (botCount === 0) {
+        hint = " ⚠️ Nenhum bot configurado no sistema (tabela system_telegram_bots).";
+      } else if (recent && recent.length > 0) {
+        hint = ` Códigos ativos agora: ${recent.map((r: any) => r.bot_code).join(", ")}.`;
+      } else {
+        hint = " Nenhum código ativo no momento — envie /code no bot agora.";
+      }
 
       return json({
-        error: "Código de bot não encontrado. Envie /code no bot, aguarde a resposta e cole exatamente como recebido." + hint,
+        error: "Código de bot não encontrado." + hint,
       }, 404);
     }
 
