@@ -652,7 +652,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
     // salesWithReceived já calculado acima usando paymentHistory + entrada (filtro por data do recebimento)
 
-    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, monthlyInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, periodProfitExpected: totalProfitExpected, periodProfitRealized: totalProfitRealized, periodProfitPct, interestDetailRecords, interestExpectedRecords };
+    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, monthlyInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, periodProfitExpected: totalProfitExpected, periodProfitRealized: totalProfitRealized, periodProfitPct, previstoTotal, interestDetailRecords, interestExpectedRecords };
   }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides, installmentSchedules, ledgerEntries]);
 
   // Recebido por forma de pagamento (apenas pagamentos de empréstimos no período)
@@ -1763,10 +1763,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     </PopoverContent>
                   </Popover>
                 </div>
-                <span className="text-sm font-bold text-foreground">{formatCurrency(
-                  data.periodProfitRealized
-                  + data.interestExpectedRecords.filter((r) => !r.paid).reduce((s, r) => s + r.interestPortion, 0)
-                )}</span>
+                <span className="text-sm font-bold text-foreground">{formatCurrency(data.previstoTotal)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Realizado</span>
@@ -1779,7 +1776,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 </span>
               </div>
               {profitGoal && (() => {
-                const metaPct = profitTargetAmount > 0 ? (data.periodProfitRealized / profitTargetAmount) * 100 : 0;
+                const targetAmount = data.previstoTotal * (profitGoal.targetValue / 100);
+                const metaPct = targetAmount > 0 ? (data.periodProfitRealized / targetAmount) * 100 : 0;
                 return (
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">% atingimento da meta</span>
@@ -1791,15 +1789,15 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               })()}
               <div className="pt-1.5 border-t border-border/30">
                 {profitGoal ? (() => {
-                  const pct = profitTargetAmount > 0 ? Math.min(150, (data.periodProfitRealized / profitTargetAmount) * 100) : 0;
-                  const reached = data.periodProfitRealized >= profitTargetAmount && profitTargetAmount > 0;
-                  const status = reached ? "atingida" : "abaixo";
+                  const targetAmount = data.previstoTotal * (profitGoal.targetValue / 100);
+                  const pct = targetAmount > 0 ? Math.min(150, (data.periodProfitRealized / targetAmount) * 100) : 0;
+                  const reached = data.periodProfitRealized >= targetAmount && targetAmount > 0;
                   const color = reached ? "text-success" : "text-destructive";
                   return (
                     <>
                       <div className="flex items-center justify-between gap-2 text-[10px]">
-                        <span className="flex items-center gap-1 text-muted-foreground"><Target className="h-3 w-3" /> Meta do período: {profitGoal.targetValue}% do lucro total ({formatCurrency(profitTargetAmount)})</span>
-                        <span className={`font-bold ${color}`}>{status === "atingida" ? "✓ Meta atingida" : "Em andamento"}</span>
+                        <span className="flex items-center gap-1 text-muted-foreground"><Target className="h-3 w-3" /> Meta do período: {profitGoal.targetValue}% do lucro total ({formatCurrency(targetAmount)})</span>
+                        <span className={`font-bold ${color}`}>{reached ? "✓ Meta atingida" : "Em andamento"}</span>
                       </div>
                       <Progress value={Math.min(100, pct)} className="h-1.5 mt-1" />
                     </>
