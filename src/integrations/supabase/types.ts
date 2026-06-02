@@ -14,7 +14,213 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      system_telegram_bots: {
+        Row: {
+          active: boolean
+          bot_id: number | null
+          bot_username: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          last_polled_at: string | null
+          last_validated_at: string | null
+          name: string
+          purpose: string
+          token: string
+          update_offset: number
+          updated_at: string
+          validation_status: string | null
+        }
+        Insert: {
+          active?: boolean
+          bot_id?: number | null
+          bot_username?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          last_polled_at?: string | null
+          last_validated_at?: string | null
+          name: string
+          purpose?: string
+          token: string
+          update_offset?: number
+          updated_at?: string
+          validation_status?: string | null
+        }
+        Update: {
+          active?: boolean
+          bot_id?: number | null
+          bot_username?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          last_polled_at?: string | null
+          last_validated_at?: string | null
+          name?: string
+          purpose?: string
+          token?: string
+          update_offset?: number
+          updated_at?: string
+          validation_status?: string | null
+        }
+        Relationships: []
+      }
+      telegram_link_codes: {
+        Row: {
+          bot_id: string | null
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          bot_id?: string | null
+          code: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          bot_id?: string | null
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_link_codes_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "system_telegram_bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telegram_links: {
+        Row: {
+          bot_id: string | null
+          chat_id: number
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          bot_id?: string | null
+          chat_id: number
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          bot_id?: string | null
+          chat_id?: number
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_links_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "system_telegram_bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telegram_messages: {
+        Row: {
+          bot_id: string | null
+          chat_id: number
+          created_at: string
+          processed: boolean
+          processed_at: string | null
+          raw_update: Json
+          text: string | null
+          update_id: number
+        }
+        Insert: {
+          bot_id?: string | null
+          chat_id: number
+          created_at?: string
+          processed?: boolean
+          processed_at?: string | null
+          raw_update: Json
+          text?: string | null
+          update_id: number
+        }
+        Update: {
+          bot_id?: string | null
+          chat_id?: number
+          created_at?: string
+          processed?: boolean
+          processed_at?: string | null
+          raw_update?: Json
+          text?: string | null
+          update_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_messages_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "system_telegram_bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_telegram_bots: {
+        Row: {
+          active: boolean
+          bot_id: number | null
+          bot_username: string | null
+          created_at: string
+          description: string | null
+          id: string
+          last_validated_at: string | null
+          name: string
+          owner_id: string
+          token: string
+          updated_at: string
+          validation_status: string | null
+        }
+        Insert: {
+          active?: boolean
+          bot_id?: number | null
+          bot_username?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          last_validated_at?: string | null
+          name: string
+          owner_id: string
+          token: string
+          updated_at?: string
+          validation_status?: string | null
+        }
+        Update: {
+          active?: boolean
+          bot_id?: number | null
+          bot_username?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          last_validated_at?: string | null
+          name?: string
+          owner_id?: string
+          token?: string
+          updated_at?: string
+          validation_status?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
