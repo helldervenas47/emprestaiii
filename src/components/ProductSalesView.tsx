@@ -1166,6 +1166,11 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                 <CircleCheck className="h-4 w-4" />
               </Button>
               {!readOnly && (
+                <Button size="icon" variant="ghost" className={`h-8 w-8 hover:bg-primary/10 ${sale.warrantyProductId ? "text-primary" : "text-muted-foreground"}`} onClick={() => setShowWarranty(true)} title="Garantia">
+                  <ShieldCheck className="h-4 w-4" />
+                </Button>
+              )}
+              {!readOnly && (
                 <>
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={onEdit}>
                     <Pencil className="h-4 w-4" />
@@ -1207,7 +1212,7 @@ function getNextInstallmentValueHelper(s: Sale): number {
   return s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
 }
 
-function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnly = false, incomeCategoryByName }: {
+function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnly = false, incomeCategoryByName, products = [] }: {
   sale: Sale;
   onEdit: () => void;
   onDelete: () => void;
@@ -1215,12 +1220,14 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
   formatCurrency: (v: number) => string;
   readOnly?: boolean;
   incomeCategoryByName?: Map<string, CustomIncomeCategory>;
+  products?: Product[];
 }) {
   const [confirmDeleteSale, setConfirmDeleteSale] = useState(false);
   const [showPartial, setShowPartial] = useState(false);
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
   const [showPayments, setShowPayments] = useState(false);
   const historyCount = (sale.paymentHistory || []).length;
+  const [showWarranty, setShowWarranty] = useState(false);
 
   const category = getSaleCategory(sale);
   const catStyle = saleCategoryConfig[category];
@@ -1231,6 +1238,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
   const nextDue = getNextDueDateHelper(sale);
   const nextInstValue = getNextInstallmentValueHelper(sale);
   const partialOnNext = (sale.partialPaid || 0) > 0 ? Math.max(0, nextInstValue - (sale.partialPaid || 0)) : nextInstValue;
+  const productsList = (sale as any)._products || []; // We'll pass products through if available
 
   const incomeCat = sale.category ? incomeCategoryByName?.get(sale.category) : undefined;
   const CatIcon = incomeCat ? (personalIconMap[incomeCat.icon] ?? personalIconMap.Package) : Tag;
@@ -1333,6 +1341,17 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
                   {historyCount}
                 </span>
               )}
+            </Button>
+          )}
+          {!readOnly && !isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-8 w-8 hover:bg-primary/10 ${sale.warrantyProductId ? "text-primary" : "text-muted-foreground"}`}
+              title="Garantia"
+              onClick={(e) => { e.stopPropagation(); setShowWarranty(true); }}
+            >
+              <ShieldCheck className="h-4 w-4" />
             </Button>
           )}
           {!readOnly && !isMobile && (
@@ -1528,7 +1547,23 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
         )}
 
         {!readOnly && (
-          <div className="pt-2 border-t border-border/40 grid grid-cols-3 gap-1.5">
+          <div className="pt-2 border-t border-border/40 grid grid-cols-4 gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className={`h-8 text-[11px] px-2 border-primary/30 hover:bg-primary hover:text-primary-foreground w-full justify-center ${sale.warrantyProductId ? "bg-primary/5 text-primary" : "text-muted-foreground"}`}
+              onClick={(e) => { e.stopPropagation(); setShowWarranty(true); }}
+            >
+              <ShieldCheck className="h-3.5 w-3.5 mr-1" /> Gar.
+            </Button>
+            <WarrantyDialog
+              open={showWarranty}
+              onOpenChange={setShowWarranty}
+              sale={sale}
+              onUpdate={onUpdate}
+              products={products || []}
+              formatCurrency={formatCurrency}
+            />
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -1581,6 +1616,16 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
               <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
             </Button>
           </div>
+        )}
+        {!readOnly && (
+          <WarrantyDialog
+            open={showWarranty}
+            onOpenChange={setShowWarranty}
+            sale={sale}
+            onUpdate={onUpdate}
+            products={products || []}
+            formatCurrency={formatCurrency}
+          />
         )}
         {!readOnly && (
           <Button
@@ -2099,6 +2144,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 formatCurrency={formatCurrency}
                 readOnly={readOnly}
                 incomeCategoryByName={incomeCategoryByName}
+                products={products || []}
               />
             ))}
           </div>
