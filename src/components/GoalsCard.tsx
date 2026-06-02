@@ -1556,7 +1556,7 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                           </div>
                         ) : (
                           <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2">
-                            <p className="text-[10px] text-muted-foreground uppercase">Falta para a meta</p>
+                            <p className="text-[10px] text-muted-foreground uppercase">Média abaixo da meta</p>
                             <p className="text-sm font-bold text-destructive">{fmtValue(remaining, "R$", hidden)}</p>
                             <p className="text-[9px] text-muted-foreground mt-0.5">sem dias restantes</p>
                           </div>
