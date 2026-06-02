@@ -206,6 +206,47 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_limit_history: {
+        Row: {
+          change_type: string | null
+          client_id: string
+          created_at: string
+          id: string
+          new_limit: number | null
+          notes: string | null
+          old_limit: number | null
+          user_id: string
+        }
+        Insert: {
+          change_type?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          new_limit?: number | null
+          notes?: string | null
+          old_limit?: number | null
+          user_id: string
+        }
+        Update: {
+          change_type?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          new_limit?: number | null
+          notes?: string | null
+          old_limit?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_limit_history_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           amount: number
@@ -220,6 +261,7 @@ export type Database = {
           paid_date: string | null
           paid_installments: number | null
           parent_expense_id: string | null
+          scope: string | null
           type: string
           user_id: string
         }
@@ -236,6 +278,7 @@ export type Database = {
           paid_date?: string | null
           paid_installments?: number | null
           parent_expense_id?: string | null
+          scope?: string | null
           type?: string
           user_id: string
         }
@@ -252,6 +295,7 @@ export type Database = {
           paid_date?: string | null
           paid_installments?: number | null
           parent_expense_id?: string | null
+          scope?: string | null
           type?: string
           user_id?: string
         }
@@ -362,6 +406,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      personal_categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       plans: {
         Row: {
@@ -474,6 +545,53 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_movements: {
+        Row: {
+          created_at: string
+          id: string
+          movement_type: string | null
+          notes: string | null
+          owner_id: string
+          product_id: string
+          product_name: string | null
+          quantity: number
+          sale_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          movement_type?: string | null
+          notes?: string | null
+          owner_id: string
+          product_id: string
+          product_name?: string | null
+          quantity: number
+          sale_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          movement_type?: string | null
+          notes?: string | null
+          owner_id?: string
+          product_id?: string
+          product_name?: string | null
+          quantity?: number
+          sale_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
@@ -567,6 +685,30 @@ export type Database = {
           update_offset?: number
           updated_at?: string
           validation_status?: string | null
+        }
+        Relationships: []
+      }
+      telegram_image_delivery_prefs: {
+        Row: {
+          id: string
+          include_text: boolean | null
+          reports: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          include_text?: boolean | null
+          reports?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          include_text?: boolean | null
+          reports?: Json | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -789,6 +931,33 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      webhook_settings: {
+        Row: {
+          enabled: boolean | null
+          id: string
+          send_time: string | null
+          updated_at: string
+          user_id: string
+          webhook_url: string | null
+        }
+        Insert: {
+          enabled?: boolean | null
+          id?: string
+          send_time?: string | null
+          updated_at?: string
+          user_id: string
+          webhook_url?: string | null
+        }
+        Update: {
+          enabled?: boolean | null
+          id?: string
+          send_time?: string | null
+          updated_at?: string
+          user_id?: string
+          webhook_url?: string | null
         }
         Relationships: []
       }
