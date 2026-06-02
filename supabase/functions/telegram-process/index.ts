@@ -3365,12 +3365,12 @@ Deno.serve(async (req) => {
       console.error("processing error", e);
     }
 
-      await admin.from("telegram_messages")
-        .update({ processed: true, processed_at: new Date().toISOString() })
-        .eq("update_id", msg.update_id);
-      processed++;
-    }
-  };
+    await admin.from("telegram_messages")
+      .update({ processed: true, processed_at: new Date().toISOString() })
+      .eq("update_id", msg.update_id);
+    processed++;
+  }
+};
 
   // Run all chats in parallel; messages within the same chat stay sequential.
   await Promise.all([...byChat.values()].map(processChat));
