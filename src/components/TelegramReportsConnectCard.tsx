@@ -76,7 +76,7 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
       setCode(null);
       await refresh();
     } catch (e: any) {
-      toast.error("❌ Código de bot inválido", { description: e.message });
+      toast.error("❌ Não foi possível vincular", { description: e.message });
     } finally {
       setLinkingByCode(false);
     }
