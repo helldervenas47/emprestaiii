@@ -189,20 +189,20 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     measurement: "Meta MÁXIMA: o objetivo é não ultrapassar a quantidade definida. Atingimento = (Quantidade realizada ÷ Meta) × 100.",
   },
   daily_received_avg: {
-    formula: "Média diária = Total Recebido no mês ÷ Dias corridos do mês até hoje",
+    formula: "Média Diária = Total Recebido no Mês ÷ Dias Decorridos",
     indicators: [
       "Total Recebido = soma de todos os pagamentos com data no mês",
-      "Dias corridos = somente dias do início do mês até a data atual (não conta o mês inteiro)",
-      "Necessário/dia = (Meta mensal − Total recebido) ÷ Dias restantes do mês",
-      "Atingimento medido contra a Meta MENSAL cadastrada",
+      "Dias Decorridos = dias do início do mês até hoje (ou total de dias se mês passado)",
+      "Meta Diária = valor configurado diretamente como alvo por dia",
+      "Atingimento = (Média Diária Atual ÷ Meta Diária Configurada) × 100",
     ],
     dataSource: ["Tabela de Pagamentos (payments)", "Campo: amount, date", "Filtro: date no mês selecionado"],
     example: {
-      setup: "Hoje é dia 10 do mês. Meta mensal: R$ 60.000. Total recebido: R$ 20.000.",
-      calc: "Média diária = 20.000 ÷ 10 = R$ 2.000/dia. Necessário/dia = (60.000 − 20.000) ÷ 20 dias restantes",
-      result: "Média diária atual = R$ 2.000/dia · Necessário = R$ 2.000/dia",
+      setup: "Meta diária configurada: R$ 2.000. Hoje é dia 10 e você recebeu R$ 15.000 no total do mês.",
+      calc: "Média Diária = 15.000 ÷ 10 = R$ 1.500/dia",
+      result: "Progresso = (1.500 ÷ 2.000) × 100 = 75%",
     },
-    measurement: "Atingimento = (Total Recebido ÷ Meta Mensal) × 100. Quando atingir 100%, exibe 'Meta atingida'.",
+    measurement: "Atingimento = (Média Realizada ÷ Meta Diária) × 100. Resultado em R$.",
   },
 };
 
