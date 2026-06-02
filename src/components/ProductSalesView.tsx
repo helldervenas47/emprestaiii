@@ -754,7 +754,7 @@ function RegisterSalePaymentDialog({
   );
 }
 
-function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [], products: Product[] = [] }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string; readOnly?: boolean; clients?: Client[]; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[]; products: Product[] }) {
+function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [], products = [] }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string; readOnly?: boolean; clients?: Client[]; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[]; products: Product[] }) {
   const { celebrate } = usePaymentCelebration();
   const { activeMethods } = usePaymentMethods();
   const methodById = useMemo(() => {
@@ -1640,7 +1640,7 @@ function getSalePaidAmountHelper(s: Sale): number {
 }
 
 function SaleClientFolder({
-  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [], products: Product[] = [],
+  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [], products = [],
 }: {
   group: SaleClientGroup;
   onDeleteSale: (id: string) => void;
@@ -1735,7 +1735,7 @@ function SaleClientFolder({
   );
 }
 
-function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrackCard = false, renderAfterCards, readOnly = false, locadorInfo, registeredVehicles = [], locadores = [], products: Product[] = [] }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void; clients?: Client[]; hideOnTrackCard?: boolean; renderAfterCards?: React.ReactNode; readOnly?: boolean; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[]; products: Product[] }) {
+function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrackCard = false, renderAfterCards, readOnly = false, locadorInfo, registeredVehicles = [], locadores = [], products = [] }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void; clients?: Client[]; hideOnTrackCard?: boolean; renderAfterCards?: React.ReactNode; readOnly?: boolean; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[]; products: Product[] }) {
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<SaleCategory>("all");
