@@ -333,7 +333,7 @@ function WarrantyDialog({
 
     setSubmitting(true);
     try {
-      const product = products.find((p: Product) => p.id === selectedProductId);
+      const product = (products || []).find((p: Product) => p.id === selectedProductId);
       if (!product) throw new Error("Produto não encontrado");
 
       // Se já tinha uma garantia, devolve ao estoque antes de registrar a nova
@@ -388,7 +388,7 @@ function WarrantyDialog({
     
     setSubmitting(true);
     try {
-      const product = products.find((p: Product) => p.id === sale.warrantyProductId);
+      const product = (products || []).find((p: Product) => p.id === sale.warrantyProductId);
       if (product) {
         const restoredStock = product.stock + (sale.warrantyQuantity || 0);
         await supabase.from("products").update({ stock: restoredStock }).eq("id", sale.warrantyProductId);
@@ -1723,7 +1723,7 @@ function SaleClientFolder({
                 locadorInfo={locadorInfo}
                 registeredVehicles={registeredVehicles}
                 locadores={locadores}
-                products={products}
+                products={products || []}
               />
             ))}
           </div>
@@ -2064,7 +2064,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 locadorInfo={locadorInfo}
                 registeredVehicles={registeredVehicles}
                 locadores={locadores}
-                products={products}
+                products={products || []}
               />
             ))}
           </div>
@@ -2667,7 +2667,7 @@ export function ProductSalesView(props: Props) {
           locadorInfo={locador}
           registeredVehicles={registeredVehicles}
           locadores={locadores}
-          products={products}
+          products={products || []}
         />
 
         {/* Vehicle Expenses Section */}
@@ -2955,7 +2955,7 @@ export function ProductSalesView(props: Props) {
             onUpdateSale={onUpdateSale}
             clients={clients}
             readOnly={readOnly}
-            products={products}
+            products={products || []}
           />
         </TabsContent>
       ))}
