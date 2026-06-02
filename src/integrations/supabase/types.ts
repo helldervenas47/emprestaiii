@@ -152,6 +152,39 @@ export type Database = {
         }
         Relationships: []
       }
+      balance_adjustments: {
+        Row: {
+          adjusted_by: string | null
+          adjustment_date: string
+          amount: number
+          created_at: string
+          id: string
+          notes: string | null
+          previous_amount: number | null
+          user_id: string
+        }
+        Insert: {
+          adjusted_by?: string | null
+          adjustment_date?: string
+          amount: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          previous_amount?: number | null
+          user_id: string
+        }
+        Update: {
+          adjusted_by?: string | null
+          adjustment_date?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          previous_amount?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           active: boolean
@@ -520,6 +553,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          phone: string | null
           updated_at: string
           user_id: string
         }
@@ -530,6 +564,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          phone?: string | null
           updated_at?: string
           user_id: string
         }
@@ -540,6 +575,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          phone?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -690,6 +726,7 @@ export type Database = {
       }
       telegram_image_delivery_prefs: {
         Row: {
+          allowed_user_ids: string[] | null
           id: string
           include_text: boolean | null
           reports: Json | null
@@ -697,6 +734,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          allowed_user_ids?: string[] | null
           id?: string
           include_text?: boolean | null
           reports?: Json | null
@@ -704,6 +742,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          allowed_user_ids?: string[] | null
           id?: string
           include_text?: boolean | null
           reports?: Json | null
@@ -865,6 +904,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_telegram_bots: {
         Row: {
           active: boolean
@@ -966,7 +1026,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_data_owner_id: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
