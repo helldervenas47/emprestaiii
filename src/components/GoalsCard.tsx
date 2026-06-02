@@ -705,7 +705,9 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       // Se o mês já fechou e existe snapshot finalizado, usa o valor congelado.
       // Caso contrário, calcula em tempo real.
       let actual: number;
-      if (monthClosed && snapshot?.finalized) {
+      const forceRealtime = g.goalType === "daily_received_avg" && (computeMonth === "2026-05" || computeMonth === "2024-05" || computeMonth === "2025-05");
+      
+      if (monthClosed && snapshot?.finalized && !forceRealtime) {
         actual = Number(snapshot.realizedValue) || 0;
       } else {
         actual = g.goalType === "active_capital"
