@@ -71,7 +71,7 @@ export function useManagerCommissions(enabled: boolean = true) {
       if (!user || !dataOwnerId) return;
       const amount = (params.baseAmount * params.rate) / 100;
       const { error } = await supabase.from("manager_commissions").insert({
-        user_id: dataOwnerId,
+        user_id: dataOwnerId!,
         loan_id: params.loanId,
         manager_id: params.managerId,
         payment_id: params.paymentId ?? null,

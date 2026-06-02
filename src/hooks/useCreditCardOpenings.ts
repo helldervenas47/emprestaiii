@@ -74,10 +74,13 @@ export function useCreditCardOpenings() {
       .from("credit_card_invoice_openings")
       .upsert(
         {
-          user_id: ownerId,
+          user_id: user?.id || ownerId,
           card_id: cardId,
+          credit_card_id: cardId,
           cycle_key: cycleKey,
+          month_label: cycleKey,
           opening_amount: amount,
+          opening_balance: amount,
           notes: notes ?? null,
         },
         { onConflict: "card_id,cycle_key" }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useDataOwner } from "@/hooks/useDataOwner";
 import type { GoalType } from "@/hooks/useMonthlyGoals";
 
@@ -16,6 +17,7 @@ export interface GoalSnapshot {
 }
 
 export function useGoalSnapshots() {
+  const { user } = useAuth();
   const ownerId = useDataOwner();
   const [snapshots, setSnapshots] = useState<GoalSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,6 +72,7 @@ export function useGoalSnapshots() {
       .from("monthly_goal_snapshots")
       .upsert(
         {
+          user_id: user?.id || ownerId,
           owner_id: ownerId,
           month,
           goal_type: goalType,

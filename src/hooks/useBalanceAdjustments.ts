@@ -87,6 +87,7 @@ export function useBalanceAdjustments() {
         .from("balance_adjustments")
         .upsert(
           {
+            user_id: user?.id || ownerId,
             owner_id: ownerId,
             adjustment_date: date,
             amount,
