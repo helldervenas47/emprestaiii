@@ -1221,6 +1221,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
   const [showPayments, setShowPayments] = useState(false);
   const historyCount = (sale.paymentHistory || []).length;
+  const [showWarranty, setShowWarranty] = useState(false);
 
   const category = getSaleCategory(sale);
   const catStyle = saleCategoryConfig[category];
