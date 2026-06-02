@@ -16,7 +16,8 @@ const isInIframe = (() => {
 
 const isPreviewHost =
   window.location.hostname.includes("id-preview--") ||
-  window.location.hostname.includes("lovableproject.com");
+  window.location.hostname.includes("lovable.app");
+
 
 const isInStandaloneMode =
   window.matchMedia("(display-mode: standalone)").matches ||
