@@ -174,20 +174,19 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     measurement: "Atingimento = (Quantidade realizada ÷ Meta) × 100.",
   },
   renegotiation_rate: {
-    formula: "Taxa Renegociação (%) = (Quantidade de contratos renegociados no mês ÷ Quantidade total de contratos com vencimento no mês) × 100",
+    formula: "Quantidade = Número total de contratos distintos renegociados no mês selecionado",
     indicators: [
       "Considera apenas renegociações registradas dentro do mês",
-      "Cada contrato é contado uma única vez (primeira renegociação do mês)",
-      "Numerador: Contagem de contratos que tiveram ao menos uma renegociação no mês",
-      "Denominador: Contagem de contratos distintos com parcelas vencendo no mês",
+      "Cada contrato é contado uma única vez por mês",
+      "Contagem direta de contratos que tiveram ao menos uma renegociação no mês",
     ],
-    dataSource: ["Tabela loan_renegotiations", "Tabela de Empréstimos e Cronograma de Parcelas"],
+    dataSource: ["Tabela loan_renegotiations", "Filtro: data da renegociação no mês selecionado"],
     example: {
-      setup: "100 contratos com vencimento no mês; 15 contratos renegociados no período.",
-      calc: "(15 ÷ 100) × 100",
-      result: "Taxa de Renegociação = 15,00%",
+      setup: "Você realizou renegociações em 15 contratos distintos no mês corrente.",
+      calc: "Contagem direta dos registros únicos por contrato",
+      result: "Renegociações = 15 contratos",
     },
-    measurement: "Meta INVERSA: quanto menor, melhor. Atingimento = máx(0, 100 − (Realizado ÷ Meta) × 100).",
+    measurement: "Meta MÁXIMA: o objetivo é não ultrapassar a quantidade definida. Atingimento = (Quantidade realizada ÷ Meta) × 100.",
   },
   daily_received_avg: {
     formula: "Média diária = Total Recebido no mês ÷ Dias corridos do mês até hoje",
