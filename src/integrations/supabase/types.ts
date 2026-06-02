@@ -193,14 +193,23 @@ export type Database = {
       }
       boleto_lookups: {
         Row: {
+          bank_code: string | null
+          bank_name: string | null
           barcode: string | null
           beneficiary: string | null
           created_at: string
           digitable_line: string | null
+          digits: string | null
           due_date: string | null
           id: string
+          label: string | null
           notes: string | null
+          owner_id: string | null
+          parsed_at: string | null
           payer: string | null
+          pix_brcode: string | null
+          segment: string | null
+          segment_label: string | null
           status: string | null
           type: string | null
           updated_at: string
@@ -208,14 +217,23 @@ export type Database = {
           value: number | null
         }
         Insert: {
+          bank_code?: string | null
+          bank_name?: string | null
           barcode?: string | null
           beneficiary?: string | null
           created_at?: string
           digitable_line?: string | null
+          digits?: string | null
           due_date?: string | null
           id?: string
+          label?: string | null
           notes?: string | null
+          owner_id?: string | null
+          parsed_at?: string | null
           payer?: string | null
+          pix_brcode?: string | null
+          segment?: string | null
+          segment_label?: string | null
           status?: string | null
           type?: string | null
           updated_at?: string
@@ -223,14 +241,23 @@ export type Database = {
           value?: number | null
         }
         Update: {
+          bank_code?: string | null
+          bank_name?: string | null
           barcode?: string | null
           beneficiary?: string | null
           created_at?: string
           digitable_line?: string | null
+          digits?: string | null
           due_date?: string | null
           id?: string
+          label?: string | null
           notes?: string | null
+          owner_id?: string | null
+          parsed_at?: string | null
           payer?: string | null
+          pix_brcode?: string | null
+          segment?: string | null
+          segment_label?: string | null
           status?: string | null
           type?: string | null
           updated_at?: string
@@ -582,6 +609,8 @@ export type Database = {
           created_at: string
           description: string
           due_date: string
+          generate_income_on_pay: boolean | null
+          generated_income_id: string | null
           id: string
           installments: number | null
           notes: string | null
@@ -589,6 +618,7 @@ export type Database = {
           paid_date: string | null
           paid_installments: number | null
           parent_expense_id: string | null
+          payment_method_id: string | null
           scope: string | null
           type: string
           user_id: string
@@ -599,6 +629,8 @@ export type Database = {
           created_at?: string
           description: string
           due_date: string
+          generate_income_on_pay?: boolean | null
+          generated_income_id?: string | null
           id?: string
           installments?: number | null
           notes?: string | null
@@ -606,6 +638,7 @@ export type Database = {
           paid_date?: string | null
           paid_installments?: number | null
           parent_expense_id?: string | null
+          payment_method_id?: string | null
           scope?: string | null
           type?: string
           user_id: string
@@ -616,6 +649,8 @@ export type Database = {
           created_at?: string
           description?: string
           due_date?: string
+          generate_income_on_pay?: boolean | null
+          generated_income_id?: string | null
           id?: string
           installments?: number | null
           notes?: string | null
@@ -623,6 +658,7 @@ export type Database = {
           paid_date?: string | null
           paid_installments?: number | null
           parent_expense_id?: string | null
+          payment_method_id?: string | null
           scope?: string | null
           type?: string
           user_id?: string
@@ -795,27 +831,42 @@ export type Database = {
           boleto_id: string | null
           created_at: string
           id: string
+          notes: string | null
+          owner_id: string | null
+          paid_at: string | null
           payment_date: string | null
+          payment_method: string | null
           status: string | null
           user_id: string
+          user_name: string | null
         }
         Insert: {
           amount?: number | null
           boleto_id?: string | null
           created_at?: string
           id?: string
+          notes?: string | null
+          owner_id?: string | null
+          paid_at?: string | null
           payment_date?: string | null
+          payment_method?: string | null
           status?: string | null
           user_id: string
+          user_name?: string | null
         }
         Update: {
           amount?: number | null
           boleto_id?: string | null
           created_at?: string
           id?: string
+          notes?: string | null
+          owner_id?: string | null
+          paid_at?: string | null
           payment_date?: string | null
+          payment_method?: string | null
           status?: string | null
           user_id?: string
+          user_name?: string | null
         }
         Relationships: [
           {
@@ -834,8 +885,11 @@ export type Database = {
           created_at: string
           description: string | null
           due_date: string | null
+          expense_id: string | null
           external_id: string | null
           id: string
+          owner_id: string | null
+          paid_at: string | null
           status: string | null
           updated_at: string
           user_id: string
@@ -846,8 +900,11 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
+          expense_id?: string | null
           external_id?: string | null
           id?: string
+          owner_id?: string | null
+          paid_at?: string | null
           status?: string | null
           updated_at?: string
           user_id: string
@@ -858,13 +915,24 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
+          expense_id?: string | null
           external_id?: string | null
           id?: string
+          owner_id?: string | null
+          paid_at?: string | null
           status?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "my_boletos_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payments: {
         Row: {
