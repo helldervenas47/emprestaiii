@@ -1586,6 +1586,7 @@ function telegramHeaders(lovableKey: string, telegramKey: string, json = true) {
   const headers: Record<string, string> = json ? { "Content-Type": "application/json" } : {};
   if (!isRawTelegramToken(telegramKey)) {
     headers.Authorization = `Bearer ${lovableKey}`;
+    // Fallback for older Lovable connectors or custom bypass
     headers["X-Connection-Api-Key"] = telegramKey;
   }
   return headers;
