@@ -325,6 +325,7 @@ export type Database = {
           card_id: string | null
           created_at: string
           credit_card_id: string
+          cycle_key: string | null
           id: string
           month_label: string
           opening_balance: number
@@ -335,6 +336,7 @@ export type Database = {
           card_id?: string | null
           created_at?: string
           credit_card_id: string
+          cycle_key?: string | null
           id?: string
           month_label: string
           opening_balance?: number
@@ -345,6 +347,7 @@ export type Database = {
           card_id?: string | null
           created_at?: string
           credit_card_id?: string
+          cycle_key?: string | null
           id?: string
           month_label?: string
           opening_balance?: number
@@ -372,6 +375,7 @@ export type Database = {
         Row: {
           active: boolean | null
           available_limit: number
+          bank: string | null
           brand: string | null
           closing_day: number
           created_at: string
@@ -387,6 +391,7 @@ export type Database = {
         Insert: {
           active?: boolean | null
           available_limit?: number
+          bank?: string | null
           brand?: string | null
           closing_day: number
           created_at?: string
@@ -402,6 +407,7 @@ export type Database = {
         Update: {
           active?: boolean | null
           available_limit?: number
+          bank?: string | null
           brand?: string | null
           closing_day?: number
           created_at?: string
@@ -426,6 +432,7 @@ export type Database = {
           notes: string | null
           old_limit: number | null
           previous_limit: number | null
+          reason: string | null
           user_id: string
         }
         Insert: {
@@ -437,6 +444,7 @@ export type Database = {
           notes?: string | null
           old_limit?: number | null
           previous_limit?: number | null
+          reason?: string | null
           user_id: string
         }
         Update: {
@@ -448,6 +456,7 @@ export type Database = {
           notes?: string | null
           old_limit?: number | null
           previous_limit?: number | null
+          reason?: string | null
           user_id?: string
         }
         Relationships: [
@@ -616,6 +625,83 @@ export type Database = {
           start_date?: string
           status?: string
           tags?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      my_boleto_payments: {
+        Row: {
+          amount: number | null
+          boleto_id: string | null
+          created_at: string
+          id: string
+          payment_date: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          boleto_id?: string | null
+          created_at?: string
+          id?: string
+          payment_date?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          boleto_id?: string | null
+          created_at?: string
+          id?: string
+          payment_date?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "my_boleto_payments_boleto_id_fkey"
+            columns: ["boleto_id"]
+            isOneToOne: false
+            referencedRelation: "my_boletos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      my_boletos: {
+        Row: {
+          amount: number | null
+          barcode: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          external_id: string | null
+          id: string
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          barcode?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          external_id?: string | null
+          id?: string
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          barcode?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          external_id?: string | null
+          id?: string
+          status?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
