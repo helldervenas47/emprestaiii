@@ -14,6 +14,227 @@ export type Database = {
   }
   public: {
     Tables: {
+      balance: {
+        Row: {
+          amount: number
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      clients: {
+        Row: {
+          active: boolean
+          address: string
+          city: string
+          cnpj: string
+          cpf: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+          notes: string | null
+          phone: string
+          rg: string
+          score: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          address?: string
+          city?: string
+          cnpj?: string
+          cpf?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string
+          rg?: string
+          score?: string
+          state?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          address?: string
+          city?: string
+          cnpj?: string
+          cpf?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string
+          rg?: string
+          score?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string
+          due_date: string
+          id: string
+          installments: number | null
+          notes: string | null
+          paid: boolean
+          paid_date: string | null
+          paid_installments: number | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description: string
+          due_date: string
+          id?: string
+          installments?: number | null
+          notes?: string | null
+          paid?: boolean
+          paid_date?: string | null
+          paid_installments?: number | null
+          type?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string
+          due_date?: string
+          id?: string
+          installments?: number | null
+          notes?: string | null
+          paid?: boolean
+          paid_date?: string | null
+          paid_installments?: number | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      loans: {
+        Row: {
+          amount: number
+          borrower_id: string | null
+          borrower_name: string
+          created_at: string
+          due_date: string
+          id: string
+          installments: number
+          interest_rate: number
+          interest_type: string
+          notes: string | null
+          paid_installments: number
+          payment_type: string
+          start_date: string
+          status: string
+          tags: string[] | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          borrower_id?: string | null
+          borrower_name: string
+          created_at?: string
+          due_date: string
+          id?: string
+          installments?: number
+          interest_rate?: number
+          interest_type?: string
+          notes?: string | null
+          paid_installments?: number
+          payment_type?: string
+          start_date: string
+          status?: string
+          tags?: string[] | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          borrower_id?: string | null
+          borrower_name?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          installments?: number
+          interest_rate?: number
+          interest_type?: string
+          notes?: string | null
+          paid_installments?: number
+          payment_type?: string
+          start_date?: string
+          status?: string
+          tags?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          date: string
+          id: string
+          installment_number: number
+          loan_id: string
+          previous_due_date: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          date: string
+          id?: string
+          installment_number?: number
+          loan_id: string
+          previous_due_date?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          date?: string
+          id?: string
+          installment_number?: number
+          loan_id?: string
+          previous_due_date?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_telegram_bots: {
         Row: {
           active: boolean
