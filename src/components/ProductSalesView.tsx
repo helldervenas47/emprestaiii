@@ -1326,7 +1326,10 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
       </div>
 
       {expanded && (
-        <div className="px-2.5 sm:px-4 pb-3 pt-1 space-y-3 animate-in fade-in duration-300">
+        <div className={cn(
+          "px-2.5 sm:px-4 pb-3 pt-1 space-y-3 animate-in fade-in duration-300",
+          !isMobile && "border-t border-border/10 bg-muted/5"
+        )}>
           {sale.warrantyProductId && (
             <div className="flex items-center gap-3 rounded-xl bg-primary/5 border border-primary/10 p-2.5 animate-in slide-in-from-top-1 duration-200">
               <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
