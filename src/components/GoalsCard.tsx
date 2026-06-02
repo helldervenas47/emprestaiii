@@ -461,9 +461,7 @@ function computeDefaultRate(loans: Loan[], payments: Payment[], installmentSched
   return periodPortfolio > 0 ? (overdueAmount / periodPortfolio) * 100 : 0;
 }
 
-function computeRenegotiationRate(
-  loans: Loan[],
-  installmentSchedules: InstallmentSchedule[],
+function computeRenegotiationCount(
   renegotiations: LoanRenegotiation[],
   m: string,
 ): number {
@@ -472,29 +470,7 @@ function computeRenegotiationRate(
   const monthStart = new Date(yy, mm - 1, 1);
   const monthEnd = new Date(yy, mm, 0, 23, 59, 59, 999);
 
-  // 1. Contar quantos contratos DISTINTOS têm vencimento neste mês
-  const uniqueLoansInMonth = new Set<string>();
-  loans.forEach((l: any) => {
-    const installments = Number(l.installments) || 1;
-    if (installments >= 2) {
-      installmentSchedules
-        .filter((sc) => {
-          if (sc.loanId !== l.id) return false;
-          const d = new Date(sc.dueDate + "T00:00:00");
-          return d >= monthStart && d <= monthEnd;
-        })
-        .forEach((sc) => { uniqueLoansInMonth.add(sc.loanId); });
-    } else {
-      const due = (l.dueDate || l.due_date || "").slice(0, 10);
-      if (!due) return;
-      const d = new Date(due + "T00:00:00");
-      if (d >= monthStart && d <= monthEnd) {
-        uniqueLoansInMonth.add(l.id);
-      }
-    }
-  });
-
-  // 2. Contar quantos contratos DISTINTOS foram renegociados NESTE mês
+  // Contar quantos contratos DISTINTOS foram renegociados NESTE mês
   const renegLoansInMonth = new Set<string>();
   (renegotiations || [])
     .filter((r) => {
@@ -507,10 +483,7 @@ function computeRenegotiationRate(
       renegLoansInMonth.add(r.loanId);
     });
 
-  const totalLoans = uniqueLoansInMonth.size;
-  const renegCount = renegLoansInMonth.size;
-
-  return totalLoans > 0 ? (renegCount / totalLoans) * 100 : 0;
+  return renegLoansInMonth.size;
 }
 
 export function computeActual(
