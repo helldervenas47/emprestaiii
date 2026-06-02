@@ -1166,6 +1166,11 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                 <CircleCheck className="h-4 w-4" />
               </Button>
               {!readOnly && (
+                <Button size="icon" variant="ghost" className={`h-8 w-8 hover:bg-primary/10 ${sale.warrantyProductId ? "text-primary" : "text-muted-foreground"}`} onClick={() => setShowWarranty(true)} title="Garantia">
+                  <ShieldCheck className="h-4 w-4" />
+                </Button>
+              )}
+              {!readOnly && (
                 <>
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={onEdit}>
                     <Pencil className="h-4 w-4" />
