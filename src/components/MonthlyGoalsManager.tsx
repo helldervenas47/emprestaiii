@@ -116,9 +116,15 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
       }
       let pct = 0;
       if (target > 0) {
-        pct = meta?.inverse
-          ? Math.max(0, 100 - (actual / target) * 100)
-          : Math.min(100, (actual / target) * 100);
+        pct = (g.goalType === "max_default_rate" || g.goalType === "renegotiation_rate" || g.goalType === "daily_received_avg")
+          ? (actual <= target && g.goalType !== "daily_received_avg" ? 100 : (g.goalType === "daily_received_avg" ? Math.min(100, (actual / target) * 100) : 0))
+          : meta?.inverse
+            ? Math.max(0, 100 - (actual / target) * 100)
+            : Math.min(100, (actual / target) * 100);
+            
+        if (g.goalType === "daily_received_avg") {
+          pct = Math.min(100, (actual / target) * 100);
+        }
       }
       return { ...g, actual, pct };
     }),
