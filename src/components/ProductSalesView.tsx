@@ -1232,6 +1232,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
   const nextDue = getNextDueDateHelper(sale);
   const nextInstValue = getNextInstallmentValueHelper(sale);
   const partialOnNext = (sale.partialPaid || 0) > 0 ? Math.max(0, nextInstValue - (sale.partialPaid || 0)) : nextInstValue;
+  const productsList = (sale as any)._products || []; // We'll pass products through if available
 
   const incomeCat = sale.category ? incomeCategoryByName?.get(sale.category) : undefined;
   const CatIcon = incomeCat ? (personalIconMap[incomeCat.icon] ?? personalIconMap.Package) : Tag;
