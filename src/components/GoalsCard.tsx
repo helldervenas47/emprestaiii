@@ -750,21 +750,18 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       let monthlyPct: number | null = null;
       if (g.goalType === "daily_received_avg") {
         const [yy, mm] = computeMonth.split("-").map(Number);
-        const today = new Date();
-        const cur = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
         const daysInMonth = new Date(yy, mm, 0).getDate();
-        const isCurrent = computeMonth === cur;
-        const daysElapsed = isCurrent ? today.getDate() : (computeMonth < cur ? daysInMonth : 1);
         
-        receivedTotal = actual; // Guarda o total recebido no mês
-        const dailyAvg = daysElapsed > 0 ? actual / daysElapsed : 0;
-        const dailyTarget = g.targetValue; // A meta AGORA é interpretada diretamente como valor diário
+        // Agora o 'actual' vindo de computeActual já é a média diária.
+        // Precisamos reconstruir o receivedTotal para o detalhamento.
+        const today = todayInAppTz();
+        const currentMonth = today.slice(0, 7);
+        const isCurrent = computeMonth === currentMonth;
+        const daysElapsed = isCurrent ? Number(today.slice(8, 10)) : (computeMonth < currentMonth ? daysInMonth : 1);
         
-        actual = dailyAvg; // O "valor realizado" que aparece no card passa a ser a média diária
-        pct = dailyTarget > 0 ? Math.min(100, (dailyAvg / dailyTarget) * 100) : 0;
+        receivedTotal = actual * daysElapsed;
         
-        // monthlyPct para exibição auxiliar (progresso do total do mês se a meta fosse mensal, opcional)
-        const estimatedMonthlyTarget = dailyTarget * daysInMonth;
+        const estimatedMonthlyTarget = g.targetValue * daysInMonth;
         monthlyPct = estimatedMonthlyTarget > 0 ? Math.min(100, (receivedTotal / estimatedMonthlyTarget) * 100) : 0;
       }
 
