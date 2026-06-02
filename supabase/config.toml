@@ -1,9 +1,12 @@
-project_id = "tovwnqbjeaecwtymbncy"
+project_id = "syyxnqzxqabeuqbuptkh"
 
 [functions.telegram-poll]
 verify_jwt = false
 
 [functions.telegram-process]
+verify_jwt = false
+
+[functions.telegram-reports-poll]
 verify_jwt = false
 
 [functions.telegram-link-code]
