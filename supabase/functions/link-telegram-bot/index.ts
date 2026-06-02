@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
       }
 
       return json({
-        error: "Código de bot não encontrado." + hint,
+        error: "Código de bot inválido." + hint,
       }, 404);
     }
 
