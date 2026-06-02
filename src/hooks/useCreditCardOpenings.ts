@@ -57,7 +57,7 @@ export function useCreditCardOpenings() {
   /** Get the opening for a specific card+cycle, or null. */
   const getOpening = useCallback(
     (cardId: string, cycleKey: string): InvoiceOpening | null => {
-      return openings.find((o) => o.cardId === cardId && o.monthLabel === cycleKey) ?? null;
+      return openings.find((o) => o.cardId === cardId && o.cycleKey === cycleKey) ?? null;
     },
     [openings]
   );
@@ -89,10 +89,10 @@ export function useCreditCardOpenings() {
       return;
     }
     setOpenings((prev) => {
-      const exists = prev.some((o) => o.cardId === cardId && o.monthLabel === cycleKey);
+      const exists = prev.some((o) => o.cardId === cardId && o.cycleKey === cycleKey);
       if (exists) {
         return prev.map((o) =>
-          o.cardId === cardId && o.monthLabel === cycleKey ? fromRow(data) : o
+          o.cardId === cardId && o.cycleKey === cycleKey ? fromRow(data) : o
         );
       }
       return [...prev, fromRow(data)];

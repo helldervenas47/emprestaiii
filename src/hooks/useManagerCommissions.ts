@@ -79,7 +79,7 @@ export function useManagerCommissions(enabled: boolean = true) {
         base_amount: params.baseAmount,
         rate: params.rate,
         amount,
-        generated_at: params.generatedAt,
+        generated_at: params.generatedAt as any,
         notes: params.notes ?? null,
       });
       if (!error) await fetch();
