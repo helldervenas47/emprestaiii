@@ -548,11 +548,20 @@ export function computeActual(
       return (received / expected) * 100;
     }
     case "daily_received_avg": {
-      // Total recebido no mês — pct é calculado contra a meta MENSAL.
-      // A média diária e o necessário/dia são derivados na visualização (small card e dashboard).
-      return payments
+      // Retorna a média diária: Total recebido no mês ÷ Dias decorridos (até hoje ou total do mês)
+      const received = payments
         .filter((p: any) => inMonth(p.date, m))
         .reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+      
+      const today = todayInAppTz();
+      const currentMonth = today.slice(0, 7);
+      const [yy, mm] = m.split("-").map(Number);
+      const daysInMonth = new Date(yy, mm, 0).getDate();
+      
+      const isCurrent = m === currentMonth;
+      const daysElapsed = isCurrent ? Number(today.slice(8, 10)) : (m < currentMonth ? daysInMonth : 1);
+      
+      return daysElapsed > 0 ? received / daysElapsed : 0;
     }
     default:
       return 0;
