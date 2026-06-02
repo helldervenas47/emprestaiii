@@ -112,7 +112,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
           dueDate: form.dueDate,
           notes: buildPiggyTag(piggyId, baseNotes),
           scope: "personal",
-        } as any);
+        });
         // Note: o aporte só é creditado no cofrinho quando a despesa for marcada como paga.
 
         if (piggyRecurrence !== "none") {
@@ -176,7 +176,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
       };
     }
     try {
-      await onAdd(payload as any);
+      await onAdd(payload);
       record(form.description);
       setShowSuccess(true);
     } finally {

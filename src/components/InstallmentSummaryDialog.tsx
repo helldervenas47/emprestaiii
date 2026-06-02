@@ -41,8 +41,7 @@ export function InstallmentSummaryDialog({ open, onOpenChange, expense }: Props)
     supabase
       .from("expenses")
       .select("id, amount, paid_date, description, created_at, paid")
-      .eq("user_id", (expense as any).user_id)
-      .eq("description", expense.description)
+      .eq("parent_expense_id", expense.id)
       .order("paid_date", { ascending: true, nullsFirst: false })
       .then(({ data }) => {
         if (cancelled) return;

@@ -87,7 +87,7 @@ export function PlanSubscribers() {
     if (error || !subs) { setLoading(false); return; }
 
     // Fetch admin-created users (those in user_owner) to exclude them
-    const { data: ownedUsers } = await supabase.from("user_owner" as any).select("user_id");
+    const { data: ownedUsers } = await supabase.from("user_owner").select("user_id");
     const ownedUserIds = new Set((ownedUsers || []).map((o: any) => o.user_id));
 
     // Filter out admin-created sub-users
@@ -117,7 +117,7 @@ export function PlanSubscribers() {
       environment: s.environment,
       current_period_start: s.current_period_start,
       current_period_end: s.current_period_end,
-      cancel_at_period_end: (s as any).cancel_at_period_end,
+      cancel_at_period_end: s.cancel_at_period_end,
       created_at: s.created_at,
     }));
 

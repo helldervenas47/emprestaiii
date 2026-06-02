@@ -1317,14 +1317,14 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
               let q = supabase
                 .from("expenses")
                 .select("id, paid")
-                .eq("parent_expense_id" as any, parentId);
+                .eq("parent_expense_id", parentId);
               if (scope === "pending") q = q.eq("paid", false);
               const { data: siblings } = await q;
 
               const updates = (siblings ?? []).filter((s: any) => s.id !== exp.id);
               for (const s of updates) {
                 await supabase
-                  .from("expenses" as any)
+                  .from("expenses")
                   .update({
                     description: patch.description,
                     amount: perInstallment,
@@ -1425,7 +1425,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                               color: c.color,
                             });
                             if (created) {
-                              setEditingCategory(created as any);
+                              setEditingCategory(created);
                               setCreatorInitial(null);
                               setCategoryEditorOpen(true);
                             }
@@ -1471,8 +1471,8 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         }}
         editing={editingCategory}
         initial={creatorInitial}
-        createCategory={createCustomCategory as any}
-        updateCategory={updateCustomCategory as any}
+        createCategory={createCustomCategory}
+        updateCategory={updateCustomCategory}
         deleteCategory={removeCustomCategory}
         onCreated={(cat) => {
           setBudgetDraft((p) => ({ ...p, [cat.name]: p[cat.name] ?? "" }));
