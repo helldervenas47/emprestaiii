@@ -1521,10 +1521,11 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                   const daysLeft = isCurrent ? Math.max(0, daysInMonth - today.getDate()) : 0;
                   const receivedTotal = (goal as any).receivedTotal ?? goal.actual;
                   const dailyAvg = daysElapsed > 0 ? receivedTotal / daysElapsed : 0;
-                  const reached = receivedTotal >= goal.targetValue;
-                  const remaining = Math.max(0, goal.targetValue - receivedTotal);
+                  const reached = dailyAvg >= goal.targetValue;
+                  const monthlyTarget = goal.targetValue * daysInMonth;
+                  const remaining = Math.max(0, monthlyTarget - receivedTotal);
                   const neededPerDay = !reached && daysLeft > 0 ? remaining / daysLeft : 0;
-                  const monthlyPct = (goal as any).monthlyPct ?? (goal.targetValue > 0 ? Math.min(100, (receivedTotal / goal.targetValue) * 100) : 0);
+                  const monthlyPct = monthlyTarget > 0 ? Math.min(100, (receivedTotal / monthlyTarget) * 100) : 0;
                   return (
                     <div className="mt-3 space-y-2">
                       <div className="grid grid-cols-2 gap-2 text-center">
@@ -1555,7 +1556,7 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                           </div>
                         ) : (
                           <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2">
-                            <p className="text-[10px] text-muted-foreground uppercase">Falta para a meta</p>
+                            <p className="text-[10px] text-muted-foreground uppercase">Média abaixo da meta</p>
                             <p className="text-sm font-bold text-destructive">{fmtValue(remaining, "R$", hidden)}</p>
                             <p className="text-[9px] text-muted-foreground mt-0.5">sem dias restantes</p>
                           </div>
