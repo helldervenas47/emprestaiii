@@ -75,7 +75,7 @@ export function useManagerCommissions(enabled: boolean = true) {
         loan_id: params.loanId,
         manager_id: params.managerId,
         payment_id: params.paymentId ?? null,
-        commission_type: params.commissionType,
+        commission_type: params.commissionType as any,
         base_amount: params.baseAmount,
         rate: params.rate,
         amount,

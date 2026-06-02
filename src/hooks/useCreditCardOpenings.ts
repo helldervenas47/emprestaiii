@@ -7,15 +7,15 @@ import { toast } from "sonner";
 export interface InvoiceOpening {
   id: string;
   cardId: string;
-  cycleKey: string;
+  monthLabel: string;
   openingAmount: number;
   notes: string | null;
 }
 
 const fromRow = (r: any): InvoiceOpening => ({
   id: r.id,
-  cardId: r.card_id,
-  cycleKey: r.cycle_key,
+  cardId: r.credit_card_id,
+  monthLabel: r.month_label,
   openingAmount: Number(r.opening_amount ?? 0),
   notes: r.notes ?? null,
 });
@@ -57,7 +57,7 @@ export function useCreditCardOpenings() {
   /** Get the opening for a specific card+cycle, or null. */
   const getOpening = useCallback(
     (cardId: string, cycleKey: string): InvoiceOpening | null => {
-      return openings.find((o) => o.cardId === cardId && o.cycleKey === cycleKey) ?? null;
+      return openings.find((o) => o.cardId === cardId && o.monthLabel === cycleKey) ?? null;
     },
     [openings]
   );
@@ -75,12 +75,12 @@ export function useCreditCardOpenings() {
       .upsert(
         {
           user_id: ownerId,
-          card_id: cardId,
-          cycle_key: cycleKey,
+          credit_card_id: cardId,
+          month_label: cycleKey,
           opening_amount: amount,
           notes: notes ?? null,
-        },
-        { onConflict: "card_id,cycle_key" }
+        } as any,
+        { onConflict: "credit_card_id,month_label" }
       )
       .select()
       .single();
@@ -89,10 +89,10 @@ export function useCreditCardOpenings() {
       return;
     }
     setOpenings((prev) => {
-      const exists = prev.some((o) => o.cardId === cardId && o.cycleKey === cycleKey);
+      const exists = prev.some((o) => o.cardId === cardId && o.monthLabel === cycleKey);
       if (exists) {
         return prev.map((o) =>
-          o.cardId === cardId && o.cycleKey === cycleKey ? fromRow(data) : o
+          o.cardId === cardId && o.monthLabel === cycleKey ? fromRow(data) : o
         );
       }
       return [...prev, fromRow(data)];
