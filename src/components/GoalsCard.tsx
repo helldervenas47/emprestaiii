@@ -853,8 +853,8 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
             {visibleGoals.map((g) => {
               const Icon = g.meta?.icon || Target;
-              const status = (g.goalType === "max_default_rate" || g.goalType === "renegotiation_rate")
-                ? (g.pct === 100 ? "success" : "destructive")
+              const status = (g.goalType === "max_default_rate" || g.goalType === "renegotiation_rate" || g.goalType === "daily_received_avg")
+                ? (g.pct >= 100 ? "success" : "destructive")
                 : g.pct >= 80
                   ? "success"
                   : g.pct >= 50
