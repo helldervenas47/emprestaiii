@@ -94,6 +94,7 @@ Deno.serve(async (req) => {
         }, 400);
       }
 
+      console.log("Código não encontrado em nenhuma tabela de vínculo:", code);
       return json({ error: "Código de bot inválido. Certifique-se de digitar o código recebido no Telegram (comando /code)." }, 404);
     }
 
