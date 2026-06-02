@@ -714,9 +714,9 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       // Se o mês já fechou e existe snapshot finalizado, usa o valor congelado.
       // Caso contrário, calcula em tempo real.
       let actual: number;
-      // Forçamos o re-cálculo em tempo real para a meta de média diária do mês de maio de 2026,
-      // para que a nova fórmula (valor diário vs meta diária) seja aplicada corretamente mesmo em meses "travados".
-      const forceRealtime = g.goalType === "daily_received_avg" && computeMonth === "2026-05";
+      // Forçamos o re-cálculo em tempo real para a meta de média diária,
+      // para garantir que a nova fórmula (valor diário vs meta diária) seja aplicada em todo o histórico.
+      const forceRealtime = g.goalType === "daily_received_avg";
       
       if (monthClosed && snapshot?.finalized && !forceRealtime) {
         actual = Number(snapshot.realizedValue) || 0;
@@ -728,11 +728,17 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
 
       let pct = 0;
       if (g.targetValue > 0) {
-        pct = (g.goalType === "max_default_rate" || g.goalType === "renegotiation_rate")
-          ? (actual <= g.targetValue ? 100 : 0)
+        // Meta de inadimplência, renegociação e média diária devem atingir 100% para serem sucesso
+        pct = (g.goalType === "max_default_rate" || g.goalType === "renegotiation_rate" || g.goalType === "daily_received_avg")
+          ? (actual <= g.targetValue && g.goalType !== "daily_received_avg" ? 100 : (g.goalType === "daily_received_avg" ? Math.min(100, (actual / g.targetValue) * 100) : 0))
           : meta?.inverse
             ? Math.max(0, 100 - (actual / g.targetValue) * 100)
             : Math.min(100, (actual / g.targetValue) * 100);
+        
+        // Ajuste fino para daily_received_avg: se a média é menor que a meta, pct não pode ser sucesso
+        if (g.goalType === "daily_received_avg") {
+          pct = Math.min(100, (actual / g.targetValue) * 100);
+        }
       }
       const expectedReceivable = g.goalType === "profit" ? computeExpectedReceivable(loans, computeMonth) : null;
       const targetAmount = g.goalType === "profit" && expectedReceivable !== null
