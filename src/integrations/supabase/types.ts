@@ -185,6 +185,87 @@ export type Database = {
         }
         Relationships: []
       }
+      boleto_lookups: {
+        Row: {
+          barcode: string | null
+          beneficiary: string | null
+          created_at: string
+          digitable_line: string | null
+          due_date: string | null
+          id: string
+          notes: string | null
+          payer: string | null
+          status: string | null
+          type: string | null
+          updated_at: string
+          user_id: string
+          value: number | null
+        }
+        Insert: {
+          barcode?: string | null
+          beneficiary?: string | null
+          created_at?: string
+          digitable_line?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          payer?: string | null
+          status?: string | null
+          type?: string | null
+          updated_at?: string
+          user_id: string
+          value?: number | null
+        }
+        Update: {
+          barcode?: string | null
+          beneficiary?: string | null
+          created_at?: string
+          digitable_line?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          payer?: string | null
+          status?: string | null
+          type?: string | null
+          updated_at?: string
+          user_id?: string
+          value?: number | null
+        }
+        Relationships: []
+      }
+      chart_overrides: {
+        Row: {
+          created_at: string
+          emprestado: number | null
+          id: string
+          juros: number | null
+          juros_manual: boolean | null
+          month_label: string
+          recebido: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emprestado?: number | null
+          id?: string
+          juros?: number | null
+          juros_manual?: boolean | null
+          month_label: string
+          recebido?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emprestado?: number | null
+          id?: string
+          juros?: number | null
+          juros_manual?: boolean | null
+          month_label?: string
+          recebido?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           active: boolean
@@ -1027,6 +1108,17 @@ export type Database = {
     }
     Functions: {
       get_data_owner_id: { Args: { _user_id: string }; Returns: string }
+      list_my_sessions: {
+        Args: never
+        Returns: {
+          id: string
+          ip_address: string
+          is_current_session: boolean
+          last_active_at: string
+          user_agent: string
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
