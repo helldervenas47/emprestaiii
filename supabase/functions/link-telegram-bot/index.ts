@@ -44,13 +44,39 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { data: bot, error: botErr } = await admin
-      .from("telegram_bots")
-      .select("id, bot_code, kind, chat_id, bot_id, expires_at")
-      .eq("bot_code", code)
-      .maybeSingle();
+    async function findBot() {
+      return await admin
+        .from("telegram_bots")
+        .select("id, bot_code, kind, chat_id, bot_id, expires_at")
+        .eq("bot_code", code)
+        .maybeSingle();
+    }
 
+    async function triggerPollAndProcess() {
+      const headers = {
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+      };
+      // Dispara poll dos dois bots (despesas + relatórios) e processa as mensagens
+      // antes de tentar localizar o código novamente. Útil quando não há cron ativo.
+      await Promise.allSettled([
+        fetch(`${SUPABASE_URL}/functions/v1/telegram-poll`, { method: "POST", headers, body: "{}" }),
+        fetch(`${SUPABASE_URL}/functions/v1/telegram-reports-poll`, { method: "POST", headers, body: "{}" }),
+      ]);
+      await fetch(`${SUPABASE_URL}/functions/v1/telegram-process`, { method: "POST", headers, body: "{}" }).catch(() => null);
+    }
+
+    let { data: bot, error: botErr } = await findBot();
     if (botErr) return json({ error: botErr.message }, 500);
+
+    if (!bot) {
+      // Usuário pode ter enviado /code agora; sincroniza e procura novamente.
+      await triggerPollAndProcess();
+      const retry = await findBot();
+      if (retry.error) return json({ error: retry.error.message }, 500);
+      bot = retry.data;
+    }
+
     if (!bot) {
       if (/^\d{6}$/.test(code)) {
         const [{ data: expenseCode }, { data: reportsCode }] = await Promise.all([
@@ -70,8 +96,19 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Diagnóstico: lista códigos ativos para o usuário comparar com o que digitou.
+      const { data: recent } = await admin
+        .from("telegram_bots")
+        .select("bot_code, expires_at")
+        .gte("expires_at", new Date().toISOString())
+        .order("expires_at", { ascending: false })
+        .limit(3);
+      const hint = (recent && recent.length > 0)
+        ? ` Códigos ativos agora: ${recent.map((r: any) => r.bot_code).join(", ")}.`
+        : " Nenhum código ativo no momento — envie /code no bot agora.";
+
       return json({
-        error: "Código de bot não encontrado. Envie /code no bot do Telegram, aguarde ele responder com um novo código e cole exatamente esse código aqui.",
+        error: "Código de bot não encontrado. Envie /code no bot, aguarde a resposta e cole exatamente como recebido." + hint,
       }, 404);
     }
 
