@@ -679,6 +679,81 @@ export type Database = {
           },
         ]
       }
+      income_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      incomes: {
+        Row: {
+          actual_received_date: string | null
+          amount: number
+          category: string | null
+          client_id: string | null
+          created_at: string
+          description: string
+          id: string
+          notes: string | null
+          parent_id: string | null
+          payment_method_id: string | null
+          received_date: string
+          recurrence: string | null
+          source: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          actual_received_date?: string | null
+          amount?: number
+          category?: string | null
+          client_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          notes?: string | null
+          parent_id?: string | null
+          payment_method_id?: string | null
+          received_date?: string
+          recurrence?: string | null
+          source?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          actual_received_date?: string | null
+          amount?: number
+          category?: string | null
+          client_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          notes?: string | null
+          parent_id?: string | null
+          payment_method_id?: string | null
+          received_date?: string
+          recurrence?: string | null
+          source?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       loan_installments: {
         Row: {
           amount: number
@@ -1178,6 +1253,122 @@ export type Database = {
           },
         ]
       }
+      payroll_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          expense_id: string | null
+          id: string
+          income_id: string | null
+          notes: string | null
+          paid_date: string
+          payment_method_id: string | null
+          payroll_id: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          expense_id?: string | null
+          id?: string
+          income_id?: string | null
+          notes?: string | null
+          paid_date?: string
+          payment_method_id?: string | null
+          payroll_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          expense_id?: string | null
+          id?: string
+          income_id?: string | null
+          notes?: string | null
+          paid_date?: string
+          payment_method_id?: string | null
+          payroll_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_payments_payroll_id_fkey"
+            columns: ["payroll_id"]
+            isOneToOne: false
+            referencedRelation: "payrolls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payrolls: {
+        Row: {
+          closed: boolean | null
+          competence: string
+          created_at: string
+          due_date: string | null
+          employee_id: string
+          expense_id: string | null
+          gross_salary: number | null
+          id: string
+          income_id: string | null
+          items: Json | null
+          net_salary: number | null
+          notes: string | null
+          paid_amount: number | null
+          paid_date: string | null
+          payment_method_id: string | null
+          status: string | null
+          total_benefits: number | null
+          total_deductions: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          closed?: boolean | null
+          competence: string
+          created_at?: string
+          due_date?: string | null
+          employee_id: string
+          expense_id?: string | null
+          gross_salary?: number | null
+          id?: string
+          income_id?: string | null
+          items?: Json | null
+          net_salary?: number | null
+          notes?: string | null
+          paid_amount?: number | null
+          paid_date?: string | null
+          payment_method_id?: string | null
+          status?: string | null
+          total_benefits?: number | null
+          total_deductions?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          closed?: boolean | null
+          competence?: string
+          created_at?: string
+          due_date?: string | null
+          employee_id?: string
+          expense_id?: string | null
+          gross_salary?: number | null
+          id?: string
+          income_id?: string | null
+          items?: Json | null
+          net_salary?: number | null
+          notes?: string | null
+          paid_amount?: number | null
+          paid_date?: string | null
+          payment_method_id?: string | null
+          status?: string | null
+          total_benefits?: number | null
+          total_deductions?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       personal_budgets: {
         Row: {
           amount: number
@@ -1304,34 +1495,43 @@ export type Database = {
       products: {
         Row: {
           active: boolean | null
+          cost: number | null
           created_at: string
           description: string | null
           id: string
+          last_purchase_price: number | null
           name: string
           price: number
           stock: number
+          suggested_stock: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
           active?: boolean | null
+          cost?: number | null
           created_at?: string
           description?: string | null
           id?: string
+          last_purchase_price?: number | null
           name: string
           price?: number
           stock?: number
+          suggested_stock?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
           active?: boolean | null
+          cost?: number | null
           created_at?: string
           description?: string | null
           id?: string
+          last_purchase_price?: number | null
           name?: string
           price?: number
           stock?: number
+          suggested_stock?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -1372,6 +1572,95 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      sales: {
+        Row: {
+          business_type: string | null
+          category: string | null
+          created_at: string
+          customer_name: string | null
+          description: string | null
+          frequency: string | null
+          id: string
+          installment_amounts: Json | null
+          installment_dates: Json | null
+          installment_value: number | null
+          installments: number | null
+          locador_id: string | null
+          notes: string | null
+          paid_installments: number | null
+          partial_paid: number | null
+          payment_history: Json | null
+          payment_mode: string | null
+          product_id: string | null
+          quantity: number
+          sale_date: string
+          total: number
+          user_id: string
+          warranty_product_id: string | null
+          warranty_quantity: number | null
+        }
+        Insert: {
+          business_type?: string | null
+          category?: string | null
+          created_at?: string
+          customer_name?: string | null
+          description?: string | null
+          frequency?: string | null
+          id?: string
+          installment_amounts?: Json | null
+          installment_dates?: Json | null
+          installment_value?: number | null
+          installments?: number | null
+          locador_id?: string | null
+          notes?: string | null
+          paid_installments?: number | null
+          partial_paid?: number | null
+          payment_history?: Json | null
+          payment_mode?: string | null
+          product_id?: string | null
+          quantity?: number
+          sale_date?: string
+          total?: number
+          user_id: string
+          warranty_product_id?: string | null
+          warranty_quantity?: number | null
+        }
+        Update: {
+          business_type?: string | null
+          category?: string | null
+          created_at?: string
+          customer_name?: string | null
+          description?: string | null
+          frequency?: string | null
+          id?: string
+          installment_amounts?: Json | null
+          installment_dates?: Json | null
+          installment_value?: number | null
+          installments?: number | null
+          locador_id?: string | null
+          notes?: string | null
+          paid_installments?: number | null
+          partial_paid?: number | null
+          payment_history?: Json | null
+          payment_mode?: string | null
+          product_id?: string | null
+          quantity?: number
+          sale_date?: string
+          total?: number
+          user_id?: string
+          warranty_product_id?: string | null
+          warranty_quantity?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stock_movements: {
         Row: {
