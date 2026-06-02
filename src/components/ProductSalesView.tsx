@@ -1540,6 +1540,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
       title="Excluir venda"
       description="Tem certeza que deseja excluir esta venda?"
     />
+    </div>
   );
 }
 type SaleCategory = "all" | "overdue" | "due_today" | "paid" | "on_track";
