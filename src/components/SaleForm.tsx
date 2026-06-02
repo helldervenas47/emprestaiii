@@ -64,8 +64,6 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     category: defaultBusinessType === "venda" ? "Venda" : "",
     paymentDate: todayInAppTz(),
     paymentStatus: "pago" as "pago" | "pendente",
-    warrantyProductId: "",
-    warrantyQuantity: "1",
   });
   const [merchEnabled, setMerchEnabled] = useState(false);
   const [merchDescricao, setMerchDescricao] = useState("");
@@ -202,8 +200,8 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       paymentHistory,
       locadorId: form.businessType === "aluguel_veiculo" ? (form.locadorId || null) : null,
       category: form.category || null,
-      warrantyProductId: form.warrantyProductId || null,
-      warrantyQuantity: form.warrantyProductId ? (parseInt(form.warrantyQuantity) || 1) : null,
+      warrantyProductId: null,
+      warrantyQuantity: null,
     });
     setShowSuccess(true);
   };
