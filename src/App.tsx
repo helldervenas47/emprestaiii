@@ -30,6 +30,7 @@ const Terms = lazy(() => import("./pages/Terms.tsx"));
 const RefundPolicy = lazy(() => import("./pages/RefundPolicy.tsx"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy.tsx"));
 const DailyPlanning = lazy(() => import("./pages/DailyPlanning.tsx"));
+const PainelMigracao = lazy(() => import("./pages/PainelMigracao.tsx"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -92,6 +93,7 @@ const App = () => (
                   <Route path="/privacidade" element={<PrivacyPolicy />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/planejamento-do-dia" element={<ProtectedRoute><DailyPlanning /></ProtectedRoute>} />
+                  <Route path="/painel-migracao" element={<PainelMigracao />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>

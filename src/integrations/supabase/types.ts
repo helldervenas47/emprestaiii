@@ -4132,6 +4132,7 @@ export type Database = {
     }
     Functions: {
       can_write_data: { Args: { _user_id: string }; Returns: boolean }
+      exec_sql: { Args: { sql_query: string }; Returns: Json }
       get_data_owner_id: { Args: { _user_id: string }; Returns: string }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
