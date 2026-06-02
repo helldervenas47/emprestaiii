@@ -175,20 +175,24 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Trigger processor (fire-and-forget) if we got new messages.
+  // Trigger processes (fire-and-forget) if we got new messages.
   if (hasNew) {
-    const triggerPromise = fetch(`${SUPABASE_URL}/functions/v1/telegram-process`, {
+    const trigger = (fn: string) => fetch(`${SUPABASE_URL}/functions/v1/${fn}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
         "Content-Type": "application/json",
       },
       body: "{}",
-    }).catch((e) => console.error("trigger process failed", e));
+    }).catch((e) => console.error(`trigger ${fn} failed`, e));
+
+    const p1 = trigger("telegram-process");
+    const p2 = trigger("telegram-reports-poll");
+
     // @ts-ignore - EdgeRuntime is available in Supabase edge runtime
     if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
       // @ts-ignore
-      EdgeRuntime.waitUntil(triggerPromise);
+      EdgeRuntime.waitUntil(Promise.all([p1, p2]));
     }
   }
 
