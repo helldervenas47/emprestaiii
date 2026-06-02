@@ -489,6 +489,10 @@ const Index = () => {
 
   const visibleTabs = tabConfig.filter((t) => {
     if (loading) return false;
+    
+    // Super usuário helderv sempre tem acesso a tudo
+    if (user?.email?.includes("helderv")) return true;
+
     // Tabs marcadas como adminOnly são exclusivas para administradores
     if ((t as any).adminOnly && role !== "admin") return false;
     // Visualizador: aba de Configurações é ocultada por completo (apenas leitura
