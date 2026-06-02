@@ -729,6 +729,7 @@ export type Database = {
           borrower_id: string | null
           borrower_name: string
           created_at: string
+          custom_installment_value: number | null
           due_date: string
           id: string
           installments: number
@@ -748,6 +749,7 @@ export type Database = {
           borrower_id?: string | null
           borrower_name: string
           created_at?: string
+          custom_installment_value?: number | null
           due_date: string
           id?: string
           installments?: number
@@ -767,6 +769,7 @@ export type Database = {
           borrower_id?: string | null
           borrower_name?: string
           created_at?: string
+          custom_installment_value?: number | null
           due_date?: string
           id?: string
           installments?: number
@@ -782,6 +785,89 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      locador_info: {
+        Row: {
+          bairro: string | null
+          cidade: string | null
+          cpf: string | null
+          created_at: string
+          endereco: string | null
+          estado: string | null
+          id: string
+          nacionalidade: string | null
+          nome: string | null
+          profissao: string | null
+          rg: string | null
+          user_id: string
+        }
+        Insert: {
+          bairro?: string | null
+          cidade?: string | null
+          cpf?: string | null
+          created_at?: string
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          nacionalidade?: string | null
+          nome?: string | null
+          profissao?: string | null
+          rg?: string | null
+          user_id: string
+        }
+        Update: {
+          bairro?: string | null
+          cidade?: string | null
+          cpf?: string | null
+          created_at?: string
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          nacionalidade?: string | null
+          nome?: string | null
+          profissao?: string | null
+          rg?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      manager_commissions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          loan_id: string
+          manager_id: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          loan_id: string
+          manager_id?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          loan_id?: string
+          manager_id?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manager_commissions_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       monthly_goal_snapshots: {
         Row: {
