@@ -97,21 +97,36 @@ export type Database = {
           created_at: string
           drive_file_id: string | null
           drive_url: string | null
+          error: string | null
+          filename: string | null
           id: string
+          size_bytes: number | null
+          status: string | null
+          triggered_by: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
           drive_file_id?: string | null
           drive_url?: string | null
+          error?: string | null
+          filename?: string | null
           id?: string
+          size_bytes?: number | null
+          status?: string | null
+          triggered_by?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
           drive_file_id?: string | null
           drive_url?: string | null
+          error?: string | null
+          filename?: string | null
           id?: string
+          size_bytes?: number | null
+          status?: string | null
+          triggered_by?: string | null
           user_id?: string
         }
         Relationships: []
@@ -204,6 +219,7 @@ export type Database = {
           paid: boolean
           paid_date: string | null
           paid_installments: number | null
+          parent_expense_id: string | null
           type: string
           user_id: string
         }
@@ -219,6 +235,7 @@ export type Database = {
           paid?: boolean
           paid_date?: string | null
           paid_installments?: number | null
+          parent_expense_id?: string | null
           type?: string
           user_id: string
         }
@@ -234,10 +251,19 @@ export type Database = {
           paid?: boolean
           paid_date?: string | null
           paid_installments?: number | null
+          parent_expense_id?: string | null
           type?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "expenses_parent_expense_id_fkey"
+            columns: ["parent_expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       loans: {
         Row: {
@@ -379,10 +405,47 @@ export type Database = {
         }
         Relationships: []
       }
+      products: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          price: number
+          stock: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          price?: number
+          stock?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          price?: number
+          stock?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
+          display_name: string | null
           email: string | null
           full_name: string | null
           id: string
@@ -392,6 +455,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          display_name?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
@@ -401,6 +465,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          display_name?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
@@ -411,6 +476,7 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          cancel_at_period_end: boolean | null
           created_at: string
           current_period_end: string | null
           current_period_start: string | null
@@ -423,6 +489,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cancel_at_period_end?: boolean | null
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
@@ -435,6 +502,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cancel_at_period_end?: boolean | null
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
@@ -634,6 +702,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_owner: {
+        Row: {
+          created_at: string
+          id: string
+          owner_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_telegram_bots: {
         Row: {
           active: boolean
@@ -676,6 +765,30 @@ export type Database = {
           token?: string
           updated_at?: string
           validation_status?: string | null
+        }
+        Relationships: []
+      }
+      vehicle_balance: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
