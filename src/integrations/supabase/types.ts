@@ -1056,6 +1056,7 @@ export type Database = {
           category: string | null
           created_at: string
           description: string | null
+          digits: string | null
           due_date: string | null
           expense_id: string | null
           external_id: string | null
@@ -1082,6 +1083,7 @@ export type Database = {
           category?: string | null
           created_at?: string
           description?: string | null
+          digits?: string | null
           due_date?: string | null
           expense_id?: string | null
           external_id?: string | null
@@ -1108,6 +1110,7 @@ export type Database = {
           category?: string | null
           created_at?: string
           description?: string | null
+          digits?: string | null
           due_date?: string | null
           expense_id?: string | null
           external_id?: string | null
