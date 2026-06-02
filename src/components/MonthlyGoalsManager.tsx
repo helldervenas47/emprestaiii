@@ -325,7 +325,7 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
                       const targetStr = fmtValue(g.targetValue, meta.unit, hidden);
                       const actualStr = fmtValue(g.actual, meta.unit, hidden);
                       const pctRound = Math.round(g.pct);
-                      const reached = meta.inverse ? g.actual <= g.targetValue : g.actual >= g.targetValue;
+                      const reached = (type === "max_default_rate" || type === "renegotiation_rate" || type === "daily_received_avg") ? g.pct >= 100 : (meta.inverse ? g.actual <= g.targetValue : g.actual >= g.targetValue);
                       return (
                         <div
                           key={g.id}
