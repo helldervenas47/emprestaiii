@@ -1532,15 +1532,6 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
         </>
       )}
     </div>
-
-    <ConfirmDeleteDialog
-      open={confirmDeleteSale}
-      onOpenChange={setConfirmDeleteSale}
-      onConfirm={() => { onDelete(); setConfirmDeleteSale(false); }}
-      title="Excluir venda"
-      description="Tem certeza que deseja excluir esta venda?"
-    />
-    </div>
   );
 }
 type SaleCategory = "all" | "overdue" | "due_today" | "paid" | "on_track";
