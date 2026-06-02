@@ -110,24 +110,21 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
       const meta = GOAL_TYPE_META[g.goalType];
       let actual = computeActual(g.goalType, g.month);
       let target = g.targetValue;
-      // Para "Média Geral Recebida por Dia": interpretar alvo como meta DIÁRIA direta
+      // Para "Média Geral Recebida por Dia": computeActual já retorna a média diária
       if (g.goalType === "daily_received_avg") {
-        const [yy, mm] = g.month.split("-").map(Number);
-        const today = new Date();
-        const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
-        const daysInMonth = new Date(yy, mm, 0).getDate();
-        const isCurrent = g.month === currentMonth;
-        const daysElapsed = isCurrent
-          ? today.getDate()
-          : (g.month < currentMonth ? daysInMonth : 1);
-        actual = daysElapsed > 0 ? actual / daysElapsed : 0; // média diária recebida
-        target = g.targetValue; // a meta agora é interpretada DIRETAMENTE como valor diário
+        target = g.targetValue; // a meta é o valor diário configurado
       }
       let pct = 0;
       if (target > 0) {
-        pct = meta?.inverse
-          ? Math.max(0, 100 - (actual / target) * 100)
-          : Math.min(100, (actual / target) * 100);
+        pct = (g.goalType === "max_default_rate" || g.goalType === "renegotiation_rate" || g.goalType === "daily_received_avg")
+          ? (actual <= target && g.goalType !== "daily_received_avg" ? 100 : (g.goalType === "daily_received_avg" ? Math.min(100, (actual / target) * 100) : 0))
+          : meta?.inverse
+            ? Math.max(0, 100 - (actual / target) * 100)
+            : Math.min(100, (actual / target) * 100);
+            
+        if (g.goalType === "daily_received_avg") {
+          pct = Math.min(100, (actual / target) * 100);
+        }
       }
       return { ...g, actual, pct };
     }),
@@ -328,7 +325,7 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
                       const targetStr = fmtValue(g.targetValue, meta.unit, hidden);
                       const actualStr = fmtValue(g.actual, meta.unit, hidden);
                       const pctRound = Math.round(g.pct);
-                      const reached = meta.inverse ? g.actual <= g.targetValue : g.actual >= g.targetValue;
+                      const reached = (type === "max_default_rate" || type === "renegotiation_rate" || type === "daily_received_avg") ? g.pct >= 100 : (meta.inverse ? g.actual <= g.targetValue : g.actual >= g.targetValue);
                       return (
                         <div
                           key={g.id}

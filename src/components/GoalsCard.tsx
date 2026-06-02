@@ -204,7 +204,7 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
       calc: "Média Diária = 15.000 ÷ 10 = R$ 1.500/dia",
       result: "Progresso = (1.500 ÷ 2.000) × 100 = 75%",
     },
-    measurement: "Atingimento = (Média Realizada ÷ Meta Diária) × 100. Resultado em R$.",
+    measurement: "Meta de ATINGIMENTO: a meta só é considerada batida (status verde) se a média realizada for 100% ou mais do valor alvo diário.",
   },
 };
 
@@ -548,11 +548,20 @@ export function computeActual(
       return (received / expected) * 100;
     }
     case "daily_received_avg": {
-      // Total recebido no mês — pct é calculado contra a meta MENSAL.
-      // A média diária e o necessário/dia são derivados na visualização (small card e dashboard).
-      return payments
+      // Retorna a média diária: Total recebido no mês ÷ Dias decorridos (até hoje ou total do mês)
+      const received = payments
         .filter((p: any) => inMonth(p.date, m))
         .reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+      
+      const today = todayInAppTz();
+      const currentMonth = today.slice(0, 7);
+      const [yy, mm] = m.split("-").map(Number);
+      const daysInMonth = new Date(yy, mm, 0).getDate();
+      
+      const isCurrent = m === currentMonth;
+      const daysElapsed = isCurrent ? Number(today.slice(8, 10)) : (m < currentMonth ? daysInMonth : 1);
+      
+      return daysElapsed > 0 ? received / daysElapsed : 0;
     }
     default:
       return 0;
@@ -705,9 +714,9 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       // Se o mês já fechou e existe snapshot finalizado, usa o valor congelado.
       // Caso contrário, calcula em tempo real.
       let actual: number;
-      // Forçamos o re-cálculo em tempo real para a meta de média diária do mês de maio de 2026,
-      // para que a nova fórmula (valor diário vs meta diária) seja aplicada corretamente mesmo em meses "travados".
-      const forceRealtime = g.goalType === "daily_received_avg" && computeMonth === "2026-05";
+      // Forçamos o re-cálculo em tempo real para a meta de média diária,
+      // para garantir que a nova fórmula (valor diário vs meta diária) seja aplicada em todo o histórico.
+      const forceRealtime = g.goalType === "daily_received_avg";
       
       if (monthClosed && snapshot?.finalized && !forceRealtime) {
         actual = Number(snapshot.realizedValue) || 0;
@@ -719,11 +728,17 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
 
       let pct = 0;
       if (g.targetValue > 0) {
-        pct = (g.goalType === "max_default_rate" || g.goalType === "renegotiation_rate")
-          ? (actual <= g.targetValue ? 100 : 0)
+        // Meta de inadimplência, renegociação e média diária devem atingir 100% para serem sucesso
+        pct = (g.goalType === "max_default_rate" || g.goalType === "renegotiation_rate" || g.goalType === "daily_received_avg")
+          ? (actual <= g.targetValue && g.goalType !== "daily_received_avg" ? 100 : (g.goalType === "daily_received_avg" ? Math.min(100, (actual / g.targetValue) * 100) : 0))
           : meta?.inverse
             ? Math.max(0, 100 - (actual / g.targetValue) * 100)
             : Math.min(100, (actual / g.targetValue) * 100);
+        
+        // Ajuste fino para daily_received_avg: se a média é menor que a meta, pct não pode ser sucesso
+        if (g.goalType === "daily_received_avg") {
+          pct = Math.min(100, (actual / g.targetValue) * 100);
+        }
       }
       const expectedReceivable = g.goalType === "profit" ? computeExpectedReceivable(loans, computeMonth) : null;
       const targetAmount = g.goalType === "profit" && expectedReceivable !== null
@@ -735,21 +750,18 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       let monthlyPct: number | null = null;
       if (g.goalType === "daily_received_avg") {
         const [yy, mm] = computeMonth.split("-").map(Number);
-        const today = new Date();
-        const cur = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
         const daysInMonth = new Date(yy, mm, 0).getDate();
-        const isCurrent = computeMonth === cur;
-        const daysElapsed = isCurrent ? today.getDate() : (computeMonth < cur ? daysInMonth : 1);
         
-        receivedTotal = actual; // Guarda o total recebido no mês
-        const dailyAvg = daysElapsed > 0 ? actual / daysElapsed : 0;
-        const dailyTarget = g.targetValue; // A meta AGORA é interpretada diretamente como valor diário
+        // Agora o 'actual' vindo de computeActual já é a média diária.
+        // Precisamos reconstruir o receivedTotal para o detalhamento.
+        const today = todayInAppTz();
+        const currentMonth = today.slice(0, 7);
+        const isCurrent = computeMonth === currentMonth;
+        const daysElapsed = isCurrent ? Number(today.slice(8, 10)) : (computeMonth < currentMonth ? daysInMonth : 1);
         
-        actual = dailyAvg; // O "valor realizado" que aparece no card passa a ser a média diária
-        pct = dailyTarget > 0 ? Math.min(100, (dailyAvg / dailyTarget) * 100) : 0;
+        receivedTotal = actual * daysElapsed;
         
-        // monthlyPct para exibição auxiliar (progresso do total do mês se a meta fosse mensal, opcional)
-        const estimatedMonthlyTarget = dailyTarget * daysInMonth;
+        const estimatedMonthlyTarget = g.targetValue * daysInMonth;
         monthlyPct = estimatedMonthlyTarget > 0 ? Math.min(100, (receivedTotal / estimatedMonthlyTarget) * 100) : 0;
       }
 
@@ -841,8 +853,8 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
             {visibleGoals.map((g) => {
               const Icon = g.meta?.icon || Target;
-              const status = (g.goalType === "max_default_rate" || g.goalType === "renegotiation_rate")
-                ? (g.pct === 100 ? "success" : "destructive")
+              const status = (g.goalType === "max_default_rate" || g.goalType === "renegotiation_rate" || g.goalType === "daily_received_avg")
+                ? (g.pct >= 100 ? "success" : "destructive")
                 : g.pct >= 80
                   ? "success"
                   : g.pct >= 50
