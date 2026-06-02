@@ -2334,7 +2334,8 @@ function VehiclePayExpenseDialog({ expense, open, onOpenChange, onConfirm, forma
   );
 }
 
-export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense, readOnly = false, isVehicleView = false, locadores: locadoresProp, onSaveLocador: onSaveLocadorProp }: Props) {
+export function ProductSalesView(props: Props) {
+  const { sales, products, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense, readOnly = false, isVehicleView = false, locadores: locadoresProp, onSaveLocador: onSaveLocadorProp } = props;
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
