@@ -494,12 +494,17 @@ const Index = () => {
     // Visualizador: aba de Configurações é ocultada por completo (apenas leitura
     // não tem nada acionável aqui; backups, telegram, branding, etc. exigem escrita).
     if (t.id === "settings" && role === "visualizador") return false;
-    if (role === "admin") return true;
-    if (!user) return false;
-    // Para todas as abas (incluindo "settings"): se houver lista de
-    // permissões definida, exigir presença explícita. Sem lista = acesso total.
+    
+    // Se o usuário for admin, ele tem acesso a tudo por padrão,
+    // EXCETO se houver uma configuração explícita de abas que não inclua a atual.
+    // Isso permite que o admin se auto-restrinja ou restrinja outros admins se desejar.
     if (Array.isArray(allowedTabs)) return allowedTabs.includes(t.id);
-    return true;
+    
+    // Se não houver configuração de abas (allowedTabs === null), admins acessam tudo.
+    if (role === "admin") return true;
+    
+    // Outros papéis sem configuração explícita? Acesso negado por segurança (ou use true para legatário).
+    return false;
   });
 
   const canAccessTab = (id: Tab) => visibleTabs.some((t) => t.id === id);
