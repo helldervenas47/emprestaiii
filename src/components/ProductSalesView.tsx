@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, CheckCircle2, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus, Wallet, ChevronLeft, ChevronRight, LayoutGrid, Folder, List, FileText, BookOpen, Boxes } from "lucide-react";
+import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, CheckCircle2, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus, Wallet, ChevronLeft, ChevronRight, LayoutGrid, Folder, List, FileText, BookOpen, Boxes, ShieldCheck } from "lucide-react";
 import { StockManager } from "@/components/StockManager";
 import { SalesLedger } from "@/components/SalesLedger";
 import { generateContract } from "@/lib/generateContract";
@@ -55,6 +55,7 @@ import { ExpenseBoletoLinkButton } from "@/components/ExpenseBoletoLinkButton";
 
 interface Props {
   sales: Sale[];
+  products: Product[];
   onDeleteSale: (id: string) => void;
   onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void;
   clients?: Client[];
@@ -555,7 +556,7 @@ function RegisterSalePaymentDialog({
   );
 }
 
-function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [] }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string; readOnly?: boolean; clients?: Client[]; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[] }) {
+function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [], products = [] }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string; readOnly?: boolean; clients?: Client[]; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[]; products: Product[] }) {
   const { celebrate } = usePaymentCelebration();
   const { activeMethods } = usePaymentMethods();
   const methodById = useMemo(() => {
@@ -575,6 +576,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
   const [showPayments, setShowPayments] = useState(false);
   const [confirmDeleteSale, setConfirmDeleteSale] = useState(false);
+  const [showWarranty, setShowWarranty] = useState(false);
   const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
   const amounts = sale.installmentAmounts;
@@ -770,6 +772,41 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
             </Badge>
           </div>
           <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        </button>
+
+        {/* Garantia (modal) */}
+        {!readOnly && (
+          <WarrantyDialog
+            open={showWarranty}
+            onOpenChange={setShowWarranty}
+            sale={sale}
+            onUpdate={onUpdate}
+            products={products}
+            formatCurrency={formatCurrency}
+          />
+        )}
+
+        {/* Botão de Garantia */}
+        <button
+          type="button"
+          onClick={() => setShowWarranty(true)}
+          className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/30 transition-colors"
+        >
+          <div className="flex items-center gap-2 text-sm text-left">
+            <ShieldCheck className={`h-4 w-4 ${sale.warrantyProductId ? "text-primary" : "text-muted-foreground"}`} />
+            <span className="font-medium text-foreground">Garantia</span>
+            {sale.warrantyProductId && (
+              <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0 bg-primary/10 text-primary">
+                Ativa
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground truncate max-w-[120px]">
+            {sale.warrantyProductId 
+              ? products.find(p => p.id === sale.warrantyProductId)?.name || "Produto"
+              : "Não registrada"}
+            <ChevronDown className="h-4 w-4" />
+          </div>
         </button>
 
         {/* Row 5: Payment action panel */}
