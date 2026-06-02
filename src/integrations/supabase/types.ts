@@ -322,6 +322,7 @@ export type Database = {
       }
       credit_card_invoice_openings: {
         Row: {
+          card_id: string | null
           created_at: string
           credit_card_id: string
           id: string
@@ -331,6 +332,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          card_id?: string | null
           created_at?: string
           credit_card_id: string
           id?: string
@@ -340,6 +342,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          card_id?: string | null
           created_at?: string
           credit_card_id?: string
           id?: string
@@ -349,6 +352,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "credit_card_invoice_openings_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "credit_card_invoice_openings_credit_card_id_fkey"
             columns: ["credit_card_id"]
@@ -371,6 +381,7 @@ export type Database = {
           id: string
           last_digits: string | null
           name: string
+          nickname: string | null
           user_id: string
         }
         Insert: {
@@ -385,6 +396,7 @@ export type Database = {
           id?: string
           last_digits?: string | null
           name: string
+          nickname?: string | null
           user_id: string
         }
         Update: {
@@ -399,6 +411,7 @@ export type Database = {
           id?: string
           last_digits?: string | null
           name?: string
+          nickname?: string | null
           user_id?: string
         }
         Relationships: []
@@ -412,6 +425,7 @@ export type Database = {
           new_limit: number | null
           notes: string | null
           old_limit: number | null
+          previous_limit: number | null
           user_id: string
         }
         Insert: {
@@ -422,6 +436,7 @@ export type Database = {
           new_limit?: number | null
           notes?: string | null
           old_limit?: number | null
+          previous_limit?: number | null
           user_id: string
         }
         Update: {
@@ -432,6 +447,7 @@ export type Database = {
           new_limit?: number | null
           notes?: string | null
           old_limit?: number | null
+          previous_limit?: number | null
           user_id?: string
         }
         Relationships: [
@@ -439,6 +455,47 @@ export type Database = {
             foreignKeyName: "credit_limit_history_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_limits: {
+        Row: {
+          client_id: string
+          created_at: string
+          current_limit: number
+          id: string
+          last_auto_calculated_at: string | null
+          mode: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          current_limit?: number
+          id?: string
+          last_auto_calculated_at?: string | null
+          mode?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          current_limit?: number
+          id?: string
+          last_auto_calculated_at?: string | null
+          mode?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_limits_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
