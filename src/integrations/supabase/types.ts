@@ -320,6 +320,89 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_card_invoice_openings: {
+        Row: {
+          created_at: string
+          credit_card_id: string
+          id: string
+          month_label: string
+          opening_balance: number
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credit_card_id: string
+          id?: string
+          month_label: string
+          opening_balance?: number
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credit_card_id?: string
+          id?: string
+          month_label?: string
+          opening_balance?: number
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_card_invoice_openings_credit_card_id_fkey"
+            columns: ["credit_card_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_cards: {
+        Row: {
+          active: boolean | null
+          available_limit: number
+          brand: string | null
+          closing_day: number
+          created_at: string
+          credit_limit: number
+          current_invoice_amount: number
+          due_day: number
+          id: string
+          last_digits: string | null
+          name: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          available_limit?: number
+          brand?: string | null
+          closing_day: number
+          created_at?: string
+          credit_limit?: number
+          current_invoice_amount?: number
+          due_day: number
+          id?: string
+          last_digits?: string | null
+          name: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean | null
+          available_limit?: number
+          brand?: string | null
+          closing_day?: number
+          created_at?: string
+          credit_limit?: number
+          current_invoice_amount?: number
+          due_day?: number
+          id?: string
+          last_digits?: string | null
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       credit_limit_history: {
         Row: {
           change_type: string | null
