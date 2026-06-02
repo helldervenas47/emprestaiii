@@ -50,13 +50,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const fetchTabPermissions = async (userId: string) => {
-    const { data } = await supabase
+    // Pegar o owner_id para ver se existe configuração de plano/abas herdada,
+    // mas priorizar a configuração específica do usuário se existir.
+    const { data: userData } = await supabase
       .from("user_tab_permissions" as any)
       .select("allowed_tabs")
       .eq("user_id", userId)
       .maybeSingle();
 
-    setAllowedTabs((data as any)?.allowed_tabs || null);
+    if (userData?.allowed_tabs) {
+      setAllowedTabs(userData.allowed_tabs);
+      return;
+    }
+
+    // Se não tem perms específicas, tentar pegar do owner (se for sub-user)
+    const { data: ownerId } = await supabase.rpc("get_data_owner_id", { _user_id: userId });
+    if (ownerId && ownerId !== userId) {
+      const { data: ownerData } = await supabase
+        .from("user_tab_permissions" as any)
+        .select("allowed_tabs")
+        .eq("user_id", ownerId)
+        .maybeSingle();
+      
+      if (ownerData?.allowed_tabs) {
+        setAllowedTabs(ownerData.allowed_tabs);
+        return;
+      }
+    }
+
+    setAllowedTabs(null);
   };
 
   const fetchLinkedClients = async (userId: string) => {
