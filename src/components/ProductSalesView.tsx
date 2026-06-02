@@ -1412,6 +1412,17 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
                   </button>
                 </PopoverContent>
               </Popover>
+              {!readOnly && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-8 w-8 hover:bg-primary/10 ${sale.warrantyProductId ? "text-primary" : "text-muted-foreground"}`}
+                  title="Garantia"
+                  onClick={(e) => { e.stopPropagation(); setShowWarranty(true); }}
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -1444,6 +1455,16 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
+              {!readOnly && (
+                <WarrantyDialog
+                  open={showWarranty}
+                  onOpenChange={setShowWarranty}
+                  sale={sale}
+                  onUpdate={onUpdate}
+                  products={products || []}
+                  formatCurrency={formatCurrency}
+                />
+              )}
             </>
           )}
         </div>
