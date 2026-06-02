@@ -338,7 +338,7 @@ function WarrantyDialog({
 
       // Se já tinha uma garantia, devolve ao estoque antes de registrar a nova
       if (sale.warrantyProductId) {
-        const oldProduct = products.find(p => p.id === sale.warrantyProductId);
+        const oldProduct = (products || []).find(p => p.id === sale.warrantyProductId);
         if (oldProduct) {
           const restoredStock = oldProduct.stock + (sale.warrantyQuantity || 0);
           await supabase.from("products").update({ stock: restoredStock }).eq("id", sale.warrantyProductId);
@@ -357,9 +357,10 @@ function WarrantyDialog({
       await supabase.from("products").update({ stock: newStock }).eq("id", selectedProductId);
 
       // Registra movimento de estoque
+      const { data: { user } } = await supabase.auth.getUser();
       await supabase.from("stock_movements" as any).insert({
-        owner_id: (await supabase.auth.getUser()).data.user?.id, // fallback, ideally use dataOwnerId
-        user_id: (await supabase.auth.getUser()).data.user?.id,
+        owner_id: user?.id,
+        user_id: user?.id,
         product_id: selectedProductId,
         product_name: product.name,
         movement_type: "venda",
@@ -394,9 +395,10 @@ function WarrantyDialog({
         await supabase.from("products").update({ stock: restoredStock }).eq("id", sale.warrantyProductId);
         
         // Registra movimento de estorno
+        const { data: { user } } = await supabase.auth.getUser();
         await supabase.from("stock_movements" as any).insert({
-          owner_id: (await supabase.auth.getUser()).data.user?.id,
-          user_id: (await supabase.auth.getUser()).data.user?.id,
+          owner_id: user?.id,
+          user_id: user?.id,
           product_id: sale.warrantyProductId,
           product_name: product.name,
           movement_type: "entrada_manual",
