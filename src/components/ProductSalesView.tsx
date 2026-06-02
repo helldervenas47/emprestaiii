@@ -1570,6 +1570,23 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
             </span>
           )}
         </div>
+        
+        {sale.warrantyProductId && (
+          <div className="flex items-center gap-2 rounded-lg bg-primary/5 border border-primary/10 p-2 animate-in fade-in zoom-in-95 duration-200">
+            <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] text-muted-foreground leading-none uppercase tracking-wider mb-0.5 font-semibold">Garantia Ativa</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold text-foreground truncate">
+                  {products.find(p => p.id === sale.warrantyProductId)?.name || "Produto não encontrado"}
+                </p>
+                <Badge variant="secondary" className="h-4 text-[9px] px-1 bg-primary/10 text-primary border-primary/20 shrink-0">
+                  {sale.warrantyQuantity || 1} { (sale.warrantyQuantity || 1) > 1 ? "unidades" : "unidade" }
+                </Badge>
+              </div>
+            </div>
+          </div>
+        )}
 
         {sale.notes && (
           <p className="text-[11px] text-muted-foreground italic line-clamp-2 border-l-2 border-border/60 pl-2">
