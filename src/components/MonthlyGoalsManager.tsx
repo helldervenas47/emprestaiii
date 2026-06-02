@@ -37,7 +37,7 @@ const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: Unit; c
   max_default_rate:   { label: "Inadimplência Máxima",             icon: AlertTriangle, unit: "%",   color: "text-destructive", description: "Limite máximo de % de parcelas em atraso (meta inversa).", inverse: true },
   new_clients_count:  { label: "Novos Clientes no Mês",            icon: UserPlus,      unit: "qtd", color: "text-primary",     description: "Clientes cadastrados no período." },
   renegotiation_rate: { label: "Contratos Renegociados Máximo", icon: RefreshCw,     unit: "qtd", color: "text-destructive", description: "Limite máximo de contratos renegociados no mês.", inverse: true },
-  daily_received_avg: { label: "Média Geral Recebida por Dia",     icon: HandCoins,     unit: "R$",  color: "text-success",     description: "Meta mensal de recebimentos. Mostra média diária e quanto falta receber por dia até o fim do mês." },
+  daily_received_avg: { label: "Meta de Recebimento Diário",     icon: HandCoins,     unit: "R$",  color: "text-success",     description: "Defina o valor médio que deseja receber por dia. O sistema calculará a média real do mês e comparará com este valor." },
 };
 
 const ALL_TYPES = Object.keys(GOAL_TYPE_META) as GoalType[];
@@ -110,7 +110,7 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
       const meta = GOAL_TYPE_META[g.goalType];
       let actual = computeActual(g.goalType, g.month);
       let target = g.targetValue;
-      // Para "Média Geral Recebida por Dia": exibir e comparar em base diária
+      // Para "Média Geral Recebida por Dia": interpretar alvo como meta DIÁRIA direta
       if (g.goalType === "daily_received_avg") {
         const [yy, mm] = g.month.split("-").map(Number);
         const today = new Date();
@@ -121,7 +121,7 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
           ? today.getDate()
           : (g.month < currentMonth ? daysInMonth : 1);
         actual = daysElapsed > 0 ? actual / daysElapsed : 0; // média diária recebida
-        target = g.targetValue / daysInMonth; // meta diária implícita
+        target = g.targetValue; // a meta agora é interpretada DIRETAMENTE como valor diário
       }
       let pct = 0;
       if (target > 0) {

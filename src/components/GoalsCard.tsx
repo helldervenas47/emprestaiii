@@ -189,20 +189,20 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     measurement: "Meta MÁXIMA: o objetivo é não ultrapassar a quantidade definida. Atingimento = (Quantidade realizada ÷ Meta) × 100.",
   },
   daily_received_avg: {
-    formula: "Média diária = Total Recebido no mês ÷ Dias corridos do mês até hoje",
+    formula: "Média Diária = Total Recebido no Mês ÷ Dias Decorridos",
     indicators: [
       "Total Recebido = soma de todos os pagamentos com data no mês",
-      "Dias corridos = somente dias do início do mês até a data atual (não conta o mês inteiro)",
-      "Necessário/dia = (Meta mensal − Total recebido) ÷ Dias restantes do mês",
-      "Atingimento medido contra a Meta MENSAL cadastrada",
+      "Dias Decorridos = dias do início do mês até hoje (ou total de dias se mês passado)",
+      "Meta Diária = valor configurado diretamente como alvo por dia",
+      "Atingimento = (Média Diária Atual ÷ Meta Diária Configurada) × 100",
     ],
     dataSource: ["Tabela de Pagamentos (payments)", "Campo: amount, date", "Filtro: date no mês selecionado"],
     example: {
-      setup: "Hoje é dia 10 do mês. Meta mensal: R$ 60.000. Total recebido: R$ 20.000.",
-      calc: "Média diária = 20.000 ÷ 10 = R$ 2.000/dia. Necessário/dia = (60.000 − 20.000) ÷ 20 dias restantes",
-      result: "Média diária atual = R$ 2.000/dia · Necessário = R$ 2.000/dia",
+      setup: "Meta diária configurada: R$ 2.000. Hoje é dia 10 e você recebeu R$ 15.000 no total do mês.",
+      calc: "Média Diária = 15.000 ÷ 10 = R$ 1.500/dia",
+      result: "Progresso = (1.500 ÷ 2.000) × 100 = 75%",
     },
-    measurement: "Atingimento = (Total Recebido ÷ Meta Mensal) × 100. Quando atingir 100%, exibe 'Meta atingida'.",
+    measurement: "Atingimento = (Média Realizada ÷ Meta Diária) × 100. Resultado em R$.",
   },
 };
 
@@ -220,7 +220,7 @@ const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: Unit; c
   max_default_rate:   { label: "Taxa de Inadimplência",             icon: AlertTriangle, unit: "%",   color: "text-destructive", bgColor: "bg-destructive/15", description: "Limite máximo de % de parcelas em atraso (meta inversa).", inverse: true },
   new_clients_count:  { label: "Novos Clientes",                   icon: UserPlus,      unit: "qtd", color: "text-primary",     bgColor: "bg-primary/15",     description: "Clientes cadastrados no período." },
   renegotiation_rate: { label: "Contratos Renegociados",        icon: RefreshCw,     unit: "qtd", color: "text-destructive", bgColor: "bg-destructive/15", description: "Limite máximo de contratos renegociados no mês.", inverse: true },
-  daily_received_avg: { label: "Receita Média Diária",           icon: HandCoins,     unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Meta mensal com média diária e necessário/dia restante." },
+  daily_received_avg: { label: "Média Recebida Diária",           icon: HandCoins,     unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Média diária recebida comparada à meta diária configurada." },
 };
 
 interface Props {
@@ -724,7 +724,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         ? expectedReceivable * (g.targetValue / 100)
         : null;
 
-      // Para "Média Geral Recebida por Dia": exibir como média diária e comparar contra meta diária implícita
+      // Para "Média Geral Recebida por Dia": exibir como média diária e comparar contra meta diária configurada
       let receivedTotal: number | null = null;
       let monthlyPct: number | null = null;
       if (g.goalType === "daily_received_avg") {
@@ -734,12 +734,17 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         const daysInMonth = new Date(yy, mm, 0).getDate();
         const isCurrent = computeMonth === cur;
         const daysElapsed = isCurrent ? today.getDate() : (computeMonth < cur ? daysInMonth : 1);
-        receivedTotal = actual;
-        monthlyPct = g.targetValue > 0 ? Math.min(100, (actual / g.targetValue) * 100) : 0;
+        
+        receivedTotal = actual; // Guarda o total recebido no mês
         const dailyAvg = daysElapsed > 0 ? actual / daysElapsed : 0;
-        const dailyTarget = daysInMonth > 0 ? g.targetValue / daysInMonth : 0;
-        actual = dailyAvg;
+        const dailyTarget = g.targetValue; // A meta AGORA é interpretada diretamente como valor diário
+        
+        actual = dailyAvg; // O "valor realizado" que aparece no card passa a ser a média diária
         pct = dailyTarget > 0 ? Math.min(100, (dailyAvg / dailyTarget) * 100) : 0;
+        
+        // monthlyPct para exibição auxiliar (progresso do total do mês se a meta fosse mensal, opcional)
+        const estimatedMonthlyTarget = dailyTarget * daysInMonth;
+        monthlyPct = estimatedMonthlyTarget > 0 ? Math.min(100, (receivedTotal / estimatedMonthlyTarget) * 100) : 0;
       }
 
       return { ...g, actual, pct, meta, expectedReceivable, targetAmount, receivedTotal, monthlyPct, isLocked: monthClosed && !!snapshot?.finalized };
