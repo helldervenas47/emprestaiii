@@ -2953,6 +2953,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
             onUpdateSale={onUpdateSale}
             clients={clients}
             readOnly={readOnly}
+            products={products}
           />
         </TabsContent>
       ))}
