@@ -1530,8 +1530,6 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
             initialMode="full"
           />
         </>
-      )}
-
       <ConfirmDeleteDialog
         open={confirmDeleteSale}
         onOpenChange={setConfirmDeleteSale}
