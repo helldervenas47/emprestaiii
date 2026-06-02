@@ -1542,7 +1542,15 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
         )}
 
         {!readOnly && (
-          <div className="pt-2 border-t border-border/40 grid grid-cols-3 gap-1.5">
+          <div className="pt-2 border-t border-border/40 grid grid-cols-4 gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className={`h-8 text-[11px] px-2 border-primary/30 hover:bg-primary hover:text-primary-foreground w-full justify-center ${sale.warrantyProductId ? "bg-primary/5 text-primary" : "text-muted-foreground"}`}
+              onClick={(e) => { e.stopPropagation(); setShowWarranty(true); }}
+            >
+              <ShieldCheck className="h-3.5 w-3.5 mr-1" /> Gar.
+            </Button>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
