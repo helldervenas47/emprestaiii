@@ -737,6 +737,7 @@ export type Database = {
           notes: string | null
           paid_installments: number
           payment_type: string
+          remaining_amount: number | null
           start_date: string
           status: string
           tags: string[] | null
@@ -755,6 +756,7 @@ export type Database = {
           notes?: string | null
           paid_installments?: number
           payment_type?: string
+          remaining_amount?: number | null
           start_date: string
           status?: string
           tags?: string[] | null
@@ -773,6 +775,7 @@ export type Database = {
           notes?: string | null
           paid_installments?: number
           payment_type?: string
+          remaining_amount?: number | null
           start_date?: string
           status?: string
           tags?: string[] | null
