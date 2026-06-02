@@ -1613,6 +1613,16 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
           </div>
         )}
         {!readOnly && (
+          <WarrantyDialog
+            open={showWarranty}
+            onOpenChange={setShowWarranty}
+            sale={sale}
+            onUpdate={onUpdate}
+            products={products || []}
+            formatCurrency={formatCurrency}
+          />
+        )}
+        {!readOnly && (
           <Button
             variant="outline"
             size="sm"
