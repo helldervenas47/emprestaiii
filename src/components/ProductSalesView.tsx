@@ -6,7 +6,7 @@ import { todayInAppTz } from "@/lib/timezone";
 import { getDueStatusBadge } from "@/lib/dueStatus";
 import { SalePaymentRecord } from "@/types/loan";
 import { DatePickerField } from "@/components/ui/date-picker-field";
-import { Sale, BusinessType, Client, Expense } from "@/types/loan";
+import { Sale, BusinessType, Client, Expense, Product } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -295,6 +295,202 @@ function SalePaymentHistoryDialog({
             </div>
           )}
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function WarrantyDialog({
+  open,
+  onOpenChange,
+  sale,
+  onUpdate,
+  products,
+  formatCurrency,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  sale: Sale;
+  onUpdate: (data: Partial<Omit<Sale, "id">>) => void;
+  products: Product[];
+  formatCurrency: (v: number) => string;
+}) {
+  const [selectedProductId, setSelectedProductId] = useState<string>(sale.warrantyProductId || "");
+  const [quantity, setQuantity] = useState<string>(sale.warrantyQuantity?.toString() || "1");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!selectedProductId) {
+      toast.error("Selecione um produto para a garantia.");
+      return;
+    }
+
+    const qty = parseInt(quantity) || 0;
+    if (qty <= 0) {
+      toast.error("A quantidade deve ser maior que zero.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const product = products.find(p => p.id === selectedProductId);
+      if (!product) throw new Error("Produto não encontrado");
+
+      // Se já tinha uma garantia, devolve ao estoque antes de registrar a nova
+      if (sale.warrantyProductId) {
+        const oldProduct = products.find(p => p.id === sale.warrantyProductId);
+        if (oldProduct) {
+          const restoredStock = oldProduct.stock + (sale.warrantyQuantity || 0);
+          await supabase.from("products").update({ stock: restoredStock }).eq("id", sale.warrantyProductId);
+        }
+      }
+
+      // Valida estoque do novo produto
+      if (product.stock < qty) {
+        toast.error(`Estoque insuficiente de "${product.name}" (disponível: ${product.stock}).`);
+        setSubmitting(false);
+        return;
+      }
+
+      // Atualiza estoque do novo produto
+      const newStock = product.stock - qty;
+      await supabase.from("products").update({ stock: newStock }).eq("id", selectedProductId);
+
+      // Registra movimento de estoque
+      await supabase.from("stock_movements" as any).insert({
+        owner_id: (await supabase.auth.getUser()).data.user?.id, // fallback, ideally use dataOwnerId
+        user_id: (await supabase.auth.getUser()).data.user?.id,
+        product_id: selectedProductId,
+        product_name: product.name,
+        movement_type: "venda",
+        quantity: -qty,
+        notes: `Garantia vinculada ao contrato de ${sale.customerName}`,
+        sale_id: sale.id,
+      } as any);
+
+      await onUpdate({
+        warrantyProductId: selectedProductId,
+        warrantyQuantity: qty,
+      });
+
+      toast.success("Garantia registrada com sucesso e estoque atualizado!");
+      onOpenChange(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao registrar garantia.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    if (!sale.warrantyProductId) return;
+    
+    setSubmitting(true);
+    try {
+      const product = products.find(p => p.id === sale.warrantyProductId);
+      if (product) {
+        const restoredStock = product.stock + (sale.warrantyQuantity || 0);
+        await supabase.from("products").update({ stock: restoredStock }).eq("id", sale.warrantyProductId);
+        
+        // Registra movimento de estorno
+        await supabase.from("stock_movements" as any).insert({
+          owner_id: (await supabase.auth.getUser()).data.user?.id,
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          product_id: sale.warrantyProductId,
+          product_name: product.name,
+          movement_type: "entrada_manual",
+          quantity: sale.warrantyQuantity || 0,
+          notes: `Estorno de garantia (cancelamento) - contrato ${sale.customerName}`,
+          sale_id: sale.id,
+        } as any);
+      }
+
+      await onUpdate({
+        warrantyProductId: null,
+        warrantyQuantity: null,
+      });
+
+      toast.success("Garantia removida e estoque estornado.");
+      onOpenChange(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao remover garantia.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const selectedProduct = products.find(p => p.id === selectedProductId);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md bg-card/90 backdrop-blur-2xl border-white/10 shadow-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            Configurar Garantia
+          </DialogTitle>
+          <DialogDescription>
+            Vincule um produto deste contrato como garantia. O estoque será atualizado automaticamente.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Produto em Garantia</Label>
+            <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um produto" />
+              </SelectTrigger>
+              <SelectContent>
+                {products.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name} (Estoque: {p.stock})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Quantidade</Label>
+            <Input
+              type="number"
+              min="1"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+            />
+          </div>
+
+          {selectedProduct && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Impacto no Estoque</p>
+              <p className="text-sm font-semibold">
+                Serão removidas <span className="text-primary">{quantity}</span> unidades de <span className="text-primary">{selectedProduct.name}</span>.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          {sale.warrantyProductId && (
+            <Button
+              variant="ghost"
+              className="text-destructive hover:bg-destructive/10"
+              onClick={handleRemove}
+              disabled={submitting}
+            >
+              Remover Garantia
+            </Button>
+          )}
+          <div className="flex-1" />
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleSubmit} disabled={submitting || !selectedProductId}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+            {sale.warrantyProductId ? "Atualizar" : "Registrar"} Garantia
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
