@@ -58,7 +58,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.href.split('?')[0],
+          redirectTo: window.location.origin,
           queryParams: { prompt: "select_account" },
         },
       });
@@ -80,30 +80,22 @@ const Auth = () => {
     setLoading(true);
     let emailToUse = loginId;
     if (!isEmail(loginId)) {
-      try {
-        const { data, error } = await supabase.functions.invoke("login-with-username", {
-          body: { username: loginId, password },
-        });
-
-        if (error || (data && data.error)) {
-          setLoading(false);
-          const errorMessage = data?.error || "Email/usuário ou senha incorretos";
-          toast.error(errorMessage);
-          return;
-        }
-
-        if (!data?.email) {
-          setLoading(false);
-          toast.error("Email não encontrado para este usuário");
-          return;
-        }
-        
-        emailToUse = data.email;
-      } catch (err) {
+      const { data, error } = await supabase.functions.invoke("login-with-username", {
+        body: { username: loginId, password },
+      });
+      let serverError: string | undefined = data?.error;
+      if (error && (error as any).context instanceof Response) {
+        try {
+          const body = await (error as any).context.clone().json();
+          serverError = body?.error ?? serverError;
+        } catch { /* noop */ }
+      }
+      if (error || data?.error) {
         setLoading(false);
-        toast.error("Erro ao validar usuário");
+        toast.error(serverError || "Email/usuário ou senha incorretos");
         return;
       }
+      emailToUse = data.email;
     }
     const { error } = await supabase.auth.signInWithPassword({ email: emailToUse, password });
     setLoading(false);

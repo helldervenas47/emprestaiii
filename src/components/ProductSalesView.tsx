@@ -6,7 +6,7 @@ import { todayInAppTz } from "@/lib/timezone";
 import { getDueStatusBadge } from "@/lib/dueStatus";
 import { SalePaymentRecord } from "@/types/loan";
 import { DatePickerField } from "@/components/ui/date-picker-field";
-import { Sale, BusinessType, Client, Expense, Product } from "@/types/loan";
+import { Sale, BusinessType, Client, Expense } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, CheckCircle2, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus, Wallet, ChevronLeft, ChevronRight, LayoutGrid, Folder, List, FileText, BookOpen, Boxes, ShieldCheck, Loader2 } from "lucide-react";
+import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, CheckCircle2, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus, Wallet, ChevronLeft, ChevronRight, LayoutGrid, Folder, List, FileText, BookOpen, Boxes } from "lucide-react";
 import { StockManager } from "@/components/StockManager";
 import { SalesLedger } from "@/components/SalesLedger";
 import { generateContract } from "@/lib/generateContract";
@@ -55,7 +55,6 @@ import { ExpenseBoletoLinkButton } from "@/components/ExpenseBoletoLinkButton";
 
 interface Props {
   sales: Sale[];
-  products: Product[];
   onDeleteSale: (id: string) => void;
   onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void;
   clients?: Client[];
@@ -295,204 +294,6 @@ function SalePaymentHistoryDialog({
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function WarrantyDialog({
-  open,
-  onOpenChange,
-  sale,
-  onUpdate,
-  products,
-  formatCurrency,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  sale: Sale;
-  onUpdate: (data: Partial<Omit<Sale, "id">>) => void;
-  products: Product[];
-  formatCurrency: (v: number) => string;
-}) {
-  const [selectedProductId, setSelectedProductId] = useState<string>(sale.warrantyProductId || "");
-  const [quantity, setQuantity] = useState<string>(sale.warrantyQuantity?.toString() || "1");
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleSubmit = async () => {
-    if (!selectedProductId) {
-      toast.error("Selecione um produto para a garantia.");
-      return;
-    }
-
-    const qty = parseInt(quantity) || 0;
-    if (qty <= 0) {
-      toast.error("A quantidade deve ser maior que zero.");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const product = (products || []).find((p: Product) => p.id === selectedProductId);
-      if (!product) throw new Error("Produto não encontrado");
-
-      // Se já tinha uma garantia, devolve ao estoque antes de registrar a nova
-      if (sale.warrantyProductId) {
-        const oldProduct = (products || []).find(p => p.id === sale.warrantyProductId);
-        if (oldProduct) {
-          const restoredStock = oldProduct.stock + (sale.warrantyQuantity || 0);
-          await supabase.from("products").update({ stock: restoredStock }).eq("id", sale.warrantyProductId);
-        }
-      }
-
-      // Valida estoque do novo produto
-      if (product.stock < qty) {
-        toast.error(`Estoque insuficiente de "${product.name}" (disponível: ${product.stock}).`);
-        setSubmitting(false);
-        return;
-      }
-
-      // Atualiza estoque do novo produto
-      const newStock = product.stock - qty;
-      await supabase.from("products").update({ stock: newStock }).eq("id", selectedProductId);
-
-      // Registra movimento de estoque
-      const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from("stock_movements" as any).insert({
-        owner_id: user?.id,
-        user_id: user?.id,
-        product_id: selectedProductId,
-        product_name: product.name,
-        movement_type: "venda",
-        quantity: -qty,
-        notes: `Garantia vinculada ao contrato de ${sale.customerName}`,
-        sale_id: sale.id,
-      } as any);
-
-      await onUpdate({
-        warrantyProductId: selectedProductId,
-        warrantyQuantity: qty,
-      });
-
-      toast.success("Garantia registrada com sucesso e estoque atualizado!");
-      onOpenChange(false);
-    } catch (error) {
-      console.error(error);
-      toast.error("Erro ao registrar garantia.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleRemove = async () => {
-    if (!sale.warrantyProductId) return;
-    
-    setSubmitting(true);
-    try {
-      const product = (products || []).find((p: Product) => p.id === sale.warrantyProductId);
-      if (product) {
-        const restoredStock = product.stock + (sale.warrantyQuantity || 0);
-        await supabase.from("products").update({ stock: restoredStock }).eq("id", sale.warrantyProductId);
-        
-        // Registra movimento de estorno
-        const { data: { user } } = await supabase.auth.getUser();
-        await supabase.from("stock_movements" as any).insert({
-          owner_id: user?.id,
-          user_id: user?.id,
-          product_id: sale.warrantyProductId,
-          product_name: product.name,
-          movement_type: "entrada_manual",
-          quantity: sale.warrantyQuantity || 0,
-          notes: `Estorno de garantia (cancelamento) - contrato ${sale.customerName}`,
-          sale_id: sale.id,
-        } as any);
-      }
-
-      await onUpdate({
-        warrantyProductId: null,
-        warrantyQuantity: null,
-      });
-
-      toast.success("Garantia removida e estoque estornado.");
-      onOpenChange(false);
-    } catch (error) {
-      console.error(error);
-      toast.error("Erro ao remover garantia.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const selectedProduct = products.find(p => p.id === selectedProductId);
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-card/90 backdrop-blur-2xl border-white/10 shadow-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-primary" />
-            Configurar Garantia
-          </DialogTitle>
-          <DialogDescription>
-            Vincule um produto deste contrato como garantia. O estoque será atualizado automaticamente.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label>Produto em Garantia</Label>
-            <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um produto" />
-              </SelectTrigger>
-              <SelectContent>
-                {products.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name} (Estoque: {p.stock})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Quantidade</Label>
-            <Input
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-            />
-          </div>
-
-          {selectedProduct && (
-            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">Impacto no Estoque</p>
-              <p className="text-sm font-semibold">
-                Serão removidas <span className="text-primary">{quantity}</span> unidades de <span className="text-primary">{selectedProduct.name}</span>.
-              </p>
-            </div>
-          )}
-        </div>
-
-        <DialogFooter className="flex flex-col sm:flex-row gap-2">
-          {sale.warrantyProductId && (
-            <Button
-              variant="ghost"
-              className="text-destructive hover:bg-destructive/10"
-              onClick={handleRemove}
-              disabled={submitting}
-            >
-              Remover Garantia
-            </Button>
-          )}
-          <div className="flex-1" />
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={submitting || !selectedProductId}>
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-            {sale.warrantyProductId ? "Atualizar" : "Registrar"} Garantia
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -754,7 +555,7 @@ function RegisterSalePaymentDialog({
   );
 }
 
-function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [], products = [] }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string; readOnly?: boolean; clients?: Client[]; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[]; products: Product[] }) {
+function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [] }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string; readOnly?: boolean; clients?: Client[]; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[] }) {
   const { celebrate } = usePaymentCelebration();
   const { activeMethods } = usePaymentMethods();
   const methodById = useMemo(() => {
@@ -774,7 +575,6 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
   const [showPayments, setShowPayments] = useState(false);
   const [confirmDeleteSale, setConfirmDeleteSale] = useState(false);
-  const [showWarranty, setShowWarranty] = useState(false);
   const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
   const amounts = sale.installmentAmounts;
@@ -972,41 +772,6 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
           <ChevronDown className="h-4 w-4 text-muted-foreground" />
         </button>
 
-        {/* Garantia (modal) */}
-        {!readOnly && (
-          <WarrantyDialog
-            open={showWarranty}
-            onOpenChange={setShowWarranty}
-            sale={sale}
-            onUpdate={onUpdate}
-            products={products || []}
-            formatCurrency={formatCurrency}
-          />
-        )}
-
-        {/* Botão de Garantia */}
-        <button
-          type="button"
-          onClick={() => setShowWarranty(true)}
-          className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/30 transition-colors"
-        >
-          <div className="flex items-center gap-2 text-sm text-left">
-            <ShieldCheck className={`h-4 w-4 ${sale.warrantyProductId ? "text-primary" : "text-muted-foreground"}`} />
-            <span className="font-medium text-foreground">Garantia</span>
-            {sale.warrantyProductId && (
-              <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0 bg-primary/10 text-primary">
-                Ativa
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground truncate max-w-[120px]">
-            {sale.warrantyProductId 
-              ? products.find(p => p.id === sale.warrantyProductId)?.name || "Produto"
-              : "Não registrada"}
-            <ChevronDown className="h-4 w-4" />
-          </div>
-        </button>
-
         {/* Row 5: Payment action panel */}
         <div className="mt-auto space-y-2">
           {(() => {
@@ -1166,11 +931,6 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                 <CircleCheck className="h-4 w-4" />
               </Button>
               {!readOnly && (
-                <Button size="icon" variant="ghost" className={`h-8 w-8 hover:bg-primary/10 ${sale.warrantyProductId ? "text-primary" : "text-muted-foreground"}`} onClick={() => setShowWarranty(true)} title="Garantia">
-                  <ShieldCheck className="h-4 w-4" />
-                </Button>
-              )}
-              {!readOnly && (
                 <>
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={onEdit}>
                     <Pencil className="h-4 w-4" />
@@ -1212,7 +972,7 @@ function getNextInstallmentValueHelper(s: Sale): number {
   return s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
 }
 
-function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnly = false, incomeCategoryByName, products = [] }: {
+function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnly = false, incomeCategoryByName }: {
   sale: Sale;
   onEdit: () => void;
   onDelete: () => void;
@@ -1220,14 +980,12 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
   formatCurrency: (v: number) => string;
   readOnly?: boolean;
   incomeCategoryByName?: Map<string, CustomIncomeCategory>;
-  products?: Product[];
 }) {
   const [confirmDeleteSale, setConfirmDeleteSale] = useState(false);
   const [showPartial, setShowPartial] = useState(false);
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
   const [showPayments, setShowPayments] = useState(false);
   const historyCount = (sale.paymentHistory || []).length;
-  const [showWarranty, setShowWarranty] = useState(false);
 
   const category = getSaleCategory(sale);
   const catStyle = saleCategoryConfig[category];
@@ -1238,7 +996,6 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
   const nextDue = getNextDueDateHelper(sale);
   const nextInstValue = getNextInstallmentValueHelper(sale);
   const partialOnNext = (sale.partialPaid || 0) > 0 ? Math.max(0, nextInstValue - (sale.partialPaid || 0)) : nextInstValue;
-  const productsList = (sale as any)._products || []; // We'll pass products through if available
 
   const incomeCat = sale.category ? incomeCategoryByName?.get(sale.category) : undefined;
   const CatIcon = incomeCat ? (personalIconMap[incomeCat.icon] ?? personalIconMap.Package) : Tag;
@@ -1255,14 +1012,12 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
     ? { label: "Vence hoje", cls: "bg-warning/15 text-warning border-warning/30" }
     : { label: "Em dia", cls: "bg-primary/15 text-primary border-primary/30" };
 
-  return (
+   return (
     <div className="flex flex-col">
-      <div 
-        className={cn(
-          "flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 hover:bg-muted/30 transition-colors cursor-pointer",
-          expanded && "bg-muted/20"
-        )}
-        onClick={() => setExpanded((v) => !v)}
+    <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 hover:bg-muted/30 transition-colors">
+      <div
+        className={`contents text-left ${isMobile ? "cursor-pointer" : ""}`}
+        onClick={isMobile ? () => setExpanded((v) => !v) : undefined}
       >
         <div className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-primary-foreground font-bold text-[10px] sm:text-xs shrink-0 ${
           category === "paid" ? "bg-success" : category === "overdue" ? "bg-destructive" : category === "due_today" ? "bg-warning" : "gradient-primary"
@@ -1320,130 +1075,68 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
             </>
           )}
         </div>
-        <div className="shrink-0 pl-1">
-          {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-        </div>
+        {isMobile && (
+          <div className="shrink-0 pl-1">
+            {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          </div>
+        )}
       </div>
 
-      {expanded && (
-        <div className={cn(
-          "px-2.5 sm:px-4 pb-3 pt-1 space-y-3 animate-in fade-in duration-300",
-          !isMobile && "border-t border-border/10 bg-muted/5"
-        )}>
-          {sale.warrantyProductId && (
-            <div className="flex items-center gap-3 rounded-xl bg-primary/5 border border-primary/10 p-2.5 animate-in slide-in-from-top-1 duration-200">
-              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <ShieldCheck className="h-5 w-5 text-primary" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <p className="text-[10px] text-primary/70 uppercase tracking-widest font-bold">Garantia Vinculada</p>
-                  <Badge variant="outline" className="h-4 text-[9px] px-1.5 border-primary/20 bg-primary/5 text-primary">
-                    {sale.warrantyQuantity || 1} { (sale.warrantyQuantity || 1) > 1 ? "unidades" : "unidade" }
-                  </Badge>
-                </div>
-                <p className="text-sm font-bold text-foreground truncate">
-                  {products.find(p => p.id === sale.warrantyProductId)?.name || "Produto não identificado"}
-                </p>
-              </div>
-            </div>
+      {(isPaid || readOnly) ? (
+        <div className="shrink-0 flex items-center justify-end gap-1">
+          {!isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-success hover:bg-success/10 relative"
+              title="Histórico de pagamentos"
+              onClick={(e) => { e.stopPropagation(); setShowPayments(true); }}
+            >
+              <Receipt className="h-4 w-4" />
+              {historyCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-success text-success-foreground text-[10px] font-bold flex items-center justify-center">
+                  {historyCount}
+                </span>
+              )}
+            </Button>
           )}
-
-          {isMobile && (() => {
-            const pct = sale.total > 0 ? Math.min(100, (totalPaidIncludingPartial / sale.total) * 100) : 0;
-            return (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-[10px] text-muted-foreground leading-none">Valor total</p>
-                    <p className="font-bold text-foreground tabular-nums text-sm leading-tight">{formatCurrency(sale.total)}</p>
-                  </div>
-                  <span className={`shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusInfo.cls}`}>
-                    {statusInfo.label}
-                  </span>
-                </div>
-
-                <div className="space-y-1 text-xs">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-muted-foreground text-[10px] uppercase tracking-wide">Cliente</span>
-                    <span className="font-semibold text-foreground truncate">{sale.customerName || "—"}</span>
-                  </div>
-                  {(sale.description || sale.productName) && (
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-muted-foreground text-[10px] uppercase tracking-wide shrink-0">Descrição</span>
-                      <span className="font-medium text-foreground text-right line-clamp-2 break-words">{sale.description || sale.productName}</span>
-                    </div>
-                  )}
-                </div>
-
-                {!isPaid && sale.total > 0 && (
-                  <div className="space-y-1">
-                    <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full bg-success rounded-full transition-all duration-500"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-[10px] tabular-nums">
-                      <span className="text-success font-semibold">{formatCurrency(totalPaidIncludingPartial)} pago</span>
-                      <span className="text-warning font-semibold">{formatCurrency(remaining)} restante</span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex flex-wrap gap-1.5 text-[10px]">
-                  <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 font-semibold text-foreground tabular-nums">
-                    <Receipt className="h-3 w-3 text-muted-foreground" />
-                    {sale.paidInstallments}/{sale.installments} parcelas
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 font-semibold text-foreground tabular-nums">
-                    <CalendarIcon className="h-3 w-3 text-muted-foreground" />
-                    {isPaid ? "Quitado" : format(nextDue, "dd/MM/yyyy")}
-                  </span>
-                  {historyCount > 0 && (
-                    <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 font-semibold text-foreground tabular-nums">
-                      {historyCount} pgto{historyCount > 1 ? "s" : ""}
-                    </span>
-                  )}
-                </div>
-
-                {sale.notes && (
-                  <p className="text-[11px] text-muted-foreground italic line-clamp-2 border-l-2 border-border/60 pl-2">
-                    {sale.notes}
-                  </p>
-                )}
-              </div>
-            );
-          })()}
-
-          <div className={cn(
-            "pt-2 flex flex-wrap gap-1.5 items-center",
-            isMobile ? "border-t border-border/40 grid grid-cols-2 xs:grid-cols-4" : "justify-end"
-          )}>
-            {!readOnly && (
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "h-8 text-[11px] px-2 border-primary/30 hover:bg-primary hover:text-primary-foreground flex-1 sm:flex-none",
-                  sale.warrantyProductId ? "bg-primary/5 text-primary" : "text-muted-foreground"
-                )}
-                onClick={(e) => { e.stopPropagation(); setShowWarranty(true); }}
-              >
-                <ShieldCheck className="h-3.5 w-3.5 mr-1" /> Gar.
-              </Button>
-            )}
-
-            {!isPaid && !readOnly && (
+          {!readOnly && !isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground"
+              title="Editar"
+              onClick={onEdit}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+          )}
+          {!readOnly && !isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              title="Excluir"
+              onClick={(e) => { e.stopPropagation(); setConfirmDeleteSale(true); }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="shrink-0 flex items-center justify-end gap-1">
+          {!isMobile && (
+            <>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-[11px] px-2 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground flex-1 sm:flex-none"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-primary hover:bg-primary/10"
+                    title="Pagar"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <HandCoins className="h-3.5 w-3.5 mr-1" /> Pagar
+                    <HandCoins className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-52 p-1" align="end">
@@ -1465,46 +1158,42 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
                   </button>
                 </PopoverContent>
               </Popover>
-            )}
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-[11px] px-2 border-success/30 text-success hover:bg-success hover:text-success-foreground relative flex-1 sm:flex-none"
-              onClick={(e) => { e.stopPropagation(); setShowPayments(true); }}
-            >
-              <Receipt className="h-3.5 w-3.5 mr-1" /> Histórico
-              {historyCount > 0 && (
-                <Badge variant="secondary" className="ml-1 text-[9px] px-1 py-0 h-4 min-w-[16px]">
-                  {historyCount}
-                </Badge>
-              )}
-            </Button>
-
-            {!readOnly && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-[11px] px-2 border-secondary text-secondary-foreground hover:bg-secondary/80 flex-1 sm:flex-none"
-                  onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                >
-                  <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground flex-1 sm:flex-none"
-                  onClick={(e) => { e.stopPropagation(); setConfirmDeleteSale(true); }}
-                >
-                  <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
-                </Button>
-              </>
-            )}
-          </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-success hover:bg-success/10 relative"
+                title="Histórico de pagamentos"
+                onClick={(e) => { e.stopPropagation(); setShowPayments(true); }}
+              >
+                <Receipt className="h-4 w-4" />
+                {historyCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-success text-success-foreground text-[10px] font-bold flex items-center justify-center">
+                    {historyCount}
+                  </span>
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground"
+                title="Editar"
+                onClick={onEdit}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                title="Excluir"
+                onClick={(e) => { e.stopPropagation(); setConfirmDeleteSale(true); }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </>
+          )}
         </div>
       )}
-
       <SalePaymentHistoryDialog
         open={showPayments}
         onOpenChange={setShowPayments}
@@ -1513,7 +1202,6 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
         formatCurrency={formatCurrency}
         readOnly={readOnly}
       />
-      
       {!isPaid && !readOnly && (
         <>
           <RegisterSalePaymentDialog
@@ -1534,25 +1222,151 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
           />
         </>
       )}
+    </div>
 
-      {!readOnly && (
-        <WarrantyDialog
-          open={showWarranty}
-          onOpenChange={setShowWarranty}
-          sale={sale}
-          onUpdate={onUpdate}
-          products={products || []}
-          formatCurrency={formatCurrency}
-        />
-      )}
+    {isMobile && expanded && (() => {
+      const pct = sale.total > 0 ? Math.min(100, (totalPaidIncludingPartial / sale.total) * 100) : 0;
+      return (
+      <div className="px-2.5 pb-2.5 pt-2 mx-2 mb-2 rounded-xl bg-muted/30 border border-border/40 animate-in slide-in-from-top-1 fade-in duration-200 space-y-2">
+        {/* Header: valor + status */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-[10px] text-muted-foreground leading-none">Valor total</p>
+            <p className="font-bold text-foreground tabular-nums text-sm leading-tight">{formatCurrency(sale.total)}</p>
+          </div>
+          <span className={`shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusInfo.cls}`}>
+            {statusInfo.label}
+          </span>
+        </div>
 
-      <ConfirmDeleteDialog
-        open={confirmDeleteSale}
-        onOpenChange={setConfirmDeleteSale}
-        onConfirm={() => { onDelete(); setConfirmDeleteSale(false); }}
-        title="Excluir venda"
-        description="Tem certeza que deseja excluir esta venda?"
-      />
+        {/* Cliente + Descrição */}
+        <div className="space-y-1 text-xs">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-muted-foreground text-[10px] uppercase tracking-wide">Cliente</span>
+            <span className="font-semibold text-foreground truncate">{sale.customerName || "—"}</span>
+          </div>
+          {(sale.description || sale.productName) && (
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-muted-foreground text-[10px] uppercase tracking-wide shrink-0">Descrição</span>
+              <span className="font-medium text-foreground text-right line-clamp-2 break-words">{sale.description || sale.productName}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Progresso */}
+        {!isPaid && sale.total > 0 && (
+          <div className="space-y-1">
+            <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full bg-success rounded-full transition-all duration-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[10px] tabular-nums">
+              <span className="text-success font-semibold">{formatCurrency(totalPaidIncludingPartial)} pago</span>
+              <span className="text-warning font-semibold">{formatCurrency(remaining)} restante</span>
+            </div>
+          </div>
+        )}
+
+        {/* Chips compactos: parcelas + vencimento */}
+        <div className="flex flex-wrap gap-1.5 text-[10px]">
+          <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 font-semibold text-foreground tabular-nums">
+            <Receipt className="h-3 w-3 text-muted-foreground" />
+            {sale.paidInstallments}/{sale.installments} parcelas
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 font-semibold text-foreground tabular-nums">
+            <CalendarIcon className="h-3 w-3 text-muted-foreground" />
+            {isPaid ? "Quitado" : format(nextDue, "dd/MM/yyyy")}
+          </span>
+          {historyCount > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 font-semibold text-foreground tabular-nums">
+              {historyCount} pgto{historyCount > 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+
+        {sale.notes && (
+          <p className="text-[11px] text-muted-foreground italic line-clamp-2 border-l-2 border-border/60 pl-2">
+            {sale.notes}
+          </p>
+        )}
+
+        {!readOnly && (
+          <div className="pt-2 border-t border-border/40 grid grid-cols-3 gap-1.5">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-[11px] px-2 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground w-full justify-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <HandCoins className="h-3.5 w-3.5 mr-1" /> Pagar
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-52 p-1" align="end">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setShowPayDatePicker(true); }}
+                  className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground hover:bg-primary/10 transition-colors"
+                >
+                  <CheckCircle className="h-4 w-4 text-primary" />
+                  <span>Pagar Parcela</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setShowPartial(true); }}
+                  className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground hover:bg-warning/10 transition-colors"
+                >
+                  <HandCoins className="h-4 w-4 text-warning" />
+                  <span>Pagar Parcial</span>
+                </button>
+              </PopoverContent>
+            </Popover>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-[11px] px-2 border-success/30 text-success hover:bg-success hover:text-success-foreground relative w-full justify-center"
+              onClick={(e) => { e.stopPropagation(); setShowPayments(true); }}
+            >
+              <Receipt className="h-3.5 w-3.5 mr-1" /> Histórico
+              {historyCount > 0 && (
+                <Badge variant="secondary" className="ml-1 text-[9px] px-1 py-0">
+                  {historyCount}
+                </Badge>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-[11px] px-2 border-secondary text-secondary-foreground hover:bg-secondary/80 w-full justify-center"
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            >
+              <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+            </Button>
+          </div>
+        )}
+        {!readOnly && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground w-full justify-center"
+            onClick={(e) => { e.stopPropagation(); setConfirmDeleteSale(true); }}
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
+          </Button>
+        )}
+      </div>
+      );
+    })()}
+    <ConfirmDeleteDialog
+      open={confirmDeleteSale}
+      onOpenChange={setConfirmDeleteSale}
+      onConfirm={() => { onDelete(); setConfirmDeleteSale(false); }}
+      title="Excluir venda"
+      description="Tem certeza que deseja excluir esta venda?"
+    />
     </div>
   );
 }
@@ -1591,7 +1405,7 @@ function getSalePaidAmountHelper(s: Sale): number {
 }
 
 function SaleClientFolder({
-  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [], products = [],
+  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [],
 }: {
   group: SaleClientGroup;
   onDeleteSale: (id: string) => void;
@@ -1603,7 +1417,6 @@ function SaleClientFolder({
   locadorInfo?: LocadorInfo;
   registeredVehicles?: VehicleInfo[];
   locadores?: LocadorInfo[];
-  products: Product[];
 }) {
   const [open, setOpen] = useState(false);
   const activeCount = group.sales.filter((s) => getSaleCategory(s) !== "paid").length;
@@ -1676,7 +1489,6 @@ function SaleClientFolder({
                 locadorInfo={locadorInfo}
                 registeredVehicles={registeredVehicles}
                 locadores={locadores}
-                products={products || []}
               />
             ))}
           </div>
@@ -1686,7 +1498,7 @@ function SaleClientFolder({
   );
 }
 
-function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrackCard = false, renderAfterCards, readOnly = false, locadorInfo, registeredVehicles = [], locadores = [], products = [] }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void; clients?: Client[]; hideOnTrackCard?: boolean; renderAfterCards?: React.ReactNode; readOnly?: boolean; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[]; products: Product[] }) {
+function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrackCard = false, renderAfterCards, readOnly = false, locadorInfo, registeredVehicles = [], locadores = [] }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void; clients?: Client[]; hideOnTrackCard?: boolean; renderAfterCards?: React.ReactNode; readOnly?: boolean; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[] }) {
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<SaleCategory>("all");
@@ -2017,7 +1829,6 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 locadorInfo={locadorInfo}
                 registeredVehicles={registeredVehicles}
                 locadores={locadores}
-                products={products || []}
               />
             ))}
           </div>
@@ -2050,7 +1861,6 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 formatCurrency={formatCurrency}
                 readOnly={readOnly}
                 incomeCategoryByName={incomeCategoryByName}
-                products={products || []}
               />
             ))}
           </div>
@@ -2070,7 +1880,6 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
               locadorInfo={locadorInfo}
               registeredVehicles={registeredVehicles}
               locadores={locadores}
-              products={products || []}
             />
             </div>
           ))}
@@ -2288,8 +2097,7 @@ function VehiclePayExpenseDialog({ expense, open, onOpenChange, onConfirm, forma
   );
 }
 
-export function ProductSalesView(props: Props) {
-  const { sales, products, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense, readOnly = false, isVehicleView = false, locadores: locadoresProp, onSaveLocador: onSaveLocadorProp } = props;
+export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense, readOnly = false, isVehicleView = false, locadores: locadoresProp, onSaveLocador: onSaveLocadorProp }: Props) {
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -2621,7 +2429,6 @@ export function ProductSalesView(props: Props) {
           locadorInfo={locador}
           registeredVehicles={registeredVehicles}
           locadores={locadores}
-          products={products || []}
         />
 
         {/* Vehicle Expenses Section */}
@@ -2909,7 +2716,6 @@ export function ProductSalesView(props: Props) {
             onUpdateSale={onUpdateSale}
             clients={clients}
             readOnly={readOnly}
-            products={products || []}
           />
         </TabsContent>
       ))}

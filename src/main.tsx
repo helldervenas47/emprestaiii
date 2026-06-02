@@ -18,7 +18,6 @@ const isPreviewHost =
   window.location.hostname.includes("id-preview--") ||
   window.location.hostname.includes("lovableproject.com");
 
-
 const isInStandaloneMode =
   window.matchMedia("(display-mode: standalone)").matches ||
   (navigator as any).standalone === true;

@@ -1219,18 +1219,13 @@ function capitalizeFirst(s: string | null | undefined): string {
 }
 
 function todayBR(): string {
-  try {
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Sao_Paulo",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date());
-    return parts; // en-CA already formats as YYYY-MM-DD
-  } catch (e) {
-    console.error("todayBR error, falling back to UTC", e);
-    return new Date().toISOString().slice(0, 10);
-  }
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  return parts; // en-CA already formats as YYYY-MM-DD
 }
 
 // Returns current date components in America/Sao_Paulo timezone.
@@ -1586,79 +1581,44 @@ function telegramHeaders(lovableKey: string, telegramKey: string, json = true) {
   const headers: Record<string, string> = json ? { "Content-Type": "application/json" } : {};
   if (!isRawTelegramToken(telegramKey)) {
     headers.Authorization = `Bearer ${lovableKey}`;
-    // Fallback for older Lovable connectors or custom bypass
     headers["X-Connection-Api-Key"] = telegramKey;
   }
   return headers;
 }
 
 async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string): Promise<number | null> {
-  const payload = { chat_id: chatId, text, parse_mode: "Markdown" };
   const r = await fetch(telegramMethodUrl("sendMessage", telegramKey), {
     method: "POST",
     headers: telegramHeaders(lovableKey, telegramKey),
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
   }).catch((e) => ({ ok: false, status: 0, text: async () => String(e), json: async () => null } as any));
-  if (!r.ok) {
-    const errText = await r.text().catch(() => "");
-    console.error("sendMessage err", r.status, errText);
-    // If Markdown failed, retry as plain text
-    if (errText.includes("can't parse entities")) {
-      await fetch(telegramMethodUrl("sendMessage", telegramKey), {
-        method: "POST",
-        headers: telegramHeaders(lovableKey, telegramKey),
-        body: JSON.stringify({ ...payload, parse_mode: undefined }),
-      }).catch(() => {});
-    }
-    return null;
-  }
+  if (!r.ok) { console.error("sendMessage err", r.status, await r.text().catch(() => "")); return null; }
   try { const j: any = await (r as Response).json(); return j?.result?.message_id ?? null; } catch { return null; }
 }
 
 async function tgSendWithKeyboard(chatId: number, text: string, keyboard: any, lovableKey: string, telegramKey: string) {
-  const payload = {
-    chat_id: chatId,
-    text,
-    parse_mode: "Markdown",
-    reply_markup: { inline_keyboard: keyboard },
-  };
   const r = await fetch(telegramMethodUrl("sendMessage", telegramKey), {
     method: "POST",
     headers: telegramHeaders(lovableKey, telegramKey),
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      parse_mode: "Markdown",
+      reply_markup: { inline_keyboard: keyboard },
+    }),
   }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) } as Response));
-  if (!r.ok) {
-    const errText = await r.text().catch(() => "");
-    console.error("sendMessage kb err", r.status, errText);
-    if (errText.includes("can't parse entities")) {
-      await fetch(telegramMethodUrl("sendMessage", telegramKey), {
-        method: "POST",
-        headers: telegramHeaders(lovableKey, telegramKey),
-        body: JSON.stringify({ ...payload, parse_mode: undefined }),
-      }).catch(() => {});
-    }
-  }
+  if (!r.ok) console.error("sendMessage kb err", r.status, await r.text().catch(() => ""));
 }
 
 async function tgEditMessage(chatId: number, messageId: number, text: string, keyboard: any | null, lovableKey: string, telegramKey: string) {
-  const payload: any = { chat_id: chatId, message_id: messageId, text, parse_mode: "Markdown" };
-  if (keyboard) payload.reply_markup = { inline_keyboard: keyboard };
+  const body: any = { chat_id: chatId, message_id: messageId, text, parse_mode: "Markdown" };
+  if (keyboard) body.reply_markup = { inline_keyboard: keyboard };
   const r = await fetch(telegramMethodUrl("editMessageText", telegramKey), {
     method: "POST",
     headers: telegramHeaders(lovableKey, telegramKey),
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) } as Response));
-  if (!r.ok) {
-    const errText = await r.text().catch(() => "");
-    console.error("editMessage err", r.status, errText);
-    if (errText.includes("can't parse entities")) {
-      await fetch(telegramMethodUrl("editMessageText", telegramKey), {
-        method: "POST",
-        headers: telegramHeaders(lovableKey, telegramKey),
-        body: JSON.stringify({ ...payload, parse_mode: undefined }),
-      }).catch(() => {});
-    }
-  }
+  if (!r.ok) console.error("editMessage err", r.status, await r.text().catch(() => ""));
 }
 
 async function tgEditReplyMarkup(chatId: number, messageId: number, keyboard: any, lovableKey: string, telegramKey: string) {
@@ -2464,10 +2424,6 @@ Deno.serve(async (req) => {
   const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY")!;
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-  if (!LOVABLE_API_KEY) {
-    console.error("Missing LOVABLE_API_KEY env var");
-  }
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -3409,12 +3365,12 @@ Deno.serve(async (req) => {
       console.error("processing error", e);
     }
 
-    await admin.from("telegram_messages")
-      .update({ processed: true, processed_at: new Date().toISOString() })
-      .eq("update_id", msg.update_id);
-    processed++;
-  }
-};
+      await admin.from("telegram_messages")
+        .update({ processed: true, processed_at: new Date().toISOString() })
+        .eq("update_id", msg.update_id);
+      processed++;
+    }
+  };
 
   // Run all chats in parallel; messages within the same chat stay sequential.
   await Promise.all([...byChat.values()].map(processChat));

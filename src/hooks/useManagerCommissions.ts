@@ -75,13 +75,13 @@ export function useManagerCommissions(enabled: boolean = true) {
         loan_id: params.loanId,
         manager_id: params.managerId,
         payment_id: params.paymentId ?? null,
-        commission_type: params.commissionType as any,
+        commission_type: params.commissionType,
         base_amount: params.baseAmount,
         rate: params.rate,
         amount,
-        generated_at: params.generatedAt as any,
+        generated_at: params.generatedAt,
         notes: params.notes ?? null,
-      } as any);
+      });
       if (!error) await fetch();
     },
     [user, dataOwnerId, fetch]

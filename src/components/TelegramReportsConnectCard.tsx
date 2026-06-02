@@ -71,16 +71,15 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
         throw new Error(detailed);
       }
       if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success("✅ Bot de Relatórios vinculado com sucesso");
+      toast.success("✅ Relatório conectado ao bot com sucesso");
       setBotCodeInput("");
       setCode(null);
       await refresh();
     } catch (e: any) {
-      toast.error("❌ " + (e.message || "Código de bot inválido"));
+      toast.error("❌ Código de bot inválido", { description: e.message });
     } finally {
       setLinkingByCode(false);
     }
-
   };
 
   const copyCommand = () => {

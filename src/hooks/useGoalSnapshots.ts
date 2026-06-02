@@ -70,7 +70,7 @@ export function useGoalSnapshots() {
       .from("monthly_goal_snapshots")
       .upsert(
         {
-          user_id: ownerId,
+          owner_id: ownerId,
           month,
           goal_type: goalType,
           realized_value: realizedValue,
@@ -79,7 +79,7 @@ export function useGoalSnapshots() {
           finalized: true,
           snapshot_date: new Date().toISOString(),
         },
-        { onConflict: "user_id,month,goal_type" },
+        { onConflict: "owner_id,month,goal_type" },
       );
     if (error) console.error("Erro ao salvar snapshot de meta:", error);
   }, [ownerId, snapshots]);
