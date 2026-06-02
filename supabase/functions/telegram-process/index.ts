@@ -2465,6 +2465,10 @@ Deno.serve(async (req) => {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+  if (!LOVABLE_API_KEY) {
+    console.error("Missing LOVABLE_API_KEY env var");
+  }
+
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   const { data: messages, error } = await admin
