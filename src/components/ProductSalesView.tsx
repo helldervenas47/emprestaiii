@@ -1318,12 +1318,31 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
             </>
           )}
         </div>
-        {isMobile && (
-          <div className="shrink-0 pl-1">
-            {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-          </div>
-        )}
+        <div className="shrink-0 pl-1">
+          {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        </div>
       </div>
+
+      {!isMobile && expanded && sale.warrantyProductId && (
+        <div className="px-3 pb-3 -mt-1">
+          <div className="flex items-center gap-3 rounded-xl bg-primary/5 border border-primary/10 p-2.5 animate-in slide-in-from-top-1 duration-200">
+            <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-0.5">
+                <p className="text-[10px] text-primary/70 uppercase tracking-widest font-bold">Garantia Vinculada</p>
+                <Badge variant="outline" className="h-4 text-[9px] px-1.5 border-primary/20 bg-primary/5 text-primary">
+                  {sale.warrantyQuantity || 1} { (sale.warrantyQuantity || 1) > 1 ? "unidades" : "unidade" }
+                </Badge>
+              </div>
+              <p className="text-sm font-bold text-foreground truncate">
+                {products.find(p => p.id === sale.warrantyProductId)?.name || "Produto não identificado"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {(isPaid || readOnly) ? (
         <div className="shrink-0 flex items-center justify-end gap-1">
