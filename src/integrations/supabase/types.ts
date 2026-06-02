@@ -193,6 +193,7 @@ export type Database = {
       }
       boleto_lookups: {
         Row: {
+          amount: number | null
           bank_code: string | null
           bank_name: string | null
           barcode: string | null
@@ -202,6 +203,7 @@ export type Database = {
           digits: string | null
           due_date: string | null
           id: string
+          kind: string | null
           label: string | null
           notes: string | null
           owner_id: string | null
@@ -217,6 +219,7 @@ export type Database = {
           value: number | null
         }
         Insert: {
+          amount?: number | null
           bank_code?: string | null
           bank_name?: string | null
           barcode?: string | null
@@ -226,6 +229,7 @@ export type Database = {
           digits?: string | null
           due_date?: string | null
           id?: string
+          kind?: string | null
           label?: string | null
           notes?: string | null
           owner_id?: string | null
@@ -241,6 +245,7 @@ export type Database = {
           value?: number | null
         }
         Update: {
+          amount?: number | null
           bank_code?: string | null
           bank_name?: string | null
           barcode?: string | null
@@ -250,6 +255,7 @@ export type Database = {
           digits?: string | null
           due_date?: string | null
           id?: string
+          kind?: string | null
           label?: string | null
           notes?: string | null
           owner_id?: string | null
@@ -485,7 +491,7 @@ export type Database = {
           id?: string
           last_digits?: string | null
           last_four?: string | null
-          name: string
+          name?: string
           nickname?: string | null
           user_id: string
         }
