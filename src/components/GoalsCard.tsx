@@ -524,7 +524,7 @@ export function computeActual(
     case "new_clients_count":
       return clients.filter((c: any) => inMonth(c.created_at || c.createdAt, m)).length;
     case "renegotiation_rate":
-      return computeRenegotiationRate(loans, installmentSchedules, renegotiations, m);
+      return computeRenegotiationCount(renegotiations, m);
     case "interest_rate": {
       // Taxa Juros Mensal = (Total a Receber − Total Emprestado) ÷ Total Emprestado × 100
       // Considera empréstimos com data de início no mês selecionado.
