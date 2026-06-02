@@ -27,9 +27,12 @@ export type Database = {
           metadata: Json
           occurred_on: string
           payment_id: string | null
+          payment_method_id: string | null
           source: string
+          transfer_group_id: string | null
           updated_at: string
           user_id: string
+          wallet: string | null
         }
         Insert: {
           amount: number
@@ -43,9 +46,12 @@ export type Database = {
           metadata?: Json
           occurred_on: string
           payment_id?: string | null
+          payment_method_id?: string | null
           source?: string
+          transfer_group_id?: string | null
           updated_at?: string
           user_id: string
+          wallet?: string | null
         }
         Update: {
           amount?: number
@@ -59,9 +65,12 @@ export type Database = {
           metadata?: Json
           occurred_on?: string
           payment_id?: string | null
+          payment_method_id?: string | null
           source?: string
+          transfer_group_id?: string | null
           updated_at?: string
           user_id?: string
+          wallet?: string | null
         }
         Relationships: []
       }
@@ -2189,6 +2198,126 @@ export type Database = {
           label?: string | null
           owner_id?: string
           phone?: string
+        }
+        Relationships: []
+      }
+      whatsapp_billing_log: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          installment_number: number | null
+          loan_id: string | null
+          message: string | null
+          owner_id: string
+          phone: string | null
+          sent_date: string | null
+          status_when_sent: string | null
+          success: boolean | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          installment_number?: number | null
+          loan_id?: string | null
+          message?: string | null
+          owner_id: string
+          phone?: string | null
+          sent_date?: string | null
+          status_when_sent?: string | null
+          success?: boolean | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          installment_number?: number | null
+          loan_id?: string | null
+          message?: string | null
+          owner_id?: string
+          phone?: string | null
+          sent_date?: string | null
+          status_when_sent?: string | null
+          success?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_billing_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_billing_log_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_billing_schedule: {
+        Row: {
+          base_url: string | null
+          created_at: string
+          days_before_due: number | null
+          enabled: boolean | null
+          id: string
+          instance_id: string | null
+          last_run_at: string | null
+          manager_last_run_at: string | null
+          manager_summary_day_of_week: number | null
+          manager_summary_enabled: boolean | null
+          manager_summary_time: string | null
+          overdue_repeat_days: number | null
+          owner_id: string
+          provider: string | null
+          send_on_due_day: boolean | null
+          send_time: string | null
+          send_when_overdue: boolean | null
+        }
+        Insert: {
+          base_url?: string | null
+          created_at?: string
+          days_before_due?: number | null
+          enabled?: boolean | null
+          id?: string
+          instance_id?: string | null
+          last_run_at?: string | null
+          manager_last_run_at?: string | null
+          manager_summary_day_of_week?: number | null
+          manager_summary_enabled?: boolean | null
+          manager_summary_time?: string | null
+          overdue_repeat_days?: number | null
+          owner_id: string
+          provider?: string | null
+          send_on_due_day?: boolean | null
+          send_time?: string | null
+          send_when_overdue?: boolean | null
+        }
+        Update: {
+          base_url?: string | null
+          created_at?: string
+          days_before_due?: number | null
+          enabled?: boolean | null
+          id?: string
+          instance_id?: string | null
+          last_run_at?: string | null
+          manager_last_run_at?: string | null
+          manager_summary_day_of_week?: number | null
+          manager_summary_enabled?: boolean | null
+          manager_summary_time?: string | null
+          overdue_repeat_days?: number | null
+          owner_id?: string
+          provider?: string | null
+          send_on_due_day?: boolean | null
+          send_time?: string | null
+          send_when_overdue?: boolean | null
         }
         Relationships: []
       }
