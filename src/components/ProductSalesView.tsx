@@ -6,7 +6,7 @@ import { todayInAppTz } from "@/lib/timezone";
 import { getDueStatusBadge } from "@/lib/dueStatus";
 import { SalePaymentRecord } from "@/types/loan";
 import { DatePickerField } from "@/components/ui/date-picker-field";
-import { Sale, BusinessType, Client, Expense } from "@/types/loan";
+import { Sale, BusinessType, Client, Expense, Product } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, CheckCircle2, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus, Wallet, ChevronLeft, ChevronRight, LayoutGrid, Folder, List, FileText, BookOpen, Boxes } from "lucide-react";
+import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, CheckCircle2, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus, Wallet, ChevronLeft, ChevronRight, LayoutGrid, Folder, List, FileText, BookOpen, Boxes, ShieldCheck, Loader2 } from "lucide-react";
 import { StockManager } from "@/components/StockManager";
 import { SalesLedger } from "@/components/SalesLedger";
 import { generateContract } from "@/lib/generateContract";
@@ -55,6 +55,7 @@ import { ExpenseBoletoLinkButton } from "@/components/ExpenseBoletoLinkButton";
 
 interface Props {
   sales: Sale[];
+  products: Product[];
   onDeleteSale: (id: string) => void;
   onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void;
   clients?: Client[];
@@ -294,6 +295,204 @@ function SalePaymentHistoryDialog({
             </div>
           )}
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function WarrantyDialog({
+  open,
+  onOpenChange,
+  sale,
+  onUpdate,
+  products,
+  formatCurrency,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  sale: Sale;
+  onUpdate: (data: Partial<Omit<Sale, "id">>) => void;
+  products: Product[];
+  formatCurrency: (v: number) => string;
+}) {
+  const [selectedProductId, setSelectedProductId] = useState<string>(sale.warrantyProductId || "");
+  const [quantity, setQuantity] = useState<string>(sale.warrantyQuantity?.toString() || "1");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!selectedProductId) {
+      toast.error("Selecione um produto para a garantia.");
+      return;
+    }
+
+    const qty = parseInt(quantity) || 0;
+    if (qty <= 0) {
+      toast.error("A quantidade deve ser maior que zero.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const product = (products || []).find((p: Product) => p.id === selectedProductId);
+      if (!product) throw new Error("Produto não encontrado");
+
+      // Se já tinha uma garantia, devolve ao estoque antes de registrar a nova
+      if (sale.warrantyProductId) {
+        const oldProduct = (products || []).find(p => p.id === sale.warrantyProductId);
+        if (oldProduct) {
+          const restoredStock = oldProduct.stock + (sale.warrantyQuantity || 0);
+          await supabase.from("products").update({ stock: restoredStock }).eq("id", sale.warrantyProductId);
+        }
+      }
+
+      // Valida estoque do novo produto
+      if (product.stock < qty) {
+        toast.error(`Estoque insuficiente de "${product.name}" (disponível: ${product.stock}).`);
+        setSubmitting(false);
+        return;
+      }
+
+      // Atualiza estoque do novo produto
+      const newStock = product.stock - qty;
+      await supabase.from("products").update({ stock: newStock }).eq("id", selectedProductId);
+
+      // Registra movimento de estoque
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from("stock_movements" as any).insert({
+        owner_id: user?.id,
+        user_id: user?.id,
+        product_id: selectedProductId,
+        product_name: product.name,
+        movement_type: "venda",
+        quantity: -qty,
+        notes: `Garantia vinculada ao contrato de ${sale.customerName}`,
+        sale_id: sale.id,
+      } as any);
+
+      await onUpdate({
+        warrantyProductId: selectedProductId,
+        warrantyQuantity: qty,
+      });
+
+      toast.success("Garantia registrada com sucesso e estoque atualizado!");
+      onOpenChange(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao registrar garantia.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    if (!sale.warrantyProductId) return;
+    
+    setSubmitting(true);
+    try {
+      const product = (products || []).find((p: Product) => p.id === sale.warrantyProductId);
+      if (product) {
+        const restoredStock = product.stock + (sale.warrantyQuantity || 0);
+        await supabase.from("products").update({ stock: restoredStock }).eq("id", sale.warrantyProductId);
+        
+        // Registra movimento de estorno
+        const { data: { user } } = await supabase.auth.getUser();
+        await supabase.from("stock_movements" as any).insert({
+          owner_id: user?.id,
+          user_id: user?.id,
+          product_id: sale.warrantyProductId,
+          product_name: product.name,
+          movement_type: "entrada_manual",
+          quantity: sale.warrantyQuantity || 0,
+          notes: `Estorno de garantia (cancelamento) - contrato ${sale.customerName}`,
+          sale_id: sale.id,
+        } as any);
+      }
+
+      await onUpdate({
+        warrantyProductId: null,
+        warrantyQuantity: null,
+      });
+
+      toast.success("Garantia removida e estoque estornado.");
+      onOpenChange(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao remover garantia.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const selectedProduct = products.find(p => p.id === selectedProductId);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md bg-card/90 backdrop-blur-2xl border-white/10 shadow-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            Configurar Garantia
+          </DialogTitle>
+          <DialogDescription>
+            Vincule um produto deste contrato como garantia. O estoque será atualizado automaticamente.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Produto em Garantia</Label>
+            <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um produto" />
+              </SelectTrigger>
+              <SelectContent>
+                {products.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name} (Estoque: {p.stock})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Quantidade</Label>
+            <Input
+              type="number"
+              min="1"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+            />
+          </div>
+
+          {selectedProduct && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Impacto no Estoque</p>
+              <p className="text-sm font-semibold">
+                Serão removidas <span className="text-primary">{quantity}</span> unidades de <span className="text-primary">{selectedProduct.name}</span>.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          {sale.warrantyProductId && (
+            <Button
+              variant="ghost"
+              className="text-destructive hover:bg-destructive/10"
+              onClick={handleRemove}
+              disabled={submitting}
+            >
+              Remover Garantia
+            </Button>
+          )}
+          <div className="flex-1" />
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleSubmit} disabled={submitting || !selectedProductId}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+            {sale.warrantyProductId ? "Atualizar" : "Registrar"} Garantia
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -555,7 +754,7 @@ function RegisterSalePaymentDialog({
   );
 }
 
-function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [] }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string; readOnly?: boolean; clients?: Client[]; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[] }) {
+function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [], products: Product[] = [] }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string; readOnly?: boolean; clients?: Client[]; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[]; products: Product[] }) {
   const { celebrate } = usePaymentCelebration();
   const { activeMethods } = usePaymentMethods();
   const methodById = useMemo(() => {
@@ -575,6 +774,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
   const [showPayments, setShowPayments] = useState(false);
   const [confirmDeleteSale, setConfirmDeleteSale] = useState(false);
+  const [showWarranty, setShowWarranty] = useState(false);
   const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
   const amounts = sale.installmentAmounts;
@@ -770,6 +970,41 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
             </Badge>
           </div>
           <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        </button>
+
+        {/* Garantia (modal) */}
+        {!readOnly && (
+          <WarrantyDialog
+            open={showWarranty}
+            onOpenChange={setShowWarranty}
+            sale={sale}
+            onUpdate={onUpdate}
+            products={products || []}
+            formatCurrency={formatCurrency}
+          />
+        )}
+
+        {/* Botão de Garantia */}
+        <button
+          type="button"
+          onClick={() => setShowWarranty(true)}
+          className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/30 transition-colors"
+        >
+          <div className="flex items-center gap-2 text-sm text-left">
+            <ShieldCheck className={`h-4 w-4 ${sale.warrantyProductId ? "text-primary" : "text-muted-foreground"}`} />
+            <span className="font-medium text-foreground">Garantia</span>
+            {sale.warrantyProductId && (
+              <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0 bg-primary/10 text-primary">
+                Ativa
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground truncate max-w-[120px]">
+            {sale.warrantyProductId 
+              ? products.find(p => p.id === sale.warrantyProductId)?.name || "Produto"
+              : "Não registrada"}
+            <ChevronDown className="h-4 w-4" />
+          </div>
         </button>
 
         {/* Row 5: Payment action panel */}
@@ -1405,7 +1640,7 @@ function getSalePaidAmountHelper(s: Sale): number {
 }
 
 function SaleClientFolder({
-  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [],
+  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [], products: Product[] = [],
 }: {
   group: SaleClientGroup;
   onDeleteSale: (id: string) => void;
@@ -1417,6 +1652,7 @@ function SaleClientFolder({
   locadorInfo?: LocadorInfo;
   registeredVehicles?: VehicleInfo[];
   locadores?: LocadorInfo[];
+  products: Product[];
 }) {
   const [open, setOpen] = useState(false);
   const activeCount = group.sales.filter((s) => getSaleCategory(s) !== "paid").length;
@@ -1489,6 +1725,7 @@ function SaleClientFolder({
                 locadorInfo={locadorInfo}
                 registeredVehicles={registeredVehicles}
                 locadores={locadores}
+                products={products || []}
               />
             ))}
           </div>
@@ -1498,7 +1735,7 @@ function SaleClientFolder({
   );
 }
 
-function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrackCard = false, renderAfterCards, readOnly = false, locadorInfo, registeredVehicles = [], locadores = [] }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void; clients?: Client[]; hideOnTrackCard?: boolean; renderAfterCards?: React.ReactNode; readOnly?: boolean; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[] }) {
+function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrackCard = false, renderAfterCards, readOnly = false, locadorInfo, registeredVehicles = [], locadores = [], products: Product[] = [] }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void; clients?: Client[]; hideOnTrackCard?: boolean; renderAfterCards?: React.ReactNode; readOnly?: boolean; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[]; products: Product[] }) {
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<SaleCategory>("all");
@@ -1829,6 +2066,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 locadorInfo={locadorInfo}
                 registeredVehicles={registeredVehicles}
                 locadores={locadores}
+                products={products || []}
               />
             ))}
           </div>
@@ -1880,6 +2118,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
               locadorInfo={locadorInfo}
               registeredVehicles={registeredVehicles}
               locadores={locadores}
+              products={products || []}
             />
             </div>
           ))}
@@ -2097,7 +2336,8 @@ function VehiclePayExpenseDialog({ expense, open, onOpenChange, onConfirm, forma
   );
 }
 
-export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense, readOnly = false, isVehicleView = false, locadores: locadoresProp, onSaveLocador: onSaveLocadorProp }: Props) {
+export function ProductSalesView(props: Props) {
+  const { sales, products, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense, readOnly = false, isVehicleView = false, locadores: locadoresProp, onSaveLocador: onSaveLocadorProp } = props;
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -2429,6 +2669,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
           locadorInfo={locador}
           registeredVehicles={registeredVehicles}
           locadores={locadores}
+          products={products || []}
         />
 
         {/* Vehicle Expenses Section */}
@@ -2716,6 +2957,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
             onUpdateSale={onUpdateSale}
             clients={clients}
             readOnly={readOnly}
+            products={products || []}
           />
         </TabsContent>
       ))}

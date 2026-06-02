@@ -1061,6 +1061,7 @@ const Index = () => {
           <SubscriptionGate requiredTier={2} featureName="Vendas">
           <ProductSalesView
             sales={filteredSales.filter(s => s.businessType !== "aluguel_veiculo")}
+            products={products}
             onDeleteSale={deleteSale}
             onUpdateSale={updateSale}
             clients={filteredClients}
@@ -1072,6 +1073,7 @@ const Index = () => {
           <SubscriptionGate requiredTier={2} featureName="Veículos">
           <ProductSalesView
             sales={filteredSales.filter(s => s.businessType === "aluguel_veiculo")}
+            products={products}
             onDeleteSale={deleteSale}
             onUpdateSale={updateSale}
             clients={filteredClients}
