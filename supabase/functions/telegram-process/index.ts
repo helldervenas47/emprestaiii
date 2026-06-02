@@ -1593,12 +1593,25 @@ function telegramHeaders(lovableKey: string, telegramKey: string, json = true) {
 }
 
 async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string): Promise<number | null> {
+  const payload = { chat_id: chatId, text, parse_mode: "Markdown" };
   const r = await fetch(telegramMethodUrl("sendMessage", telegramKey), {
     method: "POST",
     headers: telegramHeaders(lovableKey, telegramKey),
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
+    body: JSON.stringify(payload),
   }).catch((e) => ({ ok: false, status: 0, text: async () => String(e), json: async () => null } as any));
-  if (!r.ok) { console.error("sendMessage err", r.status, await r.text().catch(() => "")); return null; }
+  if (!r.ok) {
+    const errText = await r.text().catch(() => "");
+    console.error("sendMessage err", r.status, errText);
+    // If Markdown failed, retry as plain text
+    if (errText.includes("can't parse entities")) {
+      await fetch(telegramMethodUrl("sendMessage", telegramKey), {
+        method: "POST",
+        headers: telegramHeaders(lovableKey, telegramKey),
+        body: JSON.stringify({ ...payload, parse_mode: undefined }),
+      }).catch(() => {});
+    }
+    return null;
+  }
   try { const j: any = await (r as Response).json(); return j?.result?.message_id ?? null; } catch { return null; }
 }
 
