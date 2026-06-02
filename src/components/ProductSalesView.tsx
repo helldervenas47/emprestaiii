@@ -2139,6 +2139,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 formatCurrency={formatCurrency}
                 readOnly={readOnly}
                 incomeCategoryByName={incomeCategoryByName}
+                products={products || []}
               />
             ))}
           </div>
