@@ -19,8 +19,10 @@ export type Database = {
           amount: number
           category: string
           created_at: string
+          currency: string | null
           description: string
           direction: string
+          exchange_rate: number | null
           expense_id: string | null
           id: string
           loan_id: string | null
@@ -38,8 +40,10 @@ export type Database = {
           amount: number
           category: string
           created_at?: string
+          currency?: string | null
           description?: string
           direction: string
+          exchange_rate?: number | null
           expense_id?: string | null
           id?: string
           loan_id?: string | null
@@ -57,8 +61,10 @@ export type Database = {
           amount?: number
           category?: string
           created_at?: string
+          currency?: string | null
           description?: string
           direction?: string
+          exchange_rate?: number | null
           expense_id?: string | null
           id?: string
           loan_id?: string | null
@@ -2276,6 +2282,7 @@ export type Database = {
           manager_summary_time: string | null
           overdue_repeat_days: number | null
           owner_id: string
+          phone: string | null
           provider: string | null
           send_on_due_day: boolean | null
           send_time: string | null
@@ -2295,6 +2302,7 @@ export type Database = {
           manager_summary_time?: string | null
           overdue_repeat_days?: number | null
           owner_id: string
+          phone?: string | null
           provider?: string | null
           send_on_due_day?: boolean | null
           send_time?: string | null
@@ -2314,6 +2322,7 @@ export type Database = {
           manager_summary_time?: string | null
           overdue_repeat_days?: number | null
           owner_id?: string
+          phone?: string | null
           provider?: string | null
           send_on_due_day?: boolean | null
           send_time?: string | null
