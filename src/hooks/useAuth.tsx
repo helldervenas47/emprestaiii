@@ -72,7 +72,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const syncProfile = async (user: User) => {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!profile) {
+      await supabase.from("profiles").insert({
+        user_id: user.id,
+        email: user.email,
+        full_name: user.user_metadata?.display_name || user.user_metadata?.full_name || "",
+        display_name: user.user_metadata?.display_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuário",
+      });
+    }
+  };
+
   const hydrateUserState = async (userId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await syncProfile(user);
+    }
+
     await Promise.all([
       fetchRole(userId),
       fetchDataOwner(userId),
