@@ -1530,7 +1530,13 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
             initialMode="full"
           />
         </>
-      )}
+      <ConfirmDeleteDialog
+        open={confirmDeleteSale}
+        onOpenChange={setConfirmDeleteSale}
+        onConfirm={() => { onDelete(); setConfirmDeleteSale(false); }}
+        title="Excluir venda"
+        description="Tem certeza que deseja excluir esta venda?"
+      />
     </div>
   );
 }
