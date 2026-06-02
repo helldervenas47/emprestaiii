@@ -57,6 +57,8 @@ export function useProducts(enabled = true) {
           paymentHistory: (Array.isArray(s.payment_history) ? s.payment_history : []) as unknown as SalePaymentRecord[],
           locadorId: s.locador_id || null,
           category: (s as any).category || null,
+          warrantyProductId: (s as any).warranty_product_id || null,
+          warrantyQuantity: (s as any).warranty_quantity != null ? Number((s as any).warranty_quantity) : null,
         })));
       }
       setLoading(false);
@@ -108,6 +110,8 @@ export function useProducts(enabled = true) {
           paymentHistory: (Array.isArray(s.payment_history) ? s.payment_history : []) as unknown as SalePaymentRecord[],
           locadorId: s.locador_id || null,
           category: (s as any).category || null,
+          warrantyProductId: (s as any).warranty_product_id || null,
+          warrantyQuantity: (s as any).warranty_quantity != null ? Number((s as any).warranty_quantity) : null,
         })));
       }
     };
@@ -211,6 +215,8 @@ export function useProducts(enabled = true) {
       locador_id: s.locadorId || null,
       notes: s.notes || "",
       category: s.category || null,
+      warranty_product_id: s.warrantyProductId || null,
+      warranty_quantity: s.warrantyQuantity || null,
       payment_history: s.paymentHistory ?? null,
     } as any).select().single();
 
@@ -271,6 +277,8 @@ export function useProducts(enabled = true) {
     if (data.paymentHistory !== undefined) updateData.payment_history = data.paymentHistory;
     if (data.locadorId !== undefined) updateData.locador_id = data.locadorId;
     if (data.category !== undefined) updateData.category = data.category;
+    if (data.warrantyProductId !== undefined) updateData.warranty_product_id = data.warrantyProductId;
+    if (data.warrantyQuantity !== undefined) updateData.warranty_quantity = data.warrantyQuantity;
     await supabase.from("sales").update(updateData as any).eq("id", id);
   }, [user, sales]);
 

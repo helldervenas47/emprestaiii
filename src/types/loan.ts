@@ -251,6 +251,8 @@ export interface Sale {
   paymentHistory?: SalePaymentRecord[];
   locadorId?: string | null;
   category?: string | null;
+  warrantyProductId?: string | null;
+  warrantyQuantity?: number | null;
 }
 export interface Expense {
   id: string;
