@@ -341,7 +341,7 @@ function WarrantyDialog({
         const oldProduct = (products || []).find(p => p.id === sale.warrantyProductId);
         if (oldProduct) {
           const restoredStock = oldProduct.stock + (sale.warrantyQuantity || 0);
-          await supabase.from("products").update({ stock: restoredStock }).eq("id", sale.warrantyProductId);
+          await supabase.from("products" as any).update({ stock: restoredStock }).eq("id", sale.warrantyProductId);
         }
       }
 
@@ -354,7 +354,7 @@ function WarrantyDialog({
 
       // Atualiza estoque do novo produto
       const newStock = product.stock - qty;
-      await supabase.from("products").update({ stock: newStock }).eq("id", selectedProductId);
+      await supabase.from("products" as any).update({ stock: newStock }).eq("id", selectedProductId);
 
       // Registra movimento de estoque
       const { data: { user } } = await supabase.auth.getUser();
@@ -392,7 +392,7 @@ function WarrantyDialog({
       const product = (products || []).find((p: Product) => p.id === sale.warrantyProductId);
       if (product) {
         const restoredStock = product.stock + (sale.warrantyQuantity || 0);
-        await supabase.from("products").update({ stock: restoredStock }).eq("id", sale.warrantyProductId);
+        await supabase.from("products" as any).update({ stock: restoredStock }).eq("id", sale.warrantyProductId);
         
         // Registra movimento de estorno
         const { data: { user } } = await supabase.auth.getUser();
@@ -2317,8 +2317,8 @@ export function ProductSalesView(props: Props) {
       if (!user) return;
       const { data: ownerData } = await supabase.from("user_owner" as any).select("owner_id").eq("user_id", user.id).maybeSingle();
       const ownerId = (ownerData as any)?.owner_id || user.id;
-      const { data } = await supabase.from("vehicle_balance").select("amount").eq("user_id", ownerId).maybeSingle();
-      setBalanceState(data?.amount ?? 0);
+      const { data } = await supabase.from("vehicle_balance" as any).select("amount").eq("user_id", ownerId).maybeSingle();
+      setBalanceState((data as any)?.amount ?? 0);
     })();
   }, []);
 
@@ -2329,11 +2329,11 @@ export function ProductSalesView(props: Props) {
     if (!user) return;
     const { data: ownerData } = await supabase.from("user_owner" as any).select("owner_id").eq("user_id", user.id).maybeSingle();
     const ownerId = (ownerData as any)?.owner_id || user.id;
-    const { data: existing } = await supabase.from("vehicle_balance").select("id").eq("user_id", ownerId).maybeSingle();
+    const { data: existing } = await supabase.from("vehicle_balance" as any).select("id").eq("user_id", ownerId).maybeSingle();
     if (existing) {
-      await supabase.from("vehicle_balance").update({ amount: val, updated_at: new Date().toISOString() }).eq("user_id", ownerId);
+      await supabase.from("vehicle_balance" as any).update({ amount: val, updated_at: new Date().toISOString() }).eq("user_id", ownerId);
     } else {
-      await supabase.from("vehicle_balance").insert({ user_id: ownerId, amount: val });
+      await supabase.from("vehicle_balance" as any).insert({ user_id: ownerId, amount: val });
     }
     setBalanceState(val);
     setEditingBalance(false);

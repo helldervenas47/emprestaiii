@@ -79,16 +79,16 @@ export function AutoBackupCard() {
         .select("auto_backup_enabled, last_auto_backup_at, last_auto_backup_drive_url")
         .maybeSingle();
       if (settings) {
-        setEnabled(settings.auto_backup_enabled ?? true);
-        setLastAt(settings.last_auto_backup_at);
-        setLastUrl(settings.last_auto_backup_drive_url);
+        setEnabled((settings as any).auto_backup_enabled ?? true);
+        setLastAt((settings as any).last_auto_backup_at);
+        setLastUrl((settings as any).last_auto_backup_drive_url);
       }
       const { data: hist } = await supabase
         .from("backup_history")
         .select("id, created_at, drive_url, drive_file_id, filename, size_bytes, status, error, triggered_by")
         .order("created_at", { ascending: false })
         .limit(20);
-      setHistory((hist as BackupHistoryItem[]) || []);
+      setHistory((hist as any as BackupHistoryItem[]) || []);
     } finally {
       setLoading(false);
     }
@@ -103,8 +103,8 @@ export function AutoBackupCard() {
     if (!user) { setSavingToggle(false); return; }
     const { error } = await supabase
       .from("account_settings")
-      .update({ auto_backup_enabled: value })
-      .eq("owner_id", user.id);
+      .update({ auto_backup_enabled: value } as any)
+      .eq("user_id", user.id);
     setSavingToggle(false);
     if (error) {
       toast.error("Não foi possível salvar a preferência");
