@@ -834,28 +834,43 @@ export type Database = {
       manager_commissions: {
         Row: {
           amount: number
+          base_amount: number | null
+          commission_type: string | null
           created_at: string
+          generated_at: string | null
           id: string
           loan_id: string
           manager_id: string | null
+          payment_id: string | null
+          rate: number | null
           status: string | null
           user_id: string
         }
         Insert: {
           amount?: number
+          base_amount?: number | null
+          commission_type?: string | null
           created_at?: string
+          generated_at?: string | null
           id?: string
           loan_id: string
           manager_id?: string | null
+          payment_id?: string | null
+          rate?: number | null
           status?: string | null
           user_id: string
         }
         Update: {
           amount?: number
+          base_amount?: number | null
+          commission_type?: string | null
           created_at?: string
+          generated_at?: string | null
           id?: string
           loan_id?: string
           manager_id?: string | null
+          payment_id?: string | null
+          rate?: number | null
           status?: string | null
           user_id?: string
         }
@@ -916,6 +931,36 @@ export type Database = {
           realized_value?: number | null
           snapshot_date?: string | null
           target_value?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      monthly_goals: {
+        Row: {
+          created_at: string
+          goal_type: string
+          id: string
+          month: string
+          notes: string | null
+          target_value: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          goal_type: string
+          id?: string
+          month: string
+          notes?: string | null
+          target_value?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          goal_type?: string
+          id?: string
+          month?: string
+          notes?: string | null
+          target_value?: number
           user_id?: string
         }
         Relationships: []
