@@ -66,10 +66,11 @@ export function IncomeTelegramBotButton() {
       setOpen(false);
       refresh();
     } catch (e: any) {
-      toast.error("Código inválido", { description: e.message });
+      toast.error("❌ " + (e.message || "Código inválido"));
     } finally {
       setLinking(false);
     }
+
   };
 
   const handleDisconnect = async () => {

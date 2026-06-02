@@ -112,15 +112,16 @@ export function TelegramConnectCard() {
         throw new Error(detailed);
       }
       if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success("✅ Relatório conectado ao bot com sucesso");
+      toast.success("✅ Bot vinculado com sucesso");
       setBotCodeInput("");
       setCode(null);
       await refresh();
     } catch (e: any) {
-      toast.error("❌ Código de bot inválido", { description: e.message });
+      toast.error("❌ " + (e.message || "Código de bot inválido"));
     } finally {
       setLinkingByCode(false);
     }
+
   };
 
   const sendSummaryNow = async () => {
