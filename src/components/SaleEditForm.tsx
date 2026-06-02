@@ -65,8 +65,6 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
     frequency: sale.frequency || "Mensal",
     locadorId: sale.locadorId || (locadores.length === 1 ? (locadores[0].id || "") : ""),
     category: sale.category || "",
-    warrantyProductId: sale.warrantyProductId || "",
-    warrantyQuantity: sale.warrantyQuantity?.toString() || "1",
   });
   const initialMerchValue = initialParsed.merchandise?.valor || 0;
   const [merchEnabled, setMerchEnabled] = useState<boolean>(!!initialParsed.merchandise);
@@ -153,8 +151,6 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
       installmentDates: dates,
       locadorId: form.businessType === "aluguel_veiculo" ? (form.locadorId || null) : null,
       category: form.category || null,
-      warrantyProductId: form.warrantyProductId || null,
-      warrantyQuantity: form.warrantyProductId ? (parseInt(form.warrantyQuantity) || 1) : null,
     });
     onClose();
   };

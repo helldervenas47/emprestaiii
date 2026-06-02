@@ -489,26 +489,17 @@ const Index = () => {
 
   const visibleTabs = tabConfig.filter((t) => {
     if (loading) return false;
-    
-    // Super usuário helderv sempre tem acesso a tudo
-    if (user?.email?.includes("helderv")) return true;
-
     // Tabs marcadas como adminOnly são exclusivas para administradores
     if ((t as any).adminOnly && role !== "admin") return false;
     // Visualizador: aba de Configurações é ocultada por completo (apenas leitura
     // não tem nada acionável aqui; backups, telegram, branding, etc. exigem escrita).
     if (t.id === "settings" && role === "visualizador") return false;
-    
-    // Se o usuário for admin, ele tem acesso a tudo por padrão,
-    // EXCETO se houver uma configuração explícita de abas que não inclua a atual.
-    // Isso permite que o admin se auto-restrinja ou restrinja outros admins se desejar.
-    if (Array.isArray(allowedTabs)) return allowedTabs.includes(t.id);
-    
-    // Se não houver configuração de abas (allowedTabs === null), admins acessam tudo.
     if (role === "admin") return true;
-    
-    // Outros papéis sem configuração explícita? Acesso negado por segurança (ou use true para legatário).
-    return false;
+    if (!user) return false;
+    // Para todas as abas (incluindo "settings"): se houver lista de
+    // permissões definida, exigir presença explícita. Sem lista = acesso total.
+    if (Array.isArray(allowedTabs)) return allowedTabs.includes(t.id);
+    return true;
   });
 
   const canAccessTab = (id: Tab) => visibleTabs.some((t) => t.id === id);
@@ -1061,7 +1052,6 @@ const Index = () => {
           <SubscriptionGate requiredTier={2} featureName="Vendas">
           <ProductSalesView
             sales={filteredSales.filter(s => s.businessType !== "aluguel_veiculo")}
-            products={products}
             onDeleteSale={deleteSale}
             onUpdateSale={updateSale}
             clients={filteredClients}
@@ -1073,7 +1063,6 @@ const Index = () => {
           <SubscriptionGate requiredTier={2} featureName="Veículos">
           <ProductSalesView
             sales={filteredSales.filter(s => s.businessType === "aluguel_veiculo")}
-            products={products}
             onDeleteSale={deleteSale}
             onUpdateSale={updateSale}
             clients={filteredClients}

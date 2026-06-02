@@ -30,8 +30,6 @@ import {
 function isMonthClosed(month: string): boolean {
   const today = todayInAppTz(); // YYYY-MM-DD
   const currentMonth = today.slice(0, 7);
-  // Se o mês selecionado é o mês corrente, ele não está fechado.
-  // Se é um mês passado, ele está fechado.
   return month < currentMonth;
 }
 
@@ -176,35 +174,36 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     measurement: "Atingimento = (Quantidade realizada ÷ Meta) × 100.",
   },
   renegotiation_rate: {
-    formula: "Quantidade = Número total de contratos distintos renegociados no mês selecionado",
+    formula: "Taxa Renegociação (%) = (Valor original renegociado no mês ÷ Valor a receber no mês) × 100",
     indicators: [
       "Considera apenas renegociações registradas dentro do mês",
-      "Cada contrato é contado uma única vez por mês",
-      "Contagem direta de contratos que tiveram ao menos uma renegociação no mês",
+      "Cada contrato é contado uma única vez (primeira renegociação do mês)",
+      "Numerador: previousAmount (valor original da dívida antes da renegociação)",
+      "Denominador: soma das parcelas/contratos com vencimento no mês",
     ],
-    dataSource: ["Tabela loan_renegotiations", "Filtro: data da renegociação no mês selecionado"],
+    dataSource: ["Tabela loan_renegotiations", "Tabela de Empréstimos e Cronograma de Parcelas"],
     example: {
-      setup: "Você realizou renegociações em 15 contratos distintos no mês corrente.",
-      calc: "Contagem direta dos registros únicos por contrato",
-      result: "Renegociações = 15 contratos",
+      setup: "R$ 10.000 a receber no mês; 1 contrato renegociado com valor original R$ 1.500.",
+      calc: "(1.500 ÷ 10.000) × 100",
+      result: "Taxa de Renegociação = 15,00%",
     },
-    measurement: "Meta MÁXIMA: o objetivo é não ultrapassar a quantidade definida. Atingimento = (Quantidade realizada ÷ Meta) × 100.",
+    measurement: "Meta INVERSA: quanto menor, melhor. Atingimento = máx(0, 100 − (Realizado ÷ Meta) × 100).",
   },
   daily_received_avg: {
-    formula: "Média Diária = Total Recebido no Mês ÷ Dias Decorridos",
+    formula: "Média diária = Total Recebido no mês ÷ Dias corridos do mês até hoje",
     indicators: [
       "Total Recebido = soma de todos os pagamentos com data no mês",
-      "Dias Decorridos = dias do início do mês até hoje (ou total de dias se mês passado)",
-      "Meta Diária = valor configurado diretamente como alvo por dia",
-      "Atingimento = (Média Diária Atual ÷ Meta Diária Configurada) × 100",
+      "Dias corridos = somente dias do início do mês até a data atual (não conta o mês inteiro)",
+      "Necessário/dia = (Meta mensal − Total recebido) ÷ Dias restantes do mês",
+      "Atingimento medido contra a Meta MENSAL cadastrada",
     ],
     dataSource: ["Tabela de Pagamentos (payments)", "Campo: amount, date", "Filtro: date no mês selecionado"],
     example: {
-      setup: "Meta diária configurada: R$ 2.000. Hoje é dia 10 e você recebeu R$ 15.000 no total do mês.",
-      calc: "Média Diária = 15.000 ÷ 10 = R$ 1.500/dia",
-      result: "Progresso = (1.500 ÷ 2.000) × 100 = 75%",
+      setup: "Hoje é dia 10 do mês. Meta mensal: R$ 60.000. Total recebido: R$ 20.000.",
+      calc: "Média diária = 20.000 ÷ 10 = R$ 2.000/dia. Necessário/dia = (60.000 − 20.000) ÷ 20 dias restantes",
+      result: "Média diária atual = R$ 2.000/dia · Necessário = R$ 2.000/dia",
     },
-    measurement: "Meta de ATINGIMENTO: a meta só é considerada batida (status verde) se a média realizada for 100% ou mais do valor alvo diário.",
+    measurement: "Atingimento = (Total Recebido ÷ Meta Mensal) × 100. Quando atingir 100%, exibe 'Meta atingida'.",
   },
 };
 
@@ -221,8 +220,8 @@ const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: Unit; c
   net_profit:         { label: "Lucro Líquido",                    icon: PiggyBank,     unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Juros recebidos menos despesas pagas da empresa." },
   max_default_rate:   { label: "Taxa de Inadimplência",             icon: AlertTriangle, unit: "%",   color: "text-destructive", bgColor: "bg-destructive/15", description: "Limite máximo de % de parcelas em atraso (meta inversa).", inverse: true },
   new_clients_count:  { label: "Novos Clientes",                   icon: UserPlus,      unit: "qtd", color: "text-primary",     bgColor: "bg-primary/15",     description: "Clientes cadastrados no período." },
-  renegotiation_rate: { label: "Contratos Renegociados",        icon: RefreshCw,     unit: "qtd", color: "text-destructive", bgColor: "bg-destructive/15", description: "Limite máximo de contratos renegociados no mês.", inverse: true },
-  daily_received_avg: { label: "Média Recebida Diária",           icon: HandCoins,     unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Média diária recebida comparada à meta diária configurada." },
+  renegotiation_rate: { label: "Taxa de Renegociação",             icon: RefreshCw,     unit: "%",   color: "text-destructive", bgColor: "bg-destructive/15", description: "% do valor a receber no mês que foi renegociado (meta inversa).", inverse: true },
+  daily_received_avg: { label: "Receita Média Diária",           icon: HandCoins,     unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Meta mensal com média diária e necessário/dia restante." },
 };
 
 interface Props {
@@ -463,7 +462,9 @@ function computeDefaultRate(loans: Loan[], payments: Payment[], installmentSched
   return periodPortfolio > 0 ? (overdueAmount / periodPortfolio) * 100 : 0;
 }
 
-function computeRenegotiationCount(
+function computeRenegotiationRate(
+  loans: Loan[],
+  installmentSchedules: InstallmentSchedule[],
   renegotiations: LoanRenegotiation[],
   m: string,
 ): number {
@@ -472,8 +473,31 @@ function computeRenegotiationCount(
   const monthStart = new Date(yy, mm - 1, 1);
   const monthEnd = new Date(yy, mm, 0, 23, 59, 59, 999);
 
-  // Contar quantos contratos DISTINTOS foram renegociados NESTE mês
-  const renegLoansInMonth = new Set<string>();
+  let totalReceivableMonth = 0;
+  loans.forEach((l: any) => {
+    const installments = Number(l.installments) || 1;
+    if (installments >= 2) {
+      installmentSchedules
+        .filter((sc) => {
+          if (sc.loanId !== l.id) return false;
+          const d = new Date(sc.dueDate + "T00:00:00");
+          return d >= monthStart && d <= monthEnd;
+        })
+        .forEach((sc) => { totalReceivableMonth += Number(sc.amount) || 0; });
+    } else {
+      const due = (l.dueDate || l.due_date || "").slice(0, 10);
+      if (!due) return;
+      const d = new Date(due + "T00:00:00");
+      if (d >= monthStart && d <= monthEnd) {
+        const principal = Number(l.amount) || 0;
+        const rate = Number(l.interestRate ?? l.interest_rate) || 0;
+        totalReceivableMonth += calculateTotalWithInterest(principal, rate, installments);
+      }
+    }
+  });
+
+  const seen = new Set<string>();
+  let renegotiatedAmount = 0;
   (renegotiations || [])
     .filter((r) => {
       const ts = r.renegotiatedAt || r.createdAt;
@@ -481,11 +505,14 @@ function computeRenegotiationCount(
       const d = new Date(ts);
       return d >= monthStart && d <= monthEnd;
     })
+    .sort((a, b) => (a.renegotiatedAt || a.createdAt).localeCompare(b.renegotiatedAt || b.createdAt))
     .forEach((r) => {
-      renegLoansInMonth.add(r.loanId);
+      if (seen.has(r.loanId)) return;
+      seen.add(r.loanId);
+      renegotiatedAmount += Number(r.previousAmount ?? 0);
     });
 
-  return renegLoansInMonth.size;
+  return totalReceivableMonth > 0 ? (renegotiatedAmount / totalReceivableMonth) * 100 : 0;
 }
 
 export function computeActual(
@@ -526,7 +553,7 @@ export function computeActual(
     case "new_clients_count":
       return clients.filter((c: any) => inMonth(c.created_at || c.createdAt, m)).length;
     case "renegotiation_rate":
-      return computeRenegotiationCount(renegotiations, m);
+      return computeRenegotiationRate(loans, installmentSchedules, renegotiations, m);
     case "interest_rate": {
       // Taxa Juros Mensal = (Total a Receber − Total Emprestado) ÷ Total Emprestado × 100
       // Considera empréstimos com data de início no mês selecionado.
@@ -548,20 +575,11 @@ export function computeActual(
       return (received / expected) * 100;
     }
     case "daily_received_avg": {
-      // Retorna a média diária: Total recebido no mês ÷ Dias decorridos (até hoje ou total do mês)
-      const received = payments
+      // Total recebido no mês — pct é calculado contra a meta MENSAL.
+      // A média diária e o necessário/dia são derivados na visualização (small card e dashboard).
+      return payments
         .filter((p: any) => inMonth(p.date, m))
         .reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
-      
-      const today = todayInAppTz();
-      const currentMonth = today.slice(0, 7);
-      const [yy, mm] = m.split("-").map(Number);
-      const daysInMonth = new Date(yy, mm, 0).getDate();
-      
-      const isCurrent = m === currentMonth;
-      const daysElapsed = isCurrent ? Number(today.slice(8, 10)) : (m < currentMonth ? daysInMonth : 1);
-      
-      return daysElapsed > 0 ? received / daysElapsed : 0;
     }
     default:
       return 0;
@@ -714,11 +732,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       // Se o mês já fechou e existe snapshot finalizado, usa o valor congelado.
       // Caso contrário, calcula em tempo real.
       let actual: number;
-      // Forçamos o re-cálculo em tempo real para a meta de média diária,
-      // para garantir que a nova fórmula (valor diário vs meta diária) seja aplicada em todo o histórico.
-      const forceRealtime = g.goalType === "daily_received_avg";
-      
-      if (monthClosed && snapshot?.finalized && !forceRealtime) {
+      if (monthClosed && snapshot?.finalized) {
         actual = Number(snapshot.realizedValue) || 0;
       } else {
         actual = g.goalType === "active_capital"
@@ -728,41 +742,33 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
 
       let pct = 0;
       if (g.targetValue > 0) {
-        // Meta de inadimplência, renegociação e média diária devem atingir 100% para serem sucesso
-        pct = (g.goalType === "max_default_rate" || g.goalType === "renegotiation_rate" || g.goalType === "daily_received_avg")
-          ? (actual <= g.targetValue && g.goalType !== "daily_received_avg" ? 100 : (g.goalType === "daily_received_avg" ? Math.min(100, (actual / g.targetValue) * 100) : 0))
+        pct = (g.goalType === "max_default_rate" || g.goalType === "renegotiation_rate")
+          ? (actual <= g.targetValue ? 100 : 0)
           : meta?.inverse
             ? Math.max(0, 100 - (actual / g.targetValue) * 100)
             : Math.min(100, (actual / g.targetValue) * 100);
-        
-        // Ajuste fino para daily_received_avg: se a média é menor que a meta, pct não pode ser sucesso
-        if (g.goalType === "daily_received_avg") {
-          pct = Math.min(100, (actual / g.targetValue) * 100);
-        }
       }
       const expectedReceivable = g.goalType === "profit" ? computeExpectedReceivable(loans, computeMonth) : null;
       const targetAmount = g.goalType === "profit" && expectedReceivable !== null
         ? expectedReceivable * (g.targetValue / 100)
         : null;
 
-      // Para "Média Geral Recebida por Dia": exibir como média diária e comparar contra meta diária configurada
+      // Para "Média Geral Recebida por Dia": exibir como média diária e comparar contra meta diária implícita
       let receivedTotal: number | null = null;
       let monthlyPct: number | null = null;
       if (g.goalType === "daily_received_avg") {
         const [yy, mm] = computeMonth.split("-").map(Number);
+        const today = new Date();
+        const cur = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
         const daysInMonth = new Date(yy, mm, 0).getDate();
-        
-        // Agora o 'actual' vindo de computeActual já é a média diária.
-        // Precisamos reconstruir o receivedTotal para o detalhamento.
-        const today = todayInAppTz();
-        const currentMonth = today.slice(0, 7);
-        const isCurrent = computeMonth === currentMonth;
-        const daysElapsed = isCurrent ? Number(today.slice(8, 10)) : (computeMonth < currentMonth ? daysInMonth : 1);
-        
-        receivedTotal = actual * daysElapsed;
-        
-        const estimatedMonthlyTarget = g.targetValue * daysInMonth;
-        monthlyPct = estimatedMonthlyTarget > 0 ? Math.min(100, (receivedTotal / estimatedMonthlyTarget) * 100) : 0;
+        const isCurrent = computeMonth === cur;
+        const daysElapsed = isCurrent ? today.getDate() : (computeMonth < cur ? daysInMonth : 1);
+        receivedTotal = actual;
+        monthlyPct = g.targetValue > 0 ? Math.min(100, (actual / g.targetValue) * 100) : 0;
+        const dailyAvg = daysElapsed > 0 ? actual / daysElapsed : 0;
+        const dailyTarget = daysInMonth > 0 ? g.targetValue / daysInMonth : 0;
+        actual = dailyAvg;
+        pct = dailyTarget > 0 ? Math.min(100, (dailyAvg / dailyTarget) * 100) : 0;
       }
 
       return { ...g, actual, pct, meta, expectedReceivable, targetAmount, receivedTotal, monthlyPct, isLocked: monthClosed && !!snapshot?.finalized };
@@ -853,8 +859,8 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
             {visibleGoals.map((g) => {
               const Icon = g.meta?.icon || Target;
-              const status = (g.goalType === "max_default_rate" || g.goalType === "renegotiation_rate" || g.goalType === "daily_received_avg")
-                ? (g.pct >= 100 ? "success" : "destructive")
+              const status = (g.goalType === "max_default_rate" || g.goalType === "renegotiation_rate")
+                ? (g.pct === 100 ? "success" : "destructive")
                 : g.pct >= 80
                   ? "success"
                   : g.pct >= 50
@@ -1521,11 +1527,10 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                   const daysLeft = isCurrent ? Math.max(0, daysInMonth - today.getDate()) : 0;
                   const receivedTotal = (goal as any).receivedTotal ?? goal.actual;
                   const dailyAvg = daysElapsed > 0 ? receivedTotal / daysElapsed : 0;
-                  const reached = dailyAvg >= goal.targetValue;
-                  const monthlyTarget = goal.targetValue * daysInMonth;
-                  const remaining = Math.max(0, monthlyTarget - receivedTotal);
+                  const reached = receivedTotal >= goal.targetValue;
+                  const remaining = Math.max(0, goal.targetValue - receivedTotal);
                   const neededPerDay = !reached && daysLeft > 0 ? remaining / daysLeft : 0;
-                  const monthlyPct = monthlyTarget > 0 ? Math.min(100, (receivedTotal / monthlyTarget) * 100) : 0;
+                  const monthlyPct = (goal as any).monthlyPct ?? (goal.targetValue > 0 ? Math.min(100, (receivedTotal / goal.targetValue) * 100) : 0);
                   return (
                     <div className="mt-3 space-y-2">
                       <div className="grid grid-cols-2 gap-2 text-center">
@@ -1535,7 +1540,7 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                           <p className="text-[9px] text-muted-foreground mt-0.5">em {daysElapsed} {daysElapsed === 1 ? "dia" : "dias"}</p>
                         </div>
                         <div className="rounded-md border border-border bg-card/60 p-2">
-                          <p className="text-[10px] text-muted-foreground uppercase">META DIÁRIA</p>
+                          <p className="text-[10px] text-muted-foreground uppercase">Meta mensal</p>
                           <p className="text-sm font-bold text-foreground">{fmtValue(goal.targetValue, "R$", hidden)}</p>
                           <p className="text-[9px] text-muted-foreground mt-0.5">{monthlyPct.toFixed(0)}% atingido</p>
                         </div>
@@ -1556,7 +1561,7 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                           </div>
                         ) : (
                           <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2">
-                            <p className="text-[10px] text-muted-foreground uppercase">TOTAL ABAIXO DA META</p>
+                            <p className="text-[10px] text-muted-foreground uppercase">Falta para a meta</p>
                             <p className="text-sm font-bold text-destructive">{fmtValue(remaining, "R$", hidden)}</p>
                             <p className="text-[9px] text-muted-foreground mt-0.5">sem dias restantes</p>
                           </div>

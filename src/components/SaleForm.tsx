@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, X, Calendar as CalendarIcon, ShieldCheck } from "lucide-react";
+import { Plus, X, Calendar as CalendarIcon } from "lucide-react";
 import { Sale, BusinessType, PaymentMode, Client, Product } from "@/types/loan";
 import { format, addMonths, addWeeks, addDays } from "date-fns";
 import { VehicleInfo } from "@/hooks/useVehicleRegistry";
@@ -200,8 +200,6 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       paymentHistory,
       locadorId: form.businessType === "aluguel_veiculo" ? (form.locadorId || null) : null,
       category: form.category || null,
-      warrantyProductId: null,
-      warrantyQuantity: null,
     });
     setShowSuccess(true);
   };

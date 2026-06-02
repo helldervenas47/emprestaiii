@@ -50,35 +50,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const fetchTabPermissions = async (userId: string) => {
-    // Pegar o owner_id para ver se existe configuração de plano/abas herdada,
-    // mas priorizar a configuração específica do usuário se existir.
-    const { data: userData } = await supabase
+    const { data } = await supabase
       .from("user_tab_permissions" as any)
       .select("allowed_tabs")
       .eq("user_id", userId)
       .maybeSingle();
 
-    if ((userData as any)?.allowed_tabs || user?.email?.includes("helderv")) {
-      setAllowedTabs((userData as any)?.allowed_tabs || null);
-      return;
-    }
-
-    // Se não tem perms específicas, tentar pegar do owner (se for sub-user)
-    const { data: ownerId } = await supabase.rpc("get_data_owner_id", { _user_id: userId });
-    if (ownerId && ownerId !== userId) {
-      const { data: ownerData } = await supabase
-        .from("user_tab_permissions" as any)
-        .select("allowed_tabs")
-        .eq("user_id", ownerId)
-        .maybeSingle();
-      
-      if ((ownerData as any)?.allowed_tabs) {
-        setAllowedTabs((ownerData as any).allowed_tabs);
-        return;
-      }
-    }
-
-    setAllowedTabs(null);
+    setAllowedTabs((data as any)?.allowed_tabs || null);
   };
 
   const fetchLinkedClients = async (userId: string) => {
@@ -94,7 +72,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const syncProfile = async (user: User) => {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!profile) {
+      await supabase.from("profiles").insert({
+        user_id: user.id,
+        email: user.email,
+        full_name: user.user_metadata?.display_name || user.user_metadata?.full_name || "",
+        display_name: user.user_metadata?.display_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuário",
+      });
+    }
+  };
+
   const hydrateUserState = async (userId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await syncProfile(user);
+    }
+
     await Promise.all([
       fetchRole(userId),
       fetchDataOwner(userId),
