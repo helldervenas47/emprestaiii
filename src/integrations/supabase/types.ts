@@ -71,6 +71,7 @@ export type Database = {
           id: string
           last_auto_backup_at: string | null
           last_auto_backup_drive_url: string | null
+          owner_id: string | null
           updated_at: string
           user_id: string
         }
@@ -79,6 +80,7 @@ export type Database = {
           id?: string
           last_auto_backup_at?: string | null
           last_auto_backup_drive_url?: string | null
+          owner_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -87,6 +89,7 @@ export type Database = {
           id?: string
           last_auto_backup_at?: string | null
           last_auto_backup_drive_url?: string | null
+          owner_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -160,6 +163,7 @@ export type Database = {
           created_at: string
           id: string
           notes: string | null
+          owner_id: string | null
           previous_amount: number | null
           user_id: string
         }
@@ -170,6 +174,7 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
+          owner_id?: string | null
           previous_amount?: number | null
           user_id: string
         }
@@ -180,6 +185,7 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
+          owner_id?: string | null
           previous_amount?: number | null
           user_id?: string
         }
@@ -328,6 +334,7 @@ export type Database = {
           cycle_key: string | null
           id: string
           month_label: string
+          notes: string | null
           opening_amount: number | null
           opening_balance: number
           status: string | null
@@ -340,6 +347,7 @@ export type Database = {
           cycle_key?: string | null
           id?: string
           month_label: string
+          notes?: string | null
           opening_amount?: number | null
           opening_balance?: number
           status?: string | null
@@ -352,6 +360,7 @@ export type Database = {
           cycle_key?: string | null
           id?: string
           month_label?: string
+          notes?: string | null
           opening_amount?: number | null
           opening_balance?: number
           status?: string | null
@@ -435,6 +444,7 @@ export type Database = {
           client_id: string
           created_at: string
           id: string
+          metadata: Json | null
           new_limit: number | null
           notes: string | null
           old_limit: number | null
@@ -448,6 +458,7 @@ export type Database = {
           client_id: string
           created_at?: string
           id?: string
+          metadata?: Json | null
           new_limit?: number | null
           notes?: string | null
           old_limit?: number | null
@@ -461,6 +472,7 @@ export type Database = {
           client_id?: string
           created_at?: string
           id?: string
+          metadata?: Json | null
           new_limit?: number | null
           notes?: string | null
           old_limit?: number | null
@@ -591,6 +603,7 @@ export type Database = {
           loan_id: string
           paid: boolean | null
           paid_at: string | null
+          user_id: string | null
         }
         Insert: {
           amount: number
@@ -601,6 +614,7 @@ export type Database = {
           loan_id: string
           paid?: boolean | null
           paid_at?: string | null
+          user_id?: string | null
         }
         Update: {
           amount?: number
@@ -611,6 +625,7 @@ export type Database = {
           loan_id?: string
           paid?: boolean | null
           paid_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -686,6 +701,7 @@ export type Database = {
           current_value: number | null
           id: string
           month: string
+          owner_id: string | null
           reached: boolean | null
           target_value: number | null
           user_id: string
@@ -696,6 +712,7 @@ export type Database = {
           current_value?: number | null
           id?: string
           month: string
+          owner_id?: string | null
           reached?: boolean | null
           target_value?: number | null
           user_id: string
@@ -706,6 +723,7 @@ export type Database = {
           current_value?: number | null
           id?: string
           month?: string
+          owner_id?: string | null
           reached?: boolean | null
           target_value?: number | null
           user_id?: string
