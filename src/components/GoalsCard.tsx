@@ -473,7 +473,8 @@ function computeRenegotiationRate(
   const monthStart = new Date(yy, mm - 1, 1);
   const monthEnd = new Date(yy, mm, 0, 23, 59, 59, 999);
 
-  let totalReceivableMonth = 0;
+  // 1. Contar quantos contratos DISTINTOS têm vencimento neste mês
+  const uniqueLoansInMonth = new Set<string>();
   loans.forEach((l: any) => {
     const installments = Number(l.installments) || 1;
     if (installments >= 2) {
@@ -483,21 +484,19 @@ function computeRenegotiationRate(
           const d = new Date(sc.dueDate + "T00:00:00");
           return d >= monthStart && d <= monthEnd;
         })
-        .forEach((sc) => { totalReceivableMonth += Number(sc.amount) || 0; });
+        .forEach((sc) => { uniqueLoansInMonth.add(sc.loanId); });
     } else {
       const due = (l.dueDate || l.due_date || "").slice(0, 10);
       if (!due) return;
       const d = new Date(due + "T00:00:00");
       if (d >= monthStart && d <= monthEnd) {
-        const principal = Number(l.amount) || 0;
-        const rate = Number(l.interestRate ?? l.interest_rate) || 0;
-        totalReceivableMonth += calculateTotalWithInterest(principal, rate, installments);
+        uniqueLoansInMonth.add(l.id);
       }
     }
   });
 
-  const seen = new Set<string>();
-  let renegotiatedAmount = 0;
+  // 2. Contar quantos contratos DISTINTOS foram renegociados NESTE mês
+  const renegLoansInMonth = new Set<string>();
   (renegotiations || [])
     .filter((r) => {
       const ts = r.renegotiatedAt || r.createdAt;
@@ -505,14 +504,14 @@ function computeRenegotiationRate(
       const d = new Date(ts);
       return d >= monthStart && d <= monthEnd;
     })
-    .sort((a, b) => (a.renegotiatedAt || a.createdAt).localeCompare(b.renegotiatedAt || b.createdAt))
     .forEach((r) => {
-      if (seen.has(r.loanId)) return;
-      seen.add(r.loanId);
-      renegotiatedAmount += Number(r.previousAmount ?? 0);
+      renegLoansInMonth.add(r.loanId);
     });
 
-  return totalReceivableMonth > 0 ? (renegotiatedAmount / totalReceivableMonth) * 100 : 0;
+  const totalLoans = uniqueLoansInMonth.size;
+  const renegCount = renegLoansInMonth.size;
+
+  return totalLoans > 0 ? (renegCount / totalLoans) * 100 : 0;
 }
 
 export function computeActual(
