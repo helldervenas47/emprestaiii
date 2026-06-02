@@ -1342,6 +1342,17 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
             <Button
               variant="ghost"
               size="icon"
+              className={`h-8 w-8 hover:bg-primary/10 ${sale.warrantyProductId ? "text-primary" : "text-muted-foreground"}`}
+              title="Garantia"
+              onClick={(e) => { e.stopPropagation(); setShowWarranty(true); }}
+            >
+              <ShieldCheck className="h-4 w-4" />
+            </Button>
+          )}
+          {!readOnly && !isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
               className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground"
               title="Editar"
               onClick={onEdit}
