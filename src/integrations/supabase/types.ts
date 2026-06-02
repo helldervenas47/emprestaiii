@@ -383,6 +383,50 @@ export type Database = {
           },
         ]
       }
+      credit_card_invoices: {
+        Row: {
+          created_at: string
+          credit_card_id: string
+          due_date: string | null
+          id: string
+          month_label: string
+          paid_amount: number | null
+          status: string | null
+          total_amount: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credit_card_id: string
+          due_date?: string | null
+          id?: string
+          month_label: string
+          paid_amount?: number | null
+          status?: string | null
+          total_amount?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credit_card_id?: string
+          due_date?: string | null
+          id?: string
+          month_label?: string
+          paid_amount?: number | null
+          status?: string | null
+          total_amount?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_card_invoices_credit_card_id_fkey"
+            columns: ["credit_card_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_cards: {
         Row: {
           active: boolean | null
@@ -862,6 +906,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      personal_budgets: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          id: string
+          month: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category: string
+          created_at?: string
+          id?: string
+          month: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          id?: string
+          month?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       personal_categories: {
         Row: {
