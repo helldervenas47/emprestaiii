@@ -204,7 +204,7 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
       calc: "Média Diária = 15.000 ÷ 10 = R$ 1.500/dia",
       result: "Progresso = (1.500 ÷ 2.000) × 100 = 75%",
     },
-    measurement: "Atingimento = (Média Realizada ÷ Meta Diária) × 100. Resultado em R$.",
+    measurement: "Meta de ATINGIMENTO: a meta só é considerada batida (status verde) se a média realizada for 100% ou mais do valor alvo diário.",
   },
 };
 
