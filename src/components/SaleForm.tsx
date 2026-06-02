@@ -785,47 +785,6 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                 )}
               </div>
             )}
-            {isVenda && (
-              <div className="border border-border/50 rounded-lg p-3 space-y-3 bg-primary/5">
-                <div className="flex items-center gap-2 mb-1">
-                  <ShieldCheck className="h-4 w-4 text-primary" />
-                  <Label className="text-sm font-semibold">Vincular Garantia (opcional)</Label>
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Produto em Garantia</Label>
-                    <Select value={form.warrantyProductId} onValueChange={(v) => update("warrantyProductId", v)}>
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Selecione um produto" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Nenhum</SelectItem>
-                        {products.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name} (Estoque: {p.stock})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {form.warrantyProductId && form.warrantyProductId !== "none" && (
-                    <div className="animate-in slide-in-from-top-1 fade-in duration-200">
-                      <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Quantidade</Label>
-                      <Input 
-                        type="number" 
-                        min="1" 
-                        value={form.warrantyQuantity} 
-                        onChange={(e) => update("warrantyQuantity", e.target.value)}
-                        className="h-9"
-                      />
-                      <p className="text-[10px] text-muted-foreground mt-1 italic">
-                        Esta quantidade será removida do estoque ao registrar a venda.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
             <div>
               <Label>Categoria</Label>
               <SaleCategoryPicker value={form.category} onChange={(v) => update("category", v)} />
