@@ -185,14 +185,32 @@ export function useProducts(enabled = true) {
       }
     }
 
+    // Valida estoque do produto em garantia
+    if (s.warrantyProductId) {
+      const wProd = products.find(p => p.id === s.warrantyProductId);
+      if (wProd && (s.warrantyQuantity || 0) > wProd.stock) {
+        const { toast } = await import("sonner");
+        toast.error(`Estoque insuficiente do produto em garantia "${wProd.name}" (disponível: ${wProd.stock}).`);
+        return;
+      }
+    }
+
     const tempId = crypto.randomUUID();
     setSales((prev) => [{ ...s, id: tempId }, ...prev]);
 
+    // Atualização otimista de estoque
     if (s.productId) {
       const product = products.find((p) => p.id === s.productId);
       if (product) {
         const newStock = Math.max(0, product.stock - s.quantity);
         setProducts((prev) => prev.map((p) => (p.id === s.productId ? { ...p, stock: newStock } : p)));
+      }
+    }
+    if (s.warrantyProductId) {
+      const product = products.find((p) => p.id === s.warrantyProductId);
+      if (product) {
+        const newStock = Math.max(0, product.stock - (s.warrantyQuantity || 0));
+        setProducts((prev) => prev.map((p) => (p.id === s.warrantyProductId ? { ...p, stock: newStock } : p)));
       }
     }
 
@@ -222,29 +240,39 @@ export function useProducts(enabled = true) {
 
     if (error) {
       setSales((prev) => prev.filter((x) => x.id !== tempId));
+      // Reverte estoque em caso de erro
       if (s.productId) {
         const product = products.find((p) => p.id === s.productId);
-        if (product) {
-          setProducts((prev) => prev.map((p) => (p.id === s.productId ? { ...p, stock: product.stock } : p)));
-        }
+        if (product) setProducts((prev) => prev.map((p) => (p.id === s.productId ? { ...p, stock: product.stock } : p)));
+      }
+      if (s.warrantyProductId) {
+        const product = products.find((p) => p.id === s.warrantyProductId);
+        if (product) setProducts((prev) => prev.map((p) => (p.id === s.warrantyProductId ? { ...p, stock: product.stock } : p)));
       }
     } else if (data) {
       setSales((prev) => prev.map((x) => x.id === tempId ? { ...x, id: data.id } : x));
+      
+      // Persiste baixa de estoque no BD e registra movimentos
       if (s.productId) {
         const product = products.find((p) => p.id === s.productId);
         if (product) {
           const newStock = Math.max(0, product.stock - s.quantity);
           await supabase.from("products").update({ stock: newStock }).eq("id", s.productId);
-          // Movimento de estoque "venda"
           await supabase.from("stock_movements" as any).insert({
-            owner_id: dataOwnerId,
-            user_id: user.id,
-            product_id: s.productId,
-            product_name: product.name,
-            movement_type: "venda",
-            quantity: -s.quantity,
-            total_value: s.total ?? null,
-            sale_id: data.id,
+            owner_id: dataOwnerId, user_id: user.id, product_id: s.productId, product_name: product.name,
+            movement_type: "venda", quantity: -s.quantity, total_value: s.total ?? null, sale_id: data.id,
+          } as any);
+        }
+      }
+      if (s.warrantyProductId) {
+        const product = products.find((p) => p.id === s.warrantyProductId);
+        if (product) {
+          const qty = s.warrantyQuantity || 0;
+          const newStock = Math.max(0, product.stock - qty);
+          await supabase.from("products").update({ stock: newStock }).eq("id", s.warrantyProductId);
+          await supabase.from("stock_movements" as any).insert({
+            owner_id: dataOwnerId, user_id: user.id, product_id: s.warrantyProductId, product_name: product.name,
+            movement_type: "venda", quantity: -qty, notes: `Garantia vinculada à venda ${data.id}`, sale_id: data.id,
           } as any);
         }
       }
@@ -288,12 +316,28 @@ export function useProducts(enabled = true) {
     setSales((prev) => prev.filter((s) => s.id !== id));
 
     if (sale) {
+      // Reverte estoque do produto principal
       if (sale.productId) {
         const product = products.find((p) => p.id === sale.productId);
         if (product) {
           const newStock = product.stock + sale.quantity;
           setProducts((prev) => prev.map((p) => (p.id === sale.productId ? { ...p, stock: newStock } : p)));
           await supabase.from("products").update({ stock: newStock }).eq("id", sale.productId);
+        }
+      }
+      // Reverte estoque da garantia
+      if (sale.warrantyProductId) {
+        const product = products.find((p) => p.id === sale.warrantyProductId);
+        if (product) {
+          const qty = sale.warrantyQuantity || 0;
+          const newStock = product.stock + qty;
+          setProducts((prev) => prev.map((p) => (p.id === sale.warrantyProductId ? { ...p, stock: newStock } : p)));
+          await supabase.from("products").update({ stock: newStock }).eq("id", sale.warrantyProductId);
+          // Registra estorno
+          await supabase.from("stock_movements" as any).insert({
+            owner_id: dataOwnerId, user_id: user?.id, product_id: sale.warrantyProductId, product_name: product.name,
+            movement_type: "entrada_manual", quantity: qty, notes: `Estorno de garantia por exclusão da venda ${sale.id}`,
+          } as any);
         }
       }
     }
