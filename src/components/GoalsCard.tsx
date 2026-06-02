@@ -30,6 +30,8 @@ import {
 function isMonthClosed(month: string): boolean {
   const today = todayInAppTz(); // YYYY-MM-DD
   const currentMonth = today.slice(0, 7);
+  // Se o mês selecionado é o mês corrente, ele não está fechado.
+  // Se é um mês passado, ele está fechado.
   return month < currentMonth;
 }
 
