@@ -88,7 +88,7 @@ export function AutoBackupCard() {
         .select("id, created_at, drive_url, drive_file_id, filename, size_bytes, status, error, triggered_by")
         .order("created_at", { ascending: false })
         .limit(20);
-      setHistory((hist as BackupHistoryItem[]) || []);
+      setHistory((hist as any as BackupHistoryItem[]) || []);
     } finally {
       setLoading(false);
     }
