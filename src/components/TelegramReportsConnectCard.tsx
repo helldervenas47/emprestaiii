@@ -51,10 +51,18 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
       toast.error("Digite o código recebido no Telegram");
       return;
     }
+    const normalized = trimmed.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (/^\d{6}$/.test(normalized)) {
+      toast.info("Esse código é do app", {
+        description: `Envie /start ${normalized} dentro do Telegram. Neste campo, cole apenas o código que o bot responde após você enviar /code.`,
+      });
+      return;
+    }
     setLinkingByCode(true);
     try {
+      await supabase.functions.invoke("telegram-reports-poll").catch(() => null);
       const { data, error } = await supabase.functions.invoke("link-telegram-bot", {
-        body: { bot_code: trimmed },
+        body: { bot_code: normalized },
       });
       if (error) {
         // Edge function returns non-2xx with { error }
