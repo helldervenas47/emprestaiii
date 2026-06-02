@@ -1616,28 +1616,49 @@ async function tgSend(chatId: number, text: string, lovableKey: string, telegram
 }
 
 async function tgSendWithKeyboard(chatId: number, text: string, keyboard: any, lovableKey: string, telegramKey: string) {
+  const payload = {
+    chat_id: chatId,
+    text,
+    parse_mode: "Markdown",
+    reply_markup: { inline_keyboard: keyboard },
+  };
   const r = await fetch(telegramMethodUrl("sendMessage", telegramKey), {
     method: "POST",
     headers: telegramHeaders(lovableKey, telegramKey),
-    body: JSON.stringify({
-      chat_id: chatId,
-      text,
-      parse_mode: "Markdown",
-      reply_markup: { inline_keyboard: keyboard },
-    }),
+    body: JSON.stringify(payload),
   }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) } as Response));
-  if (!r.ok) console.error("sendMessage kb err", r.status, await r.text().catch(() => ""));
+  if (!r.ok) {
+    const errText = await r.text().catch(() => "");
+    console.error("sendMessage kb err", r.status, errText);
+    if (errText.includes("can't parse entities")) {
+      await fetch(telegramMethodUrl("sendMessage", telegramKey), {
+        method: "POST",
+        headers: telegramHeaders(lovableKey, telegramKey),
+        body: JSON.stringify({ ...payload, parse_mode: undefined }),
+      }).catch(() => {});
+    }
+  }
 }
 
 async function tgEditMessage(chatId: number, messageId: number, text: string, keyboard: any | null, lovableKey: string, telegramKey: string) {
-  const body: any = { chat_id: chatId, message_id: messageId, text, parse_mode: "Markdown" };
-  if (keyboard) body.reply_markup = { inline_keyboard: keyboard };
+  const payload: any = { chat_id: chatId, message_id: messageId, text, parse_mode: "Markdown" };
+  if (keyboard) payload.reply_markup = { inline_keyboard: keyboard };
   const r = await fetch(telegramMethodUrl("editMessageText", telegramKey), {
     method: "POST",
     headers: telegramHeaders(lovableKey, telegramKey),
-    body: JSON.stringify(body),
+    body: JSON.stringify(payload),
   }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) } as Response));
-  if (!r.ok) console.error("editMessage err", r.status, await r.text().catch(() => ""));
+  if (!r.ok) {
+    const errText = await r.text().catch(() => "");
+    console.error("editMessage err", r.status, errText);
+    if (errText.includes("can't parse entities")) {
+      await fetch(telegramMethodUrl("editMessageText", telegramKey), {
+        method: "POST",
+        headers: telegramHeaders(lovableKey, telegramKey),
+        body: JSON.stringify({ ...payload, parse_mode: undefined }),
+      }).catch(() => {});
+    }
+  }
 }
 
 async function tgEditReplyMarkup(chatId: number, messageId: number, keyboard: any, lovableKey: string, telegramKey: string) {
