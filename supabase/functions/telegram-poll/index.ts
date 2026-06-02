@@ -164,6 +164,7 @@ Deno.serve(async (req) => {
 
   const perBotBudget = Math.max(8_000, Math.floor((MAX_RUNTIME_MS - 2_000) / list.length));
   for (const bot of list) {
+    console.log(`[telegram-poll] polling bot=${bot.id} username=${bot.bot_username} token=${bot.token?.slice(0, 4)}...`);
     const remaining = MAX_RUNTIME_MS - (Date.now() - startTime);
     if (remaining < MIN_REMAINING_MS) break;
     try {
