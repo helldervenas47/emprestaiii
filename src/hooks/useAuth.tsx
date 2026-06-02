@@ -58,8 +58,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (userData?.allowed_tabs) {
-      setAllowedTabs(userData.allowed_tabs);
+    if ((userData as any)?.allowed_tabs) {
+      setAllowedTabs((userData as any).allowed_tabs);
       return;
     }
 
@@ -72,8 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq("user_id", ownerId)
         .maybeSingle();
       
-      if (ownerData?.allowed_tabs) {
-        setAllowedTabs(ownerData.allowed_tabs);
+      if ((ownerData as any)?.allowed_tabs) {
+        setAllowedTabs((ownerData as any).allowed_tabs);
         return;
       }
     }
