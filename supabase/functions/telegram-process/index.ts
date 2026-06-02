@@ -1219,13 +1219,18 @@ function capitalizeFirst(s: string | null | undefined): string {
 }
 
 function todayBR(): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-  return parts; // en-CA already formats as YYYY-MM-DD
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+    return parts; // en-CA already formats as YYYY-MM-DD
+  } catch (e) {
+    console.error("todayBR error, falling back to UTC", e);
+    return new Date().toISOString().slice(0, 10);
+  }
 }
 
 // Returns current date components in America/Sao_Paulo timezone.
