@@ -1551,6 +1551,14 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
             >
               <ShieldCheck className="h-3.5 w-3.5 mr-1" /> Gar.
             </Button>
+            <WarrantyDialog
+              open={showWarranty}
+              onOpenChange={setShowWarranty}
+              sale={sale}
+              onUpdate={onUpdate}
+              products={products || []}
+              formatCurrency={formatCurrency}
+            />
             <Popover>
               <PopoverTrigger asChild>
                 <Button
