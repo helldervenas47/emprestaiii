@@ -2105,6 +2105,39 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_registry: {
+        Row: {
+          ano: string | null
+          cor: string | null
+          created_at: string
+          id: string
+          marca_modelo: string
+          placa: string | null
+          renavam: string | null
+          user_id: string
+        }
+        Insert: {
+          ano?: string | null
+          cor?: string | null
+          created_at?: string
+          id?: string
+          marca_modelo: string
+          placa?: string | null
+          renavam?: string | null
+          user_id: string
+        }
+        Update: {
+          ano?: string | null
+          cor?: string | null
+          created_at?: string
+          id?: string
+          marca_modelo?: string
+          placa?: string | null
+          renavam?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       webhook_settings: {
         Row: {
           enabled: boolean | null
@@ -2129,6 +2162,33 @@ export type Database = {
           updated_at?: string
           user_id?: string
           webhook_url?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_assistant_authorized: {
+        Row: {
+          created_at: string
+          enabled: boolean | null
+          id: string
+          label: string | null
+          owner_id: string
+          phone: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean | null
+          id?: string
+          label?: string | null
+          owner_id: string
+          phone: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean | null
+          id?: string
+          label?: string | null
+          owner_id?: string
+          phone?: string
         }
         Relationships: []
       }
