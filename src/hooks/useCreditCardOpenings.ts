@@ -7,7 +7,7 @@ import { toast } from "sonner";
 export interface InvoiceOpening {
   id: string;
   cardId: string;
-  monthLabel: string;
+  cycleKey: string;
   openingAmount: number;
   notes: string | null;
 }
@@ -15,7 +15,7 @@ export interface InvoiceOpening {
 const fromRow = (r: any): InvoiceOpening => ({
   id: r.id,
   cardId: r.credit_card_id,
-  monthLabel: r.month_label,
+  cycleKey: r.month_label,
   openingAmount: Number(r.opening_amount ?? 0),
   notes: r.notes ?? null,
 });
