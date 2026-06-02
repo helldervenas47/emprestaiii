@@ -120,6 +120,8 @@ Deno.serve(async (req) => {
 
       return json({
         error: "Código de bot inválido." + hint,
+        hint: hint,
+        debug_info: { code_received: code, bot_count: botCount, recent_codes: recent }
       }, 404);
     }
 

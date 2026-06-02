@@ -133,11 +133,12 @@ export function TelegramConnectCard() {
         let detailed = (error as any)?.message || "Não foi possível vincular";
         try {
           const ctx = (error as any)?.context;
-          if (ctx?.body) {
-            const parsed = typeof ctx.body === "string" ? JSON.parse(ctx.body) : ctx.body;
+          const bodyStr = typeof ctx?.body === "string" ? ctx.body : (ctx?.body ? JSON.stringify(ctx.body) : "");
+          if (bodyStr) {
+            const parsed = JSON.parse(bodyStr);
             if (parsed?.error) detailed = parsed.error;
           }
-        } catch { /* ignore */ }
+        } catch (e) { console.error("Parse error", e); }
         throw new Error(detailed);
       }
       if ((data as any)?.error) throw new Error((data as any).error);
