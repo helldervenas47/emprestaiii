@@ -81,7 +81,7 @@ export function useManagerCommissions(enabled: boolean = true) {
         amount,
         generated_at: params.generatedAt as any,
         notes: params.notes ?? null,
-      });
+      } as any);
       if (!error) await fetch();
     },
     [user, dataOwnerId, fetch]
