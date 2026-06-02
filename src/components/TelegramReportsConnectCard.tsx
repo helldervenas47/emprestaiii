@@ -1,4 +1,4 @@
-import { forwardRef, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,25 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
   const [generating, setGenerating] = useState(false);
   const [botCodeInput, setBotCodeInput] = useState("");
   const [linkingByCode, setLinkingByCode] = useState(false);
+  const syncingTelegramRef = useRef(false);
+
+  useEffect(() => {
+    if (loading || linked) return;
+    let stopped = false;
+    const syncTelegram = async () => {
+      if (stopped || syncingTelegramRef.current) return;
+      syncingTelegramRef.current = true;
+      try {
+        await supabase.functions.invoke("telegram-reports-poll").catch(() => null);
+        await refresh();
+      } finally {
+        syncingTelegramRef.current = false;
+      }
+    };
+    syncTelegram();
+    const interval = window.setInterval(syncTelegram, 12000);
+    return () => { stopped = true; window.clearInterval(interval); };
+  }, [loading, linked, refresh]);
 
   const generateCode = async () => {
     setGenerating(true);

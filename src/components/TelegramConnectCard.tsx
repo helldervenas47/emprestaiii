@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ export function TelegramConnectCard() {
   const [sendingMonthly, setSendingMonthly] = useState(false);
   const [botCodeInput, setBotCodeInput] = useState("");
   const [linkingByCode, setLinkingByCode] = useState(false);
+  const syncingTelegramRef = useRef(false);
   const botUsername = (typeof window !== "undefined" && localStorage.getItem(BOT_USERNAME_KEY)) || "";
   const { pref: summaryPref, update: updateSummary } = useTelegramSummaryPref();
 
@@ -54,6 +55,25 @@ export function TelegramConnectCard() {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  useEffect(() => {
+    if (loading || linked) return;
+    let stopped = false;
+    const syncTelegram = async () => {
+      if (stopped || syncingTelegramRef.current) return;
+      syncingTelegramRef.current = true;
+      try {
+        await supabase.functions.invoke("telegram-poll").catch(() => null);
+        await supabase.functions.invoke("telegram-process").catch(() => null);
+        await refresh();
+      } finally {
+        syncingTelegramRef.current = false;
+      }
+    };
+    syncTelegram();
+    const interval = window.setInterval(syncTelegram, 12000);
+    return () => { stopped = true; window.clearInterval(interval); };
+  }, [loading, linked]);
 
   const generateCode = async () => {
     setGenerating(true);

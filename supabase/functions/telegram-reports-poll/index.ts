@@ -3,6 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const MAX_RUNTIME_MS = 55_000;
 const MIN_REMAINING_MS = 5_000;
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
 async function tgSend(token: string, chatId: number, text: string) {
   try {
     const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -173,7 +178,9 @@ async function processBot(
   return totalProcessed;
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
   const startTime = Date.now();
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -188,13 +195,13 @@ Deno.serve(async () => {
 
   if (error) {
     console.error("[reports-poll] failed to list bots", error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   const list = (bots ?? []) as any[];
   if (list.length === 0) {
     return new Response(JSON.stringify({ ok: true, processed: 0, bots: 0, note: "no active reports bots" }), {
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -213,6 +220,6 @@ Deno.serve(async () => {
   }
 
   return new Response(JSON.stringify({ ok: true, processed: total, bots: list.length }), {
-    headers: { "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
