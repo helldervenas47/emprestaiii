@@ -1763,7 +1763,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     </PopoverContent>
                   </Popover>
                 </div>
-                <span className="text-sm font-bold text-foreground">{formatCurrency(data.periodInterestDue)}</span>
+                <span className="text-sm font-bold text-foreground">{formatCurrency(data.previstoTotal)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Realizado</span>
@@ -1776,7 +1776,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 </span>
               </div>
               {profitGoal && (() => {
-                const targetAmount = data.periodInterestDue * (profitGoal.targetValue / 100);
+                const targetAmount = data.previstoTotal * (profitGoal.targetValue / 100);
                 const metaPct = targetAmount > 0 ? (data.periodProfitRealized / targetAmount) * 100 : 0;
                 return (
                   <div className="flex items-center justify-between">
