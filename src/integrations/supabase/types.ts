@@ -1048,45 +1048,78 @@ export type Database = {
       my_boletos: {
         Row: {
           amount: number | null
+          attachment_path: string | null
+          bank_code: string | null
+          bank_name: string | null
           barcode: string | null
+          beneficiary: string | null
+          category: string | null
           created_at: string
           description: string | null
           due_date: string | null
           expense_id: string | null
           external_id: string | null
           id: string
+          income_id: string | null
+          kind: string | null
+          notes: string | null
           owner_id: string | null
           paid_at: string | null
+          pix_brcode: string | null
+          segment: string | null
+          segment_label: string | null
           status: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           amount?: number | null
+          attachment_path?: string | null
+          bank_code?: string | null
+          bank_name?: string | null
           barcode?: string | null
+          beneficiary?: string | null
+          category?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
           expense_id?: string | null
           external_id?: string | null
           id?: string
+          income_id?: string | null
+          kind?: string | null
+          notes?: string | null
           owner_id?: string | null
           paid_at?: string | null
+          pix_brcode?: string | null
+          segment?: string | null
+          segment_label?: string | null
           status?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           amount?: number | null
+          attachment_path?: string | null
+          bank_code?: string | null
+          bank_name?: string | null
           barcode?: string | null
+          beneficiary?: string | null
+          category?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
           expense_id?: string | null
           external_id?: string | null
           id?: string
+          income_id?: string | null
+          kind?: string | null
+          notes?: string | null
           owner_id?: string | null
           paid_at?: string | null
+          pix_brcode?: string | null
+          segment?: string | null
+          segment_label?: string | null
           status?: string | null
           updated_at?: string
           user_id?: string
