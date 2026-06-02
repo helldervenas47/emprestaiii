@@ -17,11 +17,11 @@ Deno.serve(async (req) => {
 
   const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const token = authHeader.replace(/^Bearer\s+/i, "");
-  const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
-  const userId = claimsData?.claims?.sub;
-  if (claimsErr || !userId) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-  }
+    const { data: { user }, error: userErr } = await userClient.auth.getUser(token);
+    const userId = user?.id;
+    if (userErr || !userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
