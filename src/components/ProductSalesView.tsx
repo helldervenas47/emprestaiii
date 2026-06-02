@@ -1257,10 +1257,12 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
 
    return (
     <div className="flex flex-col">
-    <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 hover:bg-muted/30 transition-colors">
-      <div
-        className={`contents text-left ${isMobile ? "cursor-pointer" : ""}`}
-        onClick={isMobile ? () => setExpanded((v) => !v) : undefined}
+      <div 
+        className={cn(
+          "flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 hover:bg-muted/30 transition-colors cursor-pointer",
+          expanded && "bg-muted/20"
+        )}
+        onClick={() => setExpanded((v) => !v)}
       >
         <div className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-primary-foreground font-bold text-[10px] sm:text-xs shrink-0 ${
           category === "paid" ? "bg-success" : category === "overdue" ? "bg-destructive" : category === "due_today" ? "bg-warning" : "gradient-primary"
@@ -1323,26 +1325,26 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
         </div>
       </div>
 
-      {!isMobile && expanded && sale.warrantyProductId && (
-        <div className="px-3 pb-3 -mt-1">
-          <div className="flex items-center gap-3 rounded-xl bg-primary/5 border border-primary/10 p-2.5 animate-in slide-in-from-top-1 duration-200">
-            <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <ShieldCheck className="h-5 w-5 text-primary" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 mb-0.5">
-                <p className="text-[10px] text-primary/70 uppercase tracking-widest font-bold">Garantia Vinculada</p>
-                <Badge variant="outline" className="h-4 text-[9px] px-1.5 border-primary/20 bg-primary/5 text-primary">
-                  {sale.warrantyQuantity || 1} { (sale.warrantyQuantity || 1) > 1 ? "unidades" : "unidade" }
-                </Badge>
+      {expanded && (
+        <div className="px-2.5 sm:px-4 pb-3 pt-1 space-y-3 animate-in fade-in duration-300">
+          {sale.warrantyProductId && (
+            <div className="flex items-center gap-3 rounded-xl bg-primary/5 border border-primary/10 p-2.5 animate-in slide-in-from-top-1 duration-200">
+              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <ShieldCheck className="h-5 w-5 text-primary" />
               </div>
-              <p className="text-sm font-bold text-foreground truncate">
-                {products.find(p => p.id === sale.warrantyProductId)?.name || "Produto não identificado"}
-              </p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <p className="text-[10px] text-primary/70 uppercase tracking-widest font-bold">Garantia Vinculada</p>
+                  <Badge variant="outline" className="h-4 text-[9px] px-1.5 border-primary/20 bg-primary/5 text-primary">
+                    {sale.warrantyQuantity || 1} { (sale.warrantyQuantity || 1) > 1 ? "unidades" : "unidade" }
+                  </Badge>
+                </div>
+                <p className="text-sm font-bold text-foreground truncate">
+                  {products.find(p => p.id === sale.warrantyProductId)?.name || "Produto não identificado"}
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
       {(isPaid || readOnly) ? (
         <div className="shrink-0 flex items-center justify-end gap-1">
