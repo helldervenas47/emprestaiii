@@ -1207,7 +1207,7 @@ function getNextInstallmentValueHelper(s: Sale): number {
   return s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
 }
 
-function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnly = false, incomeCategoryByName }: {
+function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnly = false, incomeCategoryByName, products = [] }: {
   sale: Sale;
   onEdit: () => void;
   onDelete: () => void;
@@ -1215,6 +1215,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
   formatCurrency: (v: number) => string;
   readOnly?: boolean;
   incomeCategoryByName?: Map<string, CustomIncomeCategory>;
+  products?: Product[];
 }) {
   const [confirmDeleteSale, setConfirmDeleteSale] = useState(false);
   const [showPartial, setShowPartial] = useState(false);
