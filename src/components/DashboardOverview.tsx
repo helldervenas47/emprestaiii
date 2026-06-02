@@ -1742,12 +1742,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1 min-w-0">
-                  <span className="text-xs text-muted-foreground">Previsto restante</span>
+                  <span className="text-xs text-muted-foreground">Previsto total</span>
                   <Popover>
                     <PopoverTrigger asChild>
                       <button
                         type="button"
-                        aria-label="Como o Previsto restante é calculado"
+                        aria-label="Como o Previsto total é calculado"
                         className="text-muted-foreground hover:text-foreground transition-colors"
                       >
                         <Info className="h-3 w-3" />
