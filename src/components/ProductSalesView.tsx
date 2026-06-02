@@ -1349,7 +1349,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
             </div>
           )}
 
-      {(isPaid || readOnly) ? (
+          {(isPaid || readOnly) ? (
         <div className="shrink-0 flex items-center justify-end gap-1">
           {!isMobile && (
             <Button
