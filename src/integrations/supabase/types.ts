@@ -696,35 +696,50 @@ export type Database = {
       }
       monthly_goal_snapshots: {
         Row: {
+          attainment_pct: number | null
           category: string | null
           created_at: string
           current_value: number | null
+          finalized: boolean | null
+          goal_type: string | null
           id: string
           month: string
           owner_id: string | null
           reached: boolean | null
+          realized_value: number | null
+          snapshot_date: string | null
           target_value: number | null
           user_id: string
         }
         Insert: {
+          attainment_pct?: number | null
           category?: string | null
           created_at?: string
           current_value?: number | null
+          finalized?: boolean | null
+          goal_type?: string | null
           id?: string
           month: string
           owner_id?: string | null
           reached?: boolean | null
+          realized_value?: number | null
+          snapshot_date?: string | null
           target_value?: number | null
           user_id: string
         }
         Update: {
+          attainment_pct?: number | null
           category?: string | null
           created_at?: string
           current_value?: number | null
+          finalized?: boolean | null
+          goal_type?: string | null
           id?: string
           month?: string
           owner_id?: string | null
           reached?: boolean | null
+          realized_value?: number | null
+          snapshot_date?: string | null
           target_value?: number | null
           user_id?: string
         }
@@ -1329,6 +1344,36 @@ export type Database = {
           created_at?: string
           id?: string
           role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: string | null
+          is_current_session: boolean | null
+          last_active_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          is_current_session?: boolean | null
+          last_active_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          is_current_session?: boolean | null
+          last_active_at?: string | null
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: []
