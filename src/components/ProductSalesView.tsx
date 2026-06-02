@@ -1255,12 +1255,14 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
     ? { label: "Vence hoje", cls: "bg-warning/15 text-warning border-warning/30" }
     : { label: "Em dia", cls: "bg-primary/15 text-primary border-primary/30" };
 
-   return (
+  return (
     <div className="flex flex-col">
-    <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 hover:bg-muted/30 transition-colors">
-      <div
-        className={`contents text-left ${isMobile ? "cursor-pointer" : ""}`}
-        onClick={isMobile ? () => setExpanded((v) => !v) : undefined}
+      <div 
+        className={cn(
+          "flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 hover:bg-muted/30 transition-colors cursor-pointer",
+          expanded && "bg-muted/20"
+        )}
+        onClick={() => setExpanded((v) => !v)}
       >
         <div className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-primary-foreground font-bold text-[10px] sm:text-xs shrink-0 ${
           category === "paid" ? "bg-success" : category === "overdue" ? "bg-destructive" : category === "due_today" ? "bg-warning" : "gradient-primary"
@@ -1323,103 +1325,125 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
         </div>
       </div>
 
-      {!isMobile && expanded && sale.warrantyProductId && (
-        <div className="px-3 pb-3 -mt-1">
-          <div className="flex items-center gap-3 rounded-xl bg-primary/5 border border-primary/10 p-2.5 animate-in slide-in-from-top-1 duration-200">
-            <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <ShieldCheck className="h-5 w-5 text-primary" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 mb-0.5">
-                <p className="text-[10px] text-primary/70 uppercase tracking-widest font-bold">Garantia Vinculada</p>
-                <Badge variant="outline" className="h-4 text-[9px] px-1.5 border-primary/20 bg-primary/5 text-primary">
-                  {sale.warrantyQuantity || 1} { (sale.warrantyQuantity || 1) > 1 ? "unidades" : "unidade" }
-                </Badge>
+      {expanded && (
+        <div className={cn(
+          "px-2.5 sm:px-4 pb-3 pt-1 space-y-3 animate-in fade-in duration-300",
+          !isMobile && "border-t border-border/10 bg-muted/5"
+        )}>
+          {sale.warrantyProductId && (
+            <div className="flex items-center gap-3 rounded-xl bg-primary/5 border border-primary/10 p-2.5 animate-in slide-in-from-top-1 duration-200">
+              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <ShieldCheck className="h-5 w-5 text-primary" />
               </div>
-              <p className="text-sm font-bold text-foreground truncate">
-                {products.find(p => p.id === sale.warrantyProductId)?.name || "Produto não identificado"}
-              </p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <p className="text-[10px] text-primary/70 uppercase tracking-widest font-bold">Garantia Vinculada</p>
+                  <Badge variant="outline" className="h-4 text-[9px] px-1.5 border-primary/20 bg-primary/5 text-primary">
+                    {sale.warrantyQuantity || 1} { (sale.warrantyQuantity || 1) > 1 ? "unidades" : "unidade" }
+                  </Badge>
+                </div>
+                <p className="text-sm font-bold text-foreground truncate">
+                  {products.find(p => p.id === sale.warrantyProductId)?.name || "Produto não identificado"}
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {(isPaid || readOnly) ? (
-        <div className="shrink-0 flex items-center justify-end gap-1">
-          {!isMobile && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-success hover:bg-success/10 relative"
-              title="Histórico de pagamentos"
-              onClick={(e) => { e.stopPropagation(); setShowPayments(true); }}
-            >
-              <Receipt className="h-4 w-4" />
-              {historyCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-success text-success-foreground text-[10px] font-bold flex items-center justify-center">
-                  {historyCount}
-                </span>
-              )}
-            </Button>
-          )}
-          {!readOnly && !isMobile && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`h-8 w-8 hover:bg-primary/10 ${sale.warrantyProductId ? "text-primary" : "text-muted-foreground"}`}
-              title="Garantia"
-              onClick={(e) => { e.stopPropagation(); setShowWarranty(true); }}
-            >
-              <ShieldCheck className="h-4 w-4" />
-            </Button>
-          )}
-          {!readOnly && !isMobile && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground"
-              title="Editar"
-              onClick={onEdit}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-          )}
-          {!readOnly && !isMobile && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-              title="Excluir"
-              onClick={(e) => { e.stopPropagation(); setConfirmDeleteSale(true); }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
-          {!readOnly && !isMobile && (
-            <WarrantyDialog
-              open={showWarranty}
-              onOpenChange={setShowWarranty}
-              sale={sale}
-              onUpdate={onUpdate}
-              products={products || []}
-              formatCurrency={formatCurrency}
-            />
-          )}
-        </div>
-      ) : (
-        <div className="shrink-0 flex items-center justify-end gap-1">
-          {!isMobile && (
-            <>
+          {isMobile && (() => {
+            const pct = sale.total > 0 ? Math.min(100, (totalPaidIncludingPartial / sale.total) * 100) : 0;
+            return (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-muted-foreground leading-none">Valor total</p>
+                    <p className="font-bold text-foreground tabular-nums text-sm leading-tight">{formatCurrency(sale.total)}</p>
+                  </div>
+                  <span className={`shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusInfo.cls}`}>
+                    {statusInfo.label}
+                  </span>
+                </div>
+
+                <div className="space-y-1 text-xs">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-muted-foreground text-[10px] uppercase tracking-wide">Cliente</span>
+                    <span className="font-semibold text-foreground truncate">{sale.customerName || "—"}</span>
+                  </div>
+                  {(sale.description || sale.productName) && (
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-muted-foreground text-[10px] uppercase tracking-wide shrink-0">Descrição</span>
+                      <span className="font-medium text-foreground text-right line-clamp-2 break-words">{sale.description || sale.productName}</span>
+                    </div>
+                  )}
+                </div>
+
+                {!isPaid && sale.total > 0 && (
+                  <div className="space-y-1">
+                    <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full bg-success rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] tabular-nums">
+                      <span className="text-success font-semibold">{formatCurrency(totalPaidIncludingPartial)} pago</span>
+                      <span className="text-warning font-semibold">{formatCurrency(remaining)} restante</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-1.5 text-[10px]">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 font-semibold text-foreground tabular-nums">
+                    <Receipt className="h-3 w-3 text-muted-foreground" />
+                    {sale.paidInstallments}/{sale.installments} parcelas
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 font-semibold text-foreground tabular-nums">
+                    <CalendarIcon className="h-3 w-3 text-muted-foreground" />
+                    {isPaid ? "Quitado" : format(nextDue, "dd/MM/yyyy")}
+                  </span>
+                  {historyCount > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 font-semibold text-foreground tabular-nums">
+                      {historyCount} pgto{historyCount > 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
+
+                {sale.notes && (
+                  <p className="text-[11px] text-muted-foreground italic line-clamp-2 border-l-2 border-border/60 pl-2">
+                    {sale.notes}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
+
+          <div className={cn(
+            "pt-2 flex flex-wrap gap-1.5 items-center",
+            isMobile ? "border-t border-border/40 grid grid-cols-2 xs:grid-cols-4" : "justify-end"
+          )}>
+            {!readOnly && (
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-8 text-[11px] px-2 border-primary/30 hover:bg-primary hover:text-primary-foreground flex-1 sm:flex-none",
+                  sale.warrantyProductId ? "bg-primary/5 text-primary" : "text-muted-foreground"
+                )}
+                onClick={(e) => { e.stopPropagation(); setShowWarranty(true); }}
+              >
+                <ShieldCheck className="h-3.5 w-3.5 mr-1" /> Gar.
+              </Button>
+            )}
+
+            {!isPaid && !readOnly && (
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-primary hover:bg-primary/10"
-                    title="Pagar"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-[11px] px-2 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground flex-1 sm:flex-none"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <HandCoins className="h-4 w-4" />
+                    <HandCoins className="h-3.5 w-3.5 mr-1" /> Pagar
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-52 p-1" align="end">
@@ -1441,63 +1465,46 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
                   </button>
                 </PopoverContent>
               </Popover>
-              {!readOnly && (
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-[11px] px-2 border-success/30 text-success hover:bg-success hover:text-success-foreground relative flex-1 sm:flex-none"
+              onClick={(e) => { e.stopPropagation(); setShowPayments(true); }}
+            >
+              <Receipt className="h-3.5 w-3.5 mr-1" /> Histórico
+              {historyCount > 0 && (
+                <Badge variant="secondary" className="ml-1 text-[9px] px-1 py-0 h-4 min-w-[16px]">
+                  {historyCount}
+                </Badge>
+              )}
+            </Button>
+
+            {!readOnly && (
+              <>
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 hover:bg-primary/10 ${sale.warrantyProductId ? "text-primary" : "text-muted-foreground"}`}
-                  title="Garantia"
-                  onClick={(e) => { e.stopPropagation(); setShowWarranty(true); }}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-[11px] px-2 border-secondary text-secondary-foreground hover:bg-secondary/80 flex-1 sm:flex-none"
+                  onClick={(e) => { e.stopPropagation(); onEdit(); }}
                 >
-                  <ShieldCheck className="h-4 w-4" />
+                  <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
                 </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-success hover:bg-success/10 relative"
-                title="Histórico de pagamentos"
-                onClick={(e) => { e.stopPropagation(); setShowPayments(true); }}
-              >
-                <Receipt className="h-4 w-4" />
-                {historyCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-success text-success-foreground text-[10px] font-bold flex items-center justify-center">
-                    {historyCount}
-                  </span>
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground"
-                title="Editar"
-                onClick={onEdit}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                title="Excluir"
-                onClick={(e) => { e.stopPropagation(); setConfirmDeleteSale(true); }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-              {!readOnly && (
-                <WarrantyDialog
-                  open={showWarranty}
-                  onOpenChange={setShowWarranty}
-                  sale={sale}
-                  onUpdate={onUpdate}
-                  products={products || []}
-                  formatCurrency={formatCurrency}
-                />
-              )}
-            </>
-          )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground flex-1 sm:flex-none"
+                  onClick={(e) => { e.stopPropagation(); setConfirmDeleteSale(true); }}
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       )}
+
       <SalePaymentHistoryDialog
         open={showPayments}
         onOpenChange={setShowPayments}
@@ -1506,6 +1513,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
         formatCurrency={formatCurrency}
         readOnly={readOnly}
       />
+      
       {!isPaid && !readOnly && (
         <>
           <RegisterSalePaymentDialog
@@ -1526,194 +1534,25 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
           />
         </>
       )}
-    </div>
 
-    {isMobile && expanded && (() => {
-      const pct = sale.total > 0 ? Math.min(100, (totalPaidIncludingPartial / sale.total) * 100) : 0;
-      return (
-      <div className="px-2.5 pb-2.5 pt-2 mx-2 mb-2 rounded-xl bg-muted/30 border border-border/40 animate-in slide-in-from-top-1 fade-in duration-200 space-y-2">
-        {/* Header: valor + status */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-[10px] text-muted-foreground leading-none">Valor total</p>
-            <p className="font-bold text-foreground tabular-nums text-sm leading-tight">{formatCurrency(sale.total)}</p>
-          </div>
-          <span className={`shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusInfo.cls}`}>
-            {statusInfo.label}
-          </span>
-        </div>
+      {!readOnly && (
+        <WarrantyDialog
+          open={showWarranty}
+          onOpenChange={setShowWarranty}
+          sale={sale}
+          onUpdate={onUpdate}
+          products={products || []}
+          formatCurrency={formatCurrency}
+        />
+      )}
 
-        {/* Cliente + Descrição */}
-        <div className="space-y-1 text-xs">
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="text-muted-foreground text-[10px] uppercase tracking-wide">Cliente</span>
-            <span className="font-semibold text-foreground truncate">{sale.customerName || "—"}</span>
-          </div>
-          {(sale.description || sale.productName) && (
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-muted-foreground text-[10px] uppercase tracking-wide shrink-0">Descrição</span>
-              <span className="font-medium text-foreground text-right line-clamp-2 break-words">{sale.description || sale.productName}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Progresso */}
-        {!isPaid && sale.total > 0 && (
-          <div className="space-y-1">
-            <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full bg-success rounded-full transition-all duration-500"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between text-[10px] tabular-nums">
-              <span className="text-success font-semibold">{formatCurrency(totalPaidIncludingPartial)} pago</span>
-              <span className="text-warning font-semibold">{formatCurrency(remaining)} restante</span>
-            </div>
-          </div>
-        )}
-
-        {/* Chips compactos: parcelas + vencimento */}
-        <div className="flex flex-wrap gap-1.5 text-[10px]">
-          <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 font-semibold text-foreground tabular-nums">
-            <Receipt className="h-3 w-3 text-muted-foreground" />
-            {sale.paidInstallments}/{sale.installments} parcelas
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 font-semibold text-foreground tabular-nums">
-            <CalendarIcon className="h-3 w-3 text-muted-foreground" />
-            {isPaid ? "Quitado" : format(nextDue, "dd/MM/yyyy")}
-          </span>
-          {historyCount > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 font-semibold text-foreground tabular-nums">
-              {historyCount} pgto{historyCount > 1 ? "s" : ""}
-            </span>
-          )}
-        </div>
-        
-        {sale.warrantyProductId && (
-          <div className="flex items-center gap-2 rounded-lg bg-primary/5 border border-primary/10 p-2 animate-in fade-in zoom-in-95 duration-200">
-            <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] text-muted-foreground leading-none uppercase tracking-wider mb-0.5 font-semibold">Garantia Ativa</p>
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-bold text-foreground truncate">
-                  {products.find(p => p.id === sale.warrantyProductId)?.name || "Produto não encontrado"}
-                </p>
-                <Badge variant="secondary" className="h-4 text-[9px] px-1 bg-primary/10 text-primary border-primary/20 shrink-0">
-                  {sale.warrantyQuantity || 1} { (sale.warrantyQuantity || 1) > 1 ? "unidades" : "unidade" }
-                </Badge>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {sale.notes && (
-          <p className="text-[11px] text-muted-foreground italic line-clamp-2 border-l-2 border-border/60 pl-2">
-            {sale.notes}
-          </p>
-        )}
-
-        {!readOnly && (
-          <div className="pt-2 border-t border-border/40 grid grid-cols-4 gap-1.5">
-            <Button
-              variant="outline"
-              size="sm"
-              className={`h-8 text-[11px] px-2 border-primary/30 hover:bg-primary hover:text-primary-foreground w-full justify-center ${sale.warrantyProductId ? "bg-primary/5 text-primary" : "text-muted-foreground"}`}
-              onClick={(e) => { e.stopPropagation(); setShowWarranty(true); }}
-            >
-              <ShieldCheck className="h-3.5 w-3.5 mr-1" /> Gar.
-            </Button>
-            <WarrantyDialog
-              open={showWarranty}
-              onOpenChange={setShowWarranty}
-              sale={sale}
-              onUpdate={onUpdate}
-              products={products || []}
-              formatCurrency={formatCurrency}
-            />
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-[11px] px-2 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground w-full justify-center"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <HandCoins className="h-3.5 w-3.5 mr-1" /> Pagar
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-52 p-1" align="end">
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); setShowPayDatePicker(true); }}
-                  className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground hover:bg-primary/10 transition-colors"
-                >
-                  <CheckCircle className="h-4 w-4 text-primary" />
-                  <span>Pagar Parcela</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); setShowPartial(true); }}
-                  className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground hover:bg-warning/10 transition-colors"
-                >
-                  <HandCoins className="h-4 w-4 text-warning" />
-                  <span>Pagar Parcial</span>
-                </button>
-              </PopoverContent>
-            </Popover>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-[11px] px-2 border-success/30 text-success hover:bg-success hover:text-success-foreground relative w-full justify-center"
-              onClick={(e) => { e.stopPropagation(); setShowPayments(true); }}
-            >
-              <Receipt className="h-3.5 w-3.5 mr-1" /> Histórico
-              {historyCount > 0 && (
-                <Badge variant="secondary" className="ml-1 text-[9px] px-1 py-0">
-                  {historyCount}
-                </Badge>
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-[11px] px-2 border-secondary text-secondary-foreground hover:bg-secondary/80 w-full justify-center"
-              onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            >
-              <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
-            </Button>
-          </div>
-        )}
-        {!readOnly && (
-          <WarrantyDialog
-            open={showWarranty}
-            onOpenChange={setShowWarranty}
-            sale={sale}
-            onUpdate={onUpdate}
-            products={products || []}
-            formatCurrency={formatCurrency}
-          />
-        )}
-        {!readOnly && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground w-full justify-center"
-            onClick={(e) => { e.stopPropagation(); setConfirmDeleteSale(true); }}
-          >
-            <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
-          </Button>
-        )}
-      </div>
-      );
-    })()}
-    <ConfirmDeleteDialog
-      open={confirmDeleteSale}
-      onOpenChange={setConfirmDeleteSale}
-      onConfirm={() => { onDelete(); setConfirmDeleteSale(false); }}
-      title="Excluir venda"
-      description="Tem certeza que deseja excluir esta venda?"
-    />
+      <ConfirmDeleteDialog
+        open={confirmDeleteSale}
+        onOpenChange={setConfirmDeleteSale}
+        onConfirm={() => { onDelete(); setConfirmDeleteSale(false); }}
+        title="Excluir venda"
+        description="Tem certeza que deseja excluir esta venda?"
+      />
     </div>
   );
 }
