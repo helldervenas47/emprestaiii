@@ -965,6 +965,33 @@ export type Database = {
         }
         Relationships: []
       }
+      monthly_opening_balances: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          month: string
+          owner_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          month: string
+          owner_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          month?: string
+          owner_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       my_boleto_payments: {
         Row: {
           amount: number | null
