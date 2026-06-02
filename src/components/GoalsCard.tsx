@@ -30,6 +30,8 @@ import {
 function isMonthClosed(month: string): boolean {
   const today = todayInAppTz(); // YYYY-MM-DD
   const currentMonth = today.slice(0, 7);
+  // Se o mês selecionado é o mês corrente, ele não está fechado.
+  // Se é um mês passado, ele está fechado.
   return month < currentMonth;
 }
 
@@ -703,7 +705,11 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       // Se o mês já fechou e existe snapshot finalizado, usa o valor congelado.
       // Caso contrário, calcula em tempo real.
       let actual: number;
-      if (monthClosed && snapshot?.finalized) {
+      // Forçamos o re-cálculo em tempo real para a meta de média diária do mês de maio de 2026,
+      // para que a nova fórmula (valor diário vs meta diária) seja aplicada corretamente mesmo em meses "travados".
+      const forceRealtime = g.goalType === "daily_received_avg" && computeMonth === "2026-05";
+      
+      if (monthClosed && snapshot?.finalized && !forceRealtime) {
         actual = Number(snapshot.realizedValue) || 0;
       } else {
         actual = g.goalType === "active_capital"
