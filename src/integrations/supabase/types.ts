@@ -14,6 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_ledger: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string
+          direction: string
+          expense_id: string | null
+          id: string
+          loan_id: string | null
+          metadata: Json
+          occurred_on: string
+          payment_id: string | null
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          description?: string
+          direction: string
+          expense_id?: string | null
+          id?: string
+          loan_id?: string | null
+          metadata?: Json
+          occurred_on: string
+          payment_id?: string | null
+          source?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string
+          direction?: string
+          expense_id?: string | null
+          id?: string
+          loan_id?: string | null
+          metadata?: Json
+          occurred_on?: string
+          payment_id?: string | null
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      account_settings: {
+        Row: {
+          auto_backup_enabled: boolean | null
+          id: string
+          last_auto_backup_at: string | null
+          last_auto_backup_drive_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_backup_enabled?: boolean | null
+          id?: string
+          last_auto_backup_at?: string | null
+          last_auto_backup_drive_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_backup_enabled?: boolean | null
+          id?: string
+          last_auto_backup_at?: string | null
+          last_auto_backup_drive_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      backup_history: {
+        Row: {
+          created_at: string
+          drive_file_id: string | null
+          drive_url: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          drive_file_id?: string | null
+          drive_url?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          drive_file_id?: string | null
+          drive_url?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       balance: {
         Row: {
           amount: number
@@ -235,6 +337,117 @@ export type Database = {
           },
         ]
       }
+      plans: {
+        Row: {
+          active: boolean | null
+          allowed_tabs: string[] | null
+          created_at: string
+          features: string[] | null
+          highlight: boolean | null
+          id: string
+          max_loans: number | null
+          max_users: number | null
+          name: string
+          price: number
+          sort_order: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          allowed_tabs?: string[] | null
+          created_at?: string
+          features?: string[] | null
+          highlight?: boolean | null
+          id?: string
+          max_loans?: number | null
+          max_users?: number | null
+          name: string
+          price: number
+          sort_order?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          allowed_tabs?: string[] | null
+          created_at?: string
+          features?: string[] | null
+          highlight?: boolean | null
+          id?: string
+          max_loans?: number | null
+          max_users?: number | null
+          name?: string
+          price?: number
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          environment: string | null
+          id: string
+          paddle_customer_id: string | null
+          price_id: string | null
+          product_id: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string | null
+          id?: string
+          paddle_customer_id?: string | null
+          price_id?: string | null
+          product_id?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string | null
+          id?: string
+          paddle_customer_id?: string | null
+          price_id?: string | null
+          product_id?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       system_telegram_bots: {
         Row: {
           active: boolean
@@ -396,6 +609,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_goal_prefs: {
+        Row: {
+          id: string
+          order_list: Json | null
+          selected: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          order_list?: Json | null
+          selected?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          order_list?: Json | null
+          selected?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_telegram_bots: {
         Row: {
