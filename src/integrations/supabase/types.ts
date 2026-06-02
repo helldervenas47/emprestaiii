@@ -328,6 +328,7 @@ export type Database = {
           cycle_key: string | null
           id: string
           month_label: string
+          opening_amount: number | null
           opening_balance: number
           status: string | null
           user_id: string
@@ -339,6 +340,7 @@ export type Database = {
           cycle_key?: string | null
           id?: string
           month_label: string
+          opening_amount?: number | null
           opening_balance?: number
           status?: string | null
           user_id: string
@@ -350,6 +352,7 @@ export type Database = {
           cycle_key?: string | null
           id?: string
           month_label?: string
+          opening_amount?: number | null
           opening_balance?: number
           status?: string | null
           user_id?: string
@@ -384,6 +387,7 @@ export type Database = {
           due_day: number
           id: string
           last_digits: string | null
+          last_four: string | null
           name: string
           nickname: string | null
           user_id: string
@@ -400,6 +404,7 @@ export type Database = {
           due_day: number
           id?: string
           last_digits?: string | null
+          last_four?: string | null
           name: string
           nickname?: string | null
           user_id: string
@@ -416,6 +421,7 @@ export type Database = {
           due_day?: number
           id?: string
           last_digits?: string | null
+          last_four?: string | null
           name?: string
           nickname?: string | null
           user_id?: string
@@ -425,6 +431,7 @@ export type Database = {
       credit_limit_history: {
         Row: {
           change_type: string | null
+          changed_by: string | null
           client_id: string
           created_at: string
           id: string
@@ -437,6 +444,7 @@ export type Database = {
         }
         Insert: {
           change_type?: string | null
+          changed_by?: string | null
           client_id: string
           created_at?: string
           id?: string
@@ -449,6 +457,7 @@ export type Database = {
         }
         Update: {
           change_type?: string | null
+          changed_by?: string | null
           client_id?: string
           created_at?: string
           id?: string
@@ -572,6 +581,47 @@ export type Database = {
           },
         ]
       }
+      loan_installments: {
+        Row: {
+          amount: number
+          created_at: string
+          due_date: string
+          id: string
+          installment_number: number
+          loan_id: string
+          paid: boolean | null
+          paid_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          due_date: string
+          id?: string
+          installment_number: number
+          loan_id: string
+          paid?: boolean | null
+          paid_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          due_date?: string
+          id?: string
+          installment_number?: number
+          loan_id?: string
+          paid?: boolean | null
+          paid_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_installments_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loans: {
         Row: {
           amount: number
@@ -625,6 +675,39 @@ export type Database = {
           start_date?: string
           status?: string
           tags?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      monthly_goal_snapshots: {
+        Row: {
+          category: string | null
+          created_at: string
+          current_value: number | null
+          id: string
+          month: string
+          reached: boolean | null
+          target_value: number | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          current_value?: number | null
+          id?: string
+          month: string
+          reached?: boolean | null
+          target_value?: number | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          current_value?: number | null
+          id?: string
+          month?: string
+          reached?: boolean | null
+          target_value?: number | null
           user_id?: string
         }
         Relationships: []
