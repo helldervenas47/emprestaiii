@@ -786,6 +786,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                   </>
                 )}
               </div>
+            )}
             {isVenda && (
               <div className="border border-border/50 rounded-lg p-3 space-y-3 bg-primary/5">
                 <div className="flex items-center gap-2 mb-1">
