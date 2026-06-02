@@ -724,7 +724,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         ? expectedReceivable * (g.targetValue / 100)
         : null;
 
-      // Para "Média Geral Recebida por Dia": exibir como média diária e comparar contra meta diária implícita
+      // Para "Média Geral Recebida por Dia": exibir como média diária e comparar contra meta diária configurada
       let receivedTotal: number | null = null;
       let monthlyPct: number | null = null;
       if (g.goalType === "daily_received_avg") {
@@ -734,12 +734,17 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         const daysInMonth = new Date(yy, mm, 0).getDate();
         const isCurrent = computeMonth === cur;
         const daysElapsed = isCurrent ? today.getDate() : (computeMonth < cur ? daysInMonth : 1);
-        receivedTotal = actual;
-        monthlyPct = g.targetValue > 0 ? Math.min(100, (actual / g.targetValue) * 100) : 0;
+        
+        receivedTotal = actual; // Guarda o total recebido no mês
         const dailyAvg = daysElapsed > 0 ? actual / daysElapsed : 0;
-        const dailyTarget = daysInMonth > 0 ? g.targetValue / daysInMonth : 0;
-        actual = dailyAvg;
+        const dailyTarget = g.targetValue; // A meta AGORA é interpretada diretamente como valor diário
+        
+        actual = dailyAvg; // O "valor realizado" que aparece no card passa a ser a média diária
         pct = dailyTarget > 0 ? Math.min(100, (dailyAvg / dailyTarget) * 100) : 0;
+        
+        // monthlyPct para exibição auxiliar (progresso do total do mês se a meta fosse mensal, opcional)
+        const estimatedMonthlyTarget = dailyTarget * daysInMonth;
+        monthlyPct = estimatedMonthlyTarget > 0 ? Math.min(100, (receivedTotal / estimatedMonthlyTarget) * 100) : 0;
       }
 
       return { ...g, actual, pct, meta, expectedReceivable, targetAmount, receivedTotal, monthlyPct, isLocked: monthClosed && !!snapshot?.finalized };
