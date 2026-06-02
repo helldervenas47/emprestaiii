@@ -110,18 +110,9 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
       const meta = GOAL_TYPE_META[g.goalType];
       let actual = computeActual(g.goalType, g.month);
       let target = g.targetValue;
-      // Para "Média Geral Recebida por Dia": interpretar alvo como meta DIÁRIA direta
+      // Para "Média Geral Recebida por Dia": computeActual já retorna a média diária
       if (g.goalType === "daily_received_avg") {
-        const [yy, mm] = g.month.split("-").map(Number);
-        const today = new Date();
-        const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
-        const daysInMonth = new Date(yy, mm, 0).getDate();
-        const isCurrent = g.month === currentMonth;
-        const daysElapsed = isCurrent
-          ? today.getDate()
-          : (g.month < currentMonth ? daysInMonth : 1);
-        actual = daysElapsed > 0 ? actual / daysElapsed : 0; // média diária recebida
-        target = g.targetValue; // a meta agora é interpretada DIRETAMENTE como valor diário
+        target = g.targetValue; // a meta é o valor diário configurado
       }
       let pct = 0;
       if (target > 0) {
