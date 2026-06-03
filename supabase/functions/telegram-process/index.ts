@@ -1187,7 +1187,7 @@ async function handleResgateCommand(
       .eq("piggy_bank_id", bank.id);
     const totalAvailable = ((deps ?? []) as any[]).reduce((s, d) => s + (Number(d.amount) || 0), 0);
     amount = totalAvailable;
-    if (amount <= 0) {
+    if (totalAvailable <= 0) {
       await tgSend(chatId, `ℹ️ A caixinha *${bank.name}* não tem saldo para resgatar.`, lovableKey, telegramKey);
       return;
     }
