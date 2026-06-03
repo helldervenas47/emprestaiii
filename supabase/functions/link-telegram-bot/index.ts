@@ -81,52 +81,39 @@ Deno.serve(async (req) => {
 
 
     if (!bot) {
-      if (/^\d{6}$/.test(code)) {
-        const [{ data: expenseCode }, { data: reportsCode }] = await Promise.all([
-          admin.from("telegram_link_codes").select("id, expires_at").eq("code", code).maybeSingle(),
-          admin.from("telegram_reports_link_codes").select("id, expires_at").eq("code", code).maybeSingle(),
-        ]);
-
-        if (expenseCode || reportsCode) {
-          const expiresAt = new Date(((expenseCode ?? reportsCode) as any).expires_at).getTime();
-          if (Number.isFinite(expiresAt) && expiresAt < Date.now()) {
-            return json({ error: "Esse código do app expirou. Gere um novo e envie o comando /start no Telegram." }, 410);
-          }
-
-          return json({
-            error: "Esse código é do app, não é o código do bot. Envie o comando /start com esse número dentro do Telegram; neste campo só cole o código recebido após enviar /code no bot.",
-          }, 409);
-        }
-      }
-
-      // Diagnóstico: lista códigos ativos para o usuário comparar com o que digitou.
+      // Diagnóstico detalhado: lista códigos válidos
       const { data: recent } = await admin
         .from("telegram_bots")
-        .select("bot_code, expires_at")
+        .select("bot_code, expires_at, kind")
         .gte("expires_at", new Date().toISOString())
         .order("expires_at", { ascending: false })
-        .limit(5);
+        .limit(10);
 
       const { count: botCount } = await admin
         .from("system_telegram_bots")
         .select("*", { count: "exact", head: true })
         .eq("active", true);
 
+      const expenseCodesActive = recent?.filter((r: any) => r.kind === "expenses").map((r: any) => r.bot_code) || [];
+      const reportCodesActive = recent?.filter((r: any) => r.kind === "reports").map((r: any) => r.bot_code) || [];
+
       let hint = "";
       if (botCount === 0) {
-        hint = " ⚠️ Nenhum bot configurado no sistema (tabela system_telegram_bots).";
-      } else if (recent && recent.length > 0) {
-        hint = ` Códigos ativos agora: ${recent.map((r: any) => r.bot_code).join(", ")}.`;
+        hint = " ⚠️ Nenhum bot configurado. Contate o administrador.";
+      } else if (expenseCodesActive.length === 0 && reportCodesActive.length === 0) {
+        hint = " ⏰ Nenhum código ativo. Envie /code ou /c no Telegram agora e cole aqui.";
       } else {
-        hint = " Nenhum código ativo no momento — envie /code no bot agora.";
+        if (expenseCodesActive.length > 0) hint += ` Despesas: ${expenseCodesActive.join(", ")}.`;
+        if (reportCodesActive.length > 0) hint += ` Relatórios: ${reportCodesActive.join(", ")}.`;
       }
 
       return json({
-        error: "Código de bot inválido." + hint,
+        error: `Código "${code}" não encontrado.${hint}`,
         hint: hint,
-        debug_info: { code_received: code, bot_count: botCount, recent_codes: recent }
+        debug: { code_received: code, bot_count: botCount, active_codes: { expense: expenseCodesActive, reports: reportCodesActive } }
       }, 404);
     }
+
 
     if ((bot as any).expires_at && new Date((bot as any).expires_at).getTime() < Date.now()) {
       return json({ error: "Código expirado. Gere um novo no bot enviando /code." }, 410);
