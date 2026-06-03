@@ -17,18 +17,21 @@ Deno.serve(async (req) => {
   try {
     const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_PROJECT_ID = Deno.env.get("VITE_SUPABASE_PROJECT_ID");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!TELEGRAM_API_KEY) {
       throw new Error("TELEGRAM_API_KEY not configured");
     }
-
-    if (!SUPABASE_PROJECT_ID) {
-      throw new Error("VITE_SUPABASE_PROJECT_ID not configured");
+    if (!SUPABASE_URL) {
+      throw new Error("SUPABASE_URL not configured");
+    }
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY not configured");
     }
 
     const secretToken = await deriveTelegramWebhookSecret(TELEGRAM_API_KEY);
-    const webhookUrl = `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/telegram-webhook`;
+    const webhookUrl = `${SUPABASE_URL}/functions/v1/telegram-webhook`;
+
 
     const response = await fetch("https://connector-gateway.lovable.dev/telegram/setWebhook", {
       method: "POST",
