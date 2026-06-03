@@ -1,6 +1,6 @@
-// Vincula o usuário autenticado a um chat do Telegram (despesas ou relatórios)
-// a partir de um bot_code curto digitado no app. O bot_code é gerado pelo
-// próprio bot (comando /code) e gravado em public.telegram_bots.
+// Vincula o usuário autenticado a um chat do Telegram a partir de um código
+// gerado pelo app (telegram-link-code). O usuário deve ter enviado /start CODE
+// para o bot antes de chamar esta função.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -37,119 +37,84 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch { body = {}; }
 
     const rawCode = typeof body?.bot_code === "string" ? body.bot_code : "";
-    const code = rawCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
-    if (!code || code.length < 4 || code.length > 12) {
-      return json({ error: "Código inválido. Informe o bot_code recebido no Telegram." }, 400);
+    const code = rawCode.trim().replace(/[^0-9]/g, "");
+    if (!code || code.length !== 6) {
+      return json({
+        error: "Código inválido. Gere um código de 6 dígitos no app e envie /start CÓDIGO ao bot.",
+      }, 400);
     }
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    async function findBot() {
-      return await admin
-        .from("telegram_bots")
-        .select("id, bot_code, kind, chat_id, bot_id, expires_at")
-        .eq("bot_code", code)
-        .maybeSingle();
-    }
-
-    async function triggerPollAndProcess() {
-      const headers = {
+    // Aciona o processamento das mensagens pendentes (caso o webhook ainda não tenha rodado).
+    await fetch(`${SUPABASE_URL}/functions/v1/telegram-process`, {
+      method: "POST",
+      headers: {
         Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
         "Content-Type": "application/json",
-      };
-      // Dispara poll dos dois bots (despesas + relatórios) e processa as mensagens
-      // antes de tentar localizar o código novamente. Útil quando não há cron ativo.
-      await Promise.allSettled([
-        fetch(`${SUPABASE_URL}/functions/v1/telegram-poll`, { method: "POST", headers, body: "{}" }),
-        fetch(`${SUPABASE_URL}/functions/v1/telegram-reports-poll`, { method: "POST", headers, body: "{}" }),
-      ]);
-      await fetch(`${SUPABASE_URL}/functions/v1/telegram-process`, { method: "POST", headers, body: "{}" }).catch(() => null);
+      },
+      body: "{}",
+    }).catch(() => null);
+
+    // Já vinculado? (telegram-process pode ter criado o link via /start CODE)
+    const { data: existingLink } = await admin
+      .from("telegram_links")
+      .select("chat_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (existingLink) {
+      return json({ ok: true, chat_id: existingLink.chat_id, already_linked: true });
     }
 
-    let { data: bot, error: botErr } = await findBot();
-    if (botErr) return json({ error: botErr.message }, 500);
+    // Localiza o código gerado pelo app
+    const { data: codeRow } = await admin
+      .from("telegram_link_codes")
+      .select("code, user_id, expires_at")
+      .eq("code", code)
+      .maybeSingle();
 
-    if (!bot) {
-      // Código pode ter sido gerado agora; sincroniza com polling e processa.
-      // Aguarda um pouco para o poll capturar a mensagem /code do Telegram.
-      await triggerPollAndProcess();
-      await new Promise(r => setTimeout(r, 2000)); // Espera 2s para o poll processar
-      const retry = await findBot();
-      if (retry.error) return json({ error: retry.error.message }, 500);
-      bot = retry.data;
+    if (!codeRow) {
+      return json({ error: `Código ${code} não encontrado. Gere um novo no app.` }, 404);
+    }
+    if (codeRow.user_id !== userId) {
+      return json({ error: "Esse código pertence a outro usuário." }, 403);
+    }
+    if (new Date(codeRow.expires_at).getTime() < Date.now()) {
+      await admin.from("telegram_link_codes").delete().eq("code", code);
+      return json({ error: "Código expirado. Gere um novo no app." }, 410);
     }
 
+    // Procura uma mensagem recente contendo o código
+    const since = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const { data: messages } = await admin
+      .from("telegram_messages")
+      .select("chat_id, text, created_at")
+      .gte("created_at", since)
+      .ilike("text", `%${code}%`)
+      .order("created_at", { ascending: false })
+      .limit(1);
 
-    if (!bot) {
-      // Diagnóstico detalhado: lista códigos válidos
-      const { data: recent } = await admin
-        .from("telegram_bots")
-        .select("bot_code, expires_at, kind")
-        .gte("expires_at", new Date().toISOString())
-        .order("expires_at", { ascending: false })
-        .limit(10);
-
-      const { count: botCount } = await admin
-        .from("system_telegram_bots")
-        .select("*", { count: "exact", head: true })
-        .eq("active", true);
-
-      const expenseCodesActive = recent?.filter((r: any) => r.kind === "expenses").map((r: any) => r.bot_code) || [];
-      const reportCodesActive = recent?.filter((r: any) => r.kind === "reports").map((r: any) => r.bot_code) || [];
-
-      let hint = "";
-      if (botCount === 0) {
-        hint = " ⚠️ Nenhum bot configurado. Contate o administrador.";
-      } else if (expenseCodesActive.length === 0 && reportCodesActive.length === 0) {
-        hint = " ⏰ Nenhum código ativo. Envie /code ou /c no Telegram agora e cole aqui.";
-      } else {
-        if (expenseCodesActive.length > 0) hint += ` Despesas: ${expenseCodesActive.join(", ")}.`;
-        if (reportCodesActive.length > 0) hint += ` Relatórios: ${reportCodesActive.join(", ")}.`;
-      }
-
+    const chatId = messages?.[0]?.chat_id;
+    if (!chatId) {
       return json({
-        error: `Código "${code}" não encontrado.${hint}`,
-        hint: hint,
-        debug: { code_received: code, bot_count: botCount, active_codes: { expense: expenseCodesActive, reports: reportCodesActive } }
+        error: "Ainda não recebemos sua mensagem. Envie /start " + code + " ao bot no Telegram e tente de novo.",
       }, 404);
     }
 
+    // Remove vínculos antigos do mesmo chat ou usuário, depois cria o novo
+    await admin
+      .from("telegram_links")
+      .delete()
+      .or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
 
-    if ((bot as any).expires_at && new Date((bot as any).expires_at).getTime() < Date.now()) {
-      return json({ error: "Código expirado. Gere um novo no bot enviando /code." }, 410);
-    }
+    const { error: insErr } = await admin
+      .from("telegram_links")
+      .insert({ user_id: userId, chat_id: chatId });
+    if (insErr) return json({ error: insErr.message }, 500);
 
-    const kind = (bot as any).kind as "expenses" | "reports";
-    const chatId = Number((bot as any).chat_id);
+    await admin.from("telegram_link_codes").delete().eq("code", code);
 
-    const targetTable = kind === "reports" ? "telegram_reports_links" : "telegram_links";
-    const rawLabel = typeof body?.label === "string" ? body.label.trim().slice(0, 80) : "";
-    const label = rawLabel || null;
-
-    // Múltiplos vínculos paralelos: chave = (user_id, chat_id).
-    // Se já existir, atualiza bot_code/label preservando dados; senão cria novo
-    // sem remover outros vínculos existentes do mesmo usuário.
-    const { error: upsertErr } = await admin
-      .from(targetTable)
-      .upsert(
-        { user_id: userId, chat_id: chatId, bot_id: (bot as any).bot_id ?? null, bot_code: code, label },
-        { onConflict: "user_id,chat_id" },
-      );
-
-    if (upsertErr) return json({ error: upsertErr.message }, 500);
-
-    // One-shot: invalida o código consumido (o vínculo persiste em telegram_*_links
-    // e pode ser reutilizado por outros relatórios sem refazer o pareamento).
-    await admin.from("telegram_bots").delete().eq("id", (bot as any).id);
-
-    return json({
-      ok: true,
-      kind,
-      chat_id: chatId,
-      bot_code: code,
-      label,
-      message: "Bot vinculado com sucesso. O código foi consumido, mas o vínculo permanece salvo.",
-    });
+    return json({ ok: true, chat_id: chatId, message: "Bot vinculado com sucesso." });
   } catch (e: any) {
     return json({ error: e?.message ?? "Erro interno" }, 500);
   }
