@@ -1185,8 +1185,9 @@ async function handleResgateCommand(
       .from("piggy_bank_deposits")
       .select("amount")
       .eq("piggy_bank_id", bank.id);
-    amount = ((deps ?? []) as any[]).reduce((s, d) => s + (Number(d.amount) || 0), 0);
-    if (amount <= 0) {
+    const totalAvailable = ((deps ?? []) as any[]).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+    amount = totalAvailable;
+    if (totalAvailable <= 0) {
       await tgSend(chatId, `ℹ️ A caixinha *${bank.name}* não tem saldo para resgatar.`, lovableKey, telegramKey);
       return;
     }
@@ -2804,22 +2805,36 @@ Deno.serve(async (req) => {
       }
 
       // /start CODE → link account
-      const startMatch = text.match(/^\/start(?:@\w+)?\s+(\d{6})/i);
+      const startMatch = text.match(/^\/start(?:@\w+)?\s+(\d{6})\b/i);
       if (startMatch) {
         const code = startMatch[1];
+        const rawBotId = (msg.raw_update as any)?._system_bot_id as string | undefined;
         const { data: codeRow } = await admin.from("telegram_link_codes")
-          .select("*").eq("code", code).maybeSingle();
+          .select("*")
+          .eq("code", code)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
         if (!codeRow) {
-          await tgSend(chatId, "❌ Código inválido ou expirado. Gere um novo no app.", LOVABLE_API_KEY, telegramKey);
+          const { data: anyCode } = await admin.from("telegram_link_codes")
+            .select("expires_at")
+            .eq("code", code)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const message = anyCode
+            ? "❌ Este código foi gerado para outro bot. Abra o app, gere um novo código e envie no mesmo bot indicado."
+            : "❌ Código não encontrado. No app, gere um novo código e envie exatamente `/start CÓDIGO` aqui.";
+          await tgSend(chatId, message, LOVABLE_API_KEY, telegramKey);
         } else if (new Date(codeRow.expires_at).getTime() < Date.now()) {
           await admin.from("telegram_link_codes").delete().eq("id", codeRow.id);
-          await tgSend(chatId, "⏰ Código expirado. Gere um novo no app.", LOVABLE_API_KEY, telegramKey);
+          await tgSend(chatId, "⏰ Código expirado. Gere um novo no app e envie logo em seguida neste bot.", LOVABLE_API_KEY, telegramKey);
         } else {
           // Remove any prior link for this chat or user
           await admin.from("telegram_links").delete().or(`chat_id.eq.${chatId},user_id.eq.${codeRow.user_id}`);
           invalidateLinkCache(chatId);
           const { error: linkErr } = await admin.from("telegram_links")
-            .insert({ user_id: codeRow.user_id, chat_id: chatId });
+            .insert({ user_id: codeRow.user_id, chat_id: chatId, bot_id: codeRow.bot_id ?? rawBotId ?? null });
           if (linkErr) {
             await tgSend(chatId, "❌ Erro ao vincular: " + linkErr.message, LOVABLE_API_KEY, telegramKey);
           } else {

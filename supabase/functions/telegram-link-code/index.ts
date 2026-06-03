@@ -39,6 +39,15 @@ Deno.serve(async (req) => {
   // Cleanup old codes for this user
   await admin.from("telegram_link_codes").delete().eq("user_id", user.id);
 
+  const { data: expenseBot } = await admin
+    .from("system_telegram_bots")
+    .select("id")
+    .eq("active", true)
+    .eq("purpose", "expenses")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
   // Generate unique 6-digit code
   let code = "";
   for (let i = 0; i < 5; i++) {
@@ -47,15 +56,15 @@ Deno.serve(async (req) => {
     if (!clash) break;
   }
 
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
   const { error: insErr } = await admin.from("telegram_link_codes").insert({
-    code, user_id: user.id, expires_at: expiresAt,
+    code, user_id: user.id, bot_id: expenseBot?.id ?? null, expires_at: expiresAt,
   });
   if (insErr) {
     return new Response(JSON.stringify({ error: insErr.message }), { status: 500, headers: corsHeaders });
   }
 
-  return new Response(JSON.stringify({ code, expiresAt }), {
+  return new Response(JSON.stringify({ code, expiresAt, expiresInMinutes: 30 }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
