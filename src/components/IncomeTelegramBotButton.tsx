@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
-import { CheckCircle2, Unlink } from "lucide-react";
+import { CheckCircle2, Copy, RefreshCw, Unlink } from "lucide-react";
 import { toast } from "sonner";
 
 const TelegramIcon = ({ className }: { className?: string }) => (
@@ -14,19 +13,22 @@ const TelegramIcon = ({ className }: { className?: string }) => (
 
 export function IncomeTelegramBotButton() {
   const [open, setOpen] = useState(false);
-  const [code, setCode] = useState("");
-  const [linking, setLinking] = useState(false);
+  const [code, setCode] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
   const [connected, setConnected] = useState(false);
+  const pollRef = useRef<number | null>(null);
 
   const refresh = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setConnected(false); return; }
+    if (!user) { setConnected(false); return false; }
     const { data } = await supabase
       .from("telegram_links" as any)
       .select("chat_id")
       .eq("user_id", user.id)
       .maybeSingle();
-    setConnected(!!data);
+    const isConnected = !!data;
+    setConnected(isConnected);
+    return isConnected;
   };
 
   useEffect(() => {
@@ -38,37 +40,48 @@ export function IncomeTelegramBotButton() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const handleLink = async () => {
-    const trimmed = code.trim();
-    if (!trimmed) {
-      toast.error("Informe o código recebido no Telegram");
-      return;
-    }
-    setLinking(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("link-telegram-bot", {
-        body: { bot_code: trimmed },
-      });
-      if (error) {
-        let msg = (error as any)?.message || "Não foi possível vincular";
-        try {
-          const ctx = (error as any)?.context;
-          if (ctx?.body) {
-            const parsed = typeof ctx.body === "string" ? JSON.parse(ctx.body) : ctx.body;
-            if (parsed?.error) msg = parsed.error;
-          }
-        } catch { /* ignore */ }
-        throw new Error(msg);
+  // Enquanto o dialog está aberto com um código pendente, força processamento
+  // das mensagens do bot a cada 4s para detectar o /start o quanto antes.
+  useEffect(() => {
+    if (!open || !code || connected) return;
+    const tick = async () => {
+      await supabase.functions.invoke("telegram-process").catch(() => null);
+      const ok = await refresh();
+      if (ok) {
+        toast.success("Bot vinculado com sucesso");
+        setCode(null);
+        setOpen(false);
       }
-      if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success("Bot vinculado com sucesso");
-      setCode("");
-      setOpen(false);
-      refresh();
+    };
+    pollRef.current = window.setInterval(tick, 4000);
+    return () => { if (pollRef.current) window.clearInterval(pollRef.current); };
+  }, [open, code, connected]);
+
+  const generateCode = async () => {
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("telegram-link-code");
+      if (error) throw error;
+      if ((data as any)?.alreadyLinked) {
+        toast.success("Bot já está vinculado");
+        await refresh();
+        return;
+      }
+      setCode((data as any).code);
     } catch (e: any) {
-      toast.error("Código inválido", { description: e.message });
+      toast.error("Erro ao gerar código", { description: e?.message ?? "Tente novamente" });
     } finally {
-      setLinking(false);
+      setGenerating(false);
+    }
+  };
+
+  const copyCommand = async () => {
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(`/start ${code}`);
+      toast.success("Comando copiado!");
+    } catch {
+      toast.error("Não foi possível copiar");
     }
   };
 
@@ -86,7 +99,7 @@ export function IncomeTelegramBotButton() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setCode(null); }}>
       <DialogTrigger asChild>
         <Button
           variant="ghost"
@@ -107,7 +120,7 @@ export function IncomeTelegramBotButton() {
           <DialogDescription className="text-xs">
             {connected
               ? "Seus lançamentos do Telegram estão chegando neste app. Para usar outro bot, desconecte primeiro."
-              : "Use bots diferentes para registrar lançamentos em contas distintas."}
+              : "Gere um código e envie ao bot para vincular sua conta."}
           </DialogDescription>
         </DialogHeader>
 
@@ -117,38 +130,43 @@ export function IncomeTelegramBotButton() {
               <CheckCircle2 className="h-4 w-4" />
               <span>Conexão ativa</span>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full gap-2"
-              onClick={handleDisconnect}
-            >
+            <Button variant="outline" size="sm" className="w-full gap-2" onClick={handleDisconnect}>
               <Unlink className="h-4 w-4" />
               Desconectar bot
             </Button>
           </div>
-        ) : (
-          <>
+        ) : !code ? (
+          <div className="space-y-3 pt-1">
             <ol className="text-xs text-muted-foreground space-y-1.5 list-decimal pl-4">
-              <li>Abra o bot desejado no Telegram.</li>
-              <li>Envie o comando <code className="font-mono px-1 py-0.5 rounded bg-muted">/code</code>.</li>
-              <li>Cole abaixo o código recebido.</li>
+              <li>Clique em <strong>Gerar código</strong> abaixo.</li>
+              <li>Abra o bot no Telegram e envie <code className="font-mono px-1 py-0.5 rounded bg-muted">/start CÓDIGO</code>.</li>
+              <li>A conexão será detectada automaticamente.</li>
             </ol>
-
-            <div className="flex gap-2 pt-1">
-              <Input
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="Código de conexão"
-                className="font-mono"
-                onKeyDown={(e) => { if (e.key === "Enter") handleLink(); }}
-                autoFocus
-              />
-              <Button size="sm" onClick={handleLink} disabled={linking || !code.trim()}>
-                {linking ? "Vinculando…" : "Vincular"}
+            <Button size="sm" className="w-full gap-2" onClick={generateCode} disabled={generating}>
+              <RefreshCw className={`h-4 w-4 ${generating ? "animate-spin" : ""}`} />
+              {generating ? "Gerando…" : "Gerar código"}
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3 pt-1">
+            <div className="rounded-md border bg-muted/40 px-3 py-3 text-center">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Envie ao bot</div>
+              <div className="font-mono text-lg font-bold tracking-wider">/start {code}</div>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" className="flex-1 gap-2" onClick={copyCommand}>
+                <Copy className="h-4 w-4" />
+                Copiar
+              </Button>
+              <Button size="sm" variant="ghost" className="flex-1 gap-2" onClick={generateCode} disabled={generating}>
+                <RefreshCw className={`h-4 w-4 ${generating ? "animate-spin" : ""}`} />
+                Novo
               </Button>
             </div>
-          </>
+            <p className="text-[11px] text-muted-foreground text-center">
+              Aguardando confirmação do Telegram…
+            </p>
+          </div>
         )}
       </DialogContent>
     </Dialog>
