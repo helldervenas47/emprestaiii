@@ -2811,7 +2811,6 @@ Deno.serve(async (req) => {
         const { data: codeRow } = await admin.from("telegram_link_codes")
           .select("*")
           .eq("code", code)
-          .or(rawBotId ? `bot_id.is.null,bot_id.eq.${rawBotId}` : "bot_id.is.null")
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -2834,7 +2833,7 @@ Deno.serve(async (req) => {
           await admin.from("telegram_links").delete().or(`chat_id.eq.${chatId},user_id.eq.${codeRow.user_id}`);
           invalidateLinkCache(chatId);
           const { error: linkErr } = await admin.from("telegram_links")
-            .insert({ user_id: codeRow.user_id, chat_id: chatId });
+            .insert({ user_id: codeRow.user_id, chat_id: chatId, bot_id: codeRow.bot_id ?? rawBotId ?? null });
           if (linkErr) {
             await tgSend(chatId, "❌ Erro ao vincular: " + linkErr.message, LOVABLE_API_KEY, telegramKey);
           } else {
