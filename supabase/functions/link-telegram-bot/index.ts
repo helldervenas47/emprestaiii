@@ -70,12 +70,15 @@ Deno.serve(async (req) => {
     if (botErr) return json({ error: botErr.message }, 500);
 
     if (!bot) {
-      // Usuário pode ter enviado /code agora; sincroniza e procura novamente.
+      // Código pode ter sido gerado agora; sincroniza com polling e processa.
+      // Aguarda um pouco para o poll capturar a mensagem /code do Telegram.
       await triggerPollAndProcess();
+      await new Promise(r => setTimeout(r, 2000)); // Espera 2s para o poll processar
       const retry = await findBot();
       if (retry.error) return json({ error: retry.error.message }, 500);
       bot = retry.data;
     }
+
 
     if (!bot) {
       if (/^\d{6}$/.test(code)) {
