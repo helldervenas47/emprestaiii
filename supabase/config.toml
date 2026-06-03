@@ -60,4 +60,12 @@ verify_jwt = false
 [functions.painel-migracao]
 verify_jwt = false
 
+[functions.telegram-webhook]
+verify_jwt = false
+
+[functions.telegram-webhook-setup]
+verify_jwt = false
+
+
+
 
