@@ -368,6 +368,9 @@ function MovementForm({
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const selectedProduct = products.find(p => p.id === productId);
+  const currentStock = selectedProduct?.stock ?? 0;
+
   const submit = async () => {
     const n = Number(qty);
     if (!isFinite(n) || n <= 0) { toast.error("Quantidade inválida"); return; }
@@ -388,6 +391,27 @@ function MovementForm({
 
   return (
     <div className="rounded-md border border-border/60 p-3 space-y-2">
+      <div className="grid grid-cols-1 gap-2">
+        <div>
+          <Label className="text-[11px]">Produto para movimentar</Label>
+          <Select value={productId} onValueChange={setProductId}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder="Selecione um produto..." />
+            </SelectTrigger>
+            <SelectContent>
+              {products.map(p => (
+                <SelectItem key={p.id} value={p.id}>{p.name} (Estoque: {p.stock})</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {productId && (
+            <div className="mt-1 text-[10px] text-muted-foreground">
+              Estoque atual disponível: <span className="font-semibold text-foreground">{currentStock}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-2">
         <div>
           <Label className="text-[11px]">Tipo</Label>
@@ -404,34 +428,26 @@ function MovementForm({
           <Input type="number" min="0" step="1" className="h-8 text-xs" value={qty} onChange={(e) => setQty(e.target.value)} />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <Label className="text-[11px]">Item da garantia</Label>
-          <Select value={itemId} onValueChange={(v) => {
-            setItemId(v);
-            const found = items.find((i) => i.id === v);
-            if (found?.productId) setProductId(found.productId);
-          }}>
-            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
-            <SelectContent>
-              {items.map((it) => <SelectItem key={it.id} value={it.id}>{it.productName} ({it.quantity})</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-[11px]">Produto (estoque)</Label>
-          <Select value={productId} onValueChange={setProductId}>
-            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecionar" /></SelectTrigger>
-            <SelectContent>
-              {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name} (estoque: {p.stock})</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
+
+      <div className="grid grid-cols-1 gap-2">
+        <Label className="text-[11px]">Item da garantia (vínculo)</Label>
+        <Select value={itemId} onValueChange={(v) => {
+          setItemId(v);
+          const found = items.find((i) => i.id === v);
+          if (found?.productId) setProductId(found.productId);
+        }}>
+          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Opcional" /></SelectTrigger>
+          <SelectContent>
+            {items.map((it) => <SelectItem key={it.id} value={it.id}>{it.productName} ({it.quantity})</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
-      <Input className="h-8 text-xs" placeholder="Observação" value={notes} onChange={(e) => setNotes(e.target.value)} />
+
+      <Input className="h-8 text-xs" placeholder="Observação (opcional)" value={notes} onChange={(e) => setNotes(e.target.value)} />
+      
       <Button size="sm" onClick={submit} disabled={busy} className="w-full">
         {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : direction === "in" ? <ArrowDownToLine className="h-3.5 w-3.5" /> : <ArrowUpFromLine className="h-3.5 w-3.5" />}
-        Registrar movimentação
+        {direction === "in" ? "Registrar Entrada" : "Registrar Saída"}
       </Button>
     </div>
   );
