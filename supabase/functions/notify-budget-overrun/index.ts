@@ -292,9 +292,8 @@ Deno.serve(async (req) => {
 
       // Send Telegram alert (only for exceeded, if user has linked Telegram)
       if (p.type === "exceeded") {
-        const lovableKey = Deno.env.get("LOVABLE_API_KEY");
         const telegramKey = Deno.env.get("TELEGRAM_BOT_TOKEN");
-        if (lovableKey && telegramKey) {
+        if (telegramKey) {
           const { data: tgLink } = await supabase
             .from("telegram_links")
             .select("chat_id")
