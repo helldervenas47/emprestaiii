@@ -522,3 +522,13 @@ function eventLabel(e: string) {
 function statusOrText(v: string) {
   return (WARRANTY_STATUS_LABEL as any)[v] || v;
 }
+
+function toneClass(tone: string) {
+  switch (tone) {
+    case "success": return "border-success/30 text-success bg-success/10";
+    case "warning": return "border-warning/30 text-warning bg-warning/10";
+    case "destructive": return "border-destructive/30 text-destructive bg-destructive/10";
+    case "secondary": return "border-muted-foreground/30 text-muted-foreground bg-muted/40";
+    default: return "border-primary/30 text-primary bg-primary/10";
+  }
+}
