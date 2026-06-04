@@ -174,18 +174,16 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     measurement: "Atingimento = (Quantidade realizada ÷ Meta) × 100.",
   },
   renegotiation_rate: {
-    formula: "Taxa Renegociação (%) = (Valor original renegociado no mês ÷ Valor a receber no mês) × 100",
+    formula: "Quantidade = Número de contratos renegociados no mês selecionado",
     indicators: [
       "Considera apenas renegociações registradas dentro do mês",
-      "Cada contrato é contado uma única vez (primeira renegociação do mês)",
-      "Numerador: previousAmount (valor original da dívida antes da renegociação)",
-      "Denominador: soma das parcelas/contratos com vencimento no mês",
+      "Cada contrato é contado uma única vez (mesmo com múltiplas renegociações no mês)",
     ],
-    dataSource: ["Tabela loan_renegotiations", "Tabela de Empréstimos e Cronograma de Parcelas"],
+    dataSource: ["Tabela loan_renegotiations", "Filtro: renegotiated_at no mês selecionado"],
     example: {
-      setup: "R$ 10.000 a receber no mês; 1 contrato renegociado com valor original R$ 1.500.",
-      calc: "(1.500 ÷ 10.000) × 100",
-      result: "Taxa de Renegociação = 15,00%",
+      setup: "No mês, 3 contratos diferentes foram renegociados.",
+      calc: "Contagem direta dos contratos distintos",
+      result: "Contratos renegociados = 3",
     },
     measurement: "Meta INVERSA: quanto menor, melhor. Atingimento = máx(0, 100 − (Realizado ÷ Meta) × 100).",
   },
@@ -220,7 +218,7 @@ const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: Unit; c
   net_profit:         { label: "Lucro Líquido",                    icon: PiggyBank,     unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Juros recebidos menos despesas pagas da empresa." },
   max_default_rate:   { label: "Taxa de Inadimplência",             icon: AlertTriangle, unit: "%",   color: "text-destructive", bgColor: "bg-destructive/15", description: "Limite máximo de % de parcelas em atraso (meta inversa).", inverse: true },
   new_clients_count:  { label: "Novos Clientes",                   icon: UserPlus,      unit: "qtd", color: "text-primary",     bgColor: "bg-primary/15",     description: "Clientes cadastrados no período." },
-  renegotiation_rate: { label: "Taxa de Renegociação",             icon: RefreshCw,     unit: "%",   color: "text-destructive", bgColor: "bg-destructive/15", description: "% do valor a receber no mês que foi renegociado (meta inversa).", inverse: true },
+  renegotiation_rate: { label: "Contratos Renegociados",           icon: RefreshCw,     unit: "qtd", color: "text-destructive", bgColor: "bg-destructive/15", description: "Limite máximo de contratos renegociados no mês (meta inversa).", inverse: true },
   daily_received_avg: { label: "Receita Média Diária",           icon: HandCoins,     unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Meta mensal com média diária e necessário/dia restante." },
 };
 
@@ -473,31 +471,8 @@ function computeRenegotiationRate(
   const monthStart = new Date(yy, mm - 1, 1);
   const monthEnd = new Date(yy, mm, 0, 23, 59, 59, 999);
 
-  let totalReceivableMonth = 0;
-  loans.forEach((l: any) => {
-    const installments = Number(l.installments) || 1;
-    if (installments >= 2) {
-      installmentSchedules
-        .filter((sc) => {
-          if (sc.loanId !== l.id) return false;
-          const d = new Date(sc.dueDate + "T00:00:00");
-          return d >= monthStart && d <= monthEnd;
-        })
-        .forEach((sc) => { totalReceivableMonth += Number(sc.amount) || 0; });
-    } else {
-      const due = (l.dueDate || l.due_date || "").slice(0, 10);
-      if (!due) return;
-      const d = new Date(due + "T00:00:00");
-      if (d >= monthStart && d <= monthEnd) {
-        const principal = Number(l.amount) || 0;
-        const rate = Number(l.interestRate ?? l.interest_rate) || 0;
-        totalReceivableMonth += calculateTotalWithInterest(principal, rate, installments);
-      }
-    }
-  });
-
+  // Quantidade de contratos renegociados no mês (cada contrato conta uma única vez).
   const seen = new Set<string>();
-  let renegotiatedAmount = 0;
   (renegotiations || [])
     .filter((r) => {
       const ts = r.renegotiatedAt || r.createdAt;
@@ -505,14 +480,9 @@ function computeRenegotiationRate(
       const d = new Date(ts);
       return d >= monthStart && d <= monthEnd;
     })
-    .sort((a, b) => (a.renegotiatedAt || a.createdAt).localeCompare(b.renegotiatedAt || b.createdAt))
-    .forEach((r) => {
-      if (seen.has(r.loanId)) return;
-      seen.add(r.loanId);
-      renegotiatedAmount += Number(r.previousAmount ?? 0);
-    });
+    .forEach((r) => { seen.add(r.loanId); });
 
-  return totalReceivableMonth > 0 ? (renegotiatedAmount / totalReceivableMonth) * 100 : 0;
+  return seen.size;
 }
 
 export function computeActual(
