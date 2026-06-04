@@ -2755,14 +2755,17 @@ function LoanRowView({
     : loan.customInstallmentValue != null && loan.customInstallmentValue > 0
       ? loan.customInstallmentValue
       : (loan.installments >= 2 ? total / loan.installments : baseRemaining);
-  const actualRemainingRow = loan.status === "paid"
-    ? 0
-    : loan.remainingAmount != null && loan.remainingAmount > 0
-      ? loan.remainingAmount
-      : Math.max(0, total - totalPaid);
   const expectedRemainingRow = nextSchedule
     ? allUnpaidScheduleSum
     : fullInstallmentValue * remainingInstallments;
+  // Prefer schedule sum as source of truth (avoids divergence with stored remainingAmount).
+  const actualRemainingRow = loan.status === "paid"
+    ? 0
+    : nextSchedule
+      ? allUnpaidScheduleSum
+      : loan.remainingAmount != null && loan.remainingAmount > 0
+        ? loan.remainingAmount
+        : Math.max(0, total - totalPaid);
   const partialPaidOnCurrentRow = Math.max(0, expectedRemainingRow - actualRemainingRow);
   const installmentValue = Math.max(0, fullInstallmentValue - partialPaidOnCurrentRow);
   const interestOnlyRow = loan.customInterestValue != null && loan.customInterestValue > 0
