@@ -20,15 +20,8 @@ export function getBaseRemainingAmount(loan: Loan, payments: Payment[], schedule
   );
   const unpaidSchedulesTotal = unpaidSchedules.reduce((sum, schedule) => sum + schedule.amount, 0);
 
-  // Partial payments are stored with installment_number = -1 and do not decrement
-  // the schedule rows. Subtract them so the remaining balance reflects what was
-  // actually paid against the pending installments.
-  const partialPaidUnattributed = payments
-    .filter((p) => p.loanId === loan.id && p.installmentNumber === -1)
-    .reduce((sum, p) => sum + p.amount, 0);
-
   if (loan.installments >= 2 && unpaidSchedulesTotal > 0) {
-    return Math.max(0, unpaidSchedulesTotal - partialPaidUnattributed);
+    return unpaidSchedulesTotal;
   }
 
   if (loan.remainingAmount != null && loan.remainingAmount > 0) {
