@@ -752,11 +752,15 @@ function LoanCardView({
         await onAmortize(val, dateStr, mid, split);
       } else if (dialogType === "installment") {
         if (interestSelection === "withFees" && lateFees > 0 && loan.installments >= 2) {
-          // Bump the next installment amount in the schedule by the late fees,
-          // then collect the inflated installment in a single payment record.
-          await onInterestPayment(dateStr, undefined, lateFees, mid, null, { partial: false, notes: "Parcela paga com juros/multa de atraso" });
+          // Registra a multa/juros como um pagamento separado (entrada
+          // própria no extrato). Split é forçado para método único pois
+          // o valor da parcela em si segue inalterado abaixo.
+          await onInterestPayment(dateStr, undefined, lateFees, mid, null, { partial: false, notes: "Juros/multa por atraso" });
+          await onPayment(dateStr, mid, null);
+        } else {
+          await onPayment(dateStr, mid, split);
         }
-        await onPayment(dateStr, mid, split);
+
       } else if (dialogType === "interest") {
         const partialRaw = parseFloat(interestPartialAmount.replace(",", "."));
         const partialVal = interestPartialEnabled && isFinite(partialRaw) && partialRaw > 0 ? partialRaw : undefined;
