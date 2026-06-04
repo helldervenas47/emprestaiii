@@ -2,7 +2,7 @@
 -- Warranty (Garantia) module for sales contracts
 -- Apply this SQL in YOUR Supabase project (CloneSupa / SQL Editor / psql)
 -- The file is intentionally outside supabase/migrations so the agent
--- does not try to manage it via Lovable Cloud.
+-- does not try to manage it automaticamente via migrações.
 -- =============================================================
 
 -- ---------- warranty_cases ----------

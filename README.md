@@ -1,3 +1,3 @@
-# Welcome to your Lovable project
+# EmprestAI
 
-TODO: Document your project here
+Aplicativo de controle de empréstimos e finanças pessoais.
