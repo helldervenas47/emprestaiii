@@ -466,7 +466,10 @@ function LoanCardView({
     .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments)
     .sort((a, b) => a.installmentNumber - b.installmentNumber);
   const nextSchedule = unpaidSchedules[0];
-  const allUnpaidScheduleSum = unpaidSchedules.reduce((sum, s) => sum + s.amount, 0);
+  const partialPaidUnattributed = allPayments
+    .filter((p) => p.loanId === loan.id && p.installmentNumber === -1)
+    .reduce((sum, p) => sum + p.amount, 0);
+  const allUnpaidScheduleSum = Math.max(0, unpaidSchedules.reduce((sum, s) => sum + s.amount, 0) - partialPaidUnattributed);
   // Prefer schedule sum as source of truth (matches "Restante" field shown in collected loans).
   const baseRemaining = loan.status === "paid"
     ? 0
@@ -2718,7 +2721,10 @@ function LoanRowView({
   const unpaidSchedules = installmentSchedules
     .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments)
     .sort((a, b) => a.installmentNumber - b.installmentNumber);
-  const allUnpaidScheduleSum = unpaidSchedules.reduce((sum, s) => sum + s.amount, 0);
+  const partialPaidUnattributed = allPayments
+    .filter((p) => p.loanId === loan.id && p.installmentNumber === -1)
+    .reduce((sum, p) => sum + p.amount, 0);
+  const allUnpaidScheduleSum = Math.max(0, unpaidSchedules.reduce((sum, s) => sum + s.amount, 0) - partialPaidUnattributed);
   // Prefer schedule sum as source of truth (matches "Restante" field shown in collected loans).
   const baseRemaining = loan.status === "paid"
     ? 0
