@@ -1580,7 +1580,7 @@ function telegramMethodUrl(method: string, telegramKey: string) {
 function telegramHeaders(telegramKey: string, json = true) {
   const headers: Record<string, string> = json ? { "Content-Type": "application/json" } : {};
   if (!isRawTelegramToken(telegramKey)) {
-    headers.Authorization = `Bearer ${lovableKey}`;
+    headers.Authorization = "";
     headers["X-Connection-Api-Key"] = telegramKey;
   }
   return headers;
@@ -1589,7 +1589,7 @@ function telegramHeaders(telegramKey: string, json = true) {
 async function tgSend(chatId: number, text: string, telegramKey: string): Promise<number | null> {
   const r = await fetch(telegramMethodUrl("sendMessage", telegramKey), {
     method: "POST",
-    headers: telegramHeaders(lovableKey, telegramKey),
+    headers: telegramHeaders(telegramKey),
     body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
   }).catch((e) => ({ ok: false, status: 0, text: async () => String(e), json: async () => null } as any));
   if (!r.ok) { console.error("sendMessage err", r.status, await r.text().catch(() => "")); return null; }
@@ -1599,7 +1599,7 @@ async function tgSend(chatId: number, text: string, telegramKey: string): Promis
 async function tgSendWithKeyboard(chatId: number, text: string, keyboard: any, telegramKey: string) {
   const r = await fetch(telegramMethodUrl("sendMessage", telegramKey), {
     method: "POST",
-    headers: telegramHeaders(lovableKey, telegramKey),
+    headers: telegramHeaders(telegramKey),
     body: JSON.stringify({
       chat_id: chatId,
       text,
@@ -1615,7 +1615,7 @@ async function tgEditMessage(chatId: number, messageId: number, text: string, ke
   if (keyboard) body.reply_markup = { inline_keyboard: keyboard };
   const r = await fetch(telegramMethodUrl("editMessageText", telegramKey), {
     method: "POST",
-    headers: telegramHeaders(lovableKey, telegramKey),
+    headers: telegramHeaders(telegramKey),
     body: JSON.stringify(body),
   }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) } as Response));
   if (!r.ok) console.error("editMessage err", r.status, await r.text().catch(() => ""));
@@ -1624,7 +1624,7 @@ async function tgEditMessage(chatId: number, messageId: number, text: string, ke
 async function tgEditReplyMarkup(chatId: number, messageId: number, keyboard: any, telegramKey: string) {
   const r = await fetch(telegramMethodUrl("editMessageReplyMarkup", telegramKey), {
     method: "POST",
-    headers: telegramHeaders(lovableKey, telegramKey),
+    headers: telegramHeaders(telegramKey),
     body: JSON.stringify({
       chat_id: chatId,
       message_id: messageId,
@@ -1639,7 +1639,7 @@ async function tgAnswerCallback(callbackId: string, text: string | undefined, te
   if (text) body.text = text;
   const r = await fetch(telegramMethodUrl("answerCallbackQuery", telegramKey), {
     method: "POST",
-    headers: telegramHeaders(lovableKey, telegramKey),
+    headers: telegramHeaders(telegramKey),
     body: JSON.stringify(body),
   }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) } as Response));
   if (!r.ok) console.error("answerCb err", r.status, await r.text().catch(() => ""));
@@ -2048,7 +2048,7 @@ async function downloadTelegramFile(fileId: string, telegramKey: string): Promis
   try {
     const fileResp = await fetch(telegramMethodUrl("getFile", telegramKey), {
       method: "POST",
-      headers: telegramHeaders(lovableKey, telegramKey),
+      headers: telegramHeaders(telegramKey),
       body: JSON.stringify({ file_id: fileId }),
     });
     const fileData = await fileResp.json();
