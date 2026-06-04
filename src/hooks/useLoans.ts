@@ -826,20 +826,30 @@ export function useLoans() {
     }
 
     // Manager commission (isolated — does NOT affect balance/profit/expenses)
+    // Só registra se ainda não houver comissão integral para este empréstimo
     if (loan.hasManager && loan.managerId) {
-      const rate = loan.managerCommissionRate ?? 10;
-      const amount = (loan.amount * rate) / 100;
-      await supabase.from("manager_commissions").insert({
-        user_id: dataOwnerId,
-        loan_id: loanId,
-        manager_id: loan.managerId,
-        payment_id: insertedPayment.id,
-        commission_type: "full",
-        base_amount: loan.amount,
-        rate,
-        amount,
-        generated_at: dateStr,
-      } as any);
+      const { data: existingFull } = await supabase
+        .from("manager_commissions")
+        .select("id")
+        .eq("loan_id", loanId)
+        .eq("commission_type", "full")
+        .limit(1);
+
+      if (!existingFull || existingFull.length === 0) {
+        const rate = loan.managerCommissionRate ?? 10;
+        const amount = (loan.amount * rate) / 100;
+        await supabase.from("manager_commissions").insert({
+          user_id: dataOwnerId,
+          loan_id: loanId,
+          manager_id: loan.managerId,
+          payment_id: insertedPayment.id,
+          commission_type: "full",
+          base_amount: loan.amount,
+          rate,
+          amount,
+          generated_at: dateStr,
+        } as any);
+      }
     }
 
     await fetchPayments();
