@@ -1144,7 +1144,6 @@ async function handleResgateCommand(
   userId: string,
   chatId: number,
   text: string,
-  lovableKey: string,
   telegramKey: string,
 ): Promise<void> {
   const { banks } = await listUserPiggyBanks(admin, userId);
@@ -1173,7 +1172,7 @@ async function handleResgateCommand(
     await tgSend(
       chatId,
       `🐷 Você tem mais de uma caixinha. Diga qual usar.\n\n${formatPiggyBanksList(banks)}\n\nEx.: \`resgatar 200 da caixinha 1\``,
-      lovableKey, telegramKey,
+      telegramKey,
     );
     return;
   }
@@ -1196,7 +1195,7 @@ async function handleResgateCommand(
     await tgSend(
       chatId,
       `🐷 Quanto você quer resgatar de *${bank.name}*?\nEx.: \`resgatar 200 da caixinha ${bank.shortId ?? bank.name}\` ou \`resgatar tudo da caixinha ${bank.shortId ?? bank.name}\``,
-      lovableKey, telegramKey,
+      telegramKey,
     );
     return;
   }
@@ -2063,7 +2062,7 @@ async function downloadTelegramFile(fileId: string, telegramKey: string): Promis
       isRawTelegramToken(telegramKey)
         ? `https://api.telegram.org/file/bot${telegramKey}/${filePath}`
         : `${GATEWAY_URL}/bot${telegramKey}/file/${filePath}`,
-      { headers: telegramHeaders(lovableKey, telegramKey, false) },
+      { headers: telegramHeaders(telegramKey, false) },
     );
     if (!dl.ok) {
       console.error("file download failed", dl.status);
@@ -2699,7 +2698,6 @@ Deno.serve(async (req) => {
           const transcript = await transcribeAudio(
             audioMsg.file_id,
             audioMsg.mime_type || "",
-            LOVABLE_API_KEY,
             telegramKey,
           );
           if (!transcript) {
@@ -2707,7 +2705,7 @@ Deno.serve(async (req) => {
           } else if (looksLikeQuestion(transcript)) {
             // 🗣️ Áudio com pergunta em linguagem natural — interpreta com IA e consulta o banco.
             try {
-              const reply = await answerNaturalQuery(admin, link.user_id, transcript, LOVABLE_API_KEY);
+              const reply = await answerNaturalQuery(admin, link.user_id, transcript);
               if (reply) {
                 await tgSend(chatId, `🎤 _"${transcript}"_\n\n${reply}`, telegramKey);
               } else {
@@ -2718,13 +2716,13 @@ Deno.serve(async (req) => {
               await tgSend(chatId, "❌ Erro ao processar sua pergunta. Tente novamente.", telegramKey);
             }
           } else {
-            const extracted = await extractExpense(transcript, LOVABLE_API_KEY);
+            const extracted = await extractExpense(transcript);
             if (!extracted || !extracted.amount || extracted.confidence < 0.6) {
               await tgSend(chatId, `🎤 Transcrevi: _"${transcript}"_\n\n🤔 Mas não consegui identificar a despesa. Tente reformular.`, telegramKey);
             } else {
               const finalDate = sanitizeDate(extracted.date);
               const initialCat = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
-              const finalCategory = await resolveCategoryHybrid(admin, link.user_id, extracted.description || transcript.slice(0, 80), initialCat, LOVABLE_API_KEY);
+              const finalCategory = await resolveCategoryHybrid(admin, link.user_id, extracted.description || transcript.slice(0, 80), initialCat);
               const installmentsN = extracted.installments && Number(extracted.installments) >= 2
                 ? Math.min(36, Math.floor(Number(extracted.installments)))
                 : null;
