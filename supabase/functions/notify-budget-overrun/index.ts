@@ -128,7 +128,7 @@ const TELEGRAM_GATEWAY = "https://api.telegram.org";
 
 async function sendTelegram(chatId: number, text: string, lovableKey: string, telegramKey: string) {
   try {
-    await fetch(`${TELEGRAM_GATEWAY}/sendMessage`, {
+    await fetch(`${TELEGRAM_GATEWAY}/bot${telegramKey}/sendMessage`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
