@@ -2543,6 +2543,9 @@ function LoanCardView({
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
 
               {activeMethods.length > 0 && (() => {
                 const baseInt = loan.customInterestValue != null && loan.customInterestValue > 0 ? loan.customInterestValue : loan.amount * (loan.interestRate / 100);
