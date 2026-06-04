@@ -2620,7 +2620,6 @@ function LoanCardView({
                     className="rounded-md border pointer-events-auto mx-auto"
                   />
                 </div>
-              </div>
             </div>
           </div>
         </div>
