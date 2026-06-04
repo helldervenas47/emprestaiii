@@ -467,14 +467,14 @@ function LoanCardView({
     .sort((a, b) => a.installmentNumber - b.installmentNumber);
   const nextSchedule = unpaidSchedules[0];
   const allUnpaidScheduleSum = unpaidSchedules.reduce((sum, s) => sum + s.amount, 0);
-  // Source of truth: loan.remainingAmount (same value shown in the create/edit form).
-  // Fallback to total - totalPaid só quando o campo salvo está ausente.
-  // Contratos quitados sempre têm restante 0 — mesmo se foram quitados com valor menor (acordo/desconto).
+  // Prefer schedule sum as source of truth (matches "Restante" field shown in collected loans).
   const baseRemaining = loan.status === "paid"
     ? 0
-    : loan.remainingAmount != null && loan.remainingAmount > 0
-      ? loan.remainingAmount
-      : Math.max(0, total - totalPaid);
+    : nextSchedule
+      ? allUnpaidScheduleSum
+      : loan.remainingAmount != null && loan.remainingAmount > 0
+        ? loan.remainingAmount
+        : Math.max(0, total - totalPaid);
   const category = getLoanCategory(loan, allPayments, installmentSchedules);
   const daysOverdue = getDaysOverdue(loan, installmentSchedules);
 
