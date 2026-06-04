@@ -2619,8 +2619,11 @@ function LoanCardView({
                     onSelect={(d) => d && setPaymentDate(d)}
                     className="rounded-md border pointer-events-auto mx-auto"
                   />
+                </div>
+              </div>
             </div>
           </div>
+        </div>
         </div>
 
         <DialogFooter className="shrink-0 flex-row gap-2 border-t border-border/40 bg-background/95 backdrop-blur px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-6 sm:pt-3 sm:border-0 sm:bg-transparent sm:backdrop-blur-0">
