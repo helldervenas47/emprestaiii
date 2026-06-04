@@ -3177,8 +3177,7 @@ Deno.serve(async (req) => {
                   admin,
                   link.user_id,
                   extracted.description || text.slice(0, 80),
-                  initialIncomeCat,
-                  LOVABLE_API_KEY,
+                  initialIncomeCat
                 );
                 const status = extracted.status === "pending" ? "pending" : "received";
                 const ownerId = await resolvePiggyOwner(admin, link.user_id);
