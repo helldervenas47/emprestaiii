@@ -3955,18 +3955,25 @@ function LoanRowView({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start mt-2">
             <div className="space-y-4">
 
-          {paymentDialog?.type === "full" && (
-            <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-              <p className="text-xs text-muted-foreground">Total restante a receber</p>
-              <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
-            </div>
-          )}
-          {paymentDialog?.type === "payoff" && (
-            <div className="w-full space-y-2">
-              <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-                <p className="text-xs text-muted-foreground">Total restante a receber</p>
-                <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
-              </div>
+              {paymentDialog?.type === "payoff" && (
+                <div className="w-full space-y-1">
+                  <Label htmlFor="payoff-amount-row" className="text-xs">Valor para quitar (R$)</Label>
+                  <Input
+                    id="payoff-amount-row"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    inputMode="decimal"
+                    value={payoffAmount}
+                    onChange={(e) => setPayoffAmount(e.target.value)}
+                    placeholder={`Ex: ${remaining.toFixed(2)}`}
+                    autoFocus
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Informe o valor de quitação. O contrato será marcado como pago.
+                  </p>
+                </div>
+              )}
               <div className="space-y-1">
                 <Label htmlFor="payoff-amount-row" className="text-xs">Valor para quitar (R$)</Label>
                 <Input
