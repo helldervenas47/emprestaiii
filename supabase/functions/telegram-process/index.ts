@@ -1841,7 +1841,7 @@ async function getAvailableCategories(admin: any, userId: string): Promise<strin
   }
 }
 
-async function extractExpense(text: string, lovableKey: string) {
+async function extractExpense(text: string) {
   const today = todayBR();
   const resp = await fetch(AI_GATEWAY, {
     method: "POST",
@@ -1968,7 +1968,7 @@ function looksLikeIncome(text: string): boolean {
   return INCOME_KEYWORDS.some((kw) => t.includes(kw));
 }
 
-async function extractIncome(text: string, lovableKey: string) {
+async function extractIncome(text: string) {
   const today = todayBR();
   const resp = await fetch(AI_GATEWAY, {
     method: "POST",
@@ -2132,7 +2132,7 @@ async function transcribeAudio(fileId: string, mimeHint: string, telegramKey: st
   return text.trim();
 }
 
-async function extractExpenseFromImage(imageDataUrl: string, caption: string, lovableKey: string) {
+async function extractExpenseFromImage(imageDataUrl: string, caption: string) {
   const today = todayBR();
   const sysPrompt = `Você extrai despesas pessoais de imagens de cupons fiscais, notas fiscais ou comprovantes em português brasileiro. Hoje é ${today} (timezone America/Sao_Paulo). Categorias permitidas: ${CATEGORIES.join(", ")}.
 
@@ -2310,7 +2310,6 @@ async function answerNaturalQuery(
   admin: any,
   userId: string,
   text: string,
-  lovableKey: string,
 ): Promise<string | null> {
   // Carrega categorias customizadas para enriquecer o prompt
   const { data: customCats } = await admin
@@ -3300,7 +3299,7 @@ Deno.serve(async (req) => {
                 const bgPersist = (async () => {
                   try {
                     const finalCategory = await resolveCategoryHybrid(
-                      admin, link.user_id, description, initialCat, LOVABLE_API_KEY,
+                      admin, link.user_id, description, initialCat,
                     );
                     const basePayload: Record<string, any> = {
                       user_id: link.user_id,
