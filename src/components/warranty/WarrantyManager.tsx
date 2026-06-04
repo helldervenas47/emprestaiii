@@ -31,9 +31,10 @@ const ACTIVE_CASE_STATUSES: WarrantyStatus[] = STATUSES.filter((s) => s !== "can
 interface Props {
   sale: Sale;
   products?: Product[];
+  iconOnly?: boolean;
 }
 
-export function WarrantyManager({ sale, products: productsProp }: Props) {
+export function WarrantyManager({ sale, products: productsProp, iconOnly }: Props) {
   const [open, setOpen] = useState(false);
   const w = useWarranty(open ? sale.id : undefined);
   const [fetched, setFetched] = useState<Product[]>([]);
@@ -52,19 +53,36 @@ export function WarrantyManager({ sale, products: productsProp }: Props) {
 
   return (
     <>
-      <Button
-        size="sm"
-        variant="outline"
-        className="h-8 gap-1.5"
-        onClick={() => setOpen(true)}
-        title="Garantia"
-      >
-        <ShieldCheck className="h-3.5 w-3.5" />
-        Garantia
-        {activeCount > 0 && (
-          <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">{activeCount}</Badge>
-        )}
-      </Button>
+      {iconOnly ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-primary hover:bg-primary/10 relative"
+          title="Garantia"
+          onClick={(e) => { e.stopPropagation(); setOpen(true); }}
+        >
+          <ShieldCheck className="h-4 w-4" />
+          {activeCount > 0 && (
+            <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+              {activeCount}
+            </span>
+          )}
+        </Button>
+      ) : (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 gap-1.5"
+          onClick={() => setOpen(true)}
+          title="Garantia"
+        >
+          <ShieldCheck className="h-3.5 w-3.5" />
+          Garantia
+          {activeCount > 0 && (
+            <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">{activeCount}</Badge>
+          )}
+        </Button>
+      )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>

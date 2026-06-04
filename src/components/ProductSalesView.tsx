@@ -757,21 +757,24 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
           readOnly={readOnly}
         />
 
-        {/* Botão visível — abre histórico de pagamentos */}
-        <button
-          type="button"
-          onClick={() => setShowPayments(true)}
-          className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/30 transition-colors"
-        >
-          <div className="flex items-center gap-2 text-sm">
-            <Receipt className="h-4 w-4 text-success" />
-            <span className="font-medium text-foreground">Histórico de Pagamentos</span>
-            <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">
-              {(sale.paymentHistory || []).length}
-            </Badge>
-          </div>
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-        </button>
+        {/* Botão visível — abre histórico de pagamentos + Garantia */}
+        <div className="flex items-stretch gap-2">
+          <button
+            type="button"
+            onClick={() => setShowPayments(true)}
+            className="flex-1 flex items-center justify-between px-3 py-2.5 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/30 transition-colors"
+          >
+            <div className="flex items-center gap-2 text-sm">
+              <Receipt className="h-4 w-4 text-success" />
+              <span className="font-medium text-foreground">Histórico de Pagamentos</span>
+              <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">
+                {(sale.paymentHistory || []).length}
+              </Badge>
+            </div>
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </button>
+          <WarrantyManager sale={sale} />
+        </div>
 
         {/* Row 5: Payment action panel */}
         <div className="mt-auto space-y-2">
@@ -1102,6 +1105,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
               )}
             </Button>
           )}
+          {!isMobile && <WarrantyManager sale={sale} iconOnly />}
           {!readOnly && !isMobile && (
             <Button
               variant="ghost"
@@ -1174,6 +1178,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
                   </span>
                 )}
               </Button>
+              <WarrantyManager sale={sale} iconOnly />
               <Button
                 variant="ghost"
                 size="icon"
