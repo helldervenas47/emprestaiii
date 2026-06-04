@@ -122,6 +122,31 @@ export function LedgerView({ readOnly = false }: Props) {
     })();
   }, [entries, paymentMethodByPaymentId]);
 
+  // Backfill: tags do contrato (loans) para mostrar etiquetas nos lançamentos
+  useEffect(() => {
+    const missing = entries
+      .filter((e) => e.loan_id && !(e.loan_id in loanTagsById))
+      .map((e) => e.loan_id as string);
+    if (missing.length === 0) return;
+    const unique = Array.from(new Set(missing));
+    (async () => {
+      const { data } = await supabase.from("loans").select("id, tags").in("id", unique);
+      setLoanTagsById((prev) => {
+        const next = { ...prev };
+        unique.forEach((id) => { if (!(id in next)) next[id] = []; });
+        (data as any[] | null)?.forEach((r) => {
+          next[r.id] = Array.isArray(r.tags) ? r.tags.filter((t: any) => typeof t === "string" && t.trim()) : [];
+        });
+        return next;
+      });
+    })();
+  }, [entries, loanTagsById]);
+
+  const getLoanTags = useCallback((e: LedgerEntry): string[] => {
+    if (!e.loan_id) return [];
+    return loanTagsById[e.loan_id] ?? [];
+  }, [loanTagsById]);
+
   const filtered = useMemo(() => {
     return entries
       .filter((e) => {
