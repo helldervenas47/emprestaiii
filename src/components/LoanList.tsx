@@ -4025,35 +4025,37 @@ function LoanRowView({
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch] px-4 pb-3 sm:px-6 sm:pb-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start mt-2">
             <div className="space-y-4">
-              <div className="hidden md:block rounded-lg border border-border/60 bg-card/60 p-3 space-y-2">
-                <p className="text-xs font-semibold text-foreground">Resumo do empréstimo</p>
-                <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
-                  <div>
-                    <p className="text-muted-foreground">Total emprestado</p>
-                    <p className="font-semibold text-foreground tabular-nums">{formatCurrency(loan.amount)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Já recebido</p>
-                    <p className="font-semibold text-success tabular-nums">{formatCurrency(totalPaid)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Parcelas pagas</p>
-                    <p className="font-semibold text-foreground tabular-nums">{loan.paidInstallments} / {loan.installments}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Pendentes</p>
-                    <p className="font-semibold text-foreground tabular-nums">{Math.max(0, loan.installments - loan.paidInstallments)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Próximo vencimento</p>
-                    <p className="font-semibold text-foreground tabular-nums">{nextSchedule?.dueDate ? new Date(nextSchedule.dueDate + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Taxa de juros</p>
-                    <p className="font-semibold text-foreground tabular-nums">{Number(loan.interestRate).toFixed(2)}% a.m.</p>
+              {paymentDialog?.type !== "interest" && (
+                <div className="hidden md:block rounded-lg border border-border/60 bg-card/60 p-3 space-y-2">
+                  <p className="text-xs font-semibold text-foreground">Resumo do empréstimo</p>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
+                    <div>
+                      <p className="text-muted-foreground">Total emprestado</p>
+                      <p className="font-semibold text-foreground tabular-nums">{formatCurrency(loan.amount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Já recebido</p>
+                      <p className="font-semibold text-success tabular-nums">{formatCurrency(totalPaid)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Parcelas pagas</p>
+                      <p className="font-semibold text-foreground tabular-nums">{loan.paidInstallments} / {loan.installments}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Pendentes</p>
+                      <p className="font-semibold text-foreground tabular-nums">{Math.max(0, loan.installments - loan.paidInstallments)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Próximo vencimento</p>
+                      <p className="font-semibold text-foreground tabular-nums">{nextSchedule?.dueDate ? new Date(nextSchedule.dueDate + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Taxa de juros</p>
+                      <p className="font-semibold text-foreground tabular-nums">{Number(loan.interestRate).toFixed(2)}% a.m.</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {paymentDialog?.type === "payoff" && (
                 <div className="w-full space-y-1">
@@ -4326,19 +4328,22 @@ function LoanRowView({
                   <div className="flex justify-between"><span className="text-muted-foreground">Vencimento atual</span><span className="tabular-nums">{dueStr}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Próximo após quitação</span><span className="tabular-nums">{nextDateStr}</span></div>
                 </div>
-                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
-                  <input type="checkbox" className="size-3.5 accent-primary" checked={interestPartialEnabled} onChange={(e) => { setInterestPartialEnabled(e.target.checked); if (!e.target.checked) setInterestPartialAmount(""); }} />
-                  Receber valor parcial
-                </label>
-                {interestPartialEnabled && (
-                  <div className="space-y-1">
-                    <Label htmlFor="int-partial-row" className="text-xs">Valor recebido (R$)</Label>
-                    <Input id="int-partial-row" type="number" step="0.01" min="0" inputMode="decimal" value={interestPartialAmount} onChange={(e) => setInterestPartialAmount(e.target.value)} placeholder={`Pendente: ${pending.toFixed(2)}`} />
-                    {exceeds && <p className="text-[11px] text-warning">Valor excede o saldo pendente. O excedente será desconsiderado.</p>}
-                    {!willClose && partialVal > 0 && <p className="text-[11px] text-muted-foreground">Vencimento permanece em {dueStr} até a quitação total do ciclo.</p>}
-                    {willClose && partialVal > 0 && <p className="text-[11px] text-success">Quita o ciclo. Próximo vencimento: {nextDateStr}.</p>}
-                  </div>
-                )}
+                {/* Flags movidas para a coluna da direita para PC/Tablet */}
+                <div className="md:hidden space-y-3">
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                    <input type="checkbox" className="size-3.5 accent-primary" checked={interestPartialEnabled} onChange={(e) => { setInterestPartialEnabled(e.target.checked); if (!e.target.checked) setInterestPartialAmount(""); }} />
+                    Receber valor parcial
+                  </label>
+                  {interestPartialEnabled && (
+                    <div className="space-y-1">
+                      <Label htmlFor="int-partial-row-mobile" className="text-xs">Valor recebido (R$)</Label>
+                      <Input id="int-partial-row-mobile" type="number" step="0.01" min="0" inputMode="decimal" value={interestPartialAmount} onChange={(e) => setInterestPartialAmount(e.target.value)} placeholder={`Pendente: ${pending.toFixed(2)}`} />
+                      {exceeds && <p className="text-[11px] text-warning">Valor excede o saldo pendente. O excedente será desconsiderado.</p>}
+                      {!willClose && partialVal > 0 && <p className="text-[11px] text-muted-foreground">Vencimento permanece em {dueStr} até a quitação total do ciclo.</p>}
+                      {willClose && partialVal > 0 && <p className="text-[11px] text-success">Quita o ciclo. Próximo vencimento: {nextDateStr}.</p>}
+                    </div>
+                  )}
+                </div>
                 <div className="space-y-1">
                   <Label htmlFor="int-notes-row" className="text-xs">Observação (opcional)</Label>
                   <Textarea id="int-notes-row" value={interestNotes} onChange={(e) => setInterestNotes(e.target.value)} placeholder="Ex: pago via Pix" className="min-h-[60px] text-sm" />
@@ -4458,35 +4463,37 @@ function LoanRowView({
                 </div>
               )}
 
-              <div className="hidden md:block rounded-lg border border-border/60 bg-card/60 p-3 space-y-2">
-                <p className="text-xs font-semibold text-foreground">Resumo do empréstimo</p>
-                <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
-                  <div>
-                    <p className="text-muted-foreground">Total emprestado</p>
-                    <p className="font-semibold text-foreground tabular-nums">{formatCurrency(loan.amount)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Já recebido</p>
-                    <p className="font-semibold text-success tabular-nums">{formatCurrency(totalPaid)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Parcelas pagas</p>
-                    <p className="font-semibold text-foreground tabular-nums">{loan.paidInstallments} / {loan.installments}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Pendentes</p>
-                    <p className="font-semibold text-foreground tabular-nums">{Math.max(0, loan.installments - loan.paidInstallments)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Próximo vencimento</p>
-                    <p className="font-semibold text-foreground tabular-nums">{nextSchedule?.dueDate ? new Date(nextSchedule.dueDate + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Taxa de juros</p>
-                    <p className="font-semibold text-foreground tabular-nums">{Number(loan.interestRate).toFixed(2)}% a.m.</p>
+              {paymentDialog?.type !== "interest" && (
+                <div className="hidden md:block rounded-lg border border-border/60 bg-card/60 p-3 space-y-2">
+                  <p className="text-xs font-semibold text-foreground">Resumo do empréstimo</p>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
+                    <div>
+                      <p className="text-muted-foreground">Total emprestado</p>
+                      <p className="font-semibold text-foreground tabular-nums">{formatCurrency(loan.amount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Já recebido</p>
+                      <p className="font-semibold text-success tabular-nums">{formatCurrency(totalPaid)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Parcelas pagas</p>
+                      <p className="font-semibold text-foreground tabular-nums">{loan.paidInstallments} / {loan.installments}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Pendentes</p>
+                      <p className="font-semibold text-foreground tabular-nums">{Math.max(0, loan.installments - loan.paidInstallments)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Próximo vencimento</p>
+                      <p className="font-semibold text-foreground tabular-nums">{nextSchedule?.dueDate ? new Date(nextSchedule.dueDate + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Taxa de juros</p>
+                      <p className="font-semibold text-foreground tabular-nums">{Number(loan.interestRate).toFixed(2)}% a.m.</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {rowActiveMethods.length > 0 && (() => {
                 const baseInt = loan.customInterestValue != null && loan.customInterestValue > 0 ? loan.customInterestValue : loan.amount * (loan.interestRate / 100);
@@ -4504,22 +4511,41 @@ function LoanRowView({
                 const validA1 = isFinite(a1) && a1 > 0 && a1 < totalForSplit;
                 const a2 = validA1 ? Math.round((totalForSplit - a1) * 100) / 100 : 0;
                 return (
-                  <div className="w-full space-y-1">
-                    <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
-                    <Select value={rowSelectedMethodId} onValueChange={setRowSelectedMethodId}>
-                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>
-                        {rowActiveMethods.map((m) => (
-                          <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="w-full space-y-3">
+                    <div className="space-y-1">
+                      <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
+                      <Select value={rowSelectedMethodId} onValueChange={setRowSelectedMethodId}>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          {rowActiveMethods.map((m) => (
+                            <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     {totalForSplit > 0 && rowActiveMethods.length >= 2 && (
-                      <div className="pt-1.5 space-y-1.5">
+                      <div className="space-y-3">
                         <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
                           <input type="checkbox" className="size-3.5 accent-primary" checked={rowSplitEnabled} onChange={(e) => setRowSplitEnabled(e.target.checked)} />
                           Dividir em 2 meios de pagamento
                         </label>
+                        
+                        {paymentDialog?.type === "interest" && (
+                          <div className="space-y-3">
+                            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                              <input type="checkbox" className="size-3.5 accent-primary" checked={interestPartialEnabled} onChange={(e) => { setInterestPartialEnabled(e.target.checked); if (!e.target.checked) setInterestPartialAmount(""); }} />
+                              Receber valor parcial
+                            </label>
+                            {interestPartialEnabled && (
+                              <div className="space-y-1 pl-5">
+                                <Label htmlFor="int-partial-row" className="text-xs">Valor recebido (R$)</Label>
+                                <Input id="int-partial-row" type="number" step="0.01" min="0" inputMode="decimal" value={interestPartialAmount} onChange={(e) => setInterestPartialAmount(e.target.value)} placeholder="0.00" className="h-8 text-sm" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         {rowSplitEnabled && (
                           <div className="rounded-md border border-border/60 bg-muted/30 p-2 space-y-1.5">
                             <div className="space-y-1">
@@ -4543,6 +4569,21 @@ function LoanRowView({
                                 <span className="font-semibold text-primary tabular-nums">{rawFormatCurrency(a2)}</span>
                               </div>
                             )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {totalForSplit > 0 && rowActiveMethods.length < 2 && paymentDialog?.type === "interest" && (
+                      <div className="space-y-3">
+                        <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                          <input type="checkbox" className="size-3.5 accent-primary" checked={interestPartialEnabled} onChange={(e) => { setInterestPartialEnabled(e.target.checked); if (!e.target.checked) setInterestPartialAmount(""); }} />
+                          Receber valor parcial
+                        </label>
+                        {interestPartialEnabled && (
+                          <div className="space-y-1 pl-5">
+                            <Label htmlFor="int-partial-row" className="text-xs">Valor recebido (R$)</Label>
+                            <Input id="int-partial-row" type="number" step="0.01" min="0" inputMode="decimal" value={interestPartialAmount} onChange={(e) => setInterestPartialAmount(e.target.value)} placeholder="0.00" className="h-8 text-sm" />
                           </div>
                         )}
                       </div>
