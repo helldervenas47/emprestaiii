@@ -39,6 +39,7 @@ function addByFrequency(date: Date, frequency: string, n: number): Date {
 }
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { SaleEditForm } from "@/components/SaleEditForm";
+import { WarrantyManager } from "@/components/warranty/WarrantyManager";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
