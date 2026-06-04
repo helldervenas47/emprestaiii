@@ -2063,6 +2063,36 @@ function LoanCardView({
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch] px-4 pb-3 sm:px-6 sm:pb-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start mt-2">
             <div className="space-y-4">
+              <div className="hidden md:block rounded-lg border border-border/60 bg-card/60 p-3 space-y-2">
+                <p className="text-xs font-semibold text-foreground">Resumo do empréstimo</p>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
+                  <div>
+                    <p className="text-muted-foreground">Total emprestado</p>
+                    <p className="font-semibold text-foreground tabular-nums">{formatCurrency(loan.amount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Já recebido</p>
+                    <p className="font-semibold text-success tabular-nums">{formatCurrency(totalPaid)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Parcelas pagas</p>
+                    <p className="font-semibold text-foreground tabular-nums">{loan.paidInstallments} / {loan.installments}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Pendentes</p>
+                    <p className="font-semibold text-foreground tabular-nums">{Math.max(0, loan.installments - loan.paidInstallments)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Próximo vencimento</p>
+                    <p className="font-semibold text-foreground tabular-nums">{nextSchedule?.dueDate ? new Date(nextSchedule.dueDate + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Taxa de juros</p>
+                    <p className="font-semibold text-foreground tabular-nums">{Number(loan.interestRate).toFixed(2)}% a.m.</p>
+                  </div>
+                </div>
+              </div>
+
               {paymentDialog?.type === "full" && (
                 <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
                   <p className="text-xs text-muted-foreground">Total restante a receber</p>
@@ -2075,9 +2105,6 @@ function LoanCardView({
                   <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
                 </div>
               )}
-
-              <div className="hidden md:block rounded-lg border border-border/60 bg-card/60 p-3 space-y-2">
-                <p className="text-xs font-semibold text-foreground">Resumo do empréstimo</p>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
                   <div>
                     <p className="text-muted-foreground">Total emprestado</p>
