@@ -2361,6 +2361,105 @@ function LoanCardView({
               </div>
             );
           })()}
+          {paymentDialog?.type === "installment" && loan.installments >= 2 && (() => {
+            const baseInstallment = installment;
+            const totalWithFees = baseInstallment + lateFees;
+            const today = todayInAppTz();
+            const refDate = formatYmdInAppTz(paymentDate);
+            const refStr = new Date(refDate + "T00:00:00").toLocaleDateString("pt-BR");
+            return (
+              <div className="w-full space-y-2.5">
+                {lateFees > 0 ? (
+                  <>
+                    <p className="text-xs font-medium text-foreground">Como deseja receber esta parcela?</p>
+                    <button
+                      type="button"
+                      onClick={() => setInterestSelection("normal")}
+                      className={cn(
+                        "w-full text-left p-3 rounded-lg border transition-all",
+                        interestSelection === "normal"
+                          ? "border-primary bg-primary/5 ring-1 ring-primary"
+                          : "border-border bg-card hover:border-primary/40"
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={cn(
+                          "shrink-0 size-4 rounded-full border-2 mt-0.5 flex items-center justify-center",
+                          interestSelection === "normal" ? "border-primary" : "border-muted-foreground/40"
+                        )}>
+                          {interestSelection === "normal" && <div className="size-2 rounded-full bg-primary" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-baseline gap-2">
+                            <span className="text-sm font-medium text-foreground">Apenas a parcela</span>
+                            <span className="text-sm font-semibold text-foreground tabular-nums">{rawFormatCurrency(baseInstallment)}</span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">Recebe somente o valor da parcela. Multa/atraso seguem pendentes.</p>
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInterestSelection("withFees")}
+                      className={cn(
+                        "w-full text-left p-3 rounded-lg border transition-all",
+                        interestSelection === "withFees"
+                          ? "border-warning bg-warning/5 ring-1 ring-warning"
+                          : "border-border bg-card hover:border-warning/40"
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={cn(
+                          "shrink-0 size-4 rounded-full border-2 mt-0.5 flex items-center justify-center",
+                          interestSelection === "withFees" ? "border-warning" : "border-muted-foreground/40"
+                        )}>
+                          {interestSelection === "withFees" && <div className="size-2 rounded-full bg-warning" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-baseline gap-2">
+                            <span className="text-sm font-medium text-foreground">Parcela + juros/multa</span>
+                            <span className="text-sm font-semibold text-foreground tabular-nums">{rawFormatCurrency(totalWithFees)}</span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">Quita a parcela e regulariza encargos de atraso.</p>
+                          <div className="mt-2 pt-2 border-t border-border/60 space-y-1">
+                            <div className="flex justify-between text-[11px]">
+                              <span className="text-muted-foreground">Valor da parcela</span>
+                              <span className="text-foreground tabular-nums">{rawFormatCurrency(baseInstallment)}</span>
+                            </div>
+                            {penaltyTotal > 0 && (
+                              <div className="flex justify-between text-[11px]">
+                                <span className="text-muted-foreground">Multa</span>
+                                <span className="text-warning tabular-nums">{rawFormatCurrency(penaltyTotal)}</span>
+                              </div>
+                            )}
+                            {lateInterestTotal > 0 && (
+                              <div className="flex justify-between text-[11px]">
+                                <span className="text-muted-foreground">Juros de atraso ({effectiveDaysLate}d)</span>
+                                <span className="text-warning tabular-nums">{rawFormatCurrency(lateInterestTotal)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between text-[11px] pt-1 border-t border-border/40">
+                              <span className="text-muted-foreground">Total a receber</span>
+                              <span className="font-semibold text-foreground tabular-nums">{rawFormatCurrency(totalWithFees)}</span>
+                            </div>
+                            <div className="flex justify-between text-[11px]">
+                              <span className="text-muted-foreground">Cálculo em</span>
+                              <span className="tabular-nums">{refStr}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  </>
+                ) : (
+                  <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1 text-xs">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Valor da parcela</span><span className="font-semibold tabular-nums">{rawFormatCurrency(baseInstallment)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Referência</span><span className="tabular-nums">{refStr}</span></div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           {activeMethods.length > 0 && (() => {
             const baseInt = loan.customInterestValue != null && loan.customInterestValue > 0 ? loan.customInterestValue : loan.amount * (loan.interestRate / 100);
             const cRaw = parseFloat(payoffAmount.replace(",", "."));
