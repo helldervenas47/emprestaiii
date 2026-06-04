@@ -2587,7 +2587,6 @@ function LoanCardView({
                 </div>
               </div>
             </div>
-            </div>
           </div>
         </div>
 
