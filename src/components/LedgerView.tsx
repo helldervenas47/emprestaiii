@@ -437,6 +437,11 @@ export function LedgerView({ readOnly = false }: Props) {
                           {methodNames.length > 0 && (
                             <span className="text-[10px] text-muted-foreground">· {methodNames.join(" + ")}</span>
                           )}
+                          {getLoanTags(first).map((t) => (
+                            <Badge key={`gtag-${item.key}-${t}`} variant="outline" className="text-[10px] h-4 px-1.5 border-primary/40 text-primary">
+                              #{t}
+                            </Badge>
+                          ))}
                         </div>
                       </button>
                       <div className="flex flex-col items-end shrink-0">
