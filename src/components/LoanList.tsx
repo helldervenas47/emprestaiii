@@ -2864,7 +2864,7 @@ function LoanRowView({
     if (dialogType === "full") expectedTotal = remaining;
     else if (dialogType === "payoff") expectedTotal = isFinite(customRawForSplit) && customRawForSplit > 0 ? customRawForSplit : 0;
     else if (dialogType === "amortize") expectedTotal = isFinite(amortRawForSplit) && amortRawForSplit > 0 ? amortRawForSplit : 0;
-    else if (dialogType === "installment") expectedTotal = installmentValue;
+    else if (dialogType === "installment") expectedTotal = installmentValue + (interestSelection === "withFees" && lateFees > 0 && loan.installments >= 2 ? lateFees : 0);
     else if (dialogType === "interest") {
       expectedTotal = interestSelection === "withFees" && lateFees > 0
         ? baseInterestForSplit + lateFees
