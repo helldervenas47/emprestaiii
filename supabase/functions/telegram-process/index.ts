@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
 const AI_GATEWAY = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY")!;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
