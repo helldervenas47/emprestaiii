@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useRef, useLayoutEffect } from "react";
-import { Loan, Payment } from "@/types/loan";
+import { InstallmentSchedule, Loan, Payment } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,6 +8,7 @@ import { Search, Users, BarChart3, ArrowUpDown, ChevronRight, ArrowLeft } from "
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { getBaseRemainingAmount, getLoanLateFees } from "@/lib/loanLateFees";
 import {
   Select,
   SelectContent,
@@ -19,6 +20,7 @@ import {
 interface Props {
   loans: Loan[];
   payments: Payment[];
+  installmentSchedules: InstallmentSchedule[];
 }
 
 function formatCurrency(value: number): string {
@@ -48,7 +50,7 @@ type SortOption =
   | "rate-desc"
   | "rate-asc";
 
-export function ClientLoanHistory({ loans, payments }: Props) {
+export function ClientLoanHistory({ loans, payments, installmentSchedules }: Props) {
   const [search, setSearch] = useState("");
   const [showSummary, setShowSummary] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("name-asc");
