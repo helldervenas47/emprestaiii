@@ -4365,7 +4365,6 @@ function LoanRowView({
             </div>
             <div className="space-y-4">
           {rowActiveMethods.length > 0 && (() => {
-
             const baseInt = loan.customInterestValue != null && loan.customInterestValue > 0 ? loan.customInterestValue : loan.amount * (loan.interestRate / 100);
             const cRaw = parseFloat(payoffAmount.replace(",", "."));
             const aRaw = parseFloat(amortizeAmount.replace(",", "."));
@@ -4427,13 +4426,55 @@ function LoanRowView({
               </div>
             );
           })()}
-          <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
-          <CalendarUI
-            mode="single"
-            selected={paymentDate}
-            onSelect={(d) => d && setPaymentDate(d)}
-            className="rounded-md border pointer-events-auto"
-          />
+          <Label className="text-sm text-muted-foreground md:hidden">Selecione a data do pagamento</Label>
+          <div className="md:hidden flex justify-center">
+            <CalendarUI
+              mode="single"
+              selected={paymentDate}
+              onSelect={(d) => d && setPaymentDate(d)}
+              className="rounded-md border pointer-events-auto mx-auto"
+            />
+          </div>
+            </div>
+            <div className="hidden md:flex md:flex-col md:gap-3">
+              <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
+              <div className="flex justify-center w-full">
+                <CalendarUI
+                  mode="single"
+                  selected={paymentDate}
+                  onSelect={(d) => d && setPaymentDate(d)}
+                  className="rounded-md border pointer-events-auto mx-auto"
+                />
+              </div>
+              <div className="rounded-lg border border-border/60 bg-card/60 p-3 space-y-2">
+                <p className="text-xs font-semibold text-foreground">Resumo do empréstimo</p>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
+                  <div>
+                    <p className="text-muted-foreground">Total emprestado</p>
+                    <p className="font-semibold text-foreground tabular-nums">{formatCurrency(loan.amount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Já recebido</p>
+                    <p className="font-semibold text-success tabular-nums">{formatCurrency(totalPaid)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Parcelas pagas</p>
+                    <p className="font-semibold text-foreground tabular-nums">{loan.paidInstallments} / {loan.installments}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Pendentes</p>
+                    <p className="font-semibold text-foreground tabular-nums">{Math.max(0, loan.installments - loan.paidInstallments)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Próximo vencimento</p>
+                    <p className="font-semibold text-foreground tabular-nums">{nextSchedule?.dueDate ? new Date(nextSchedule.dueDate + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Taxa de juros</p>
+                    <p className="font-semibold text-foreground tabular-nums">{Number(loan.interestRate).toFixed(2)}% a.m.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
