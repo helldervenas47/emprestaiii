@@ -2719,13 +2719,14 @@ function LoanRowView({
     .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments)
     .sort((a, b) => a.installmentNumber - b.installmentNumber);
   const allUnpaidScheduleSum = unpaidSchedules.reduce((sum, s) => sum + s.amount, 0);
-  // Source of truth: loan.remainingAmount (same value shown in the create/edit form).
-  // Fallback to total - totalPaid only when the saved field is missing.
+  // Prefer schedule sum as source of truth (matches "Restante" field shown in collected loans).
   const baseRemaining = loan.status === "paid"
     ? 0
-    : loan.remainingAmount != null && loan.remainingAmount > 0
-      ? loan.remainingAmount
-      : Math.max(0, total - totalPaid);
+    : unpaidSchedules.length > 0
+      ? allUnpaidScheduleSum
+      : loan.remainingAmount != null && loan.remainingAmount > 0
+        ? loan.remainingAmount
+        : Math.max(0, total - totalPaid);
 
   const daysOverdue = getDaysOverdue(loan, installmentSchedules);
 
