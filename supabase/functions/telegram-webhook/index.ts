@@ -30,26 +30,35 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_BOT_TOKEN");
-    if (!TELEGRAM_API_KEY) {
-      throw new Error("TELEGRAM_API_KEY is not configured");
+    const tokens = [
+      Deno.env.get("TELEGRAM_BOT_TOKEN"),
+      Deno.env.get("TELEGRAM_BOT_TOKEN_REPORTS"),
+    ].filter(Boolean) as string[];
+
+    if (tokens.length === 0) {
+      throw new Error("Nenhum TELEGRAM_BOT_TOKEN configurado");
     }
 
-    const expectedSecret = await deriveTelegramWebhookSecret(TELEGRAM_API_KEY);
     const actualSecret = req.headers.get("X-Telegram-Bot-Api-Secret-Token");
-    if (!safeEqual(actualSecret, expectedSecret)) {
+    let authenticated = false;
+
+    for (const token of tokens) {
+      const expectedSecret = await deriveTelegramWebhookSecret(token);
+      if (safeEqual(actualSecret, expectedSecret)) {
+        authenticated = true;
+        break;
+      }
+    }
+
+    if (!authenticated) {
       return new Response("Unauthorized", { status: 401, headers: corsHeaders });
     }
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    if (!SUPABASE_URL) {
-      throw new Error("SUPABASE_URL is not configured");
-    }
+    if (!SUPABASE_URL) throw new Error("SUPABASE_URL not configured");
 
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured");
-    }
+    if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("SUPABASE_SERVICE_ROLE_KEY not configured");
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const update = await req.json();
@@ -85,9 +94,7 @@ Deno.serve(async (req) => {
     // Immediately trigger async processing
     fetch(`${SUPABASE_URL}/functions/v1/telegram-process`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: "{}",
     }).catch((e) => console.error("[telegram-webhook] process trigger failed", e));
 
