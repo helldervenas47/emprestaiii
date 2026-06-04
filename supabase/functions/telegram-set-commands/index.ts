@@ -71,15 +71,15 @@ Deno.serve(async (req) => {
     const result: Record<string, any> = {};
 
     if (EXPENSES_KEY) {
-      result.expenses = await publishCommands(LOVABLE_API_KEY, EXPENSES_KEY, EXPENSES_COMMANDS);
+      result.expenses = await publishCommands('', EXPENSES_KEY, EXPENSES_COMMANDS);
     } else {
-      result.expenses = { skipped: 'missing TELEGRAM_API_KEY' };
+      result.expenses = { skipped: 'missing TELEGRAM_BOT_TOKEN' };
     }
 
     if (REPORTS_KEY) {
-      result.reports = await publishCommands(LOVABLE_API_KEY, REPORTS_KEY, REPORTS_COMMANDS);
+      result.reports = await publishCommands('', REPORTS_KEY, REPORTS_COMMANDS);
     } else {
-      result.reports = { skipped: 'missing TELEGRAM_API_KEY_1' };
+      result.reports = { skipped: 'missing TELEGRAM_BOT_TOKEN_REPORTS' };
     }
 
     return new Response(
