@@ -472,8 +472,10 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                   )}
                 </div>
               )}
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+              </div>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+
               <div>
                 <Label htmlFor="amount">Valor (R$)</Label>
                 <Input
