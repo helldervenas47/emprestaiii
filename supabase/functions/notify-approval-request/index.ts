@@ -19,12 +19,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_BOT_TOKEN");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    if (!LOVABLE_API_KEY || !TELEGRAM_API_KEY) {
+    if (!TELEGRAM_API_KEY) {
       // Telegram not configured — skip silently
       return new Response(JSON.stringify({ ok: true, skipped: "telegram_not_configured" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -61,7 +60,7 @@ Deno.serve(async (req) => {
       `📧 <b>Email:</b> ${email || "(sem email)"}\n\n` +
       `Acesse o app e abra o sino de aprovações no topo para aprovar ou rejeitar.`;
 
-    const tgRes = await fetch(`${GATEWAY_URL}/bot${telegramKey}/sendMessage`, {
+    const tgRes = await fetch(`${GATEWAY_URL}/bot${TELEGRAM_API_KEY}/sendMessage`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

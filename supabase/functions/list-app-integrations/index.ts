@@ -7,12 +7,9 @@ const corsHeaders = {
 
 // Known integrations used by the app. Only secret NAMES are exposed (never values).
 const KNOWN_INTEGRATIONS: { name: string; envVar: string; description: string }[] = [
-  { name: "Lovable AI Gateway", envVar: "LOVABLE_API_KEY", description: "IA, geração de relatórios e insights" },
   { name: "WhatsMiau (WhatsApp)", envVar: "WHATSMIAU_API_KEY", description: "Envio automático de cobranças por WhatsApp" },
-  { name: "Paddle (Pagamentos - Live)", envVar: "PADDLE_LIVE_API_KEY", description: "Cobrança de assinaturas em produção" },
-  { name: "Paddle (Pagamentos - Sandbox)", envVar: "PADDLE_SANDBOX_API_KEY", description: "Cobrança de assinaturas em testes" },
-  { name: "Paddle Webhook (Live)", envVar: "PAYMENTS_LIVE_WEBHOOK_SECRET", description: "Validação de webhooks de pagamento" },
-  { name: "Paddle Webhook (Sandbox)", envVar: "PAYMENTS_SANDBOX_WEBHOOK_SECRET", description: "Validação de webhooks de teste" },
+  { name: "HTML to Image (User ID)", envVar: "HTML_TO_IMAGE_USER_ID", description: "Geração de imagens dos relatórios" },
+  { name: "HTML to Image (API Key)", envVar: "HTML_TO_IMAGE_API_KEY", description: "Geração de imagens dos relatórios" },
   { name: "HTML to Image (User ID)", envVar: "HTML_TO_IMAGE_USER_ID", description: "Geração de imagens dos relatórios" },
   { name: "HTML to Image (API Key)", envVar: "HTML_TO_IMAGE_API_KEY", description: "Geração de imagens dos relatórios" },
   { name: "Push Notifications (VAPID Public)", envVar: "VAPID_PUBLIC_KEY", description: "Chave pública para notificações push" },
