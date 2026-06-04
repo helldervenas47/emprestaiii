@@ -4508,22 +4508,41 @@ function LoanRowView({
                 const validA1 = isFinite(a1) && a1 > 0 && a1 < totalForSplit;
                 const a2 = validA1 ? Math.round((totalForSplit - a1) * 100) / 100 : 0;
                 return (
-                  <div className="w-full space-y-1">
-                    <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
-                    <Select value={rowSelectedMethodId} onValueChange={setRowSelectedMethodId}>
-                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>
-                        {rowActiveMethods.map((m) => (
-                          <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="w-full space-y-3">
+                    <div className="space-y-1">
+                      <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
+                      <Select value={rowSelectedMethodId} onValueChange={setRowSelectedMethodId}>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          {rowActiveMethods.map((m) => (
+                            <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     {totalForSplit > 0 && rowActiveMethods.length >= 2 && (
-                      <div className="pt-1.5 space-y-1.5">
+                      <div className="space-y-3">
                         <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
                           <input type="checkbox" className="size-3.5 accent-primary" checked={rowSplitEnabled} onChange={(e) => setRowSplitEnabled(e.target.checked)} />
                           Dividir em 2 meios de pagamento
                         </label>
+                        
+                        {paymentDialog?.type === "interest" && (
+                          <div className="space-y-3">
+                            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                              <input type="checkbox" className="size-3.5 accent-primary" checked={interestPartialEnabled} onChange={(e) => { setInterestPartialEnabled(e.target.checked); if (!e.target.checked) setInterestPartialAmount(""); }} />
+                              Receber valor parcial
+                            </label>
+                            {interestPartialEnabled && (
+                              <div className="space-y-1 pl-5">
+                                <Label htmlFor="int-partial-row" className="text-xs">Valor recebido (R$)</Label>
+                                <Input id="int-partial-row" type="number" step="0.01" min="0" inputMode="decimal" value={interestPartialAmount} onChange={(e) => setInterestPartialAmount(e.target.value)} placeholder="0.00" className="h-8 text-sm" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         {rowSplitEnabled && (
                           <div className="rounded-md border border-border/60 bg-muted/30 p-2 space-y-1.5">
                             <div className="space-y-1">
@@ -4547,6 +4566,21 @@ function LoanRowView({
                                 <span className="font-semibold text-primary tabular-nums">{rawFormatCurrency(a2)}</span>
                               </div>
                             )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {totalForSplit > 0 && rowActiveMethods.length < 2 && paymentDialog?.type === "interest" && (
+                      <div className="space-y-3">
+                        <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                          <input type="checkbox" className="size-3.5 accent-primary" checked={interestPartialEnabled} onChange={(e) => { setInterestPartialEnabled(e.target.checked); if (!e.target.checked) setInterestPartialAmount(""); }} />
+                          Receber valor parcial
+                        </label>
+                        {interestPartialEnabled && (
+                          <div className="space-y-1 pl-5">
+                            <Label htmlFor="int-partial-row" className="text-xs">Valor recebido (R$)</Label>
+                            <Input id="int-partial-row" type="number" step="0.01" min="0" inputMode="decimal" value={interestPartialAmount} onChange={(e) => setInterestPartialAmount(e.target.value)} placeholder="0.00" className="h-8 text-sm" />
                           </div>
                         )}
                       </div>
