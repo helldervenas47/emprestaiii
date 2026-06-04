@@ -2062,7 +2062,7 @@ function LoanCardView({
         </DialogHeader>
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch] px-4 pb-3 sm:px-6 sm:pb-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start mt-2">
-            <div className="flex flex-col gap-4">
+            <div className="space-y-4">
               {paymentDialog?.type === "full" && (
                 <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
                   <p className="text-xs text-muted-foreground">Total restante a receber</p>
