@@ -2615,13 +2615,13 @@ Deno.serve(async (req) => {
           if (!dataUrl) {
             await tgSend(chatId, "❌ Não consegui baixar a imagem. Tente novamente.", telegramKey);
           } else {
-            const extracted = await extractExpenseFromImage(dataUrl, caption, LOVABLE_API_KEY);
+            const extracted = await extractExpenseFromImage(dataUrl, caption);
             if (!extracted || !extracted.amount || extracted.confidence < 0.5) {
               await tgSend(chatId, "🤔 Não consegui ler o comprovante. Tente uma foto mais nítida ou envie por texto.", telegramKey);
             } else {
               const finalDate = sanitizeDate(extracted.date);
               const initialCat = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
-              const finalCategory = await resolveCategoryHybrid(admin, link.user_id, extracted.description || "Comprovante", initialCat, LOVABLE_API_KEY);
+              const finalCategory = await resolveCategoryHybrid(admin, link.user_id, extracted.description || "Comprovante", initialCat);
               const userCards = await getUserCards(admin, link.user_id);
               const card = caption ? detectCardInText(caption, userCards) : null;
 
@@ -3157,7 +3157,7 @@ Deno.serve(async (req) => {
             } else if (looksLikeQuestion(text)) {
               // 🗣️ Pergunta em linguagem natural — interpreta com IA e consulta o banco.
               try {
-                const reply = await answerNaturalQuery(admin, link.user_id, text, LOVABLE_API_KEY);
+                const reply = await answerNaturalQuery(admin, link.user_id, text);
                 if (reply) {
                   await tgSend(chatId, reply, telegramKey);
                 } else {
