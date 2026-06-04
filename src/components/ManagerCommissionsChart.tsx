@@ -148,10 +148,17 @@ export function ManagerCommissionsChart({
       ensureManagerBucket(id);
 
       const loanPayments = payments.filter((p) => p.loanId === l.id);
+      const processedInstallments = new Set<number>();
+
       loanPayments.forEach((p) => {
         const derivedCommission = getDerivedPaymentCommission(l, p);
         if (derivedCommission <= 0) return;
         if (commissionPaymentKeys.has(`${l.id}::${p.id}`)) return;
+
+        // Evitar duplicidade de comissão derivada para o mesmo número de parcela/pagamento
+        if (processedInstallments.has(p.installmentNumber)) return;
+        processedInstallments.add(p.installmentNumber);
+
         if (range && !inRange(p.date, range.start, range.end)) return;
 
         byManager[id].paid += derivedCommission;
@@ -459,9 +466,17 @@ function ManagerDetailDialog({
 
       const loanPayments = payments.filter((p) => p.loanId === l.id);
       const paidInstallmentNumbers = new Set<number>();
+      const processedDerivedInstallments = new Set<number>();
 
       const paidItems: DetailItem[] = loanPayments.reduce<DetailItem[]>((acc, p) => {
         const recordedCommission = commissionByPaymentId.get(p.id);
+        
+        // Se não houver registro formal, derivamos, mas evitamos duplicar por número de parcela
+        if (!recordedCommission) {
+          if (processedDerivedInstallments.has(p.installmentNumber)) return acc;
+          processedDerivedInstallments.add(p.installmentNumber);
+        }
+
         const commissionAmount = recordedCommission?.amount ?? getDerivedPaymentCommission(l, p);
         if (commissionAmount <= 0) return acc;
 
