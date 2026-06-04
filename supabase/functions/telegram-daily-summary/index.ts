@@ -27,7 +27,7 @@ function todayInTZ(tz = "America/Sao_Paulo") {
   };
 }
 
-async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string) {
+async function tgSend(chatId: number, text: string, telegramKey: string) {
   const r = await fetch(`${GATEWAY_URL}/bot${telegramKey}/sendMessage`, {
     method: "POST",
     headers: {
@@ -41,7 +41,6 @@ async function tgSend(chatId: number, text: string, lovableKey: string, telegram
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
   const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -205,10 +204,10 @@ Deno.serve(async (req) => {
         const svg = buildTextReportSVG(lines, { name: brandName });
         const png = await svgToPng(svg);
         const caption = dailyPrefs.includeText ? buildCaptionFromLines(lines, { name: brandName }) : "";
-        await tgSendPhoto(Number(link.chat_id), png, caption, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        await tgSendPhoto(Number(link.chat_id), png, caption, TELEGRAM_API_KEY);
       } catch (e) {
         console.error("daily-summary image render failed, falling back to text", e);
-        await tgSend(Number(link.chat_id), lines.join("\n"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        await tgSend(Number(link.chat_id), lines.join("\n"), TELEGRAM_API_KEY);
       }
 
       if (!forceUserId) {

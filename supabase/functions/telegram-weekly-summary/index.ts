@@ -39,7 +39,7 @@ function fmtDateBR(iso: string) {
   return iso.split("-").reverse().join("/");
 }
 
-async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string) {
+async function tgSend(chatId: number, text: string, telegramKey: string) {
   const r = await fetch(`${GATEWAY_URL}/bot${telegramKey}/sendMessage`, {
     method: "POST",
     headers: {
@@ -54,7 +54,6 @@ async function buildAndSendWeekly(
   admin: any,
   userId: string,
   today: string,
-  lovableKey: string,
   telegramKey: string,
   brandName: string,
 ): Promise<boolean> {
@@ -117,10 +116,10 @@ async function buildAndSendWeekly(
     const svg = buildTextReportSVG(lines, { name: brandName });
     const png = await svgToPng(svg);
     const caption = prefs.includeText ? buildCaptionFromLines(lines, { name: brandName }) : "";
-    await tgSendPhoto(Number(link.chat_id), png, caption, lovableKey, telegramKey);
+    await tgSendPhoto(Number(link.chat_id), png, caption, telegramKey);
   } catch (e) {
     console.error("weekly-summary image render failed, falling back to text", e);
-    await tgSend(Number(link.chat_id), lines.join("\n"), lovableKey, telegramKey);
+    await tgSend(Number(link.chat_id), lines.join("\n"), telegramKey);
   }
   return true;
 }
@@ -128,7 +127,6 @@ async function buildAndSendWeekly(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
   const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -159,7 +157,7 @@ Deno.serve(async (req) => {
     if (userErr || !user) return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
     if (user.id !== forceUserId) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
 
-    const ok = await buildAndSendWeekly(admin, forceUserId, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
+    const ok = await buildAndSendWeekly(admin, forceUserId, today, TELEGRAM_API_KEY, brandName);
     return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0 }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -185,7 +183,7 @@ Deno.serve(async (req) => {
       if (nowMin < target || nowMin >= target + 5) continue;
       if ((pref as any).last_weekly_sent_date === today) continue;
 
-      const ok = await buildAndSendWeekly(admin, (pref as any).user_id, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
+      const ok = await buildAndSendWeekly(admin, (pref as any).user_id, today, TELEGRAM_API_KEY, brandName);
       if (ok) {
         await admin.from("telegram_summary_prefs")
           .update({ last_weekly_sent_date: today })

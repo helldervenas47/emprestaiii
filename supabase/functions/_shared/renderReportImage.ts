@@ -419,7 +419,6 @@ export async function tgSendPhoto(
   chatId: number,
   pngBytes: Uint8Array,
   caption: string,
-  lovableKey: string,
   telegramKey: string,
 ): Promise<void> {
   const cleanCaption = caption.trim();

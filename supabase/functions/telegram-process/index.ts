@@ -304,7 +304,6 @@ async function suggestCategoryWithLLM(
   admin: any,
   userId: string,
   description: string,
-  lovableKey: string,
 ): Promise<string | null> {
   // Pull recent confirmed expenses (descriptive examples)
   const { data: recent } = await admin
@@ -377,7 +376,6 @@ async function resolveCategoryHybrid(
   userId: string,
   description: string,
   initialGuess: string,
-  lovableKey: string,
 ): Promise<string> {
   // 1) Cache hit (instant, free)
   const learned = await suggestCategoryFromHints(admin, userId, description);
@@ -385,7 +383,7 @@ async function resolveCategoryHybrid(
 
   // 2) If the initial guess is "Outros" (i.e. heuristic gave up), try the LLM few-shot.
   if (!initialGuess || initialGuess === "Outros") {
-    const llm = await suggestCategoryWithLLM(admin, userId, description, lovableKey);
+    const llm = await suggestCategoryWithLLM(admin, userId, description);
     if (llm) return llm;
   }
 
