@@ -2569,7 +2569,6 @@ function LoanCardView({
                     <p className="font-semibold text-foreground tabular-nums">{Number(loan.interestRate).toFixed(2)}% a.m.</p>
                   </div>
                 </div>
-              </div>
             </div>
           </div>
         </div>
