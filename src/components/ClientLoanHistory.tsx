@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useRef, useLayoutEffect } from "react";
-import { Loan, Payment } from "@/types/loan";
+import { InstallmentSchedule, Loan, Payment } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,6 +8,7 @@ import { Search, Users, BarChart3, ArrowUpDown, ChevronRight, ArrowLeft } from "
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { getBaseRemainingAmount, getLoanLateFees } from "@/lib/loanLateFees";
 import {
   Select,
   SelectContent,
@@ -19,6 +20,7 @@ import {
 interface Props {
   loans: Loan[];
   payments: Payment[];
+  installmentSchedules: InstallmentSchedule[];
 }
 
 function formatCurrency(value: number): string {
@@ -48,7 +50,7 @@ type SortOption =
   | "rate-desc"
   | "rate-asc";
 
-export function ClientLoanHistory({ loans, payments }: Props) {
+export function ClientLoanHistory({ loans, payments, installmentSchedules }: Props) {
   const [search, setSearch] = useState("");
   const [showSummary, setShowSummary] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("name-asc");
@@ -94,31 +96,9 @@ export function ClientLoanHistory({ loans, payments }: Props) {
         if (l.status === "paid") {
           // No pending
         } else {
-          const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-          const baseRemaining = l.remainingAmount != null && l.remainingAmount > 0
-            ? l.remainingAmount
-            : Math.max(0, expected - totalPaid);
+          const baseRemaining = getBaseRemainingAmount(l, payments, installmentSchedules);
 
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const due = l.dueDate ? new Date(`${l.dueDate}T00:00:00`) : null;
-          const daysOverdue =
-            due && !isNaN(due.getTime())
-              ? Math.max(0, Math.floor((today.getTime() - due.getTime()) / 86400000))
-              : 0;
-
-          let lateFees = 0;
-          if (daysOverdue > 0) {
-            if (l.lateInterestValue != null && l.lateInterestValue > 0) {
-              lateFees +=
-                l.lateInterestType === "fixed"
-                  ? l.lateInterestValue * daysOverdue
-                  : baseRemaining * (l.lateInterestValue / 100) * daysOverdue;
-            }
-            if (l.penaltyValue != null && l.penaltyValue > 0) {
-              lateFees += l.penaltyValue;
-            }
-          }
+          const lateFees = getLoanLateFees(l, payments, installmentSchedules).lateFees;
 
           pending += baseRemaining + lateFees;
         }
@@ -266,34 +246,12 @@ export function ClientLoanHistory({ loans, payments }: Props) {
     clientLoans.forEach((l) => {
       if (l.status === "paid") return;
       const principal = l.amount || 0;
-      const expected = calculateTotalWithInterest(principal, l.interestRate, l.installments);
       const loanPayments = payments.filter((p) => p.loanId === l.id);
       const totalPaid = loanPayments.reduce((s, p) => s + (p.amount || 0), 0);
       const baseRemaining =
-        l.remainingAmount != null && l.remainingAmount > 0
-          ? l.remainingAmount
-          : Math.max(0, expected - totalPaid);
+        getBaseRemainingAmount(l, payments, installmentSchedules);
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const due = l.dueDate ? new Date(`${l.dueDate}T00:00:00`) : null;
-      const daysOverdue =
-        due && !isNaN(due.getTime())
-          ? Math.max(0, Math.floor((today.getTime() - due.getTime()) / 86400000))
-          : 0;
-
-      let lateFees = 0;
-      if (daysOverdue > 0) {
-        if (l.lateInterestValue != null && l.lateInterestValue > 0) {
-          lateFees +=
-            l.lateInterestType === "fixed"
-              ? l.lateInterestValue * daysOverdue
-              : baseRemaining * (l.lateInterestValue / 100) * daysOverdue;
-        }
-        if (l.penaltyValue != null && l.penaltyValue > 0) {
-          lateFees += l.penaltyValue;
-        }
-      }
+      const lateFees = getLoanLateFees(l, payments, installmentSchedules).lateFees;
 
       const loanPending = baseRemaining + lateFees;
       interestPending += Math.max(0, loanPending - principal);
@@ -369,6 +327,8 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           <CardContent className="p-3 sm:p-4">
             <ClientLoansList
               loans={clientLoans}
+              payments={payments}
+              installmentSchedules={installmentSchedules}
               paymentsByLoan={paymentsByLoan}
               lastPaymentDateByLoan={lastPaymentDateByLoan}
               hidden={hidden}
@@ -597,12 +557,14 @@ function formatDate(d?: string): string {
 
 interface ClientLoansListProps {
   loans: Loan[];
+  payments: Payment[];
+  installmentSchedules: InstallmentSchedule[];
   paymentsByLoan: Record<string, number>;
   lastPaymentDateByLoan: Record<string, string | undefined>;
   hidden: boolean;
 }
 
-function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden }: ClientLoansListProps) {
+function ClientLoansList({ loans, payments, installmentSchedules, paymentsByLoan, lastPaymentDateByLoan, hidden }: ClientLoansListProps) {
   const mask = (v: string) => (hidden ? "•••" : v);
 
   if (loans.length === 0) {
@@ -632,33 +594,8 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
     const totalPaid = paymentsByLoan[l.id] ?? 0;
     const isPaid = l.status === "paid";
     if (isPaid) return { remaining: 0, paid: totalPaid, isPaid };
-    const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-    const baseRemaining =
-      l.remainingAmount != null && l.remainingAmount > 0
-        ? l.remainingAmount
-        : Math.max(0, expected - totalPaid);
-
-    // Acrescenta juros de mora + multa se contrato vencido
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const due = l.dueDate ? new Date(`${l.dueDate}T00:00:00`) : null;
-    const daysOverdue =
-      due && !isNaN(due.getTime())
-        ? Math.max(0, Math.floor((today.getTime() - due.getTime()) / 86400000))
-        : 0;
-
-    let lateFees = 0;
-    if (daysOverdue > 0) {
-      if (l.lateInterestValue != null && l.lateInterestValue > 0) {
-        lateFees +=
-          l.lateInterestType === "fixed"
-            ? l.lateInterestValue * daysOverdue
-            : baseRemaining * (l.lateInterestValue / 100) * daysOverdue;
-      }
-      if (l.penaltyValue != null && l.penaltyValue > 0) {
-        lateFees += l.penaltyValue;
-      }
-    }
+    const baseRemaining = getBaseRemainingAmount(l, payments, installmentSchedules);
+    const lateFees = getLoanLateFees(l, payments, installmentSchedules).lateFees;
 
     return { remaining: baseRemaining + lateFees, paid: totalPaid, isPaid };
   };
