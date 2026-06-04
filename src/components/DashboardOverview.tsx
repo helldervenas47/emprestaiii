@@ -12,6 +12,7 @@ import ReactMarkdown from "react-markdown";
 import { Switch } from "@/components/ui/switch";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Loan, Sale, Payment, Expense, InstallmentSchedule, Client } from "@/types/loan";
+import { Badge } from "@/components/ui/badge";
 import { ManagerCommissionsChart } from "@/components/ManagerCommissionsChart";
 import { GoalsCard } from "@/components/GoalsCard";
 import { calculateInstallment, calculateTotalWithInterest, getLoanRemainingAmount } from "@/hooks/useLoans";
@@ -452,7 +453,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
     // Juros previstos do período — porção de juros das parcelas com vencimento no período
     // Inclui TODOS os contratos (ativos, atrasados E quitados) — bruto, sem subtrair pagamentos.
-    const interestExpectedRecords: { borrowerName: string; dueDate: string; installmentNumber: number; totalInstallments: number; installmentAmount: number; interestPortion: number; loanStatus: string; paid: boolean }[] = [];
+    const interestExpectedRecords: { borrowerName: string; dueDate: string; installmentNumber: number; totalInstallments: number; installmentAmount: number; interestPortion: number; loanStatus: string; paid: boolean; tags: string[] }[] = [];
     const periodProfitExpected = loans.reduce((sum, loan) => {
       const totalWithInterest = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
       const totalInterest = Math.max(0, totalWithInterest - loan.amount);
@@ -470,7 +471,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             .forEach((sc) => {
               const interest = sc.amount * interestRatio;
               acc += interest;
-              interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: sc.dueDate, installmentNumber: sc.installmentNumber, totalInstallments: loan.installments, installmentAmount: sc.amount, interestPortion: interest, loanStatus: loan.status, paid: isInstallmentPaid(sc.installmentNumber) });
+              interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: sc.dueDate, installmentNumber: sc.installmentNumber, totalInstallments: loan.installments, installmentAmount: sc.amount, interestPortion: interest, loanStatus: loan.status, paid: isInstallmentPaid(sc.installmentNumber), tags: loan.tags || [] });
             });
           return sum + acc;
         }
@@ -484,14 +485,14 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
           if (isInRange(dStr, range.start, range.end)) {
             acc += interestPerInstallment;
-            interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: dStr, installmentNumber: i + 1, totalInstallments: loan.installments, installmentAmount, interestPortion: interestPerInstallment, loanStatus: loan.status, paid: isInstallmentPaid(i + 1) });
+            interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: dStr, installmentNumber: i + 1, totalInstallments: loan.installments, installmentAmount, interestPortion: interestPerInstallment, loanStatus: loan.status, paid: isInstallmentPaid(i + 1), tags: loan.tags || [] });
           }
         }
         return sum + acc;
       }
       // Parcela única
       if (loan.dueDate && isInRange(loan.dueDate, range.start, range.end)) {
-        interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: loan.dueDate, installmentNumber: 1, totalInstallments: 1, installmentAmount: totalWithInterest, interestPortion: totalInterest, loanStatus: loan.status, paid: isInstallmentPaid(1) });
+        interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: loan.dueDate, installmentNumber: 1, totalInstallments: 1, installmentAmount: totalWithInterest, interestPortion: totalInterest, loanStatus: loan.status, paid: isInstallmentPaid(1), tags: loan.tags || [] });
         return sum + totalInterest;
       }
       return sum;
@@ -623,7 +624,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     );
 
     // Build detail records para "Juros Recebidos no Mês"
-    const interestDetailRecords: { borrowerName: string; date: string; totalPayment: number; interestPortion: number; type: "juros" | "quitação" | "parcial" }[] = [];
+    const interestDetailRecords: { borrowerName: string; date: string; totalPayment: number; interestPortion: number; type: "juros" | "quitação" | "parcial"; tags: string[] }[] = [];
     paymentsInPeriod.forEach((p) => {
       const interest = interestByPaymentId.get(p.id) ?? 0;
       if (interest <= 0.005) return;
@@ -641,6 +642,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         totalPayment: Number(p.amount) || 0,
         interestPortion: interest,
         type,
+        tags: loan.tags || [],
       });
     });
     interestDetailRecords.sort((a, b) => b.date.localeCompare(a.date));
@@ -2595,7 +2597,14 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   {filtered.map((rec, i) => (
                     <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/30">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{rec.borrowerName}</p>
+                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                          <p className="text-sm font-medium truncate">{rec.borrowerName}</p>
+                          {rec.tags && rec.tags.length > 0 && rec.tags.map((t, idx) => (
+                            <Badge key={idx} variant="outline" className="text-[9px] h-4 py-0 px-1 border-primary/40 text-primary bg-primary/5">
+                              #{t}
+                            </Badge>
+                          ))}
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           {new Date(rec.date + "T00:00:00").toLocaleDateString("pt-BR")} — {rec.type === "quitação" ? "Lucro na quitação" : "Juros da parcela"}
                         </p>
@@ -2697,6 +2706,11 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                               <div className="flex items-center gap-2">
                                 <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-success/20 text-success">Recebido</span>
                                 <p className="text-sm font-medium truncate">{rec.borrowerName}</p>
+                                {rec.tags && rec.tags.length > 0 && rec.tags.map((t, idx) => (
+                                  <Badge key={idx} variant="outline" className="text-[9px] h-4 py-0 px-1 border-primary/40 text-primary bg-primary/5">
+                                    #{t}
+                                  </Badge>
+                                ))}
                               </div>
                               <p className="text-xs text-muted-foreground mt-0.5">
                                 {new Date(rec.date + "T00:00:00").toLocaleDateString("pt-BR")} — {rec.type}
@@ -2731,9 +2745,14 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                         <div key={`p-${i}`} className="flex items-center justify-between p-3 rounded-lg bg-warning/5 border border-warning/30">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-warning/20 text-warning">Pendente</span>
-                              <p className="text-sm font-medium truncate">{rec.borrowerName}</p>
-                            </div>
+                                <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-warning/20 text-warning">Pendente</span>
+                                <p className="text-sm font-medium truncate">{rec.borrowerName}</p>
+                                {rec.tags && rec.tags.length > 0 && rec.tags.map((t, idx) => (
+                                  <Badge key={idx} variant="outline" className="text-[9px] h-4 py-0 px-1 border-primary/40 text-primary bg-primary/5">
+                                    #{t}
+                                  </Badge>
+                                ))}
+                              </div>
                             <p className="text-xs text-muted-foreground mt-0.5">
                               {new Date(rec.dueDate + "T00:00:00").toLocaleDateString("pt-BR")} — Parcela {rec.installmentNumber}/{rec.totalInstallments}
                             </p>
