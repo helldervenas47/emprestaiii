@@ -526,7 +526,16 @@ export function LedgerView({ readOnly = false }: Props) {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm">{e.description}</TableCell>
+                          <TableCell className="text-sm">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span>{e.description}</span>
+                              {getLoanTags(e).map((t) => (
+                                <Badge key={`dtag-${e.id}-${t}`} variant="outline" className="text-[10px] h-4 px-1.5 border-primary/40 text-primary">
+                                  #{t}
+                                </Badge>
+                              ))}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="text-[10px]">
                               {categoryLabels[e.category]}{methodName ? ` · ${methodName}` : ""}
