@@ -2919,6 +2919,9 @@ function LoanRowView({
         if (val <= 0) { toast.error("Informe um valor válido"); return; }
         await onAmortize(val, dateStr, mid, split);
       } else if (dialogType === "installment") {
+        if (interestSelection === "withFees" && lateFees > 0 && loan.installments >= 2) {
+          await onInterestPayment(dateStr, undefined, lateFees, mid, null, { partial: false, notes: "Parcela paga com juros/multa de atraso" });
+        }
         await onPayment(dateStr, mid, split);
       } else if (dialogType === "interest") {
         const partialRaw = parseFloat(interestPartialAmount.replace(",", "."));
