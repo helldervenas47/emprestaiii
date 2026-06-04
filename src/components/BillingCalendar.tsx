@@ -772,8 +772,10 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                 <p className="text-xs text-muted-foreground">Valor parcial</p>
                 <p className="text-2xl font-bold text-warning">{formatCurrency(paymentDialog.amount)}</p>
               </div>
-            )}
-            {activeMethods.length > 0 && (
+              </div>
+              <div className="space-y-4">
+                {activeMethods.length > 0 && (
+
               <div className="w-full space-y-1">
                 <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
                 <Select value={selectedMethodId} onValueChange={setSelectedMethodId}>
