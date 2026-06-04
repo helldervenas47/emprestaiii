@@ -124,15 +124,13 @@ async function sendPush(sub: { endpoint: string; p256dh: string; auth: string },
   }
 }
 
-const TELEGRAM_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
+const TELEGRAM_GATEWAY = "https://api.telegram.org";
 
 async function sendTelegram(chatId: number, text: string, lovableKey: string, telegramKey: string) {
   try {
-    await fetch(`${TELEGRAM_GATEWAY}/sendMessage`, {
+    await fetch(`${TELEGRAM_GATEWAY}/bot${telegramKey}/sendMessage`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        "X-Connection-Api-Key": telegramKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
@@ -294,9 +292,8 @@ Deno.serve(async (req) => {
 
       // Send Telegram alert (only for exceeded, if user has linked Telegram)
       if (p.type === "exceeded") {
-        const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-        const telegramKey = Deno.env.get("TELEGRAM_API_KEY");
-        if (lovableKey && telegramKey) {
+        const telegramKey = Deno.env.get("TELEGRAM_BOT_TOKEN");
+        if (telegramKey) {
           const { data: tgLink } = await supabase
             .from("telegram_links")
             .select("chat_id")
@@ -306,7 +303,7 @@ Deno.serve(async (req) => {
             await sendTelegram(
               Number(tgLink.chat_id),
               `🚨 *${brandName} — Orçamento estourado!*\n\n📂 ${p.category}\n💸 Gasto: ${fmt(p.spent)} / ${fmt(p.amount)} (${pct}%)\n\nVocê ultrapassou o limite mensal desta categoria.`,
-              lovableKey,
+              "",
               telegramKey,
             );
           }
@@ -323,7 +320,6 @@ Deno.serve(async (req) => {
           await fetch(`${supabaseUrl}/functions/v1/send-personal-insights-telegram`, {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${serviceKey}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({

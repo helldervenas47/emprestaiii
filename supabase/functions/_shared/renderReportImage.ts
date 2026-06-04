@@ -3,7 +3,7 @@
 
 import { Resvg, initWasm } from "https://esm.sh/@resvg/resvg-wasm@2.6.2";
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
+const GATEWAY_URL = "https://api.telegram.org";
 
 let _wasmReady: Promise<void> | null = null;
 async function ensureWasm() {
@@ -431,11 +431,9 @@ export async function tgSendPhoto(
   }
   fd.append("photo", new Blob([pngBytes], { type: "image/png" }), "report.png");
 
-  const r = await fetch(`${GATEWAY_URL}/sendPhoto`, {
+  const r = await fetch(`${GATEWAY_URL}/bot${telegramKey}/sendPhoto`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": telegramKey,
     },
     body: fd,
   });

@@ -15,32 +15,22 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY");
+    const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    if (!TELEGRAM_API_KEY) {
-      throw new Error("TELEGRAM_API_KEY not configured");
+    if (!TELEGRAM_BOT_TOKEN) {
+      throw new Error("TELEGRAM_BOT_TOKEN not configured");
     }
     if (!SUPABASE_URL) {
       throw new Error("SUPABASE_URL not configured");
     }
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
-    }
 
-    const secretToken = await deriveTelegramWebhookSecret(TELEGRAM_API_KEY);
+    const secretToken = await deriveTelegramWebhookSecret(TELEGRAM_BOT_TOKEN);
     const webhookUrl = `${SUPABASE_URL}/functions/v1/telegram-webhook`;
 
-
-    const response = await fetch("https://connector-gateway.lovable.dev/telegram/setWebhook", {
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook`, {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": TELEGRAM_API_KEY,
-        "Content-Type": "application/json",
-      },
-
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         url: webhookUrl,
         secret_token: secretToken,

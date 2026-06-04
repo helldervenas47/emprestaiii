@@ -50,7 +50,6 @@ Deno.serve(async (req) => {
     await fetch(`${SUPABASE_URL}/functions/v1/telegram-process`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
         "Content-Type": "application/json",
       },
       body: "{}",

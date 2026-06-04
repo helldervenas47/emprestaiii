@@ -15,7 +15,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
+const GATEWAY_URL = "https://api.telegram.org";
 const APP_TZ = "America/Sao_Paulo";
 
 const corsHeaders = {
