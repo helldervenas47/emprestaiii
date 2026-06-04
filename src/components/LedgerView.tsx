@@ -73,6 +73,7 @@ export function LedgerView({ readOnly = false }: Props) {
   const [editEntry, setEditEntry] = useState<LedgerEntry | null>(null);
   const { methods: paymentMethods } = usePaymentMethods();
   const [paymentMethodByPaymentId, setPaymentMethodByPaymentId] = useState<Record<string, string | null>>({});
+  const [loanTagsById, setLoanTagsById] = useState<Record<string, string[]>>({});
   const methodNameById = useMemo(() => {
     const m = new Map<string, string>();
     paymentMethods.forEach((pm) => m.set(pm.id, pm.name));
@@ -120,6 +121,31 @@ export function LedgerView({ readOnly = false }: Props) {
       });
     })();
   }, [entries, paymentMethodByPaymentId]);
+
+  // Backfill: tags do contrato (loans) para mostrar etiquetas nos lançamentos
+  useEffect(() => {
+    const missing = entries
+      .filter((e) => e.loan_id && !(e.loan_id in loanTagsById))
+      .map((e) => e.loan_id as string);
+    if (missing.length === 0) return;
+    const unique = Array.from(new Set(missing));
+    (async () => {
+      const { data } = await supabase.from("loans").select("id, tags").in("id", unique);
+      setLoanTagsById((prev) => {
+        const next = { ...prev };
+        unique.forEach((id) => { if (!(id in next)) next[id] = []; });
+        (data as any[] | null)?.forEach((r) => {
+          next[r.id] = Array.isArray(r.tags) ? r.tags.filter((t: any) => typeof t === "string" && t.trim()) : [];
+        });
+        return next;
+      });
+    })();
+  }, [entries, loanTagsById]);
+
+  const getLoanTags = useCallback((e: LedgerEntry): string[] => {
+    if (!e.loan_id) return [];
+    return loanTagsById[e.loan_id] ?? [];
+  }, [loanTagsById]);
 
   const filtered = useMemo(() => {
     return entries
@@ -349,6 +375,11 @@ export function LedgerView({ readOnly = false }: Props) {
                             {methodName && (
                               <span className="text-[10px] text-muted-foreground">· {methodName}</span>
                             )}
+                            {getLoanTags(e).map((t) => (
+                              <Badge key={`tag-${e.id}-${t}`} variant="outline" className="text-[10px] h-4 px-1.5 border-primary/40 text-primary">
+                                #{t}
+                              </Badge>
+                            ))}
                           </div>
                         </div>
                         <div className="flex flex-col items-end shrink-0">
@@ -406,6 +437,11 @@ export function LedgerView({ readOnly = false }: Props) {
                           {methodNames.length > 0 && (
                             <span className="text-[10px] text-muted-foreground">· {methodNames.join(" + ")}</span>
                           )}
+                          {getLoanTags(first).map((t) => (
+                            <Badge key={`gtag-${item.key}-${t}`} variant="outline" className="text-[10px] h-4 px-1.5 border-primary/40 text-primary">
+                              #{t}
+                            </Badge>
+                          ))}
                         </div>
                       </button>
                       <div className="flex flex-col items-end shrink-0">
@@ -490,7 +526,16 @@ export function LedgerView({ readOnly = false }: Props) {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm">{e.description}</TableCell>
+                          <TableCell className="text-sm">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span>{e.description}</span>
+                              {getLoanTags(e).map((t) => (
+                                <Badge key={`dtag-${e.id}-${t}`} variant="outline" className="text-[10px] h-4 px-1.5 border-primary/40 text-primary">
+                                  #{t}
+                                </Badge>
+                              ))}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="text-[10px]">
                               {categoryLabels[e.category]}{methodName ? ` · ${methodName}` : ""}
@@ -543,6 +588,11 @@ export function LedgerView({ readOnly = false }: Props) {
                             <div className="flex items-center gap-1">
                               {expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
                               <span>{first.description}</span>
+                              {getLoanTags(first).map((t) => (
+                                <Badge key={`dgtag-${item.key}-${t}`} variant="outline" className="text-[10px] h-4 px-1.5 border-primary/40 text-primary">
+                                  #{t}
+                                </Badge>
+                              ))}
                             </div>
                           </TableCell>
                           <TableCell>
