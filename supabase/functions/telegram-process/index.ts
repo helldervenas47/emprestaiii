@@ -527,7 +527,7 @@ async function resolveIncomeCategoryHybrid(
   const learned = await suggestIncomeCategoryFromHints(admin, userId, description);
   if (learned && learned.hits >= 1) return learned.category;
   if (!initialGuess || initialGuess === "Outros") {
-    const llm = await suggestIncomeCategoryWithLLM(admin, userId, description, lovableKey);
+    const llm = await suggestIncomeCategoryWithLLM(admin, userId, description);
     if (llm) return llm;
   }
   return initialGuess && allowed.includes(initialGuess) ? initialGuess : "Outros";
