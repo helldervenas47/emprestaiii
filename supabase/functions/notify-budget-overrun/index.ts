@@ -303,7 +303,7 @@ Deno.serve(async (req) => {
             await sendTelegram(
               Number(tgLink.chat_id),
               `🚨 *${brandName} — Orçamento estourado!*\n\n📂 ${p.category}\n💸 Gasto: ${fmt(p.spent)} / ${fmt(p.amount)} (${pct}%)\n\nVocê ultrapassou o limite mensal desta categoria.`,
-              lovableKey,
+              "",
               telegramKey,
             );
           }
