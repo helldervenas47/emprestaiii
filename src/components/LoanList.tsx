@@ -4478,50 +4478,17 @@ function LoanRowView({
                   <p className="text-2xl font-bold text-primary">{formatCurrency(loan.amount)}</p>
                 </div>
               )}
-              {paymentDialog?.type === "full" && (
-                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-                  <p className="text-xs text-muted-foreground">Total restante a receber</p>
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
-                </div>
-              )}
-              {paymentDialog?.type === "payoff" && (
-                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-                  <p className="text-xs text-muted-foreground">Total restante a receber</p>
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
-                </div>
-              )}
-
-              {paymentDialog?.type !== "interest" && (
-                <div className="hidden md:block rounded-lg border border-border/60 bg-card/60 p-3 space-y-2">
-                  <p className="text-xs font-semibold text-foreground">Resumo do empréstimo</p>
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
-                    <div>
-                      <p className="text-muted-foreground">Total emprestado</p>
-                      <p className="font-semibold text-foreground tabular-nums">{formatCurrency(loan.amount)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Já recebido</p>
-                      <p className="font-semibold text-success tabular-nums">{formatCurrency(totalPaid)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Parcelas pagas</p>
-                      <p className="font-semibold text-foreground tabular-nums">{loan.paidInstallments} / {loan.installments}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Pendentes</p>
-                      <p className="font-semibold text-foreground tabular-nums">{Math.max(0, loan.installments - loan.paidInstallments)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Próximo vencimento</p>
-                      <p className="font-semibold text-foreground tabular-nums">{nextSchedule?.dueDate ? new Date(nextSchedule.dueDate + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Taxa de juros</p>
-                      <p className="font-semibold text-foreground tabular-nums">{Number(loan.interestRate).toFixed(2)}% a.m.</p>
-                    </div>
+              {paymentDialog?.type === "interest" && (() => {
+                const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
+                  ? loan.customInterestValue
+                  : loan.amount * (loan.interestRate / 100);
+                return (
+                  <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+                    <p className="text-xs text-muted-foreground">Juros do período</p>
+                    <p className="text-2xl font-bold text-primary">{formatCurrency(baseInterest)}</p>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {rowActiveMethods.length > 0 && (() => {
                 const baseInt = loan.customInterestValue != null && loan.customInterestValue > 0 ? loan.customInterestValue : loan.amount * (loan.interestRate / 100);
