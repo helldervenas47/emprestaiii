@@ -64,16 +64,8 @@ async function publishCommands(
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   const EXPENSES_KEY = Deno.env.get("TELEGRAM_BOT_TOKEN");
   const REPORTS_KEY = Deno.env.get("TELEGRAM_BOT_TOKEN_REPORTS");
-
-  if (!LOVABLE_API_KEY) {
-    return new Response(
-      JSON.stringify({ error: 'Missing LOVABLE_API_KEY' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
-  }
 
   try {
     const result: Record<string, any> = {};
