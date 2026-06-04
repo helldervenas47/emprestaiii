@@ -2039,7 +2039,7 @@ function LoanCardView({
         style={{ padding: 0 }}
         className={cn(
           "left-1 right-1 top-1 bottom-1 h-auto w-auto max-w-none translate-x-0 translate-y-0 flex flex-col overflow-hidden p-0 sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[85svh] sm:w-full sm:max-w-[360px] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:grid sm:grid-rows-[auto_minmax(0,1fr)_auto] sm:gap-0",
-          paymentDialog?.type === "interest" && lateFees > 0 && "sm:max-w-[460px]"
+          ((paymentDialog?.type === "interest" || paymentDialog?.type === "installment") && lateFees > 0) && "sm:max-w-[460px]"
         )}
       >
         <DialogHeader className="shrink-0 px-4 pt-4 sm:px-6 sm:pt-6">
