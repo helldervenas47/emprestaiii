@@ -45,6 +45,8 @@ export function IncomeTelegramBotButton() {
   useEffect(() => {
     if (!open || !code || connected) return;
     const tick = async () => {
+      // Busca mensagens novas direto do Telegram (não espera o cron de 60s)
+      await supabase.functions.invoke("telegram-poll").catch(() => null);
       await supabase.functions.invoke("telegram-process").catch(() => null);
       const ok = await refresh();
       if (ok) {
@@ -53,6 +55,7 @@ export function IncomeTelegramBotButton() {
         setOpen(false);
       }
     };
+    tick();
     pollRef.current = window.setInterval(tick, 4000);
     return () => { if (pollRef.current) window.clearInterval(pollRef.current); };
   }, [open, code, connected]);
