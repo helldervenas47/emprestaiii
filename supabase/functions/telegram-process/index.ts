@@ -326,7 +326,7 @@ async function suggestCategoryWithLLM(
   try {
     const resp = await fetch(AI_GATEWAY, {
       method: "POST",
-      headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${GEMINI_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "gemini-2.5-flash",
         messages: [
@@ -479,7 +479,7 @@ async function suggestIncomeCategoryWithLLM(
   try {
     const resp = await fetch(AI_GATEWAY, {
       method: "POST",
-      headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${GEMINI_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "gemini-2.5-flash",
         messages: [
@@ -1847,7 +1847,7 @@ async function extractExpense(text: string, lovableKey: string) {
   const today = todayBR();
   const resp = await fetch(AI_GATEWAY, {
     method: "POST",
-    headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${GEMINI_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "gemini-2.5-flash",
       messages: [
@@ -1974,7 +1974,7 @@ async function extractIncome(text: string, lovableKey: string) {
   const today = todayBR();
   const resp = await fetch(AI_GATEWAY, {
     method: "POST",
-    headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${GEMINI_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "gemini-2.5-flash",
       messages: [
@@ -2109,7 +2109,7 @@ async function transcribeAudio(fileId: string, mimeHint: string, lovableKey: str
 
   const resp = await fetch(AI_GATEWAY, {
     method: "POST",
-    headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${GEMINI_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "gemini-2.5-flash",
       messages: [
@@ -2147,7 +2147,7 @@ REGRAS:
 
   const resp = await fetch(AI_GATEWAY, {
     method: "POST",
-    headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${GEMINI_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "gemini-2.5-flash",
       messages: [
@@ -2267,7 +2267,7 @@ limit: para "biggest_expenses" use 5; para "list_expenses" use 10; senão omita.
 
   const resp = await fetch(AI_GATEWAY, {
     method: "POST",
-    headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${GEMINI_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "gemini-2.5-flash",
       messages: [
