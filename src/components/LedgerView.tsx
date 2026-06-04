@@ -588,6 +588,11 @@ export function LedgerView({ readOnly = false }: Props) {
                             <div className="flex items-center gap-1">
                               {expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
                               <span>{first.description}</span>
+                              {getLoanTags(first).map((t) => (
+                                <Badge key={`dgtag-${item.key}-${t}`} variant="outline" className="text-[10px] h-4 px-1.5 border-primary/40 text-primary">
+                                  #{t}
+                                </Badge>
+                              ))}
                             </div>
                           </TableCell>
                           <TableCell>
