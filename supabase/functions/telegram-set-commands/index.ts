@@ -3,7 +3,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const GATEWAY_URL = 'https://connector-gateway.lovable.dev/telegram';
+const GATEWAY_URL = 'https://api.telegram.org';
 
 // Comandos do bot de DESPESAS (TELEGRAM_API_KEY)
 const EXPENSES_COMMANDS = [
@@ -35,12 +35,10 @@ async function publishCommands(
   commands: { command: string; description: string }[],
 ) {
   const headers = {
-    Authorization: `Bearer ${lovableKey}`,
-    'X-Connection-Api-Key': telegramKey,
     'Content-Type': 'application/json',
   };
 
-  const setCmdRes = await fetch(`${GATEWAY_URL}/setMyCommands`, {
+  const setCmdRes = await fetch(`${GATEWAY_URL}/bot${telegramKey}/setMyCommands`, {
     method: 'POST',
     headers,
     body: JSON.stringify({ commands }),
@@ -50,7 +48,7 @@ async function publishCommands(
     throw new Error(`setMyCommands failed [${setCmdRes.status}]: ${JSON.stringify(setCmdData)}`);
   }
 
-  const setBtnRes = await fetch(`${GATEWAY_URL}/setChatMenuButton`, {
+  const setBtnRes = await fetch(`${GATEWAY_URL}/bot${telegramKey}/setChatMenuButton`, {
     method: 'POST',
     headers,
     body: JSON.stringify({ menu_button: { type: 'commands' } }),
@@ -67,8 +65,8 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-  const EXPENSES_KEY = Deno.env.get('TELEGRAM_API_KEY');
-  const REPORTS_KEY = Deno.env.get('TELEGRAM_API_KEY_1');
+  const EXPENSES_KEY = Deno.env.get("TELEGRAM_BOT_TOKEN");
+  const REPORTS_KEY = Deno.env.get("TELEGRAM_BOT_TOKEN_REPORTS");
 
   if (!LOVABLE_API_KEY) {
     return new Response(

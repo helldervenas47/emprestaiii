@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY");
+    const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_BOT_TOKEN");
     if (!TELEGRAM_API_KEY) {
       throw new Error("TELEGRAM_API_KEY is not configured");
     }
@@ -86,7 +86,6 @@ Deno.serve(async (req) => {
     fetch(`${SUPABASE_URL}/functions/v1/telegram-process`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
         "Content-Type": "application/json",
       },
       body: "{}",

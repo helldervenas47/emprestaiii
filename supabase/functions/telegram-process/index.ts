@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
+const GATEWAY_URL = "https://api.telegram.org";
 const AI_GATEWAY = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY")!;
 
@@ -1576,7 +1576,7 @@ function isRawTelegramToken(key: string) {
 function telegramMethodUrl(method: string, telegramKey: string) {
   return isRawTelegramToken(telegramKey)
     ? `https://api.telegram.org/bot${telegramKey}/${method}`
-    : `${GATEWAY_URL}/${method}`;
+    : `${GATEWAY_URL}/bot${telegramKey}/${method}`;
 }
 
 function telegramHeaders(lovableKey: string, telegramKey: string, json = true) {
@@ -2064,7 +2064,7 @@ async function downloadTelegramFile(fileId: string, lovableKey: string, telegram
     const dl = await fetch(
       isRawTelegramToken(telegramKey)
         ? `https://api.telegram.org/file/bot${telegramKey}/${filePath}`
-        : `${GATEWAY_URL}/file/${filePath}`,
+        : `${GATEWAY_URL}/bot${telegramKey}/file/${filePath}`,
       { headers: telegramHeaders(lovableKey, telegramKey, false) },
     );
     if (!dl.ok) {
@@ -2423,7 +2423,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-  const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY")!;
+  const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 

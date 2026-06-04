@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY");
+    const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_BOT_TOKEN");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
@@ -36,8 +36,6 @@ Deno.serve(async (req) => {
     const response = await fetch("https://connector-gateway.lovable.dev/telegram/setWebhook", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": TELEGRAM_API_KEY,
         "Content-Type": "application/json",
       },
 

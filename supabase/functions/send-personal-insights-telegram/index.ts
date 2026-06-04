@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const TELEGRAM_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
+const TELEGRAM_GATEWAY = "https://api.telegram.org";
 
 function currentMonth(): string {
   const d = new Date();
@@ -45,7 +45,6 @@ async function generateInsight(supabase: any, ownerId: string, force = false) {
   const r = await fetch(`${supabaseUrl}/functions/v1/generate-personal-insights`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${serviceKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ user_id: ownerId, force }),
