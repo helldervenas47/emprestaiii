@@ -1175,6 +1175,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
                   </span>
                 )}
               </Button>
+              <WarrantyManager sale={sale} iconOnly />
               <Button
                 variant="ghost"
                 size="icon"
