@@ -856,57 +856,66 @@ export function useLoans() {
     const appliedFees = feesAmount != null && feesAmount > 0 ? feesAmount : lateFees;
 
     if (isInstallmentLoan) {
-      const nextInstallmentNumber = loan.paidInstallments + 1;
-      const nextSchedule = installmentSchedules.find(
-        (schedule) => schedule.loanId === loanId && schedule.installmentNumber === nextInstallmentNumber,
-      );
-      const currentAmount = nextSchedule?.amount
-        ?? (loan.customInstallmentValue != null && loan.customInstallmentValue > 0
-          ? loan.customInstallmentValue
-          : calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments) / Math.max(1, loan.installments));
-      const updatedAmount = Math.round((currentAmount + appliedFees) * 100) / 100;
+      // Para contratos parcelados: registra a multa/juros de atraso como um
+      // pagamento separado (installment_number = -2) e cria uma entrada
+      // dedicada no extrato (account_ledger) para que o valor dos juros
+      // apareça claramente, sem inflar a parcela do cronograma.
+      if (appliedFees <= 0) return;
+      const feesPaymentId = crypto.randomUUID();
+      const feesPayload: any = {
+        id: feesPaymentId,
+        user_id: dataOwnerId,
+        loan_id: loanId,
+        amount: appliedFees,
+        date: dateStr,
+        installment_number: -2,
+        previous_due_date: loan.dueDate,
+        payment_method_id: paymentMethodId ?? null,
+        metadata: { kind: "late_fee", notes: options?.notes ?? null } as any,
+      };
 
-      if (nextSchedule?.id) {
-        if (!isOnline()) {
-          setInstallmentSchedules((prev) => prev.map((schedule) => schedule.id === nextSchedule.id ? { ...schedule, amount: updatedAmount } : schedule));
-          await enqueueMutation({ table: "loan_installments", op: "update", recordId: nextSchedule.id, payload: { amount: updatedAmount } });
-          return;
-        }
+      setPayments((prev) => [
+        { id: feesPaymentId, loanId, amount: appliedFees, date: dateStr, installmentNumber: -2, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null, metadata: feesPayload.metadata },
+        ...prev,
+      ]);
+      await upsertCachedRow("payments", { ...feesPayload, created_at: new Date().toISOString() });
 
-        const { data: updatedSchedule, error: scheduleError } = await supabase
-          .from("loan_installments")
-          .update({ amount: updatedAmount })
-          .eq("id", nextSchedule.id)
-          .select("id")
-          .maybeSingle();
-
-        if (scheduleError || !updatedSchedule) {
-          console.error("[addInterestOnlyPayment] update schedule failed:", scheduleError ?? new Error("Nenhuma parcela foi atualizada"));
-          throw new Error(scheduleError?.message ?? "Falha ao atualizar a parcela");
-        }
-
-        await fetchSchedules();
-        await fetchLoans();
+      if (!isOnline()) {
+        await enqueueMutation({ table: "payments", op: "insert", recordId: feesPaymentId, payload: feesPayload });
+        await applyPaymentBalanceOffline(appliedFees, paymentMethodId ?? null, null);
         return;
       }
 
-      const { error: insertScheduleError } = await supabase.from("loan_installments").insert({
-        user_id: dataOwnerId,
-        loan_id: loanId,
-        installment_number: nextInstallmentNumber,
-        due_date: loan.dueDate,
-        amount: updatedAmount,
-      } as any);
-
-      if (insertScheduleError) {
-        console.error("[addInterestOnlyPayment] insert schedule failed:", insertScheduleError);
-        throw new Error(insertScheduleError.message);
+      const { error: feeInsertError } = await supabase.from("payments").insert(feesPayload as any);
+      if (feeInsertError) {
+        setPayments((prev) => prev.filter((p) => p.id !== feesPaymentId));
+        await removeCachedRow("payments", feesPaymentId);
+        console.error("[addInterestOnlyPayment] insert fee payment failed:", feeInsertError);
+        throw new Error(feeInsertError.message);
       }
 
-      await fetchSchedules();
-      await fetchLoans();
+      try {
+        await applyPaymentBalance(appliedFees, paymentMethodId ?? null, null);
+        await recordPaymentLedgerSplit({
+          amount: appliedFees,
+          description: `Juros/multa por atraso - ${loan.borrowerName}`,
+          occurred_on: dateStr,
+          loan_id: loanId,
+          payment_id: feesPaymentId,
+          paymentMethodId: paymentMethodId ?? null,
+          split: null,
+          extraMetadata: { kind: "late_fee" },
+        });
+      } catch (balanceError: any) {
+        console.error("[addInterestOnlyPayment] adjust fees balance failed:", balanceError);
+        await supabase.from("payments").delete().eq("id", feesPaymentId);
+        setPayments((prev) => prev.filter((p) => p.id !== feesPaymentId));
+        await removeCachedRow("payments", feesPaymentId);
+        throw new Error(balanceError?.message ?? "Falha ao atualizar saldo");
+      }
       return;
     }
+
 
     const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
       ? loan.customInterestValue
