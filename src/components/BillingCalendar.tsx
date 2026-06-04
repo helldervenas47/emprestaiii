@@ -794,12 +794,14 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
               selected={paymentDate}
               onSelect={(d) => d && setPaymentDate(d)}
               className="rounded-md border pointer-events-auto"
-            />
+              </div>
+            </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="px-6 pb-6 pt-2 shrink-0 border-t border-border/40 md:border-0 md:bg-transparent">
             <Button variant="outline" onClick={() => setPaymentDialog(null)}>Cancelar</Button>
             <Button onClick={confirmPayment} disabled={paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)}>Confirmar</Button>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
     </div>
