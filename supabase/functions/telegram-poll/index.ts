@@ -1,9 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Keep below the cron interval (≈60s) so consecutive invocations don't overlap
-// and trigger 409 "terminated by other getUpdates" errors.
-const MAX_RUNTIME_MS = 40_000;
-const MIN_REMAINING_MS = 5_000;
+// Keep polling short and non-overlapping. The UI can call this while the
+// dialog is open, so long-polling here creates Telegram 409 conflicts.
+const MAX_RUNTIME_MS = 8_000;
+const MIN_REMAINING_MS = 1_500;
+const POLL_LOCK_MS = 8_000;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,7 +42,7 @@ async function processBot(supabase: any, bot: ExpenseBot, budgetMs: number) {
   while (true) {
     const remainingMs = budgetMs - (Date.now() - startedAt);
     if (remainingMs < MIN_REMAINING_MS) break;
-    const timeout = Math.min(20, Math.max(1, Math.floor(remainingMs / 1000) - 5));
+    const timeout = Math.min(2, Math.max(0, Math.floor(remainingMs / 1000) - 1));
     if (timeout < 1) break;
 
     let resp: Response;
@@ -168,6 +169,19 @@ Deno.serve(async (req) => {
     const remaining = MAX_RUNTIME_MS - (Date.now() - startTime);
     if (remaining < MIN_REMAINING_MS) break;
     try {
+      const lockCutoff = new Date(Date.now() - POLL_LOCK_MS).toISOString();
+      const { data: locked, error: lockErr } = await supabase
+        .from("system_telegram_bots")
+        .update({ last_polled_at: new Date().toISOString() })
+        .eq("id", bot.id)
+        .or(`last_polled_at.is.null,last_polled_at.lt.${lockCutoff}`)
+        .select("id")
+        .maybeSingle();
+      if (lockErr || !locked) {
+        console.log(`[telegram-poll] skip bot=${bot.id}; outro polling está em andamento`);
+        continue;
+      }
+
       const result = await processBot(supabase, bot, Math.min(perBotBudget, remaining));
       totalProcessed += result.processed;
       hasNew = hasNew || result.hasNew;
