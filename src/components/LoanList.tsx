@@ -2467,7 +2467,10 @@ function LoanCardView({
               </div>
             );
           })()}
+            </div>
+            <div className="space-y-4">
           {activeMethods.length > 0 && (() => {
+
             const baseInt = loan.customInterestValue != null && loan.customInterestValue > 0 ? loan.customInterestValue : loan.amount * (loan.interestRate / 100);
             const cRaw = parseFloat(payoffAmount.replace(",", "."));
             const aRaw = parseFloat(amortizeAmount.replace(",", "."));
