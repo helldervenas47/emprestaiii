@@ -4216,7 +4216,7 @@ function LoanRowView({
             if (dt === "full") totalForSplit = remaining;
             else if (dt === "payoff") totalForSplit = isFinite(cRaw) && cRaw > 0 ? cRaw : 0;
             else if (dt === "amortize") totalForSplit = isFinite(aRaw) && aRaw > 0 ? aRaw : 0;
-            else if (dt === "installment") totalForSplit = installmentValue;
+            else if (dt === "installment") totalForSplit = installmentValue + (interestSelection === "withFees" && lateFees > 0 && loan.installments >= 2 ? lateFees : 0);
             else if (dt === "interest") totalForSplit = interestSelection === "withFees" && lateFees > 0 ? baseInt + lateFees : baseInt;
             else if (dt === "partial") totalForSplit = paymentDialog?.amount ?? 0;
             const a1 = parseFloat(rowSplitAmount1Input.replace(",", "."));
