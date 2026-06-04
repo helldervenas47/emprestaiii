@@ -73,6 +73,7 @@ export function LedgerView({ readOnly = false }: Props) {
   const [editEntry, setEditEntry] = useState<LedgerEntry | null>(null);
   const { methods: paymentMethods } = usePaymentMethods();
   const [paymentMethodByPaymentId, setPaymentMethodByPaymentId] = useState<Record<string, string | null>>({});
+  const [loanTagsById, setLoanTagsById] = useState<Record<string, string[]>>({});
   const methodNameById = useMemo(() => {
     const m = new Map<string, string>();
     paymentMethods.forEach((pm) => m.set(pm.id, pm.name));
