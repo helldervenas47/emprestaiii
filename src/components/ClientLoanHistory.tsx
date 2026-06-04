@@ -98,14 +98,6 @@ export function ClientLoanHistory({ loans, payments, installmentSchedules }: Pro
         } else {
           const baseRemaining = getBaseRemainingAmount(l, payments, installmentSchedules);
 
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const due = l.dueDate ? new Date(`${l.dueDate}T00:00:00`) : null;
-          const daysOverdue =
-            due && !isNaN(due.getTime())
-              ? Math.max(0, Math.floor((today.getTime() - due.getTime()) / 86400000))
-              : 0;
-
           const lateFees = getLoanLateFees(l, payments, installmentSchedules).lateFees;
 
           pending += baseRemaining + lateFees;
@@ -259,14 +251,6 @@ export function ClientLoanHistory({ loans, payments, installmentSchedules }: Pro
       const baseRemaining =
         getBaseRemainingAmount(l, payments, installmentSchedules);
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const due = l.dueDate ? new Date(`${l.dueDate}T00:00:00`) : null;
-      const daysOverdue =
-        due && !isNaN(due.getTime())
-          ? Math.max(0, Math.floor((today.getTime() - due.getTime()) / 86400000))
-          : 0;
-
       const lateFees = getLoanLateFees(l, payments, installmentSchedules).lateFees;
 
       const loanPending = baseRemaining + lateFees;
@@ -343,6 +327,8 @@ export function ClientLoanHistory({ loans, payments, installmentSchedules }: Pro
           <CardContent className="p-3 sm:p-4">
             <ClientLoansList
               loans={clientLoans}
+              payments={payments}
+              installmentSchedules={installmentSchedules}
               paymentsByLoan={paymentsByLoan}
               lastPaymentDateByLoan={lastPaymentDateByLoan}
               hidden={hidden}
