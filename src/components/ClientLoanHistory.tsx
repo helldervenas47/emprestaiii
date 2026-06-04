@@ -86,12 +86,18 @@ export function ClientLoanHistory({ loans, payments, installmentSchedules }: Pro
       let borrowed = 0;
       let paid = 0;
       let pending = 0;
+      let total = 0;
 
       clientLoans.forEach((l) => {
         borrowed += l.amount || 0;
         const loanPayments = payments.filter((p) => p.loanId === l.id);
         const totalPaid = loanPayments.reduce((s, p) => s + (p.amount || 0), 0);
         paid += totalPaid;
+
+        // "Valor total a receber" do contrato = total contratado (principal + juros).
+        // Pagamentos parciais NÃO alteram o total a receber; apenas reduzem o saldo restante.
+        const contractTotal = calculateTotalWithInterest(l.amount || 0, l.interestRate, l.installments);
+        total += contractTotal;
 
         if (l.status === "paid") {
           // No pending
@@ -104,7 +110,6 @@ export function ClientLoanHistory({ loans, payments, installmentSchedules }: Pro
         }
       });
 
-      const total = paid + pending;
       const interestRate = borrowed > 0 ? ((total - borrowed) / borrowed) * 100 : 0;
 
       return {
