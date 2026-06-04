@@ -751,6 +751,11 @@ function LoanCardView({
         if (val <= 0) { toast.error("Informe um valor válido"); return; }
         await onAmortize(val, dateStr, mid, split);
       } else if (dialogType === "installment") {
+        if (interestSelection === "withFees" && lateFees > 0 && loan.installments >= 2) {
+          // Bump the next installment amount in the schedule by the late fees,
+          // then collect the inflated installment in a single payment record.
+          await onInterestPayment(dateStr, undefined, lateFees, mid, null, { partial: false, notes: "Parcela paga com juros/multa de atraso" });
+        }
         await onPayment(dateStr, mid, split);
       } else if (dialogType === "interest") {
         const partialRaw = parseFloat(interestPartialAmount.replace(",", "."));
