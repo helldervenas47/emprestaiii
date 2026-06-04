@@ -2064,25 +2064,25 @@ function LoanCardView({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start mt-2">
             <div className="space-y-4">
 
-              <div className="space-y-1">
-                <Label htmlFor="payoff-amount" className="text-xs">Valor para quitar (R$)</Label>
-                <Input
-                  id="payoff-amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  inputMode="decimal"
-                  value={payoffAmount}
-                  onChange={(e) => setPayoffAmount(e.target.value)}
-                  placeholder={`Ex: ${remaining.toFixed(2)}`}
-                  autoFocus
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Informe o valor de quitação. O contrato será marcado como pago.
-                </p>
-              </div>
-            </div>
-          )}
+              {paymentDialog?.type === "payoff" && (
+                <div className="w-full space-y-1">
+                  <Label htmlFor="payoff-amount" className="text-xs">Valor para quitar (R$)</Label>
+                  <Input
+                    id="payoff-amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    inputMode="decimal"
+                    value={payoffAmount}
+                    onChange={(e) => setPayoffAmount(e.target.value)}
+                    placeholder={`Ex: ${remaining.toFixed(2)}`}
+                    autoFocus
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Informe o valor de quitação. O contrato será marcado como pago.
+                  </p>
+                </div>
+              )}
           {paymentDialog?.type === "amortize" && (() => {
             const oldPrincipal = Number(loan.amount) || 0;
             const rate = Number(loan.interestRate) || 0;
