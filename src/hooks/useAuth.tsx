@@ -89,10 +89,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const hydrateUserState = async (userId: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await syncProfile(user);
+  const hydrateUserState = async (userId: string, currentUser?: User | null) => {
+    if (currentUser) {
+      await syncProfile(currentUser);
     }
 
     await Promise.all([
@@ -114,11 +113,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
     let hydratedForUserId: string | null = null;
 
-    const doHydrate = async (userId: string, showLoading: boolean) => {
+    const doHydrate = async (userId: string, showLoading: boolean, currentUser?: User | null) => {
       if (hydratedForUserId === userId) return;
       hydratedForUserId = userId;
       if (showLoading) setLoading(true);
-      await hydrateUserState(userId);
+      await hydrateUserState(userId, currentUser);
       if (mounted) setLoading(false);
     };
 
@@ -144,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Defer to avoid deadlock with onAuthStateChange
           setTimeout(() => {
             if (!mounted) return;
-            doHydrate(nextSession.user.id, event === "SIGNED_IN");
+            doHydrate(nextSession.user.id, event === "SIGNED_IN", nextSession.user);
           }, 0);
         }
         // TOKEN_REFRESHED with valid session: no re-hydrate needed
@@ -161,19 +160,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!mounted) return;
 
       if (currentSession) {
-        // Verify with the server that this session is still valid.
-        // Cached sessions can be stale (deleted server-side), causing 401s.
-        const { data: userCheck, error: userErr } = await supabase.auth.getUser();
-        if (userErr || !userCheck?.user) {
-          await supabase.auth.signOut({ scope: "local" });
-          setSession(null);
-          setUser(null);
-          clearUserState();
-        } else {
-          setSession(currentSession);
-          setUser(currentSession.user);
-          await doHydrate(currentSession.user.id, false);
-        }
+        setSession(currentSession);
+        setUser(currentSession.user);
+        await doHydrate(currentSession.user.id, false, currentSession.user);
       }
 
       if (mounted) setLoading(false);
@@ -189,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(s);
           setUser(s?.user ?? null);
           if (s?.user) {
-            doHydrate(s.user.id, false);
+              doHydrate(s.user.id, false, s.user);
           } else {
             hydratedForUserId = null;
             clearUserState();
