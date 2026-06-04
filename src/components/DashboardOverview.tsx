@@ -1820,9 +1820,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         // Interest metrics based on selected period filter (installment due dates)
         // Use interestExpectedRecords como fonte única para garantir consistência com o detalhamento
         const interestReceivedInPeriod = data.periodProfitRealized;
-        const interestPendingInPeriod = data.interestExpectedRecords
-          .filter((r) => !r.paid)
-          .reduce((s, r) => s + r.interestPortion, 0);
+        const interestPendingInPeriod = data.periodProfitExpected;
         const interestDueInPeriod = interestReceivedInPeriod + interestPendingInPeriod;
 
         const items: Array<{ label: string; value: string; color: string; iconBg: string; iconColor: string; onClick?: () => void; tooltip?: string }> = [
