@@ -2468,91 +2468,83 @@ function LoanCardView({
             );
           })()}
             </div>
-            <div className="space-y-4">
-          {activeMethods.length > 0 && (() => {
-
-            const baseInt = loan.customInterestValue != null && loan.customInterestValue > 0 ? loan.customInterestValue : loan.amount * (loan.interestRate / 100);
-            const cRaw = parseFloat(payoffAmount.replace(",", "."));
-            const aRaw = parseFloat(amortizeAmount.replace(",", "."));
-            const dt = paymentDialog?.type;
-            let totalForSplit = 0;
-            if (dt === "full") totalForSplit = remaining;
-            else if (dt === "payoff") totalForSplit = isFinite(cRaw) && cRaw > 0 ? cRaw : 0;
-            else if (dt === "amortize") totalForSplit = isFinite(aRaw) && aRaw > 0 ? aRaw : 0;
-            else if (dt === "installment") totalForSplit = installment + (interestSelection === "withFees" && lateFees > 0 && loan.installments >= 2 ? lateFees : 0);
-            else if (dt === "interest") totalForSplit = interestSelection === "withFees" && lateFees > 0 ? baseInt + lateFees : baseInt;
-            else if (dt === "partial") totalForSplit = paymentDialog?.amount ?? 0;
-            const a1 = parseFloat(splitAmount1Input.replace(",", "."));
-            const validA1 = isFinite(a1) && a1 > 0 && a1 < totalForSplit;
-            const a2 = validA1 ? Math.round((totalForSplit - a1) * 100) / 100 : 0;
-            return (
-              <div className="w-full space-y-1">
-                <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
-                <Select value={selectedMethodId} onValueChange={setSelectedMethodId}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {activeMethods.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {totalForSplit > 0 && activeMethods.length >= 2 && (
-                  <div className="pt-1.5 space-y-1.5">
-                    <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
-                      <input type="checkbox" className="size-3.5 accent-primary" checked={splitEnabled} onChange={(e) => setSplitEnabled(e.target.checked)} />
-                      Dividir em 2 meios de pagamento
-                    </label>
-                    {splitEnabled && (
-                      <div className="rounded-md border border-border/60 bg-muted/30 p-2 space-y-1.5">
-                        <div className="space-y-1">
-                          <Label className="text-[11px]">Valor no meio 1 (R$)</Label>
-                          <Input type="number" step="0.01" min="0" inputMode="decimal" value={splitAmount1Input} onChange={(e) => setSplitAmount1Input(e.target.value)} placeholder={`Total: ${rawFormatCurrency(totalForSplit)}`} className="h-8 text-sm" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-[11px]">Meio 2</Label>
-                          <Select value={splitMethod2Id} onValueChange={setSplitMethod2Id}>
-                            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                            <SelectContent>
-                              {activeMethods.filter((m) => m.id !== selectedMethodId).map((m) => (
-                                <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        {validA1 && (
-                          <div className="flex justify-between text-[11px] pt-1 border-t border-border/40">
-                            <span className="text-muted-foreground">Restante meio 2</span>
-                            <span className="font-semibold text-primary tabular-nums">{rawFormatCurrency(a2)}</span>
+            <div className="flex flex-col gap-4">
+              {activeMethods.length > 0 && (() => {
+                const baseInt = loan.customInterestValue != null && loan.customInterestValue > 0 ? loan.customInterestValue : loan.amount * (loan.interestRate / 100);
+                const cRaw = parseFloat(payoffAmount.replace(",", "."));
+                const aRaw = parseFloat(amortizeAmount.replace(",", "."));
+                const dt = paymentDialog?.type;
+                let totalForSplit = 0;
+                if (dt === "full") totalForSplit = remaining;
+                else if (dt === "payoff") totalForSplit = isFinite(cRaw) && cRaw > 0 ? cRaw : 0;
+                else if (dt === "amortize") totalForSplit = isFinite(aRaw) && aRaw > 0 ? aRaw : 0;
+                else if (dt === "installment") totalForSplit = installment + (interestSelection === "withFees" && lateFees > 0 && loan.installments >= 2 ? lateFees : 0);
+                else if (dt === "interest") totalForSplit = interestSelection === "withFees" && lateFees > 0 ? baseInt + lateFees : baseInt;
+                else if (dt === "partial") totalForSplit = paymentDialog?.amount ?? 0;
+                const a1 = parseFloat(splitAmount1Input.replace(",", "."));
+                const validA1 = isFinite(a1) && a1 > 0 && a1 < totalForSplit;
+                const a2 = validA1 ? Math.round((totalForSplit - a1) * 100) / 100 : 0;
+                return (
+                  <div className="w-full space-y-1">
+                    <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
+                    <Select value={selectedMethodId} onValueChange={setSelectedMethodId}>
+                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        {activeMethods.map((m) => (
+                          <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {totalForSplit > 0 && activeMethods.length >= 2 && (
+                      <div className="pt-1.5 space-y-1.5">
+                        <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                          <input type="checkbox" className="size-3.5 accent-primary" checked={splitEnabled} onChange={(e) => setSplitEnabled(e.target.checked)} />
+                          Dividir em 2 meios de pagamento
+                        </label>
+                        {splitEnabled && (
+                          <div className="rounded-md border border-border/60 bg-muted/30 p-2 space-y-1.5">
+                            <div className="space-y-1">
+                              <Label className="text-[11px]">Valor no meio 1 (R$)</Label>
+                              <Input type="number" step="0.01" min="0" inputMode="decimal" value={splitAmount1Input} onChange={(e) => setSplitAmount1Input(e.target.value)} placeholder={`Total: ${rawFormatCurrency(totalForSplit)}`} className="h-8 text-sm" />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[11px]">Meio 2</Label>
+                              <Select value={splitMethod2Id} onValueChange={setSplitMethod2Id}>
+                                <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                <SelectContent>
+                                  {activeMethods.filter((m) => m.id !== selectedMethodId).map((m) => (
+                                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            {validA1 && (
+                              <div className="flex justify-between text-[11px] pt-1 border-t border-border/40">
+                                <span className="text-muted-foreground">Restante meio 2</span>
+                                <span className="font-semibold text-primary tabular-nums">{rawFormatCurrency(a2)}</span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
                     )}
                   </div>
-                )}
+                );
+              })()}
+
+              <div className="flex flex-col gap-3">
+                <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
+                <div className="flex justify-center w-full">
+                  <CalendarUI
+                    mode="single"
+                    selected={paymentDate}
+                    onSelect={(d) => d && setPaymentDate(d)}
+                    className="rounded-md border pointer-events-auto mx-auto"
+                  />
+                </div>
               </div>
-            );
-          })()}
-          <Label className="text-sm text-muted-foreground md:hidden">Selecione a data do pagamento</Label>
-          <div className="md:hidden flex justify-center">
-            <CalendarUI
-              mode="single"
-              selected={paymentDate}
-              onSelect={(d) => d && setPaymentDate(d)}
-              className="rounded-md border pointer-events-auto mx-auto"
-            />
-          </div>
-            </div>
-            <div className="hidden md:flex md:flex-col md:gap-3">
-              <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
-              <div className="flex justify-center w-full">
-                <CalendarUI
-                  mode="single"
-                  selected={paymentDate}
-                  onSelect={(d) => d && setPaymentDate(d)}
-                  className="rounded-md border pointer-events-auto mx-auto"
-                />
-              </div>
-              <div className="rounded-lg border border-border/60 bg-card/60 p-3 space-y-2">
+
+              <div className="hidden md:block rounded-lg border border-border/60 bg-card/60 p-3 space-y-2">
                 <p className="text-xs font-semibold text-foreground">Resumo do empréstimo</p>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
                   <div>
@@ -4363,9 +4355,8 @@ function LoanRowView({
             );
           })()}
             </div>
-            <div className="space-y-4">
+            <div className="flex flex-col gap-4">
           {rowActiveMethods.length > 0 && (() => {
-
             const baseInt = loan.customInterestValue != null && loan.customInterestValue > 0 ? loan.customInterestValue : loan.amount * (loan.interestRate / 100);
             const cRaw = parseFloat(payoffAmount.replace(",", "."));
             const aRaw = parseFloat(amortizeAmount.replace(",", "."));
@@ -4427,13 +4418,48 @@ function LoanRowView({
               </div>
             );
           })()}
-          <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
-          <CalendarUI
-            mode="single"
-            selected={paymentDate}
-            onSelect={(d) => d && setPaymentDate(d)}
-            className="rounded-md border pointer-events-auto"
-          />
+
+          <div className="flex flex-col gap-3">
+            <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
+            <div className="flex justify-center w-full">
+              <CalendarUI
+                mode="single"
+                selected={paymentDate}
+                onSelect={(d) => d && setPaymentDate(d)}
+                className="rounded-md border pointer-events-auto mx-auto"
+              />
+            </div>
+          </div>
+
+          <div className="hidden md:block rounded-lg border border-border/60 bg-card/60 p-3 space-y-2">
+            <p className="text-xs font-semibold text-foreground">Resumo do empréstimo</p>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
+              <div>
+                <p className="text-muted-foreground">Total emprestado</p>
+                <p className="font-semibold text-foreground tabular-nums">{formatCurrency(loan.amount)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Já recebido</p>
+                <p className="font-semibold text-success tabular-nums">{formatCurrency(totalPaid)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Parcelas pagas</p>
+                <p className="font-semibold text-foreground tabular-nums">{loan.paidInstallments} / {loan.installments}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Pendentes</p>
+                <p className="font-semibold text-foreground tabular-nums">{Math.max(0, loan.installments - loan.paidInstallments)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Próximo vencimento</p>
+                <p className="font-semibold text-foreground tabular-nums">{nextSchedule?.dueDate ? new Date(nextSchedule.dueDate + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Taxa de juros</p>
+                <p className="font-semibold text-foreground tabular-nums">{Number(loan.interestRate).toFixed(2)}% a.m.</p>
+              </div>
+            </div>
+          </div>
             </div>
           </div>
         </div>
