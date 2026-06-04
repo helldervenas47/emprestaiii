@@ -33,9 +33,20 @@ interface Props {
   products?: Product[];
 }
 
-export function WarrantyManager({ sale, products = [] }: Props) {
+export function WarrantyManager({ sale, products: productsProp }: Props) {
   const [open, setOpen] = useState(false);
   const w = useWarranty(open ? sale.id : undefined);
+  const [fetched, setFetched] = useState<Product[]>([]);
+  useEffect(() => {
+    if (!open || productsProp?.length) return;
+    supabase.from("products").select("id,name,stock,price,cost,created_at").then(({ data }) => {
+      if (data) setFetched(data.map((p: any) => ({
+        id: p.id, name: p.name, description: "", price: Number(p.price || 0), cost: Number(p.cost || 0),
+        lastPurchasePrice: 0, suggestedStock: 0, stock: Number(p.stock || 0), active: true, createdAt: p.created_at,
+      })));
+    });
+  }, [open, productsProp?.length]);
+  const products = productsProp?.length ? productsProp : fetched;
 
   const activeCount = w.cases.filter((c) => c.status !== "concluida" && c.status !== "cancelada").length;
 
