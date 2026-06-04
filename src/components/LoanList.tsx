@@ -4023,6 +4023,7 @@ function LoanRowView({
           </DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch] px-4 pb-3 sm:px-6 sm:pb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start mt-2">
             <div className="space-y-4">
               <div className="hidden md:block rounded-lg border border-border/60 bg-card/60 p-3 space-y-2">
                 <p className="text-xs font-semibold text-foreground">Resumo do empréstimo</p>
