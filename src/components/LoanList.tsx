@@ -3974,25 +3974,6 @@ function LoanRowView({
                   </p>
                 </div>
               )}
-              <div className="space-y-1">
-                <Label htmlFor="payoff-amount-row" className="text-xs">Valor para quitar (R$)</Label>
-                <Input
-                  id="payoff-amount-row"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  inputMode="decimal"
-                  value={payoffAmount}
-                  onChange={(e) => setPayoffAmount(e.target.value)}
-                  placeholder={`Ex: ${remaining.toFixed(2)}`}
-                  autoFocus
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Informe o valor de quitação. O contrato será marcado como pago.
-                </p>
-              </div>
-            </div>
-          )}
           {paymentDialog?.type === "amortize" && (() => {
             const oldPrincipal = Number(loan.amount) || 0;
             const rate = Number(loan.interestRate) || 0;
