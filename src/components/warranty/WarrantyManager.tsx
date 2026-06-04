@@ -129,7 +129,7 @@ function WarrantyContent({
         <div className="grid grid-cols-1 sm:grid-cols-[220px_1fr] gap-3">
           <div className="space-y-1.5">
             {w.cases.map((c) => {
-              const tone = WARRANTY_STATUS_TONE[c.status];
+              const toneCls = toneClass(WARRANTY_STATUS_TONE[c.status]);
               return (
                 <button
                   key={c.id}
@@ -144,7 +144,7 @@ function WarrantyContent({
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-medium tabular-nums">#{c.id.slice(0, 8)}</span>
-                    <Badge variant={tone as any} className="text-[10px]">{WARRANTY_STATUS_LABEL[c.status]}</Badge>
+                    <Badge variant="outline" className={cn("text-[10px]", toneCls)}>{WARRANTY_STATUS_LABEL[c.status]}</Badge>
                   </div>
                   <div className="text-[11px] text-muted-foreground mt-0.5">
                     {format(new Date(c.openedAt), "dd/MM/yyyy HH:mm")}
