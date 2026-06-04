@@ -8,10 +8,36 @@ Deno.serve(async (req) => {
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  const { data: bots1 } = await supabase.from("system_telegram_bots").select("*");
-  const { data: bots2 } = await supabase.from("telegram_bots").select("*");
+  // Auto-populate system_telegram_bots if empty
+  const { data: currentBots } = await supabase.from("system_telegram_bots").select("id");
+  if (!currentBots || currentBots.length === 0) {
+    const expensesToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
+    const reportsToken = Deno.env.get("TELEGRAM_BOT_TOKEN_REPORTS");
+    
+    if (expensesToken) {
+      await supabase.from("system_telegram_bots").insert({
+        name: "Bot de Despesas",
+        token: expensesToken,
+        purpose: "expenses",
+        active: true
+      });
+    }
+    
+    if (reportsToken) {
+      await supabase.from("system_telegram_bots").insert({
+        name: "Bot de Relatórios",
+        token: reportsToken,
+        purpose: "reports",
+        active: true
+      });
+    }
+  }
 
-  return new Response(JSON.stringify({ system_telegram_bots: bots1, telegram_bots: bots2 }), {
+  const { data: bots } = await supabase.from("system_telegram_bots").select("*");
+  const { data: userCodes } = await supabase.from("telegram_link_codes").select("*");
+  const { data: reportCodes } = await supabase.from("telegram_reports_link_codes").select("*");
+
+  return new Response(JSON.stringify({ bots, userCodes, reportCodes }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
