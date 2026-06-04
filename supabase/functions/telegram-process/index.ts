@@ -1,7 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
-const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const AI_GATEWAY = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY")!;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -325,9 +326,9 @@ async function suggestCategoryWithLLM(
   try {
     const resp = await fetch(AI_GATEWAY, {
       method: "POST",
-      headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${GEMINI_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "gemini-2.5-flash",
         messages: [
           {
             role: "system",
@@ -478,9 +479,9 @@ async function suggestIncomeCategoryWithLLM(
   try {
     const resp = await fetch(AI_GATEWAY, {
       method: "POST",
-      headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${GEMINI_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "gemini-2.5-flash",
         messages: [
           { role: "system", content: `Classifique a receita em UMA das categorias: ${allowed.join(", ")}.
 Use os exemplos do próprio usuário como referência principal. Se nada parecer próximo, use "Outros".
@@ -1846,9 +1847,9 @@ async function extractExpense(text: string, lovableKey: string) {
   const today = todayBR();
   const resp = await fetch(AI_GATEWAY, {
     method: "POST",
-    headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${GEMINI_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       messages: [
         {
           role: "system",
@@ -1973,9 +1974,9 @@ async function extractIncome(text: string, lovableKey: string) {
   const today = todayBR();
   const resp = await fetch(AI_GATEWAY, {
     method: "POST",
-    headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${GEMINI_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       messages: [
         {
           role: "system",
@@ -2108,9 +2109,9 @@ async function transcribeAudio(fileId: string, mimeHint: string, lovableKey: str
 
   const resp = await fetch(AI_GATEWAY, {
     method: "POST",
-    headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${GEMINI_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       messages: [
         { role: "system", content: "Transcreva o áudio em português brasileiro. Retorne apenas o texto transcrito, sem comentários ou formatação adicional." },
         {
@@ -2146,9 +2147,9 @@ REGRAS:
 
   const resp = await fetch(AI_GATEWAY, {
     method: "POST",
-    headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${GEMINI_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       messages: [
         { role: "system", content: sysPrompt },
         {
@@ -2266,9 +2267,9 @@ limit: para "biggest_expenses" use 5; para "list_expenses" use 10; senão omita.
 
   const resp = await fetch(AI_GATEWAY, {
     method: "POST",
-    headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${GEMINI_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       messages: [
         { role: "system", content: sys },
         { role: "user", content: text },
