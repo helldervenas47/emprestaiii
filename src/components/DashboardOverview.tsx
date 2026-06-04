@@ -647,7 +647,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     });
     interestDetailRecords.sort((a, b) => b.date.localeCompare(a.date));
     
-    const totalProfitExpected = periodProfitExpectedWithInterestOnly;
+    const totalProfitExpected = interestExpectedRecords
+      .filter((r) => !r.paid)
+      .reduce((s, r) => s + r.interestPortion, 0);
     const totalProfitRealized = periodProfitRealized;
     const previstoTotal = totalProfitRealized + totalProfitExpected;
     const periodProfitPct = previstoTotal > 0 ? Math.round((totalProfitRealized / previstoTotal) * 100) : 0;
@@ -1758,16 +1760,14 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     <PopoverContent side="top" align="start" className="w-72 text-xs leading-relaxed">
                       <p className="font-semibold text-foreground mb-1">Como é calculado</p>
                       <p className="text-muted-foreground">
-                        Mesmo valor do card <strong>"Juros a Receber no Mês"</strong>:
-                        soma dos <strong>juros recebidos no período</strong> com os
-                        <strong> juros pendentes do período</strong>.
+                        Soma dos <strong>lucros já realizados</strong> com os
+                        <strong> lucros pendentes</strong> que vencem no período selecionado.
                       </p>
                     </PopoverContent>
                   </Popover>
                 </div>
                 <span className="text-sm font-bold text-foreground">{formatCurrency(
-                  data.periodProfitRealized
-                  + data.interestExpectedRecords.filter((r) => !r.paid).reduce((s, r) => s + r.interestPortion, 0)
+                  data.periodProfitRealized + data.periodProfitExpected
                 )}</span>
               </div>
               <div className="flex items-center justify-between">
@@ -1820,9 +1820,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         // Interest metrics based on selected period filter (installment due dates)
         // Use interestExpectedRecords como fonte única para garantir consistência com o detalhamento
         const interestReceivedInPeriod = data.periodProfitRealized;
-        const interestPendingInPeriod = data.interestExpectedRecords
-          .filter((r) => !r.paid)
-          .reduce((s, r) => s + r.interestPortion, 0);
+        const interestPendingInPeriod = data.periodProfitExpected;
         const interestDueInPeriod = interestReceivedInPeriod + interestPendingInPeriod;
 
         const items: Array<{ label: string; value: string; color: string; iconBg: string; iconColor: string; onClick?: () => void; tooltip?: string }> = [
