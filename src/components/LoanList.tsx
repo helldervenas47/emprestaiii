@@ -2364,7 +2364,7 @@ function LoanCardView({
           {paymentDialog?.type === "installment" && loan.installments >= 2 && (() => {
             const baseInstallment = installment;
             const totalWithFees = baseInstallment + lateFees;
-            const today = todayInAppTz();
+            // (reference date is the selected payment date)
             const refDate = formatYmdInAppTz(paymentDate);
             const refStr = new Date(refDate + "T00:00:00").toLocaleDateString("pt-BR");
             return (
