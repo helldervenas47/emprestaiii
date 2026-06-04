@@ -96,10 +96,7 @@ export function ClientLoanHistory({ loans, payments, installmentSchedules }: Pro
         if (l.status === "paid") {
           // No pending
         } else {
-          const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-          const baseRemaining = l.remainingAmount != null && l.remainingAmount > 0
-            ? l.remainingAmount
-            : Math.max(0, expected - totalPaid);
+          const baseRemaining = getBaseRemainingAmount(l, payments, installmentSchedules);
 
           const today = new Date();
           today.setHours(0, 0, 0, 0);
@@ -109,18 +106,7 @@ export function ClientLoanHistory({ loans, payments, installmentSchedules }: Pro
               ? Math.max(0, Math.floor((today.getTime() - due.getTime()) / 86400000))
               : 0;
 
-          let lateFees = 0;
-          if (daysOverdue > 0) {
-            if (l.lateInterestValue != null && l.lateInterestValue > 0) {
-              lateFees +=
-                l.lateInterestType === "fixed"
-                  ? l.lateInterestValue * daysOverdue
-                  : baseRemaining * (l.lateInterestValue / 100) * daysOverdue;
-            }
-            if (l.penaltyValue != null && l.penaltyValue > 0) {
-              lateFees += l.penaltyValue;
-            }
-          }
+          const lateFees = getLoanLateFees(l, payments, installmentSchedules).lateFees;
 
           pending += baseRemaining + lateFees;
         }
@@ -268,13 +254,10 @@ export function ClientLoanHistory({ loans, payments, installmentSchedules }: Pro
     clientLoans.forEach((l) => {
       if (l.status === "paid") return;
       const principal = l.amount || 0;
-      const expected = calculateTotalWithInterest(principal, l.interestRate, l.installments);
       const loanPayments = payments.filter((p) => p.loanId === l.id);
       const totalPaid = loanPayments.reduce((s, p) => s + (p.amount || 0), 0);
       const baseRemaining =
-        l.remainingAmount != null && l.remainingAmount > 0
-          ? l.remainingAmount
-          : Math.max(0, expected - totalPaid);
+        getBaseRemainingAmount(l, payments, installmentSchedules);
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -284,18 +267,7 @@ export function ClientLoanHistory({ loans, payments, installmentSchedules }: Pro
           ? Math.max(0, Math.floor((today.getTime() - due.getTime()) / 86400000))
           : 0;
 
-      let lateFees = 0;
-      if (daysOverdue > 0) {
-        if (l.lateInterestValue != null && l.lateInterestValue > 0) {
-          lateFees +=
-            l.lateInterestType === "fixed"
-              ? l.lateInterestValue * daysOverdue
-              : baseRemaining * (l.lateInterestValue / 100) * daysOverdue;
-        }
-        if (l.penaltyValue != null && l.penaltyValue > 0) {
-          lateFees += l.penaltyValue;
-        }
-      }
+      const lateFees = getLoanLateFees(l, payments, installmentSchedules).lateFees;
 
       const loanPending = baseRemaining + lateFees;
       interestPending += Math.max(0, loanPending - principal);
