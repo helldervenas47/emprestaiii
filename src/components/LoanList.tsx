@@ -467,14 +467,14 @@ function LoanCardView({
     .sort((a, b) => a.installmentNumber - b.installmentNumber);
   const nextSchedule = unpaidSchedules[0];
   const allUnpaidScheduleSum = unpaidSchedules.reduce((sum, s) => sum + s.amount, 0);
-  // Source of truth: loan.remainingAmount (same value shown in the create/edit form).
-  // Fallback to total - totalPaid só quando o campo salvo está ausente.
-  // Contratos quitados sempre têm restante 0 — mesmo se foram quitados com valor menor (acordo/desconto).
+  // Prefer schedule sum as source of truth (matches "Restante" field shown in collected loans).
   const baseRemaining = loan.status === "paid"
     ? 0
-    : loan.remainingAmount != null && loan.remainingAmount > 0
-      ? loan.remainingAmount
-      : Math.max(0, total - totalPaid);
+    : nextSchedule
+      ? allUnpaidScheduleSum
+      : loan.remainingAmount != null && loan.remainingAmount > 0
+        ? loan.remainingAmount
+        : Math.max(0, total - totalPaid);
   const category = getLoanCategory(loan, allPayments, installmentSchedules);
   const daysOverdue = getDaysOverdue(loan, installmentSchedules);
 
@@ -2719,13 +2719,14 @@ function LoanRowView({
     .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments)
     .sort((a, b) => a.installmentNumber - b.installmentNumber);
   const allUnpaidScheduleSum = unpaidSchedules.reduce((sum, s) => sum + s.amount, 0);
-  // Source of truth: loan.remainingAmount (same value shown in the create/edit form).
-  // Fallback to total - totalPaid only when the saved field is missing.
+  // Prefer schedule sum as source of truth (matches "Restante" field shown in collected loans).
   const baseRemaining = loan.status === "paid"
     ? 0
-    : loan.remainingAmount != null && loan.remainingAmount > 0
-      ? loan.remainingAmount
-      : Math.max(0, total - totalPaid);
+    : unpaidSchedules.length > 0
+      ? allUnpaidScheduleSum
+      : loan.remainingAmount != null && loan.remainingAmount > 0
+        ? loan.remainingAmount
+        : Math.max(0, total - totalPaid);
 
   const daysOverdue = getDaysOverdue(loan, installmentSchedules);
 
@@ -2755,14 +2756,17 @@ function LoanRowView({
     : loan.customInstallmentValue != null && loan.customInstallmentValue > 0
       ? loan.customInstallmentValue
       : (loan.installments >= 2 ? total / loan.installments : baseRemaining);
-  const actualRemainingRow = loan.status === "paid"
-    ? 0
-    : loan.remainingAmount != null && loan.remainingAmount > 0
-      ? loan.remainingAmount
-      : Math.max(0, total - totalPaid);
   const expectedRemainingRow = nextSchedule
     ? allUnpaidScheduleSum
     : fullInstallmentValue * remainingInstallments;
+  // Prefer schedule sum as source of truth (avoids divergence with stored remainingAmount).
+  const actualRemainingRow = loan.status === "paid"
+    ? 0
+    : nextSchedule
+      ? allUnpaidScheduleSum
+      : loan.remainingAmount != null && loan.remainingAmount > 0
+        ? loan.remainingAmount
+        : Math.max(0, total - totalPaid);
   const partialPaidOnCurrentRow = Math.max(0, expectedRemainingRow - actualRemainingRow);
   const installmentValue = Math.max(0, fullInstallmentValue - partialPaidOnCurrentRow);
   const interestOnlyRow = loan.customInterestValue != null && loan.customInterestValue > 0
