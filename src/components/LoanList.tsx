@@ -4558,7 +4558,6 @@ function LoanRowView({
                     selected={paymentDate}
                     onSelect={(d) => d && setPaymentDate(d)}
                     className="rounded-md border pointer-events-auto mx-auto"
-                  />
                 </div>
               </div>
             </div>
