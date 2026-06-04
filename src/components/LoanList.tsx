@@ -4462,6 +4462,36 @@ function LoanRowView({
                   <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
                 </div>
               )}
+              {paymentDialog?.type === "installment" && (
+                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+                  <p className="text-xs text-muted-foreground">Valor da parcela atual</p>
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(installmentValue)}</p>
+                </div>
+              )}
+              {paymentDialog?.type === "partial" && (
+                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+                  <p className="text-xs text-muted-foreground">Valor sugerido</p>
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(paymentDialog.amount || 0)}</p>
+                </div>
+              )}
+              {paymentDialog?.type === "amortize" && (
+                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+                  <p className="text-xs text-muted-foreground">Saldo principal</p>
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(loan.amount)}</p>
+                </div>
+              )}
+              {paymentDialog?.type === "full" && (
+                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+                  <p className="text-xs text-muted-foreground">Total restante a receber</p>
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
+                </div>
+              )}
+              {paymentDialog?.type === "payoff" && (
+                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+                  <p className="text-xs text-muted-foreground">Total restante a receber</p>
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
+                </div>
+              )}
 
               {paymentDialog?.type !== "interest" && (
                 <div className="hidden md:block rounded-lg border border-border/60 bg-card/60 p-3 space-y-2">
