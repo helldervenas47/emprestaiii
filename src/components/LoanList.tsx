@@ -2047,8 +2047,8 @@ function LoanCardView({
       <DialogContent
         style={{ padding: 0 }}
         className={cn(
-          "left-1 right-1 top-1 bottom-1 h-auto w-auto max-w-none translate-x-0 translate-y-0 flex flex-col overflow-hidden p-0 sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[85svh] sm:w-full sm:max-w-[360px] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:grid sm:grid-rows-[auto_minmax(0,1fr)_auto] sm:gap-0",
-          ((paymentDialog?.type === "interest" || paymentDialog?.type === "installment") && lateFees > 0) && "sm:max-w-[460px]"
+          "left-1 right-1 top-1 bottom-1 h-auto w-auto max-w-none translate-x-0 translate-y-0 flex flex-col overflow-hidden p-0 sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[92svh] sm:w-full sm:max-w-[440px] md:max-w-[760px] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:grid sm:grid-rows-[auto_minmax(0,1fr)_auto] sm:gap-0",
+          ((paymentDialog?.type === "interest" || paymentDialog?.type === "installment") && lateFees > 0) && "sm:max-w-[460px] md:max-w-[780px]"
         )}
       >
         <DialogHeader className="shrink-0 px-4 pt-4 sm:px-6 sm:pt-6">
@@ -2060,7 +2060,10 @@ function LoanCardView({
              paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
           </DialogTitle>
         </DialogHeader>
-        <div className="flex-1 min-h-0 flex flex-col items-center gap-2 overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch] px-4 pb-3 sm:px-6 sm:pb-4">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch] px-4 pb-3 sm:px-6 sm:pb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start mt-2">
+            <div className="space-y-4">
+
           {paymentDialog?.type === "full" && (
             <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
               <p className="text-xs text-muted-foreground">Total restante a receber</p>
@@ -2464,7 +2467,10 @@ function LoanCardView({
               </div>
             );
           })()}
+            </div>
+            <div className="space-y-4">
           {activeMethods.length > 0 && (() => {
+
             const baseInt = loan.customInterestValue != null && loan.customInterestValue > 0 ? loan.customInterestValue : loan.amount * (loan.interestRate / 100);
             const cRaw = parseFloat(payoffAmount.replace(",", "."));
             const aRaw = parseFloat(amortizeAmount.replace(",", "."));
@@ -2533,7 +2539,10 @@ function LoanCardView({
             onSelect={(d) => d && setPaymentDate(d)}
             className="rounded-md border pointer-events-auto"
           />
+            </div>
+          </div>
         </div>
+
         <DialogFooter className="shrink-0 flex-row gap-2 border-t border-border/40 bg-background/95 backdrop-blur px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-6 sm:pt-3 sm:border-0 sm:bg-transparent sm:backdrop-blur-0">
           <Button variant="outline" onClick={() => setPaymentDialog(null)} className="flex-1 sm:flex-none">Cancelar</Button>
           <Button size="lg" onClick={confirmPayment} disabled={(activeMethods.length > 0 && !selectedMethodId) || (paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)) || (paymentDialog?.type === "amortize" && !(parseFloat(amortizeAmount.replace(",", ".")) > 0 && parseFloat(amortizeAmount.replace(",", ".")) <= (Number(loan.amount) || 0)))} className="flex-[2] sm:flex-none sm:h-11"><CheckCircle2 className="h-4 w-4" /> Confirmar pagamento</Button>
@@ -3894,8 +3903,8 @@ function LoanRowView({
       <DialogContent
         style={{ padding: 0 }}
         className={cn(
-          "left-1 right-1 top-1 bottom-1 h-auto w-auto max-w-none translate-x-0 translate-y-0 flex flex-col overflow-hidden p-0 sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[85svh] sm:w-full sm:max-w-[360px] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:grid sm:grid-rows-[auto_minmax(0,1fr)_auto] sm:gap-0",
-          ((paymentDialog?.type === "interest" || paymentDialog?.type === "installment") && lateFees > 0) && "sm:max-w-[460px]"
+          "left-1 right-1 top-1 bottom-1 h-auto w-auto max-w-none translate-x-0 translate-y-0 flex flex-col overflow-hidden p-0 sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[92svh] sm:w-full sm:max-w-[440px] md:max-w-[760px] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:grid sm:grid-rows-[auto_minmax(0,1fr)_auto] sm:gap-0",
+          ((paymentDialog?.type === "interest" || paymentDialog?.type === "installment") && lateFees > 0) && "sm:max-w-[460px] md:max-w-[780px]"
         )}
       >
         <DialogHeader className="shrink-0 px-4 pt-4 sm:px-6 sm:pt-6">
@@ -3907,7 +3916,10 @@ function LoanRowView({
              paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
           </DialogTitle>
         </DialogHeader>
-        <div className="flex-1 min-h-0 flex flex-col items-center gap-2 overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch] px-4 pb-3 sm:px-6 sm:pb-4">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch] px-4 pb-3 sm:px-6 sm:pb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start mt-2">
+            <div className="space-y-4">
+
           {paymentDialog?.type === "full" && (
             <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
               <p className="text-xs text-muted-foreground">Total restante a receber</p>
@@ -4308,7 +4320,10 @@ function LoanRowView({
               </div>
             );
           })()}
+            </div>
+            <div className="space-y-4">
           {rowActiveMethods.length > 0 && (() => {
+
             const baseInt = loan.customInterestValue != null && loan.customInterestValue > 0 ? loan.customInterestValue : loan.amount * (loan.interestRate / 100);
             const cRaw = parseFloat(payoffAmount.replace(",", "."));
             const aRaw = parseFloat(amortizeAmount.replace(",", "."));
@@ -4377,7 +4392,10 @@ function LoanRowView({
             onSelect={(d) => d && setPaymentDate(d)}
             className="rounded-md border pointer-events-auto"
           />
+            </div>
+          </div>
         </div>
+
         <DialogFooter className="shrink-0 flex-row gap-2 border-t border-border/40 bg-background/95 backdrop-blur px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-6 sm:pt-3 sm:border-0 sm:bg-transparent sm:backdrop-blur-0">
           <Button variant="outline" onClick={() => setPaymentDialog(null)} className="flex-1 sm:flex-none">Cancelar</Button>
           <Button size="lg" onClick={confirmPayment} disabled={(rowActiveMethods.length > 0 && !rowSelectedMethodId) || (paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)) || (paymentDialog?.type === "amortize" && !(parseFloat(amortizeAmount.replace(",", ".")) > 0 && parseFloat(amortizeAmount.replace(",", ".")) <= (Number(loan.amount) || 0)))} className="flex-[2] sm:flex-none sm:h-11"><CheckCircle2 className="h-4 w-4" /> Confirmar pagamento</Button>

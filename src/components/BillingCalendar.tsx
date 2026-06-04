@@ -708,8 +708,8 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
 
       {/* Payment confirmation dialog */}
       <Dialog open={!!paymentDialog} onOpenChange={(open) => !open && setPaymentDialog(null)}>
-        <DialogContent className="sm:max-w-[340px]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[420px] md:max-w-[720px] sm:max-h-[92svh] overflow-hidden flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 shrink-0">
             <DialogTitle>
               {paymentDialog?.type === "full" ? "Pagamento Total" :
                paymentDialog?.type === "payoff" ? "Quitar Contrato" :
@@ -718,7 +718,10 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
               {paymentDialog && <span className="block text-sm font-normal text-muted-foreground mt-1">{paymentDialog.borrowerName}</span>}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex-1 overflow-y-auto px-6 pb-6 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              <div className="space-y-4">
+
             {paymentDialog?.type === "full" && paymentDialog.loanId && (() => {
               const loan = loans.find(l => l.id === paymentDialog.loanId);
               if (!loan) return null;
@@ -770,7 +773,11 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                 <p className="text-2xl font-bold text-warning">{formatCurrency(paymentDialog.amount)}</p>
               </div>
             )}
-            {activeMethods.length > 0 && (
+              </div>
+              <div className="space-y-4">
+                {activeMethods.length > 0 && (
+
+
               <div className="w-full space-y-1">
                 <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
                 <Select value={selectedMethodId} onValueChange={setSelectedMethodId}>
@@ -790,11 +797,15 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
               onSelect={(d) => d && setPaymentDate(d)}
               className="rounded-md border pointer-events-auto"
             />
+              </div>
+            </div>
           </div>
-          <DialogFooter>
+
+          <DialogFooter className="px-6 pb-6 pt-2 shrink-0 border-t border-border/40 md:border-0 md:bg-transparent">
             <Button variant="outline" onClick={() => setPaymentDialog(null)}>Cancelar</Button>
             <Button onClick={confirmPayment} disabled={paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)}>Confirmar</Button>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
     </div>
