@@ -1388,15 +1388,36 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     });
     paymentsSorted.forEach((p) => {
       const amt = Number(p.amount) || 0;
-      if (amt <= 0) { interestByPaymentId.set(p.id, 0); return; }
+      if (amt <= 0) {
+        interestByPaymentId.set(p.id, 0);
+        return;
+      }
       if (p.installmentNumber === 0 || p.installmentNumber === -2) {
+        // Juros avulso / juros sobre saldo / multa-encargos (late_fee): 100% juros
         interestByPaymentId.set(p.id, amt);
+        // Não capa por loanInterestRemaining — juros excedente (rolagem, multa) é receita real
         const rem = loanInterestRemaining.get(p.loanId) ?? 0;
         loanInterestRemaining.set(p.loanId, Math.max(0, rem - amt));
       } else if (p.installmentNumber === -3) {
+        // Amortização: 100% principal, 0% juros
         interestByPaymentId.set(p.id, 0);
+      } else if (p.installmentNumber === -1) {
+        // Pagamento parcial: aloca juros proporcionalmente à composição da operação
+        // (juros total / total com juros), abatendo o restante do principal.
+        const loan = loans.find((l) => l.id === p.loanId);
+        const totalWithInterest = loan
+          ? calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments)
+          : 0;
+        const ratio = totalWithInterest > 0 && loan
+          ? Math.max(0, 1 - loan.amount / totalWithInterest)
+          : 0;
+        const rem = loanInterestRemaining.get(p.loanId) ?? 0;
+        const interest = Math.min(rem, Math.max(0, amt * ratio));
+        interestByPaymentId.set(p.id, interest);
+        loanInterestRemaining.set(p.loanId, Math.max(0, rem - interest));
       } else {
-        // Parcela regular ou parcial (-1): juros proporcional à composição da operação
+        // Parcela regular: juros proporcional à composição da operação
+        // (cada parcela contém a mesma proporção de juros/principal).
         const loan = loans.find((l) => l.id === p.loanId);
         const totalWithInterest = loan
           ? calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments)
