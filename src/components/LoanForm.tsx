@@ -305,8 +305,8 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   return (
     <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-stretch justify-center p-0 sm:items-center sm:p-4">
       <SuccessAnimation show={showSuccess} onComplete={onClose} message="Empréstimo registrado!" />
-      <Card className="!bg-card !backdrop-blur-none supports-[backdrop-filter]:!bg-card dark:!bg-card w-full h-[100dvh] max-h-[100dvh] rounded-none border-0 overflow-y-auto pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-2xl sm:border sm:pt-0 sm:pb-0">
-        <CardHeader className="flex flex-row items-center justify-between">
+      <Card className="!bg-card !backdrop-blur-none supports-[backdrop-filter]:!bg-card dark:!bg-card w-full h-[100dvh] max-h-[100dvh] rounded-none border-0 overflow-y-auto pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:h-auto sm:max-h-[92svh] sm:w-full sm:max-w-[500px] md:max-w-[880px] sm:rounded-2xl sm:border sm:pt-0 sm:pb-0">
+        <CardHeader className="flex flex-row items-center justify-between pb-2 sm:pb-6">
           <CardTitle className="text-xl">Novo Empréstimo</CardTitle>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-5 w-5" />
@@ -314,6 +314,9 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              <div className="space-y-4">
+
             <div>
               <Label>Cliente</Label>
               {activeClients.length === 0 ? (
