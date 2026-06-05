@@ -1165,6 +1165,11 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
                     <HandCoins className="h-4 w-4 text-warning" />
                     <span>Pagar Parcial</span>
                   </button>
+                  {sale.businessType !== "aluguel_veiculo" && (
+                    <div className="pt-1 mt-1 border-t border-border [&_button]:w-full [&_button]:justify-start [&_button]:h-9 [&_button]:border-0 [&_button]:bg-transparent [&_button]:hover:bg-primary/10 [&_button]:px-2">
+                      <WarrantyManager sale={sale} />
+                    </div>
+                  )}
                 </PopoverContent>
               </Popover>
               <Button
@@ -1181,7 +1186,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
                   </span>
                 )}
               </Button>
-              {sale.businessType !== "aluguel_veiculo" && <WarrantyManager sale={sale} iconOnly />}
+
               <Button
                 variant="ghost"
                 size="icon"
