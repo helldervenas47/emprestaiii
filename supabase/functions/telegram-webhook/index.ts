@@ -85,11 +85,20 @@ Deno.serve(async (req) => {
 
     if (error) {
       console.error("[telegram-webhook] upsert failed", error);
+      await supabase.from("telegram_job_logs").insert({
+        job: "telegram-webhook", ok: false, error: error.message,
+        details: { update_id: update.update_id, chat_id: message.chat.id },
+      }).then(() => null).catch(() => null);
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    await supabase.from("telegram_job_logs").insert({
+      job: "telegram-webhook", ok: true, processed: 1,
+      details: { update_id: update.update_id, chat_id: message.chat.id, has_text: !!message.text },
+    }).then(() => null).catch(() => null);
 
     // Immediately trigger async processing
     fetch(`${SUPABASE_URL}/functions/v1/telegram-process`, {
