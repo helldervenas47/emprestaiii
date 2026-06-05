@@ -1955,6 +1955,27 @@ export type Database = {
           },
         ]
       }
+      user_dashboard_prefs: {
+        Row: {
+          extra_cards: Json
+          maos_visibility: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          extra_cards?: Json
+          maos_visibility?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          extra_cards?: Json
+          maos_visibility?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_goal_prefs: {
         Row: {
           id: string
