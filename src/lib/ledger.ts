@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { adjustBalance, getBalances, setBalances, type Wallet } from "@/lib/balance";
 import { todayInAppTz } from "@/lib/timezone";
 

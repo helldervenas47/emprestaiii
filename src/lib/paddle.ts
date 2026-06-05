@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 
 const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN;
 

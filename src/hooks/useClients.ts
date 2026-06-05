@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { Client } from "@/types/loan";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 import {

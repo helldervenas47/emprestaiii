@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { recordLedger, removeLedgerByRef } from "@/lib/ledger";
 import { displayIncomeCategory, incomeCategoryKey, SALARY_INCOME_CATEGORY } from "@/lib/incomeCategory";

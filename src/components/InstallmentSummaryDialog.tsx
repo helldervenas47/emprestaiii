@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Expense } from "@/types/loan";
 import { todayInAppTz } from "@/lib/timezone";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 
 interface Props {
   open: boolean;

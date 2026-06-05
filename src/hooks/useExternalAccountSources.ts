@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { getBalances } from "@/lib/balance";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
 

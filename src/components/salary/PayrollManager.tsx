@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/ui/money-input";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { useEmployees } from "@/hooks/useEmployees";
 import { usePayrolls } from "@/hooks/usePayrolls";
 import { useAppBranding } from "@/hooks/useAppBranding";

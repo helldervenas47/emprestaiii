@@ -18,7 +18,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { usePiggyBanks, type PiggyBank as PiggyBankType, type PiggyBankDeposit } from "@/hooks/usePiggyBanks";
 import { useUnifiedAccountBalance } from "@/hooks/useUnifiedAccountBalance";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 
 const fmt = (v: number) =>

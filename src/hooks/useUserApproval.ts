@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "none";

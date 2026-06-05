@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import logoIconFallback from "@/assets/logo-icon.png";
 import { clearPdfBrandingCache } from "@/lib/pdfBranding";
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { DEFAULT_INITIAL_LIMIT } from "@/lib/creditLimit";
 

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Users, Clock, Send, Eye, Sparkles, AlertTriangle, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { useTelegramManagerWeeklyPrefs } from "@/hooks/useTelegramManagerWeeklyPrefs";
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
 

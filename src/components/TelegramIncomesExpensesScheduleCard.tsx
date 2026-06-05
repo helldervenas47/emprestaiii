@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Send, Plus, X, Clock, Wallet } from "lucide-react";
 import { useIncomesExpensesTelegramPrefs } from "@/hooks/useIncomesExpensesTelegramPrefs";
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 
 type SlotKey = "send_time_1" | "send_time_2" | "send_time_3";

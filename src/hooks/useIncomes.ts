@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { displayIncomeCategory } from "@/lib/incomeCategory";
 import { todayInAppTz } from "@/lib/timezone";

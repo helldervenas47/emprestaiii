@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 
 import { format, parseISO, isBefore, startOfToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
