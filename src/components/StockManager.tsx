@@ -49,9 +49,14 @@ export function StockManager({ readOnly = false }: Props) {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterProduct, setFilterProduct] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("name-asc");
+  const [statusFilter, setStatusFilter] = useState<"ativos" | "inativos" | "todos">("ativos");
 
   const sortedProducts = useMemo(() => {
-    const arr = [...products];
+    const arr = products.filter((p) => {
+      if (statusFilter === "ativos") return p.active !== false;
+      if (statusFilter === "inativos") return p.active === false;
+      return true;
+    });
     switch (sortBy) {
       case "name-asc": arr.sort((a, b) => a.name.localeCompare(b.name, "pt-BR")); break;
       case "name-desc": arr.sort((a, b) => b.name.localeCompare(a.name, "pt-BR")); break;
@@ -63,7 +68,10 @@ export function StockManager({ readOnly = false }: Props) {
       case "cost-desc": arr.sort((a, b) => (b.cost || 0) - (a.cost || 0)); break;
     }
     return arr;
-  }, [products, sortBy]);
+  }, [products, sortBy, statusFilter]);
+
+  const activeProducts = useMemo(() => products.filter((p) => p.active !== false), [products]);
+  const inactiveCount = products.length - activeProducts.length;
 
   const filteredMovements = useMemo(() => movements.filter(m =>
     (filterType === "all" || m.type === filterType) &&
@@ -104,7 +112,7 @@ export function StockManager({ readOnly = false }: Props) {
               <CardContent className="p-3">
                 <div className="text-xs text-muted-foreground">Valor total em estoque (venda)</div>
                 <div className="text-lg font-bold tabular-nums text-emerald-600">
-                  {fmtBRL(products.reduce((s, p) => s + (p.price || 0) * Math.max(0, p.stock || 0), 0))}
+                  {fmtBRL(activeProducts.reduce((s, p) => s + (p.price || 0) * Math.max(0, p.stock || 0), 0))}
                 </div>
               </CardContent>
             </Card>
@@ -112,7 +120,7 @@ export function StockManager({ readOnly = false }: Props) {
               <CardContent className="p-3">
                 <div className="text-xs text-muted-foreground">Valor total em estoque (custo)</div>
                 <div className="text-lg font-bold tabular-nums">
-                  {fmtBRL(products.reduce((s, p) => s + (p.cost || 0) * Math.max(0, p.stock || 0), 0))}
+                  {fmtBRL(activeProducts.reduce((s, p) => s + (p.cost || 0) * Math.max(0, p.stock || 0), 0))}
                 </div>
               </CardContent>
             </Card>
@@ -120,27 +128,41 @@ export function StockManager({ readOnly = false }: Props) {
               <CardContent className="p-3">
                 <div className="text-xs text-muted-foreground">Unidades em estoque</div>
                 <div className="text-lg font-bold tabular-nums">
-                  {products.reduce((s, p) => s + Math.max(0, p.stock || 0), 0)}
+                  {activeProducts.reduce((s, p) => s + Math.max(0, p.stock || 0), 0)}
                 </div>
               </CardContent>
             </Card>
           </div>
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2 sm:justify-end">
-            <Label className="text-xs text-muted-foreground">Classificar por</Label>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="h-9 w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name-asc">Descrição (A-Z)</SelectItem>
-                <SelectItem value="name-desc">Descrição (Z-A)</SelectItem>
-                <SelectItem value="stock-desc">Estoque (maior)</SelectItem>
-                <SelectItem value="stock-asc">Estoque (menor)</SelectItem>
-                <SelectItem value="price-desc">Preço venda (maior)</SelectItem>
-                <SelectItem value="price-asc">Preço venda (menor)</SelectItem>
-                <SelectItem value="cost-desc">Preço compra (maior)</SelectItem>
-                <SelectItem value="cost-asc">Preço compra (menor)</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground">Status</Label>
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+                <SelectTrigger className="h-9 w-full sm:w-[180px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ativos">Ativos ({activeProducts.length})</SelectItem>
+                  <SelectItem value="inativos">Inativos ({inactiveCount})</SelectItem>
+                  <SelectItem value="todos">Todos ({products.length})</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground">Classificar por</Label>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="h-9 w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name-asc">Descrição (A-Z)</SelectItem>
+                  <SelectItem value="name-desc">Descrição (Z-A)</SelectItem>
+                  <SelectItem value="stock-desc">Estoque (maior)</SelectItem>
+                  <SelectItem value="stock-asc">Estoque (menor)</SelectItem>
+                  <SelectItem value="price-desc">Preço venda (maior)</SelectItem>
+                  <SelectItem value="price-asc">Preço venda (menor)</SelectItem>
+                  <SelectItem value="cost-desc">Preço compra (maior)</SelectItem>
+                  <SelectItem value="cost-asc">Preço compra (menor)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
           <div className="rounded-lg border bg-card overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs text-muted-foreground">
@@ -209,6 +231,9 @@ export function StockManager({ readOnly = false }: Props) {
                                   <DropdownMenuItem onClick={() => setEditingProduct(p)}>
                                     <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
                                   </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => updateProduct(p.id, { active: !(p.active !== false) })}>
+                                    {p.active !== false ? "Inativar" : "Ativar"}
+                                  </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => setDeletingProduct(p)} className="text-destructive focus:text-destructive">
                                     <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
                                   </DropdownMenuItem>
@@ -220,10 +245,21 @@ export function StockManager({ readOnly = false }: Props) {
                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingProduct(p)} aria-label="Editar produto">
                                 <Pencil className="h-4 w-4" />
                               </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-xs"
+                                onClick={() => updateProduct(p.id, { active: !(p.active !== false) })}
+                                aria-label={p.active !== false ? "Inativar produto" : "Ativar produto"}
+                                title={p.active !== false ? "Inativar produto" : "Ativar produto"}
+                              >
+                                {p.active !== false ? "Inativar" : "Ativar"}
+                              </Button>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeletingProduct(p)} aria-label="Excluir produto">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
+
                           </div>
                         </td>
                       )}
