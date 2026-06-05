@@ -41,10 +41,14 @@ export function TelegramBillingScheduleCard() {
       const { data: session } = await supabase.auth.getSession();
       const token = session.session?.access_token;
       if (!token) throw new Error("Faça login novamente para enviar o relatório");
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/telegram-billing-summary?user_id=${user.id}`;
+      const url = `${USER_SUPABASE_URL}/functions/v1/telegram-billing-summary?user_id=${user.id}`;
       const res = await fetch(url, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: USER_SUPABASE_PUBLISHABLE_KEY,
+          "Content-Type": "application/json",
+        },
         body: "{}",
       });
       const json = await res.json();
