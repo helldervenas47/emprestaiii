@@ -1133,7 +1133,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
           )}
         </div>
       ) : (
-        <div className="shrink-0 md:ml-2 flex items-center justify-end gap-1">
+        <div className="shrink-0 w-[44px] md:w-[180px] lg:w-[200px] flex items-center justify-end gap-1">
           {!isMobile && (
             <>
               <Popover>
