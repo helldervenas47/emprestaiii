@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Send, Plus, X, Clock } from "lucide-react";
 import { useTelegramBillingPref } from "@/hooks/useTelegramBillingPref";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/userClient";
+import { supabase, USER_SUPABASE_URL, USER_SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 
 type SlotKey = "send_time_1" | "send_time_2" | "send_time_3";
