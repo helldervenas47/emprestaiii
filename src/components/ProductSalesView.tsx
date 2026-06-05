@@ -1308,7 +1308,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
         )}
 
         {!readOnly && (
-          <div className="pt-2 border-t border-border/40 grid grid-cols-2 gap-1.5">
+          <div className="pt-2 border-t border-border/40 grid grid-cols-6 gap-1.5">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
