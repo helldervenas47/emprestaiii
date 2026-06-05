@@ -41,13 +41,13 @@ export function IncomeTelegramBotButton() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // Enquanto o dialog está aberto com um código pendente, força processamento
-  // das mensagens do bot a cada 4s para detectar o /start o quanto antes.
+  // Enquanto o dialog está aberto com um código pendente, processa as mensagens
+  // já recebidas pelo webhook/cron de polling. NÃO chamamos `telegram-poll` aqui:
+  // o cron já roda a cada minuto e duas chamadas concorrentes de getUpdates no
+  // mesmo bot causam erro 409 no Telegram, impedindo a detecção do /start.
   useEffect(() => {
     if (!open || !code || connected) return;
     const tick = async () => {
-      // Busca mensagens novas direto do Telegram (não espera o cron de 60s)
-      await supabase.functions.invoke("telegram-poll").catch(() => null);
       await supabase.functions.invoke("telegram-process").catch(() => null);
       const ok = await refresh();
       if (ok) {
@@ -57,7 +57,7 @@ export function IncomeTelegramBotButton() {
       }
     };
     tick();
-    pollRef.current = window.setInterval(tick, 4000);
+    pollRef.current = window.setInterval(tick, 5000);
     return () => { if (pollRef.current) window.clearInterval(pollRef.current); };
   }, [open, code, connected]);
 
