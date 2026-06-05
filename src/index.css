@@ -4,6 +4,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fluid responsive scaling: ajusta tipografia e espaçamentos suavemente
+   conforme o tamanho da tela, sem depender apenas de breakpoints fixos. */
+@layer base {
+  html {
+    /* base font-size escala de ~14px (mobile) até ~17px (desktop largo) */
+    font-size: clamp(14px, 0.6vw + 12px, 17px);
+  }
+  body {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Containers globais respeitam a largura disponível com padding fluido */
+  .container {
+    width: min(100%, 1400px);
+    padding-inline: clamp(0.75rem, 2.5vw, 2rem);
+  }
+}
+
 @layer base {
   :root {
     --background: 220 35% 97%;
