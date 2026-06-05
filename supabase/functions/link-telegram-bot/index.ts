@@ -16,6 +16,47 @@ function json(body: unknown, status = 200) {
   });
 }
 
+async function linkByBotCode(admin: any, userId: string, rawCode: string, requestedKind?: string) {
+  const botCode = rawCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!/^[A-Z0-9]{6,12}$/.test(botCode)) return null;
+
+  const { data: botCodeRow, error: botCodeErr } = await admin
+    .from("telegram_bots")
+    .select("id, bot_code, kind, chat_id, bot_id, expires_at")
+    .eq("bot_code", botCode)
+    .maybeSingle();
+  if (botCodeErr) throw botCodeErr;
+  if (!botCodeRow) return null;
+
+  const kind = botCodeRow.kind === "reports" ? "reports" : "expenses";
+  if (requestedKind && requestedKind !== kind) {
+    return json({ error: `Esse código é de ${kind === "reports" ? "relatórios" : "despesas"}.` }, 400);
+  }
+  if (botCodeRow.expires_at && new Date(botCodeRow.expires_at).getTime() < Date.now()) {
+    await admin.from("telegram_bots").delete().eq("id", botCodeRow.id);
+    return json({ error: "Código expirado. Gere um novo no Telegram." }, 410);
+  }
+
+  const table = kind === "reports" ? "telegram_reports_links" : "telegram_links";
+  const { data: systemBot } = botCodeRow.bot_id
+    ? await admin.from("system_telegram_bots").select("bot_username, name").eq("id", botCodeRow.bot_id).maybeSingle()
+    : { data: null };
+  const label = systemBot?.bot_username ? `@${systemBot.bot_username}` : systemBot?.name ?? null;
+
+  await admin.from(table).delete().or(`chat_id.eq.${botCodeRow.chat_id},user_id.eq.${userId}`);
+  const { error: insErr } = await admin.from(table).insert({
+    user_id: userId,
+    chat_id: botCodeRow.chat_id,
+    bot_id: botCodeRow.bot_id ?? null,
+    bot_code: botCode,
+    label,
+  });
+  if (insErr) return json({ error: insErr.message }, 500);
+
+  await admin.from("telegram_bots").delete().eq("id", botCodeRow.id);
+  return json({ ok: true, kind, chat_id: botCodeRow.chat_id, message: "Bot vinculado com sucesso." });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -37,14 +78,18 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch { body = {}; }
 
     const rawCode = typeof body?.bot_code === "string" ? body.bot_code : "";
+    const requestedKind = body?.kind === "reports" || body?.kind === "expenses" ? body.kind : undefined;
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    const botCodeResult = await linkByBotCode(admin, userId, rawCode, requestedKind);
+    if (botCodeResult) return botCodeResult;
+
     const code = rawCode.trim().replace(/[^0-9]/g, "");
     if (!code || code.length !== 6) {
       return json({
-        error: "Código inválido. Gere um código de 6 dígitos no app e envie /start CÓDIGO ao bot.",
+        error: "Código inválido. Gere um código no app ou envie /code no bot do Telegram.",
       }, 400);
     }
-
-    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Aciona o processamento das mensagens pendentes (caso o webhook ainda não tenha rodado).
     await fetch(`${SUPABASE_URL}/functions/v1/telegram-process`, {
