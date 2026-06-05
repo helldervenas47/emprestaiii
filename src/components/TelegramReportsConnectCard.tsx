@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
 import { usePersonalInsightsTelegramPrefs, type InsightTone } from "@/hooks/usePersonalInsightsTelegramPrefs";
-import { generateTelegramLinkCode } from "@/lib/telegramLinkCode";
+import { generateTelegramLinkCode, invokeUserFunction } from "@/lib/telegramLinkCode";
 
 
 const TONE_OPTIONS: { value: InsightTone; label: string; hint: string }[] = [
@@ -80,23 +80,7 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
     setLinkingByCode(true);
     try {
       await supabase.functions.invoke("telegram-reports-poll").catch(() => null);
-      const { data, error } = await supabase.functions.invoke("link-telegram-bot", {
-        body: { bot_code: normalized, kind: "reports" },
-      });
-      if (error) {
-        // Edge function returns non-2xx with { error }
-        const msg = (error as any)?.message || "Não foi possível vincular";
-        let detailed = msg;
-        try {
-          const ctx = (error as any)?.context;
-          const bodyStr = typeof ctx?.body === "string" ? ctx.body : (ctx?.body ? JSON.stringify(ctx.body) : "");
-          if (bodyStr) {
-            const parsed = JSON.parse(bodyStr);
-            if (parsed?.error) detailed = parsed.error;
-          }
-        } catch (e) { console.error("Parse error", e); }
-        throw new Error(detailed);
-      }
+      const data = await invokeUserFunction("link-telegram-bot", { bot_code: normalized, kind: "reports" });
       if ((data as any)?.error) throw new Error((data as any).error);
       toast.success("✅ Relatório conectado ao bot com sucesso");
       setBotCodeInput("");
