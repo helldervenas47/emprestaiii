@@ -139,6 +139,32 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Missing env" }), { status: 500, headers: corsHeaders });
   }
 
+  // O bot de despesas usa WEBHOOK. Não podemos chamar getUpdates nele:
+  // Telegram retorna 409 quando há webhook ativo e a lógica antiga removia o
+  // webhook, quebrando a vinculação pela aba Financeiro. Mantemos esta função
+  // como compatibilidade para crons antigos: ela só aciona o processador das
+  // mensagens já recebidas pelo webhook.
+  const triggerPromise = fetch(`${SUPABASE_URL}/functions/v1/telegram-process`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  }).catch((e) => console.error("trigger process failed", e));
+  // @ts-ignore - EdgeRuntime is available in Supabase edge runtime
+  if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+    // @ts-ignore
+    EdgeRuntime.waitUntil(triggerPromise);
+  }
+
+  return new Response(JSON.stringify({
+    ok: true,
+    processed: 0,
+    bots: 0,
+    skipped: true,
+    note: "expense bot uses webhook; polling disabled to avoid Telegram 409",
+  }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   const { data: bots, error: botsErr } = await supabase
