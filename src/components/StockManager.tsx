@@ -231,6 +231,9 @@ export function StockManager({ readOnly = false }: Props) {
                                   <DropdownMenuItem onClick={() => setEditingProduct(p)}>
                                     <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
                                   </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => updateProduct(p.id, { active: !(p.active !== false) })}>
+                                    {p.active !== false ? "Inativar" : "Ativar"}
+                                  </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => setDeletingProduct(p)} className="text-destructive focus:text-destructive">
                                     <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
                                   </DropdownMenuItem>
@@ -242,10 +245,21 @@ export function StockManager({ readOnly = false }: Props) {
                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingProduct(p)} aria-label="Editar produto">
                                 <Pencil className="h-4 w-4" />
                               </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-xs"
+                                onClick={() => updateProduct(p.id, { active: !(p.active !== false) })}
+                                aria-label={p.active !== false ? "Inativar produto" : "Ativar produto"}
+                                title={p.active !== false ? "Inativar produto" : "Ativar produto"}
+                              >
+                                {p.active !== false ? "Inativar" : "Ativar"}
+                              </Button>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeletingProduct(p)} aria-label="Excluir produto">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
+
                           </div>
                         </td>
                       )}
