@@ -1029,7 +1029,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
         }`}>
           {(sale.customerName || sale.description || "?").charAt(0).toUpperCase()}
         </div>
-        <div className="flex-1 min-w-0 lg:max-w-[200px]">
+        <div className="flex-1 min-w-0">
           <p className="text-xs sm:text-sm font-semibold text-foreground truncate">{sale.customerName || "—"}</p>
           <span
             className="md:hidden mt-0.5 inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium max-w-full"
