@@ -964,12 +964,12 @@ const Index = () => {
                 </div>
                 {expenseSubTab === "business" ? (
                   <>
-                    <h2 className="text-lg font-semibold text-foreground mb-4">Despesas Empresa ({businessExpenses.length})</h2>
+                    <h2 className="text-lg font-semibold text-foreground mb-4">Despesas Empresa</h2>
                     <ExpenseList expenses={businessExpenses} onPay={payExpense} onUnpay={unpayExpense} onDelete={deleteExpense} onUpdate={updateExpense} readOnly={isReadOnly} />
                   </>
                  ) : (
                    <div className="-mx-3 sm:mx-0">
-                     <h2 className="text-lg font-semibold text-foreground mb-4 px-3 sm:px-0">Despesas Pessoais ({personalExpenses.length})</h2>
+                     <h2 className="text-lg font-semibold text-foreground mb-4 px-3 sm:px-0">Despesas Pessoais</h2>
                      <PersonalExpenseList
                        expenses={personalExpenses}
                        onPay={payExpense}
