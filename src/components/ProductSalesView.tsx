@@ -1903,7 +1903,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
 
             <p className="w-[78px] sm:w-[88px] lg:w-[110px] shrink-0 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Vencimento</p>
             <p className="w-[102px] sm:w-[108px] lg:w-[140px] shrink-0 text-right text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Valor</p>
-            <div className="w-[44px] md:w-[140px] lg:w-[160px] shrink-0" aria-hidden />
+            <div className="w-[44px] md:w-[180px] lg:w-[200px] shrink-0" aria-hidden />
           </div>
           <div className="divide-y divide-border/30">
             {listSorted.map((sale) => (
