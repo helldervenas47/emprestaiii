@@ -81,7 +81,7 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
     try {
       await supabase.functions.invoke("telegram-reports-poll").catch(() => null);
       const { data, error } = await supabase.functions.invoke("link-telegram-bot", {
-        body: { bot_code: normalized },
+        body: { bot_code: normalized, kind: "reports" },
       });
       if (error) {
         // Edge function returns non-2xx with { error }

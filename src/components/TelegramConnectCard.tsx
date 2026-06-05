@@ -127,7 +127,7 @@ export function TelegramConnectCard() {
       await supabase.functions.invoke("telegram-poll").catch(() => null);
       await supabase.functions.invoke("telegram-process").catch(() => null);
       const { data, error } = await supabase.functions.invoke("link-telegram-bot", {
-        body: { bot_code: normalized },
+        body: { bot_code: normalized, kind: "expenses" },
       });
       if (error) {
         let detailed = (error as any)?.message || "Não foi possível vincular";
