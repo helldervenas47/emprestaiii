@@ -133,6 +133,7 @@ export function useProducts(enabled = true) {
       stock: p.stock,
       last_purchase_price: p.lastPurchasePrice ?? 0,
       suggested_stock: p.suggestedStock ?? 0,
+      active: p.active ?? true,
     } as any).select().single();
 
     if (error) {
