@@ -1029,7 +1029,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
         }`}>
           {(sale.customerName || sale.description || "?").charAt(0).toUpperCase()}
         </div>
-        <div className="flex-1 min-w-0 md:flex-none md:w-[110px] lg:w-[200px]">
+        <div className="flex-1 min-w-0 md:basis-0 md:grow">
 
           <p className="text-xs sm:text-sm font-semibold text-foreground truncate">{sale.customerName || "—"}</p>
           <span
@@ -1044,7 +1044,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
             <span className="truncate">{incomeCat ? incomeCat.name : "Sem categoria"}</span>
           </span>
         </div>
-        <div className="hidden md:flex w-[80px] lg:w-[200px] shrink-0 min-w-0 items-center">
+        <div className="hidden md:flex flex-1 min-w-0 basis-0 items-center">
           <span
             className="inline-flex items-center gap-1 rounded-full border px-1.5 lg:px-2 py-0.5 text-[10px] lg:text-[11px] font-medium max-w-full"
             style={incomeCat ? {
@@ -1057,7 +1057,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
             <span className="truncate">{incomeCat ? incomeCat.name : "Sem categoria"}</span>
           </span>
         </div>
-        <div className="hidden md:block w-[90px] lg:w-[240px] shrink-0 min-w-0">
+        <div className="hidden md:block flex-[2] min-w-0 basis-0">
           <p className="text-[11px] lg:text-sm font-bold text-foreground truncate">{sale.description || sale.productName || "—"}</p>
         </div>
         <div className="w-[78px] sm:w-[88px] lg:w-[110px] shrink-0">
