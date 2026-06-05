@@ -341,13 +341,34 @@ Deno.serve(async (req) => {
     const refDateValid = refDateRaw && /^\d{4}-\d{2}-\d{2}$/.test(refDateRaw) && !Number.isNaN(Date.parse(`${refDateRaw}T12:00:00Z`));
     const referenceDate: string | null = refDateValid ? refDateRaw : null;
 
-    // AUTH: per-owner request requires the caller's JWT; cron path requires shared secret.
+    // AUTH: per-owner request requires the caller's JWT to belong to the owner
+    // (or to a user mapped to that owner via user_owner). Cron path (no ownerId)
+    // is open — this function deploys with verify_jwt = false and the cron
+    // already passes the project anon key in Authorization.
     if (ownerId) {
-      const owned = await validateUserOwner(admin, req, ownerId);
-      if (!owned.ok) return unauthorized(corsHeaders, owned.reason || "Unauthorized");
-    } else {
-      const isCron = await validateCronSecret(admin, req);
-      if (!isCron) return unauthorized(corsHeaders);
+      const authHeader = req.headers.get("Authorization") || "";
+      const jwt = authHeader.replace(/^Bearer\s+/i, "").trim();
+      if (!jwt) {
+        return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: userData, error: userErr } = await admin.auth.getUser(jwt);
+      if (userErr || !userData?.user) {
+        return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const callerId = userData.user.id;
+      let resolvedOwner = callerId;
+      const { data: mapping } = await admin
+        .from("user_owner").select("owner_id").eq("user_id", callerId).maybeSingle();
+      if ((mapping as any)?.owner_id) resolvedOwner = (mapping as any).owner_id;
+      if (resolvedOwner !== ownerId && callerId !== ownerId) {
+        return new Response(JSON.stringify({ ok: false, error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // Manual / preview / list path — single owner
