@@ -153,6 +153,7 @@ export function useProducts(enabled = true) {
     if (data.stock !== undefined) updateData.stock = data.stock;
     if (data.lastPurchasePrice !== undefined) updateData.last_purchase_price = data.lastPurchasePrice;
     if (data.suggestedStock !== undefined) updateData.suggested_stock = data.suggestedStock;
+    if (data.active !== undefined) updateData.active = data.active;
     await supabase.from("products").update(updateData as any).eq("id", id);
   }, [user]);
 
