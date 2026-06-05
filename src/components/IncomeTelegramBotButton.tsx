@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { CheckCircle2, Copy, RefreshCw, Unlink } from "lucide-react";
 import { toast } from "sonner";
+import { generateTelegramLinkCode } from "@/lib/telegramLinkCode";
 
 const TelegramIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
@@ -63,8 +64,7 @@ export function IncomeTelegramBotButton() {
   const generateCode = async () => {
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("telegram-link-code");
-      if (error) throw error;
+      const data = await generateTelegramLinkCode();
       if ((data as any)?.alreadyLinked) {
         toast.success("Bot já está vinculado");
         await refresh();
