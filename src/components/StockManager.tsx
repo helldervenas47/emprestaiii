@@ -133,9 +133,9 @@ export function StockManager({ readOnly = false }: Props) {
               </CardContent>
             </Card>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground">Status</Label>
+          <div className="flex flex-row gap-2 sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+              <Label className="text-xs text-muted-foreground hidden sm:block">Status</Label>
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
                 <SelectTrigger className="h-9 w-full sm:w-[180px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -145,8 +145,8 @@ export function StockManager({ readOnly = false }: Props) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground">Classificar por</Label>
+            <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+              <Label className="text-xs text-muted-foreground hidden sm:block">Classificar por</Label>
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="h-9 w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -162,6 +162,7 @@ export function StockManager({ readOnly = false }: Props) {
               </Select>
             </div>
           </div>
+
 
           <div className="rounded-lg border bg-card overflow-x-auto">
             <table className="w-full text-sm">
