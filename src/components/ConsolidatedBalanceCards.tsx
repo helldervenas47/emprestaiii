@@ -102,45 +102,8 @@ export function ConsolidatedBalanceCards() {
   const [openMaos, setOpenMaos] = useState(false);
   const [openTotal, setOpenTotal] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
-  const [visibility, setVisibility] = useState<MaosVisibility>(() => {
-    if (typeof window === "undefined") return DEFAULT_VIS;
-    try {
-      const raw = localStorage.getItem(VIS_STORAGE_KEY);
-      if (!raw) return DEFAULT_VIS;
-      return { ...DEFAULT_VIS, ...JSON.parse(raw) };
-    } catch {
-      return DEFAULT_VIS;
-    }
-  });
-  useEffect(() => {
-    try { localStorage.setItem(VIS_STORAGE_KEY, JSON.stringify(visibility)); } catch {}
-  }, [visibility]);
-  const toggleVis = (key: keyof MaosVisibility) =>
-    setVisibility((v) => ({ ...v, [key]: !v[key] }));
+  const { extraCards, visibility, setExtraCards, setVisibility, toggleExtra, toggleVis } = useDashboardPrefs();
 
-  const [extraCards, setExtraCards] = useState<ExtraCardKey[]>(() => {
-    if (typeof window === "undefined") return DEFAULT_EXTRA;
-    try {
-      const raw = localStorage.getItem(EXTRA_STORAGE_KEY);
-      if (!raw) return DEFAULT_EXTRA;
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return DEFAULT_EXTRA;
-      const valid = parsed.filter((k: any) => EXTRA_CARDS_META.some((m) => m.key === k)) as ExtraCardKey[];
-      return valid.slice(0, 2);
-    } catch {
-      return DEFAULT_EXTRA;
-    }
-  });
-  useEffect(() => {
-    try { localStorage.setItem(EXTRA_STORAGE_KEY, JSON.stringify(extraCards)); } catch {}
-  }, [extraCards]);
-  const toggleExtra = (key: ExtraCardKey) => {
-    setExtraCards((cur) => {
-      if (cur.includes(key)) return cur.filter((k) => k !== key);
-      if (cur.length >= 2) return [cur[1], key];
-      return [...cur, key];
-    });
-  };
 
   const reloadExternalBalances = useCallback(async () => {
     const [b, { data: { session } }] = await Promise.all([
