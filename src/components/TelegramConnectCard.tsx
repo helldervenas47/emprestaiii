@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Copy, CheckCircle2, Unlink, Clock, Zap, CalendarDays, CalendarRange } from "lucide-react";
+import { generateTelegramLinkCode } from "@/lib/telegramLinkCode";
 
 const TelegramIcon = ({ className }: { className?: string }) => (
   <span className={className} aria-hidden="true">
@@ -78,8 +79,7 @@ export function TelegramConnectCard() {
   const generateCode = async () => {
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("telegram-link-code");
-      if (error) throw error;
+      const data = await generateTelegramLinkCode();
       if ((data as any).alreadyLinked) {
         toast.success("Telegram já vinculado");
         await refresh();

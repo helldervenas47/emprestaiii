@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
 import { usePersonalInsightsTelegramPrefs, type InsightTone } from "@/hooks/usePersonalInsightsTelegramPrefs";
+import { generateTelegramLinkCode } from "@/lib/telegramLinkCode";
 
 
 const TONE_OPTIONS: { value: InsightTone; label: string; hint: string }[] = [
@@ -50,8 +51,7 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
   const generateCode = async () => {
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("telegram-reports-link-code");
-      if (error) throw error;
+      const data = await generateTelegramLinkCode("telegram-reports-link-code");
       if ((data as any).alreadyLinked) {
         toast.success("Bot de Relatórios já conectado");
         return;
