@@ -247,14 +247,15 @@ export function StockManager({ readOnly = false }: Props) {
                               </Button>
                               <Button
                                 variant="ghost"
-                                size="sm"
-                                className="h-8 px-2 text-xs"
+                                size="icon"
+                                className="h-8 w-8"
                                 onClick={() => updateProduct(p.id, { active: !(p.active !== false) })}
                                 aria-label={p.active !== false ? "Inativar produto" : "Ativar produto"}
                                 title={p.active !== false ? "Inativar produto" : "Ativar produto"}
                               >
-                                {p.active !== false ? "Inativar" : "Ativar"}
+                                {p.active !== false ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                               </Button>
+
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeletingProduct(p)} aria-label="Excluir produto">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
