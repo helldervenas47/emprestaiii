@@ -1308,13 +1308,13 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
         )}
 
         {!readOnly && (
-          <div className="pt-2 border-t border-border/40 grid grid-cols-3 gap-1.5">
+          <div className="pt-2 border-t border-border/40 grid grid-cols-2 gap-1.5">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 text-[11px] px-2 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground w-full justify-center"
+                  className="col-span-2 h-8 text-[11px] px-2 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground w-full justify-center"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <HandCoins className="h-3.5 w-3.5 mr-1" /> Pagar
@@ -1352,6 +1352,11 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
                 </Badge>
               )}
             </Button>
+            {sale.businessType !== "aluguel_veiculo" ? (
+              <div className="[&>button]:w-full [&>button]:justify-center [&>button]:h-8 [&>button]:text-[11px] [&>button]:px-2">
+                <WarrantyManager sale={sale} />
+              </div>
+            ) : <div />}
             <Button
               variant="outline"
               size="sm"
@@ -1360,17 +1365,15 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
             >
               <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground w-full justify-center"
+              onClick={(e) => { e.stopPropagation(); setConfirmDeleteSale(true); }}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
+            </Button>
           </div>
-        )}
-        {!readOnly && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground w-full justify-center"
-            onClick={(e) => { e.stopPropagation(); setConfirmDeleteSale(true); }}
-          >
-            <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
-          </Button>
         )}
       </div>
       );
