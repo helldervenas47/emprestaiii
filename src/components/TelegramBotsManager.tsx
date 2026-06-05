@@ -18,6 +18,7 @@ import {
 import { Plus, Pencil, Trash2, Loader2, CheckCircle2, XCircle, Eye, EyeOff, ShieldCheck, Bot, Wallet, BarChart3, Unlink, Link2 } from "lucide-react";
 import { RowActions } from "@/components/ui/row-actions";
 import { toast } from "sonner";
+import { invokeUserFunction } from "@/lib/telegramLinkCode";
 
 interface ConnectedLink {
   id: string;
@@ -143,8 +144,7 @@ export function TelegramBotsManager() {
     setValidating(true);
     setValidationResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("validate-telegram-bot", { body: { token } });
-      if (error) throw error;
+      const data = await invokeUserFunction("validate-telegram-bot", { token });
       const res = data as any;
       if (res?.ok) {
         setValidationResult({
