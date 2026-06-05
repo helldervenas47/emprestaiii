@@ -112,7 +112,7 @@ export function StockManager({ readOnly = false }: Props) {
               <CardContent className="p-3">
                 <div className="text-xs text-muted-foreground">Valor total em estoque (venda)</div>
                 <div className="text-lg font-bold tabular-nums text-emerald-600">
-                  {fmtBRL(products.reduce((s, p) => s + (p.price || 0) * Math.max(0, p.stock || 0), 0))}
+                  {fmtBRL(activeProducts.reduce((s, p) => s + (p.price || 0) * Math.max(0, p.stock || 0), 0))}
                 </div>
               </CardContent>
             </Card>
@@ -120,7 +120,7 @@ export function StockManager({ readOnly = false }: Props) {
               <CardContent className="p-3">
                 <div className="text-xs text-muted-foreground">Valor total em estoque (custo)</div>
                 <div className="text-lg font-bold tabular-nums">
-                  {fmtBRL(products.reduce((s, p) => s + (p.cost || 0) * Math.max(0, p.stock || 0), 0))}
+                  {fmtBRL(activeProducts.reduce((s, p) => s + (p.cost || 0) * Math.max(0, p.stock || 0), 0))}
                 </div>
               </CardContent>
             </Card>
@@ -128,27 +128,41 @@ export function StockManager({ readOnly = false }: Props) {
               <CardContent className="p-3">
                 <div className="text-xs text-muted-foreground">Unidades em estoque</div>
                 <div className="text-lg font-bold tabular-nums">
-                  {products.reduce((s, p) => s + Math.max(0, p.stock || 0), 0)}
+                  {activeProducts.reduce((s, p) => s + Math.max(0, p.stock || 0), 0)}
                 </div>
               </CardContent>
             </Card>
           </div>
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2 sm:justify-end">
-            <Label className="text-xs text-muted-foreground">Classificar por</Label>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="h-9 w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name-asc">Descrição (A-Z)</SelectItem>
-                <SelectItem value="name-desc">Descrição (Z-A)</SelectItem>
-                <SelectItem value="stock-desc">Estoque (maior)</SelectItem>
-                <SelectItem value="stock-asc">Estoque (menor)</SelectItem>
-                <SelectItem value="price-desc">Preço venda (maior)</SelectItem>
-                <SelectItem value="price-asc">Preço venda (menor)</SelectItem>
-                <SelectItem value="cost-desc">Preço compra (maior)</SelectItem>
-                <SelectItem value="cost-asc">Preço compra (menor)</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground">Status</Label>
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+                <SelectTrigger className="h-9 w-full sm:w-[180px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ativos">Ativos ({activeProducts.length})</SelectItem>
+                  <SelectItem value="inativos">Inativos ({inactiveCount})</SelectItem>
+                  <SelectItem value="todos">Todos ({products.length})</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground">Classificar por</Label>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="h-9 w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name-asc">Descrição (A-Z)</SelectItem>
+                  <SelectItem value="name-desc">Descrição (Z-A)</SelectItem>
+                  <SelectItem value="stock-desc">Estoque (maior)</SelectItem>
+                  <SelectItem value="stock-asc">Estoque (menor)</SelectItem>
+                  <SelectItem value="price-desc">Preço venda (maior)</SelectItem>
+                  <SelectItem value="price-asc">Preço venda (menor)</SelectItem>
+                  <SelectItem value="cost-desc">Preço compra (maior)</SelectItem>
+                  <SelectItem value="cost-asc">Preço compra (menor)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
           <div className="rounded-lg border bg-card overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs text-muted-foreground">
