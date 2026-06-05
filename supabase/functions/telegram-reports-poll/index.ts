@@ -208,18 +208,36 @@ Deno.serve(async (req) => {
   // Split runtime budget across all bots so the function fits in Edge limits
   const perBotBudget = Math.max(8_000, Math.floor((MAX_RUNTIME_MS - 2_000) / list.length));
   let total = 0;
+  const errors: { bot_id: string; error: string }[] = [];
   for (const b of list) {
     const remaining = MAX_RUNTIME_MS - (Date.now() - startTime);
     if (remaining < MIN_REMAINING_MS) break;
     const budget = Math.min(perBotBudget, remaining);
     try {
       total += await processBot(supabase, b, budget);
-    } catch (e) {
+      await supabase.from("system_telegram_bots")
+        .update({ last_success_at: new Date().toISOString(), last_error: null, last_error_at: null })
+        .eq("id", b.id);
+    } catch (e: any) {
+      const msg = e?.message ?? String(e);
       console.error(`[reports-poll] processBot failed for ${b.id}`, e);
+      errors.push({ bot_id: b.id, error: msg });
+      await supabase.from("system_telegram_bots")
+        .update({ last_error: msg, last_error_at: new Date().toISOString() })
+        .eq("id", b.id);
     }
   }
 
-  return new Response(JSON.stringify({ ok: true, processed: total, bots: list.length }), {
+  await supabase.from("telegram_job_logs").insert({
+    job: "telegram-reports-poll",
+    ok: errors.length === 0,
+    processed: total,
+    duration_ms: Date.now() - startTime,
+    error: errors.length ? errors.map((e) => `${e.bot_id}: ${e.error}`).join(" | ") : null,
+    details: { bots: list.length, errors },
+  }).then(() => null).catch(() => null);
+
+  return new Response(JSON.stringify({ ok: errors.length === 0, processed: total, bots: list.length, errors }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
