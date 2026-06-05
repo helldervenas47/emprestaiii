@@ -1342,7 +1342,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
             <Button
               variant="outline"
               size="sm"
-              className="h-8 text-[11px] px-2 border-success/30 text-success hover:bg-success hover:text-success-foreground relative w-full justify-center"
+              className="col-span-2 h-8 text-[11px] px-2 border-success/30 text-success hover:bg-success hover:text-success-foreground relative w-full justify-center"
               onClick={(e) => { e.stopPropagation(); setShowPayments(true); }}
             >
               <Receipt className="h-3.5 w-3.5 mr-1" /> Histórico
@@ -1353,14 +1353,14 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
               )}
             </Button>
             {sale.businessType !== "aluguel_veiculo" ? (
-              <div className="[&>button]:w-full [&>button]:justify-center [&>button]:h-8 [&>button]:text-[11px] [&>button]:px-2">
+              <div className="col-span-2 [&>button]:w-full [&>button]:justify-center [&>button]:h-8 [&>button]:text-[11px] [&>button]:px-2">
                 <WarrantyManager sale={sale} />
               </div>
-            ) : <div />}
+            ) : <div className="col-span-2" />}
             <Button
               variant="outline"
               size="sm"
-              className="h-8 text-[11px] px-2 border-secondary text-secondary-foreground hover:bg-secondary/80 w-full justify-center"
+              className="col-span-3 h-8 text-[11px] px-2 border-secondary text-secondary-foreground hover:bg-secondary/80 w-full justify-center"
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
             >
               <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
@@ -1368,7 +1368,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
             <Button
               variant="outline"
               size="sm"
-              className="h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground w-full justify-center"
+              className="col-span-3 h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground w-full justify-center"
               onClick={(e) => { e.stopPropagation(); setConfirmDeleteSale(true); }}
             >
               <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
