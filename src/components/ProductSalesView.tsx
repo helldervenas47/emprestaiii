@@ -773,7 +773,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
             </div>
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </button>
-          <WarrantyManager sale={sale} />
+          {sale.businessType !== "aluguel_veiculo" && <WarrantyManager sale={sale} />}
         </div>
 
         {/* Row 5: Payment action panel */}
