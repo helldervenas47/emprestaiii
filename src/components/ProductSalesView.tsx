@@ -1089,7 +1089,8 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
       </div>
 
       {(isPaid || readOnly) ? (
-        <div className="shrink-0 md:w-[180px] md:ml-auto flex items-center justify-end gap-1">
+        <div className="shrink-0 md:ml-2 flex items-center justify-end gap-1">
+
 
           {!isMobile && (
             <Button
@@ -1132,7 +1133,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
           )}
         </div>
       ) : (
-        <div className="shrink-0 md:w-[180px] md:ml-auto flex items-center justify-end gap-1">
+        <div className="shrink-0 md:ml-2 flex items-center justify-end gap-1">
           {!isMobile && (
             <>
               <Popover>
@@ -1902,7 +1903,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
 
             <p className="w-[78px] sm:w-[88px] lg:w-[110px] shrink-0 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Vencimento</p>
             <p className="w-[102px] sm:w-[108px] lg:w-[140px] shrink-0 text-right text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Valor</p>
-            <div className="w-[44px] md:w-[180px] md:ml-auto shrink-0" aria-hidden />
+            <div className="w-[44px] md:w-0 shrink-0" aria-hidden />
           </div>
           <div className="divide-y divide-border/30">
             {listSorted.map((sale) => (
