@@ -37,46 +37,35 @@ function listFunctions() {
   });
 }
 
-async function functionExists(slug) {
-  const r = await fetch(`${API}/${slug}`, {
-    headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
-  });
-  return r.status === 200;
-}
-
 async function deployOne(slug) {
   const fnDir = join(ROOT, slug);
   const files = walk(fnDir);
 
-  // Inclui _shared se existir
   const sharedDir = join(ROOT, "_shared");
   if (existsSync(sharedDir)) files.push(...walk(sharedDir));
 
   const form = new FormData();
-  form.append("metadata", JSON.stringify({
+  form.append("metadata", new Blob([JSON.stringify({
     name: slug,
-    entrypoint_path: `source/${slug}/index.ts`,
+    entrypoint_path: `${slug}/index.ts`,
     verify_jwt: false,
-  }));
+  })], { type: "application/json" }));
 
   for (const abs of files) {
-    const rel = "source/" + relative(ROOT, abs).replace(/\\/g, "/");
+    const rel = relative(ROOT, abs).replace(/\\/g, "/");
     const buf = readFileSync(abs);
-    form.append("file", new Blob([buf]), rel);
+    form.append("file", new Blob([buf], { type: "application/typescript" }), rel);
   }
 
-  const exists = await functionExists(slug);
-  const url = exists ? `${API}/${slug}` : API;
-  const method = exists ? "PATCH" : "POST";
-
+  const url = `${API}/deploy?slug=${slug}`;
   const res = await fetch(url, {
-    method,
+    method: "POST",
     headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
     body: form,
   });
   const text = await res.text();
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText} — ${text.slice(0,300)}`);
-  return exists ? "updated" : "created";
+  if (!res.ok) throw new Error(`${res.status} — ${text.slice(0,300)}`);
+  return "deployed";
 }
 
 (async () => {
