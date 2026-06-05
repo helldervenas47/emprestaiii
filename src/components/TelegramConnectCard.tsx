@@ -64,7 +64,8 @@ export function TelegramConnectCard() {
       if (stopped || syncingTelegramRef.current) return;
       syncingTelegramRef.current = true;
       try {
-        await supabase.functions.invoke("telegram-poll").catch(() => null);
+        // Não chamamos telegram-poll: o cron já roda a cada minuto e duas chamadas
+        // concorrentes de getUpdates no mesmo bot causam erro 409 no Telegram.
         await supabase.functions.invoke("telegram-process").catch(() => null);
         await refresh();
       } finally {
@@ -124,7 +125,7 @@ export function TelegramConnectCard() {
     }
     setLinkingByCode(true);
     try {
-      await supabase.functions.invoke("telegram-poll").catch(() => null);
+      // (telegram-poll removido — evitar 409 por getUpdates concorrentes)
       await supabase.functions.invoke("telegram-process").catch(() => null);
       const data = await invokeUserFunction("link-telegram-bot", { bot_code: normalized, kind: "expenses" });
       if ((data as any)?.error) throw new Error((data as any).error);
