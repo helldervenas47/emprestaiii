@@ -2,12 +2,12 @@ import { supabase, USER_SUPABASE_PUBLISHABLE_KEY, USER_SUPABASE_URL } from "@/in
 
 type TelegramLinkCodeFunction = "telegram-link-code" | "telegram-reports-link-code";
 
-export async function generateTelegramLinkCode(functionName: TelegramLinkCodeFunction = "telegram-link-code") {
+export async function invokeUserFunction(functionName: string, body: unknown = {}) {
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   const accessToken = sessionData.session?.access_token;
 
   if (sessionError || !accessToken) {
-    throw new Error("Sessão expirada. Saia e entre novamente para gerar o código do Telegram.");
+    throw new Error("Sessão expirada. Saia e entre novamente para continuar.");
   }
 
   const response = await fetch(`${USER_SUPABASE_URL}/functions/v1/${functionName}`, {
@@ -17,7 +17,7 @@ export async function generateTelegramLinkCode(functionName: TelegramLinkCodeFun
       apikey: USER_SUPABASE_PUBLISHABLE_KEY,
       "Content-Type": "application/json",
     },
-    body: "{}",
+    body: JSON.stringify(body),
   });
 
   const text = await response.text();
@@ -33,4 +33,8 @@ export async function generateTelegramLinkCode(functionName: TelegramLinkCodeFun
   }
 
   return payload;
+}
+
+export async function generateTelegramLinkCode(functionName: TelegramLinkCodeFunction = "telegram-link-code") {
+  return invokeUserFunction(functionName);
 }

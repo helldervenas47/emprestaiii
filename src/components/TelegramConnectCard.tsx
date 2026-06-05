@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Copy, CheckCircle2, Unlink, Clock, Zap, CalendarDays, CalendarRange } from "lucide-react";
-import { generateTelegramLinkCode } from "@/lib/telegramLinkCode";
+import { generateTelegramLinkCode, invokeUserFunction } from "@/lib/telegramLinkCode";
 
 const TelegramIcon = ({ className }: { className?: string }) => (
   <span className={className} aria-hidden="true">
@@ -126,21 +126,7 @@ export function TelegramConnectCard() {
     try {
       await supabase.functions.invoke("telegram-poll").catch(() => null);
       await supabase.functions.invoke("telegram-process").catch(() => null);
-      const { data, error } = await supabase.functions.invoke("link-telegram-bot", {
-        body: { bot_code: normalized },
-      });
-      if (error) {
-        let detailed = (error as any)?.message || "Não foi possível vincular";
-        try {
-          const ctx = (error as any)?.context;
-          const bodyStr = typeof ctx?.body === "string" ? ctx.body : (ctx?.body ? JSON.stringify(ctx.body) : "");
-          if (bodyStr) {
-            const parsed = JSON.parse(bodyStr);
-            if (parsed?.error) detailed = parsed.error;
-          }
-        } catch (e) { console.error("Parse error", e); }
-        throw new Error(detailed);
-      }
+      const data = await invokeUserFunction("link-telegram-bot", { bot_code: normalized, kind: "expenses" });
       if ((data as any)?.error) throw new Error((data as any).error);
       toast.success("✅ Relatório conectado ao bot com sucesso");
       setBotCodeInput("");
