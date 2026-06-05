@@ -159,9 +159,12 @@ export function useProducts(enabled = true) {
   const deleteProduct = useCallback(async (id: string) => {
     if (!user) return;
     setProducts((prev) => prev.filter((p) => p.id !== id));
-    setSales((prev) => prev.filter((s) => s.productId !== id));
+    // Mantém as vendas associadas; o FK no banco agora é ON DELETE SET NULL,
+    // então o product_id da venda fica nulo, mas o histórico de venda é preservado.
+    setSales((prev) => prev.map((s) => (s.productId === id ? { ...s, productId: undefined } : s)));
     await supabase.from("products").delete().eq("id", id);
   }, [user]);
+
 
   const addSale = useCallback(async (s: Omit<Sale, "id">) => {
     if (!user || !dataOwnerId) return;
