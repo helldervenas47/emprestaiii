@@ -1897,13 +1897,13 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           {/* Header row */}
           <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 border-b border-border/50 bg-muted/40">
             <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0" aria-hidden />
-            <p className="flex-1 min-w-0 md:flex-none md:w-[110px] lg:w-[200px] text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Cliente</p>
-            <p className="hidden md:block w-[80px] lg:w-[200px] shrink-0 text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Categoria</p>
-            <p className="hidden md:block w-[90px] lg:w-[240px] shrink-0 text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Descrição</p>
+            <p className="flex-1 min-w-0 md:basis-0 md:grow text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Cliente</p>
+            <p className="hidden md:block flex-1 min-w-0 basis-0 text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Categoria</p>
+            <p className="hidden md:block flex-[2] min-w-0 basis-0 text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Descrição</p>
 
             <p className="w-[78px] sm:w-[88px] lg:w-[110px] shrink-0 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Vencimento</p>
             <p className="w-[102px] sm:w-[108px] lg:w-[140px] shrink-0 text-right text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Valor</p>
-            <div className="w-[44px] md:w-[180px] lg:w-[200px] shrink-0" aria-hidden />
+            <div className="w-[44px] md:w-[140px] lg:w-[160px] shrink-0" aria-hidden />
           </div>
           <div className="divide-y divide-border/30">
             {listSorted.map((sale) => (
