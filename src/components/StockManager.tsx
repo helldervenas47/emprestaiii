@@ -49,9 +49,14 @@ export function StockManager({ readOnly = false }: Props) {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterProduct, setFilterProduct] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("name-asc");
+  const [statusFilter, setStatusFilter] = useState<"ativos" | "inativos" | "todos">("ativos");
 
   const sortedProducts = useMemo(() => {
-    const arr = [...products];
+    const arr = products.filter((p) => {
+      if (statusFilter === "ativos") return p.active !== false;
+      if (statusFilter === "inativos") return p.active === false;
+      return true;
+    });
     switch (sortBy) {
       case "name-asc": arr.sort((a, b) => a.name.localeCompare(b.name, "pt-BR")); break;
       case "name-desc": arr.sort((a, b) => b.name.localeCompare(a.name, "pt-BR")); break;
@@ -63,7 +68,10 @@ export function StockManager({ readOnly = false }: Props) {
       case "cost-desc": arr.sort((a, b) => (b.cost || 0) - (a.cost || 0)); break;
     }
     return arr;
-  }, [products, sortBy]);
+  }, [products, sortBy, statusFilter]);
+
+  const activeProducts = useMemo(() => products.filter((p) => p.active !== false), [products]);
+  const inactiveCount = products.length - activeProducts.length;
 
   const filteredMovements = useMemo(() => movements.filter(m =>
     (filterType === "all" || m.type === filterType) &&
