@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwner } from "@/hooks/useDataOwner";
 import { toast } from "sonner";

@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Image as ImageIcon, ChevronDown, Activity, RefreshCw, Loader2, AlertTriangle, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 
 const STORAGE_KEY = "telegram_image_delivery_prefs_v1";
 

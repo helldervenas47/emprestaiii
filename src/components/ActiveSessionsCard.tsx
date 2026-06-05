@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Monitor, Smartphone, Tablet, Loader2, RefreshCw, LogOut, Globe, MapPin, ExternalLink } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 

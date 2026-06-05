@@ -13,7 +13,7 @@ import { calculateTotalWithInterest } from "@/hooks/useLoans";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { getCardInvoiceTotalsForMonth } from "@/lib/creditCardInvoiceTotals";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useDailyPlanningTelegramPrefs } from "@/hooks/useDailyPlanningTelegramPrefs";

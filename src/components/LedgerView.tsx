@@ -18,7 +18,7 @@ import { todayInAppTz, getAppTimezone } from "@/lib/timezone";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { ConsolidatedBalanceCards } from "@/components/ConsolidatedBalanceCards";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 
 const formatBRL = (n: number) =>

@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import logoIconFallback from "@/assets/logo-icon.png";
 
 export interface PdfBranding {

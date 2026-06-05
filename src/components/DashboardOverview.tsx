@@ -6,7 +6,7 @@ import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
 import { useAuth } from "@/hooks/useAuth";
 import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { Switch } from "@/components/ui/switch";

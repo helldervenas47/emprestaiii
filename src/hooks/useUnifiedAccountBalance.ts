@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { useDataOwner } from "@/hooks/useDataOwner";
 import { useIncomes } from "@/hooks/useIncomes";
 import { useExpenses } from "@/hooks/useExpenses";

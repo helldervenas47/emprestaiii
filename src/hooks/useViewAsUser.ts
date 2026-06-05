@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 import { offlineDB, OFFLINE_TABLES } from "@/lib/offline/db";
 

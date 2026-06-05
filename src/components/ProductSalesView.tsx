@@ -21,7 +21,7 @@ import { SalesLedger } from "@/components/SalesLedger";
 import { generateContract } from "@/lib/generateContract";
 import { addMonths, addWeeks, addDays, format, startOfMonth, endOfMonth, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useIncomeCategories, CustomIncomeCategory } from "@/hooks/useIncomeCategories";
 import { personalIconMap } from "@/lib/personalExpenseCategories";

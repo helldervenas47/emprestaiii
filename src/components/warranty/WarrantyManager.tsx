@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ShieldCheck, Plus, Upload, Trash2, ArrowDownToLine, ArrowUpFromLine, Loader2, Download } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";

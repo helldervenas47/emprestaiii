@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 import { Income } from "@/hooks/useIncomes";
 import { Expense } from "@/types/loan";

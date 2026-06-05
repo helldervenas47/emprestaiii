@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ArrowDown, ArrowUp, Sparkles, Minus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { formatBRL } from "@/lib/creditLimit";
 import type { Client } from "@/types/loan";
 

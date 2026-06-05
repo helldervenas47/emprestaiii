@@ -15,7 +15,7 @@ import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
 import { isPiggyExpense } from "@/hooks/usePiggyBanks";
 import { useProducts } from "@/hooks/useProducts";
 import { Sale } from "@/types/loan";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { useDataOwner } from "@/hooks/useDataOwner";
 
 /** Total efetivamente recebido de uma venda (não os lançamentos previstos). */

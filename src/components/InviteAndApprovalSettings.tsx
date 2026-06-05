@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Copy, Link as LinkIcon, Plus, Power, Trash2, Users } from "lucide-react";
 import { useInviteCodes } from "@/hooks/useInviteCodes";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 

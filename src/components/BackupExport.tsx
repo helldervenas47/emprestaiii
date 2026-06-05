@@ -7,7 +7,7 @@ import { Loan, Payment, Client, Sale, Expense } from "@/types/loan";
 import { exportLoansToCSV, exportClientsToCSV, exportSalesToCSV, importLoansFromCSV, importClientsFromCSV, importSalesFromCSV, downloadCSV } from "@/lib/csv";
 import { toast } from "sonner";
 import { AutoBackupCard } from "./AutoBackupCard";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { RestoreBackupDialog } from "./RestoreBackupDialog";
 
 

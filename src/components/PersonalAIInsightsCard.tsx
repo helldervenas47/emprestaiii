@@ -12,7 +12,7 @@ import { usePersonalInsights } from "@/hooks/usePersonalInsights";
 import { getPersonalCategory, resolvePersonalIcon } from "@/lib/personalExpenseCategories";
 import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { cn } from "@/lib/utils";
 import { AIReportAudioPlayer } from "@/components/AIReportAudioPlayer";
 

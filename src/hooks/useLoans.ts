@@ -3,7 +3,7 @@ import { todayInAppTz } from "@/lib/timezone";
 import { Loan, Payment, InstallmentSchedule, PaymentSplit } from "@/types/loan";
 import { adjustBalance, adjustBalanceOffline } from "@/lib/balance";
 import { recordLedger, removeLedgerByRef } from "@/lib/ledger";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 import { getLoanLateFees } from "@/lib/loanLateFees";

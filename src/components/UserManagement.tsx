@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useIsMobileOrTablet } from "@/hooks/use-mobile";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { useClients } from "@/hooks/useClients";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
