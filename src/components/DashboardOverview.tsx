@@ -1573,14 +1573,14 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               <div className="bg-muted/50 rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center">
                 <div className="flex items-center gap-1.5 mb-1">
                   <Calendar className="h-3 w-3 text-primary" />
-                  <p className="text-[10px] text-muted-foreground">Prev. Domingo</p>
+                  <p className="text-[10px] text-muted-foreground">Domingo</p>
                 </div>
                 <p className={`text-sm font-semibold ${(accountBalance + portfolio.forecastSunday) < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance + portfolio.forecastSunday)}</p>
               </div>
               <div className="bg-muted/50 rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center">
                 <div className="flex items-center gap-1.5 mb-1">
                   <Calendar className="h-3 w-3 text-primary" />
-                  <p className="text-[10px] text-muted-foreground">Prev. Fim do Mês</p>
+                  <p className="text-[10px] text-muted-foreground">Fim do Mês</p>
                 </div>
                 <p className={`text-sm font-semibold ${(accountBalance + portfolio.forecastEndMonth) < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance + portfolio.forecastEndMonth)}</p>
               </div>
