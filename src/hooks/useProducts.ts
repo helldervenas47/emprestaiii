@@ -78,7 +78,7 @@ export function useProducts(enabled = true) {
           price: Number(p.price), cost: Number(p.cost || 0),
           lastPurchasePrice: Number(p.last_purchase_price || 0),
           suggestedStock: Number(p.suggested_stock || 0),
-          stock: p.stock, active: true, createdAt: p.created_at,
+          stock: p.stock, active: p.active !== false, createdAt: p.created_at,
         })));
       }
       if (salesRes.data) {
