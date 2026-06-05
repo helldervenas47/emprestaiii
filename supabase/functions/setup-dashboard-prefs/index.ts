@@ -1,7 +1,7 @@
 // One-shot migration: cria a tabela public.user_dashboard_prefs com RLS por usuário.
-// Pode ser chamada repetidamente (idempotente). Usa SERVICE_ROLE_KEY internamente.
+// Idempotente. Usa SUPABASE_DB_URL para executar DDL via cliente postgres.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { Client } from "https://deno.land/x/postgres@v0.17.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,38 +23,30 @@ GRANT ALL ON public.user_dashboard_prefs TO service_role;
 ALTER TABLE public.user_dashboard_prefs ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "own dashboard prefs select" ON public.user_dashboard_prefs;
-CREATE POLICY "own dashboard prefs select"
-  ON public.user_dashboard_prefs FOR SELECT
-  TO authenticated USING (user_id = auth.uid());
+CREATE POLICY "own dashboard prefs select" ON public.user_dashboard_prefs FOR SELECT TO authenticated USING (user_id = auth.uid());
 
 DROP POLICY IF EXISTS "own dashboard prefs insert" ON public.user_dashboard_prefs;
-CREATE POLICY "own dashboard prefs insert"
-  ON public.user_dashboard_prefs FOR INSERT
-  TO authenticated WITH CHECK (user_id = auth.uid());
+CREATE POLICY "own dashboard prefs insert" ON public.user_dashboard_prefs FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
 
 DROP POLICY IF EXISTS "own dashboard prefs update" ON public.user_dashboard_prefs;
-CREATE POLICY "own dashboard prefs update"
-  ON public.user_dashboard_prefs FOR UPDATE
-  TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+CREATE POLICY "own dashboard prefs update" ON public.user_dashboard_prefs FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 DROP POLICY IF EXISTS "own dashboard prefs delete" ON public.user_dashboard_prefs;
-CREATE POLICY "own dashboard prefs delete"
-  ON public.user_dashboard_prefs FOR DELETE
-  TO authenticated USING (user_id = auth.uid());
+CREATE POLICY "own dashboard prefs delete" ON public.user_dashboard_prefs FOR DELETE TO authenticated USING (user_id = auth.uid());
 `;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const dbUrl = Deno.env.get("SUPABASE_DB_URL");
+  if (!dbUrl) {
+    return new Response(JSON.stringify({ ok: false, error: "SUPABASE_DB_URL not set" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const client = new Client(dbUrl);
   try {
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
-    const { error } = await admin.rpc("exec_sql", { sql_query: SQL });
-    if (error) {
-      return new Response(JSON.stringify({ ok: false, error: error.message }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    await client.connect();
+    await client.queryArray(SQL);
     return new Response(JSON.stringify({ ok: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -62,5 +54,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ ok: false, error: (e as Error).message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  } finally {
+    try { await client.end(); } catch {}
   }
 });
