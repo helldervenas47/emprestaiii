@@ -1029,7 +1029,8 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
         }`}>
           {(sale.customerName || sale.description || "?").charAt(0).toUpperCase()}
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 md:flex-none md:w-[160px] lg:w-[200px]">
+
           <p className="text-xs sm:text-sm font-semibold text-foreground truncate">{sale.customerName || "—"}</p>
           <span
             className="md:hidden mt-0.5 inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium max-w-full"
@@ -1894,7 +1895,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           {/* Header row */}
           <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 border-b border-border/50 bg-muted/40">
             <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0" aria-hidden />
-            <p className="flex-1 min-w-0 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Cliente</p>
+            <p className="flex-1 min-w-0 md:flex-none md:w-[160px] lg:w-[200px] text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Cliente</p>
             <p className="hidden md:block w-[120px] lg:w-[200px] shrink-0 text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Categoria</p>
             <p className="hidden md:block w-[140px] lg:w-[240px] shrink-0 text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Descrição</p>
 
