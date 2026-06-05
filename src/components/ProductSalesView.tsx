@@ -1708,14 +1708,14 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
     <div className="space-y-4">
       {/* Dashboard cards */}
       <div className={`grid ${hideOnTrackCard ? 'grid-cols-3' : 'grid-cols-2 lg:grid-cols-4'} gap-2 sm:gap-3`}>
-        <div className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center" style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}>
+        <button type="button" onClick={() => setBreakdownCard("overdue")} className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center hover:border-destructive/40 hover:shadow-md transition-all cursor-pointer" style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}>
           <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center mb-2">
             <AlertTriangle className="h-4 w-4 text-destructive" />
           </div>
           <p className="text-[10px] sm:text-xs text-muted-foreground">Vencidos</p>
           <p className="text-sm sm:text-xl font-bold text-destructive mt-0.5">{formatCurrency(totalOverdue)}</p>
           <p className="text-[10px] text-muted-foreground mt-1">{overdueSales.length} contratos</p>
-        </div>
+        </button>
         {!hideOnTrackCard && (
           <div className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
@@ -1726,23 +1726,65 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
             <p className="text-[10px] text-muted-foreground mt-1">{onTrackSales.length + dueTodaySales.length} contratos</p>
           </div>
         )}
-        <div className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
+        <button type="button" onClick={() => setBreakdownCard("paid")} className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center hover:border-success/40 hover:shadow-md transition-all cursor-pointer" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
           <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
             <CircleCheck className="h-4 w-4 text-success" />
           </div>
           <p className="text-[10px] sm:text-xs text-muted-foreground">Pagos</p>
           <p className="text-sm sm:text-xl font-bold text-success mt-0.5">{formatCurrency(totalPaid)}</p>
           <p className="text-[10px] text-muted-foreground mt-1">{paidContractsCount} contratos quitados</p>
-        </div>
-        <div className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center" style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}>
+        </button>
+        <button type="button" onClick={() => setBreakdownCard("receivable")} className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center hover:border-warning/40 hover:shadow-md transition-all cursor-pointer" style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}>
           <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center mb-2">
             <DollarSign className="h-4 w-4 text-warning" />
           </div>
           <p className="text-[10px] sm:text-xs text-muted-foreground">Total a Receber</p>
           <p className="text-sm sm:text-xl font-bold text-warning mt-0.5">{formatCurrency(totalAReceber)}</p>
           <p className="text-[10px] text-muted-foreground mt-1">{overdueSales.length + onTrackSales.length + dueTodaySales.length} contratos</p>
-        </div>
+        </button>
       </div>
+
+      {/* Breakdown dialog for clicked summary card */}
+      {breakdownCard && (() => {
+        const cfg = breakdownCard === "overdue"
+          ? { title: "Vencidos", color: "text-destructive", total: totalOverdue,
+              items: overdueSales.map((s) => ({ sale: s, value: getOverdueInstallmentsValue(s) })).filter((x) => x.value > 0) }
+          : breakdownCard === "paid"
+          ? { title: "Pagos", color: "text-success", total: totalPaid,
+              items: sales.map((s) => ({ sale: s, value: getSalePaidAmount(s) })).filter((x) => x.value > 0) }
+          : { title: "Total a Receber", color: "text-warning", total: totalAReceber,
+              items: sales.filter((s) => getSaleCategory(s) !== "paid").map((s) => ({ sale: s, value: getRemaining(s) })).filter((x) => x.value > 0) };
+        const sorted = [...cfg.items].sort((a, b) => b.value - a.value);
+        return (
+          <Dialog open={!!breakdownCard} onOpenChange={(o) => !o && setBreakdownCard(null)}>
+            <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+              <DialogHeader>
+                <DialogTitle className={cfg.color}>Valores em "{cfg.title}"</DialogTitle>
+                <DialogDescription>Detalhamento dos valores considerados neste card ({sorted.length} {sorted.length === 1 ? "item" : "itens"}).</DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                {sorted.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-6">Nenhum valor considerado.</p>
+                )}
+                {sorted.map(({ sale, value }) => (
+                  <div key={sale.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/40 bg-muted/20 px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{sale.customerName || "—"}</p>
+                      <p className="text-xs text-muted-foreground truncate">{sale.productName || sale.description}</p>
+                    </div>
+                    <p className={`text-sm font-bold tabular-nums ${cfg.color}`}>{formatCurrency(value)}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="border-t pt-3 flex items-center justify-between">
+                <span className="text-sm font-semibold">Total</span>
+                <span className={`text-base font-bold tabular-nums ${cfg.color}`}>{formatCurrency(cfg.total)}</span>
+              </div>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+
 
       {renderAfterCards}
 
