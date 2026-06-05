@@ -773,7 +773,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
             </div>
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </button>
-          <WarrantyManager sale={sale} />
+          {sale.businessType !== "aluguel_veiculo" && <WarrantyManager sale={sale} />}
         </div>
 
         {/* Row 5: Payment action panel */}
@@ -934,7 +934,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
               <Button size="icon" variant="ghost" className="h-8 w-8 text-success hover:bg-success/10" onClick={() => setShowPayments(true)} title="Ver Pagamentos">
                 <CircleCheck className="h-4 w-4" />
               </Button>
-              <WarrantyManager sale={sale} />
+              {sale.businessType !== "aluguel_veiculo" && <WarrantyManager sale={sale} />}
               {!readOnly && (
                 <>
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={onEdit}>
@@ -1108,7 +1108,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
               )}
             </Button>
           )}
-          {!isMobile && <WarrantyManager sale={sale} iconOnly />}
+          {!isMobile && sale.businessType !== "aluguel_veiculo" && <WarrantyManager sale={sale} iconOnly />}
           {!readOnly && !isMobile && (
             <Button
               variant="ghost"
@@ -1181,7 +1181,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
                   </span>
                 )}
               </Button>
-              <WarrantyManager sale={sale} iconOnly />
+              {sale.businessType !== "aluguel_veiculo" && <WarrantyManager sale={sale} iconOnly />}
               <Button
                 variant="ghost"
                 size="icon"
