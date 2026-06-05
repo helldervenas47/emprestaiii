@@ -1181,7 +1181,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
                   </span>
                 )}
               </Button>
-              <WarrantyManager sale={sale} iconOnly />
+              {sale.businessType !== "aluguel_veiculo" && <WarrantyManager sale={sale} iconOnly />}
               <Button
                 variant="ghost"
                 size="icon"
