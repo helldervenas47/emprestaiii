@@ -125,7 +125,7 @@ export function TelegramConnectCard() {
     }
     setLinkingByCode(true);
     try {
-      await supabase.functions.invoke("telegram-poll").catch(() => null);
+      // (telegram-poll removido — evitar 409 por getUpdates concorrentes)
       await supabase.functions.invoke("telegram-process").catch(() => null);
       const data = await invokeUserFunction("link-telegram-bot", { bot_code: normalized, kind: "expenses" });
       if ((data as any)?.error) throw new Error((data as any).error);
