@@ -8,7 +8,7 @@ import {
   Loader2, Code2, Database, AlertTriangle, Info,
 } from "lucide-react";
 
-const FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/painel-migracao`;
+const FUNCTIONS_URL = `${import.meta.env.VITE_EXTERNAL_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL}/functions/v1/painel-migracao`;
 
 type TableInfo = {
   tablename: string;

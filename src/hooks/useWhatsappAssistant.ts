@@ -54,7 +54,7 @@ export function useWhatsappAssistant() {
     return { error };
   };
 
-  const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-assistant-webhook`;
+  const webhookUrl = `${import.meta.env.VITE_EXTERNAL_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-assistant-webhook`;
 
   return { numbers, loading, addNumber, toggleNumber, removeNumber, reload, webhookUrl };
 }
