@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Copy, CheckCircle2, Unlink, Clock, Zap, CalendarDays, CalendarRange } from "lucide-react";
 import { generateTelegramLinkCode, invokeUserFunction } from "@/lib/telegramLinkCode";
+import { fetchReportsBotId } from "@/lib/telegramReportsBot";
 
 const TelegramIcon = ({ className }: { className?: string }) => (
   <span className={className} aria-hidden="true">
