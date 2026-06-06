@@ -101,8 +101,7 @@ Deno.serve(async (req) => {
       }
 
       // Resolve chat
-      const { data: link } = await admin.from("telegram_reports_links")
-        .select("chat_id").eq("user_id", pref.user_id).maybeSingle();
+      const link = await getReportsLinkForUser(admin, pref.user_id);
       if (!link) continue;
 
       // Today's personal expenses paid today
