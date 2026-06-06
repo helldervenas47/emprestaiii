@@ -58,7 +58,9 @@ Deno.serve(async (req) => {
 
   const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
   const { error: insErr } = await admin.from("telegram_link_codes").insert({
-    code, user_id: user.id, bot_id: expenseBot?.id ?? null, expires_at: expiresAt,
+    code,
+    user_id: user.id,
+    expires_at: expiresAt,
   });
   if (insErr) {
     return new Response(JSON.stringify({ error: insErr.message }), { status: 500, headers: corsHeaders });
