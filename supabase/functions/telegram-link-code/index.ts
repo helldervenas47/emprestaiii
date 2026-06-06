@@ -34,15 +34,22 @@ Deno.serve(async (req) => {
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  // Already linked?
-  const { data: existing } = await admin.from("telegram_links")
-    .select("chat_id").eq("user_id", user.id).maybeSingle();
+  const reportsBotId = await getReportsBotId(admin);
+
+  // Already linked? (exclui links do bot de relatórios)
+  let existQ = admin.from("telegram_links")
+    .select("chat_id").eq("user_id", user.id);
+  if (reportsBotId) existQ = existQ.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+  const { data: existing } = await existQ.maybeSingle();
   if (existing) {
     return json({ alreadyLinked: true, chat_id: existing.chat_id });
   }
 
-  // Cleanup old codes for this user
-  await admin.from("telegram_link_codes").delete().eq("user_id", user.id);
+  // Cleanup old codes for this user (somente do lado despesas)
+  let delQ = admin.from("telegram_link_codes").delete().eq("user_id", user.id);
+  if (reportsBotId) delQ = delQ.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+  await delQ;
+
 
   // Generate unique 6-digit code
   let code = "";
