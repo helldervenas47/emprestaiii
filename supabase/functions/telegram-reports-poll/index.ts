@@ -194,40 +194,20 @@ Deno.serve(async (req) => {
   const REPORTS_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN_REPORTS") ?? "";
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  // Advisory lock: ensure only one instance of this poller runs at a time.
-  // Key is an arbitrary stable int64 (hash of the job name).
-  const LOCK_KEY = 7263514098123456n; // unique to telegram-reports-poll
-  const { data: lockData, error: lockErr } = await supabase.rpc("pg_try_advisory_lock", { key: Number(LOCK_KEY) }).then(
-    (r: any) => ({ data: r.data, error: r.error }),
-    (e: any) => ({ data: null, error: e }),
-  );
-  // Fallback: use a raw call via from() is not possible; instead, use a lightweight query.
-  let gotLock = false;
-  try {
-    const { data } = await supabase
-      .from("telegram_job_logs")
-      .select("id")
-      .limit(0); // no-op to keep types happy
-    void data;
-    // Acquire advisory lock via REST not supported → use a dedicated RPC if available,
-    // otherwise fall back to a "best-effort" insert-based lock using telegram_job_logs.
-    gotLock = lockData === true;
-  } catch (_e) {
-    gotLock = false;
-  }
-  void lockErr;
-
-  if (!gotLock) {
-    // Best-effort fallback: check if another run finished < 10s ago
+  // Concurrency guard: if another invocation logged a run < 15s ago and we're not
+  // forced, skip silently to prevent overlapping getUpdates → 409 noise.
+  const force = new URL(req.url).searchParams.get("force") === "1";
+  if (!force) {
     const { data: recent } = await supabase
       .from("telegram_job_logs")
       .select("created_at")
       .eq("job", "telegram-reports-poll")
       .order("created_at", { ascending: false })
       .limit(1);
-    const lastMs = recent?.[0]?.created_at ? Date.now() - new Date(recent[0].created_at as string).getTime() : Infinity;
-    if (lastMs < 15_000) {
-      return new Response(JSON.stringify({ ok: true, skipped: true, reason: "another poll in flight", lastMs }), {
+    const lastTs = recent?.[0]?.created_at ? new Date(recent[0].created_at as string).getTime() : 0;
+    const sinceLastMs = Date.now() - lastTs;
+    if (lastTs && sinceLastMs < 15_000) {
+      return new Response(JSON.stringify({ ok: true, skipped: true, reason: "recent run in flight", sinceLastMs }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
