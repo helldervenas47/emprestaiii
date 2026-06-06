@@ -284,8 +284,7 @@ Deno.serve(async (req) => {
       if (slotsToSend.length === 0) continue;
 
       // Resolve telegram chat from the dedicated reports bot link
-      const { data: link } = await admin.from("telegram_reports_links")
-        .select("chat_id").eq("user_id", pref.user_id).maybeSingle();
+      const link = await getReportsLinkForUser(admin, pref.user_id);
       if (!link) continue;
 
       const report = await buildBillingReport(admin, pref.user_id, today, brandName);
