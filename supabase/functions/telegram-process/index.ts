@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getReportsBotId } from "../_shared/reports-bot.ts";
 
 const GATEWAY_URL = "https://api.telegram.org";
 const AI_GATEWAY = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
