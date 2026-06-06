@@ -33,13 +33,16 @@ Deno.serve(async (req) => {
     }
   }
 
-  const { data: bots } = await supabase.from("system_telegram_bots").select("*");
-  const { data: userCodes } = await supabase.from("telegram_link_codes").select("*");
-  const { data: reportCodes } = await supabase.from("telegram_reports_link_codes").select("*");
-  const { data: reportLinks } = await supabase.from("telegram_reports_links").select("*").order("created_at", { ascending: false }).limit(10);
-  const { data: userLinks } = await supabase.from("telegram_links").select("*").order("created_at", { ascending: false }).limit(10);
+  const { data: bots, error: botsErr } = await supabase.from("system_telegram_bots").select("*");
+  const { data: userCodes, error: ucErr } = await supabase.from("telegram_link_codes").select("*");
+  const { data: reportCodes, error: rcErr } = await supabase.from("telegram_reports_link_codes").select("*");
+  const { data: reportLinks, error: rlErr } = await supabase.from("telegram_reports_links").select("*").order("created_at", { ascending: false }).limit(10);
+  const { data: userLinks, error: ulErr } = await supabase.from("telegram_links").select("*").order("created_at", { ascending: false }).limit(10);
 
-  return new Response(JSON.stringify({ bots, userCodes, reportCodes, reportLinks, userLinks }), {
+  return new Response(JSON.stringify({
+    bots, userCodes, reportCodes, reportLinks, userLinks,
+    errors: { botsErr, ucErr, rcErr, rlErr, ulErr },
+  }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
