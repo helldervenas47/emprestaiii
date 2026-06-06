@@ -295,11 +295,13 @@ Deno.serve(async (req) => {
       if (p.type === "exceeded") {
         const telegramKey = Deno.env.get("TELEGRAM_BOT_TOKEN");
         if (telegramKey) {
-          const { data: tgLink } = await supabase
+          const reportsBotId = await getReportsBotId(supabase);
+          let tgQ = supabase
             .from("telegram_links")
             .select("chat_id")
-            .eq("user_id", ownerId)
-            .maybeSingle();
+            .eq("user_id", ownerId);
+          if (reportsBotId) tgQ = tgQ.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+          const { data: tgLink } = await tgQ.maybeSingle();
           if (tgLink?.chat_id) {
             await sendTelegram(
               Number(tgLink.chat_id),
