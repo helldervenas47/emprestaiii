@@ -5,7 +5,7 @@ import {
   tgSendPhoto,
   type BrandInfo,
 } from "../_shared/renderReportImage.ts";
-import { getImageDeliveryPrefs } from "../_shared/reports-bot.ts";
+import { getImageDeliveryPrefs, sendReportsMessage, sendReportsPhoto } from "../_shared/reports-bot.ts";
 
 const GATEWAY_URL = "https://api.telegram.org";
 
@@ -75,11 +75,10 @@ async function buildAndSendMonthly(
   admin: any,
   userId: string,
   today: string,
-  telegramKey: string,
   brand: BrandInfo,
   format: "text" | "image" = "text",
 ): Promise<boolean> {
-  const { data: link } = await admin.from("telegram_links")
+  const { data: link } = await admin.from("telegram_reports_links")
     .select("chat_id").eq("user_id", userId).maybeSingle();
   if (!link) return false;
 
@@ -154,7 +153,8 @@ async function buildAndSendMonthly(
       const caption = monthlyPrefs.includeText
         ? `📆 *${brand.name} — Resumo mensal* — ${monthNamePt(currMonth)}\n💸 Total: *${fmtBRL(currS.total)}*  ${variation(currS.total, prevS.total)}`
         : "";
-      await tgSendPhoto(Number((link as any).chat_id), png, caption, telegramKey);
+      const photoRes = await sendReportsPhoto(admin, userId, Number((link as any).chat_id), png, caption);
+      if (!photoRes.sent) throw new Error(photoRes.reason ?? "send_photo_failed");
       return true;
     } catch (e) {
       console.error("image render failed, falling back to text", e);
@@ -192,14 +192,14 @@ async function buildAndSendMonthly(
     }
   }
 
-  await tgSend(Number((link as any).chat_id), lines.join("\n"), telegramKey);
+  const textRes = await sendReportsMessage(admin, userId, Number((link as any).chat_id), lines.join("\n"));
+  if (!textRes.sent) throw new Error(textRes.reason ?? "send_message_failed");
   return true;
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -236,7 +236,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
     const format = ((pref as any)?.monthly_format === "image" ? "image" : "text") as "text" | "image";
 
-    const ok = await buildAndSendMonthly(admin, forceUserId, today, TELEGRAM_API_KEY, brand, format);
+    const ok = await buildAndSendMonthly(admin, forceUserId, today, brand, format);
     return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0, format }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -268,7 +268,7 @@ Deno.serve(async (req) => {
       if ((pref as any).last_monthly_sent_month === currMonth) continue;
 
       const format = ((pref as any).monthly_format === "image" ? "image" : "text") as "text" | "image";
-      const ok = await buildAndSendMonthly(admin, (pref as any).user_id, today, TELEGRAM_API_KEY, brand, format);
+      const ok = await buildAndSendMonthly(admin, (pref as any).user_id, today, brand, format);
       if (ok) {
         await admin.from("telegram_summary_prefs")
           .update({ last_monthly_sent_month: currMonth })
