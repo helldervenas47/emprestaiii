@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
-import { CheckCircle2, Copy, RefreshCw, Unlink } from "lucide-react";
+import { CheckCircle2, Copy, Link2, RefreshCw, Unlink } from "lucide-react";
 import { toast } from "sonner";
-import { generateTelegramLinkCode } from "@/lib/telegramLinkCode";
+import { generateTelegramLinkCode, invokeUserFunction } from "@/lib/telegramLinkCode";
 
 const TelegramIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
@@ -15,7 +16,9 @@ const TelegramIcon = ({ className }: { className?: string }) => (
 export function IncomeTelegramBotButton() {
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState<string | null>(null);
+  const [botCodeInput, setBotCodeInput] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [linkingByCode, setLinkingByCode] = useState(false);
   const [connected, setConnected] = useState(false);
   const pollRef = useRef<number | null>(null);
 
@@ -88,6 +91,33 @@ export function IncomeTelegramBotButton() {
     }
   };
 
+  const linkByBotCode = async () => {
+    const normalized = botCodeInput.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!normalized) {
+      toast.error("Digite o código recebido no Telegram");
+      return;
+    }
+    if (!/^[A-Z0-9]{6,12}$/.test(normalized)) {
+      toast.error("Código inválido", { description: "Envie /code ao bot e cole aqui o código retornado." });
+      return;
+    }
+    setLinkingByCode(true);
+    try {
+      await supabase.functions.invoke("telegram-process").catch(() => null);
+      const data = await invokeUserFunction("link-telegram-bot", { bot_code: normalized, kind: "expenses" });
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("Bot vinculado com sucesso");
+      setBotCodeInput("");
+      setCode(null);
+      setOpen(false);
+      await refresh();
+    } catch (e: any) {
+      toast.error("Erro ao vincular", { description: e?.message ?? "Gere um novo código com /code e tente novamente." });
+    } finally {
+      setLinkingByCode(false);
+    }
+  };
+
   const handleDisconnect = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -123,7 +153,7 @@ export function IncomeTelegramBotButton() {
           <DialogDescription className="text-xs">
             {connected
               ? "Seus lançamentos do Telegram estão chegando neste app. Para usar outro bot, desconecte primeiro."
-              : "Gere um código e envie ao bot para vincular sua conta."}
+              : "Envie /code ao bot e cole aqui o código recebido para vincular sua conta."}
           </DialogDescription>
         </DialogHeader>
 
@@ -141,13 +171,26 @@ export function IncomeTelegramBotButton() {
         ) : !code ? (
           <div className="space-y-3 pt-1">
             <ol className="text-xs text-muted-foreground space-y-1.5 list-decimal pl-4">
-              <li>Clique em <strong>Gerar código</strong> abaixo.</li>
-              <li>Abra o bot no Telegram e envie <code className="font-mono px-1 py-0.5 rounded bg-muted">/start CÓDIGO</code>.</li>
-              <li>A conexão será detectada automaticamente.</li>
+              <li>Abra o bot de despesas no Telegram.</li>
+              <li>Envie <code className="font-mono px-1 py-0.5 rounded bg-muted">/code</code>.</li>
+              <li>Cole abaixo o código recebido.</li>
             </ol>
-            <Button size="sm" className="w-full gap-2" onClick={generateCode} disabled={generating}>
+            <div className="flex gap-2">
+              <Input
+                value={botCodeInput}
+                onChange={(e) => setBotCodeInput(e.target.value.toUpperCase())}
+                placeholder="Código recebido do bot"
+                className="h-9 font-mono text-sm uppercase"
+                maxLength={12}
+              />
+              <Button size="sm" className="h-9 gap-2" onClick={linkByBotCode} disabled={linkingByCode}>
+                <Link2 className="h-4 w-4" />
+                {linkingByCode ? "…" : "Conectar"}
+              </Button>
+            </div>
+            <Button size="sm" variant="ghost" className="w-full gap-2" onClick={generateCode} disabled={generating}>
               <RefreshCw className={`h-4 w-4 ${generating ? "animate-spin" : ""}`} />
-              {generating ? "Gerando…" : "Gerar código"}
+              {generating ? "Gerando…" : "Alternativa: gerar código para /start"}
             </Button>
           </div>
         ) : (
