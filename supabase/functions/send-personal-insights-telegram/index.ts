@@ -67,12 +67,8 @@ async function processUser(
   const today = todayISO();
   const lastSent = (pref.last_sent || {}) as Record<string, string>;
 
-  // Check telegram link
-  const { data: tgLink } = await supabase
-    .from("telegram_reports_links")
-    .select("chat_id")
-    .eq("user_id", ownerId)
-    .maybeSingle();
+  // Check telegram link (reports bot)
+  const tgLink = await getReportsLinkForUser(supabase, ownerId);
   if (!tgLink?.chat_id) return { skipped: "no-telegram-link" };
 
 
