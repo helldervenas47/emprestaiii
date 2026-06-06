@@ -79,8 +79,15 @@ async function processBot(
       (typeof data?.description === "string" && data.description.includes("terminated by other getUpdates"));
 
     if (!r.ok || data?.ok === false) {
+      if (is409 && !recovered) {
+        console.warn(`[reports-poll] bot=${bot.id} 409 — clearing webhook and retrying`);
+        const rec = await deleteWebhook(bot.token);
+        console.warn(`[reports-poll] deleteWebhook result bot=${bot.id}`, rec);
+        recovered = true;
+        continue;
+      }
       if (is409) {
-        console.warn(`[reports-poll] bot=${bot.id} 409 — skipping without clearing webhook`);
+        console.warn(`[reports-poll] bot=${bot.id} 409 after recovery — skipping`);
         break;
       }
       // 401 unauthorized → token invalid; mark as such
@@ -93,6 +100,7 @@ async function processBot(
       console.error(`[reports-poll] bot=${bot.id} getUpdates failed`, r.status, data);
       break;
     }
+
 
     const updates = data.result ?? [];
     if (updates.length === 0) break; // long-poll returned empty → stop this bot for this run
