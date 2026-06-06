@@ -51,11 +51,10 @@ async function buildAndSend(
   titleLabel = "Planejamento do Dia",
 ): Promise<boolean> {
   // Resolve report bot chat
-  const { data: link } = await admin.from("telegram_reports_links")
-    .select("chat_id").eq("user_id", userId).maybeSingle();
+  const link = await getReportsLinkForUser(admin, userId);
   if (!link) return false;
 
-  const chatId = Number((link as any).chat_id);
+  const chatId = Number(link.chat_id);
   const day = Number(date.slice(8, 10));
 
   // Loans + schedules
