@@ -79,11 +79,9 @@ async function processBot(
       (typeof data?.description === "string" && data.description.includes("terminated by other getUpdates"));
 
     if (!r.ok || data?.ok === false) {
-      if (is409 && !recovered) {
-        console.warn(`[reports-poll] bot=${bot.id} 409 — clearing webhook`);
-        await deleteWebhook(bot.token);
-        recovered = true;
-        continue;
+      if (is409) {
+        console.warn(`[reports-poll] bot=${bot.id} 409 — skipping without clearing webhook`);
+        break;
       }
       // 401 unauthorized → token invalid; mark as such
       if (r.status === 401) {
@@ -184,7 +182,29 @@ Deno.serve(async (req) => {
   const startTime = Date.now();
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const EXPENSES_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
+  const REPORTS_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN_REPORTS") ?? "";
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  // Segurança: o polling de relatórios estava limpando o webhook do bot de
+  // despesas por conflito 409. Enquanto o vínculo financeiro depende de
+  // webhook, esta função não pode chamar getUpdates/deleteWebhook.
+  await supabase.from("telegram_job_logs").insert({
+    job: "telegram-reports-poll",
+    ok: true,
+    processed: 0,
+    duration_ms: Date.now() - startTime,
+    details: { skipped: true, reason: "polling disabled to preserve expenses webhook" },
+  }).then(() => null).catch(() => null);
+  return new Response(JSON.stringify({
+    ok: true,
+    processed: 0,
+    bots: 0,
+    skipped: true,
+    note: "reports polling disabled to preserve expenses webhook",
+  }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 
   // Load all active GLOBAL reports bots (system-wide, shared by all accounts)
   const { data: bots, error } = await supabase
@@ -198,9 +218,13 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
-  const list = (bots ?? []) as any[];
+  const list = ((bots ?? []) as any[]).filter((bot) => {
+    if (EXPENSES_BOT_TOKEN && bot.token === EXPENSES_BOT_TOKEN) return false;
+    if (REPORTS_BOT_TOKEN && bot.token !== REPORTS_BOT_TOKEN) return false;
+    return true;
+  });
   if (list.length === 0) {
-    return new Response(JSON.stringify({ ok: true, processed: 0, bots: 0, note: "no active reports bots" }), {
+    return new Response(JSON.stringify({ ok: true, processed: 0, bots: 0, note: "no active reports bots with reports token" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
