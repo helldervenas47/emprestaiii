@@ -34,15 +34,23 @@ Deno.serve(async (req) => {
   }
 
   const { data: bots, error: botsErr } = await supabase.from("system_telegram_bots").select("*");
-  const { data: userCodes, error: ucErr } = await supabase.from("telegram_link_codes").select("*");
-  const { data: reportCodes, error: rcErr } = await supabase.from("telegram_reports_link_codes").select("*");
-  const { data: reportLinks, error: rlErr } = await supabase.from("telegram_reports_links").select("*").order("created_at", { ascending: false }).limit(10);
-  const { data: userLinks, error: ulErr } = await supabase.from("telegram_links").select("*").order("created_at", { ascending: false }).limit(10);
+  const reportsBotId = bots?.find((b: any) => b.purpose === "reports")?.id ?? null;
+
+  const { data: allCodes, error: ucErr } = await supabase.from("telegram_link_codes").select("*").order("created_at", { ascending: false });
+  const { data: allLinks, error: ulErr } = await supabase.from("telegram_links").select("*").order("created_at", { ascending: false }).limit(20);
+
+  const reportCodes = reportsBotId ? (allCodes ?? []).filter((c: any) => c.bot_id === reportsBotId) : [];
+  const reportLinks = reportsBotId ? (allLinks ?? []).filter((l: any) => l.bot_id === reportsBotId) : [];
+  const expenseLinks = reportsBotId ? (allLinks ?? []).filter((l: any) => l.bot_id !== reportsBotId) : (allLinks ?? []);
 
   return new Response(JSON.stringify({
-    bots, userCodes, reportCodes, reportLinks, userLinks,
-    errors: { botsErr, ucErr, rcErr, rlErr, ulErr },
-  }), {
+    bots, reportsBotId,
+    reportCodes, reportLinks,
+    expenseLinks,
+    allCodes,
+    errors: { botsErr, ucErr, ulErr },
+  }, null, 2), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
+
