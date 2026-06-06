@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildTextReportSVG, svgToPng, tgSendPhoto, buildCaptionFromLines } from "../_shared/renderReportImage.ts";
-import { getImageDeliveryPrefs, sendReportsMessage, sendReportsPhoto } from "../_shared/reports-bot.ts";
+import { getImageDeliveryPrefs, sendReportsMessage, sendReportsPhoto, getReportsLinkForUser } from "../_shared/reports-bot.ts";
 
 const GATEWAY_URL = "https://api.telegram.org";
 
