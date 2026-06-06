@@ -91,19 +91,27 @@ function withSplit(base: Record<string, any> | null | undefined, split: PaymentS
 
 function getOpenInstallmentAmountForLoan(loan: Loan, schedules: InstallmentSchedule[], installmentNumber: number): number {
   const schedule = schedules.find((s) => s.loanId === loan.id && s.installmentNumber === installmentNumber);
+  const fallbackFullInstallment = loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments);
   if (installmentNumber !== loan.paidInstallments + 1) {
-    return schedule?.amount ?? (loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments));
+    return schedule?.amount ?? fallbackFullInstallment;
   }
-  if (!schedule) {
-    return loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments);
-  }
+  const fullInstallment = schedule?.amount ?? fallbackFullInstallment;
+  // Desconta pagamentos parciais já feitos na parcela atual (saldo do contrato menor
+  // que o esperado pelas parcelas em aberto = restou só o residual desta parcela).
   if (loan.remainingAmount != null && loan.remainingAmount >= 0) {
     const futureSum = schedules
       .filter((s) => s.loanId === loan.id && s.installmentNumber > installmentNumber)
       .reduce((sum, s) => sum + Number(s.amount || 0), 0);
-    return Math.min(Number(schedule.amount), Math.max(0, Number(loan.remainingAmount) - futureSum));
+    if (schedule) {
+      return Math.min(Number(fullInstallment), Math.max(0, Number(loan.remainingAmount) - futureSum));
+    }
+    // Sem cronograma persistido: assume parcelas futuras com valor cheio.
+    const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
+    const expectedFutureFull = fullInstallment * (remainingInstallments - 1);
+    const currentBalance = Math.max(0, Number(loan.remainingAmount) - expectedFutureFull);
+    return Math.min(Number(fullInstallment), currentBalance);
   }
-  return Number(schedule.amount);
+  return Number(fullInstallment);
 }
 
 async function applyPaymentBalance(amount: number, paymentMethodId: string | null, split: PaymentSplit | null, multiplier = 1) {
