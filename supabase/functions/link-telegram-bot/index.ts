@@ -1,6 +1,7 @@
-// Vincula o usuário autenticado a um chat do Telegram a partir de um código
-// gerado pelo app (telegram-link-code). O usuário deve ter enviado /start CODE
-// para o bot antes de chamar esta função.
+// Vincula o usuário autenticado a um chat do Telegram a partir de um código.
+// Fluxos aceitos:
+// 1) /code no bot -> usuário cola o código alfanumérico no app.
+// 2) código numérico do app -> usuário enviou /start CODE ao bot.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -20,41 +21,71 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
   const botCode = rawCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (!/^[A-Z0-9]{6,12}$/.test(botCode)) return null;
 
-  const { data: botCodeRow, error: botCodeErr } = await admin
-    .from("telegram_bots")
-    .select("id, bot_code, kind, chat_id, bot_id, expires_at")
-    .eq("bot_code", botCode)
-    .maybeSingle();
-  if (botCodeErr) throw botCodeErr;
-  if (!botCodeRow) return null;
+  const kind = requestedKind === "reports" ? "reports" : "expenses";
+  const since = new Date(Date.now() - 16 * 60 * 1000).toISOString();
+  const { data: recentMessages, error: msgErr } = await admin
+    .from("telegram_messages")
+    .select("chat_id, text, raw_update, created_at")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (msgErr) throw msgErr;
 
-  const kind = botCodeRow.kind === "reports" ? "reports" : "expenses";
+  let matched: any = null;
+  for (const message of recentMessages ?? []) {
+    const text = String(message.text ?? "").trim();
+    if (!/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i.test(text)) continue;
+    const chatId = Number(message.chat_id);
+    const validCodes = [
+      await generateChatLinkCode(chatId, kind, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!),
+      await generateChatLinkCode(chatId, kind, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, Date.now() - 15 * 60 * 1000),
+    ];
+    if (validCodes.includes(botCode)) {
+      matched = message;
+      break;
+    }
+  }
+
+  if (!matched) return null;
   if (requestedKind && requestedKind !== kind) {
     return json({ error: `Esse código é de ${kind === "reports" ? "relatórios" : "despesas"}.` }, 400);
   }
-  if (botCodeRow.expires_at && new Date(botCodeRow.expires_at).getTime() < Date.now()) {
-    await admin.from("telegram_bots").delete().eq("id", botCodeRow.id);
-    return json({ error: "Código expirado. Gere um novo no Telegram." }, 410);
-  }
 
   const table = kind === "reports" ? "telegram_reports_links" : "telegram_links";
-  const { data: systemBot } = botCodeRow.bot_id
-    ? await admin.from("system_telegram_bots").select("bot_username, name").eq("id", botCodeRow.bot_id).maybeSingle()
-    : { data: null };
+  const rawBotId = matched.raw_update?._system_bot_id ?? null;
+  const { data: systemBot } = rawBotId
+    ? await admin.from("system_telegram_bots").select("id, bot_username, name").eq("id", rawBotId).maybeSingle()
+    : await admin.from("system_telegram_bots").select("id, bot_username, name").eq("purpose", kind).eq("active", true).order("created_at", { ascending: true }).limit(1).maybeSingle();
   const label = systemBot?.bot_username ? `@${systemBot.bot_username}` : systemBot?.name ?? null;
+  const chatId = Number(matched.chat_id);
 
-  await admin.from(table).delete().or(`chat_id.eq.${botCodeRow.chat_id},user_id.eq.${userId}`);
+  await admin.from(table).delete().or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
   const { error: insErr } = await admin.from(table).insert({
     user_id: userId,
-    chat_id: botCodeRow.chat_id,
-    bot_id: botCodeRow.bot_id ?? null,
+    chat_id: chatId,
+    bot_id: systemBot?.id ?? null,
     bot_code: botCode,
     label,
   });
   if (insErr) return json({ error: insErr.message }, 500);
 
-  await admin.from("telegram_bots").delete().eq("id", botCodeRow.id);
-  return json({ ok: true, kind, chat_id: botCodeRow.chat_id, message: "Bot vinculado com sucesso." });
+  return json({ ok: true, kind, chat_id: chatId, message: "Bot vinculado com sucesso." });
+}
+
+async function generateChatLinkCode(chatId: number, kind: string, secret: string, now = Date.now()): Promise<string> {
+  const bucket = Math.floor(now / (15 * 60 * 1000));
+  const payload = `${kind}:${chatId}:${bucket}`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
+  const bytes = Array.from(new Uint8Array(signature.slice(0, 8)));
+  const value = bytes.reduce((acc, byte) => acc * 256n + BigInt(byte), 0n);
+  return value.toString(36).toUpperCase().padStart(10, "0").slice(0, 6);
 }
 
 Deno.serve(async (req) => {
