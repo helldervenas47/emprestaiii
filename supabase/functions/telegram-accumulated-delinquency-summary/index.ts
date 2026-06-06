@@ -334,8 +334,8 @@ Deno.serve(async (req) => {
 
         if (slotsToSend.length === 0) continue;
 
-        const [{ data: link }, { data: loans }, { data: schedules }, { data: clients }] = await Promise.all([
-          admin.from("telegram_reports_links").select("chat_id").eq("user_id", pref.user_id).maybeSingle(),
+        const [link, { data: loans }, { data: schedules }, { data: clients }] = await Promise.all([
+          getReportsLinkForUser(admin, pref.user_id),
           admin.from("loans").select("id, user_id, borrower_id, borrower_name, due_date, installments, paid_installments, remaining_amount, custom_installment_value, amount, interest_rate, status, late_interest_type, late_interest_value, penalty_value").eq("user_id", resolvedOwnerId).neq("status", "paid"),
           admin.from("loan_installments").select("loan_id, installment_number, due_date, amount").eq("user_id", resolvedOwnerId),
           admin.from("clients").select("id, name, phone").eq("user_id", resolvedOwnerId),
