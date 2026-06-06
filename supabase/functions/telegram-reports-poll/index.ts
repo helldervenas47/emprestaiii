@@ -184,6 +184,8 @@ Deno.serve(async (req) => {
   const startTime = Date.now();
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const EXPENSES_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
+  const REPORTS_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN_REPORTS") ?? "";
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   // Load all active GLOBAL reports bots (system-wide, shared by all accounts)
@@ -198,9 +200,13 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
-  const list = (bots ?? []) as any[];
+  const list = ((bots ?? []) as any[]).filter((bot) => {
+    if (EXPENSES_BOT_TOKEN && bot.token === EXPENSES_BOT_TOKEN) return false;
+    if (REPORTS_BOT_TOKEN && bot.token !== REPORTS_BOT_TOKEN) return false;
+    return true;
+  });
   if (list.length === 0) {
-    return new Response(JSON.stringify({ ok: true, processed: 0, bots: 0, note: "no active reports bots" }), {
+    return new Response(JSON.stringify({ ok: true, processed: 0, bots: 0, note: "no active reports bots with reports token" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
