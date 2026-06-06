@@ -137,13 +137,16 @@ export async function getBotForChat(
   chatId: number | string,
 ): Promise<ReportsBot | null> {
   const numericChat = Number(chatId);
+  const reportsBotId = await getReportsBotId(supabase);
+  if (!reportsBotId) return null;
 
-  // Prefer the reports link for this user+chat
+  // Prefer the reports link for this user+chat (telegram_links filtered by reports bot)
   const { data: rLink } = await supabase
-    .from("telegram_reports_links")
+    .from("telegram_links")
     .select("bot_id")
     .eq("user_id", userId)
     .eq("chat_id", numericChat)
+    .eq("bot_id", reportsBotId)
     .maybeSingle();
 
   const botId: string | null = (rLink as any)?.bot_id ?? null;
