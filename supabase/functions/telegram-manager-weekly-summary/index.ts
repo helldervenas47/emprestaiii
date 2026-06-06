@@ -118,11 +118,7 @@ async function processOwner(
   const template = (pref as any)?.message_template?.trim() || DEFAULT_TEMPLATE;
 
   // Load reports bot link (chat_id) for this owner
-  const { data: link } = await admin
-    .from("telegram_reports_links")
-    .select("chat_id")
-    .eq("user_id", ownerId)
-    .maybeSingle();
+  const link = await getReportsLinkForUser(admin, ownerId);
 
   if (!opts.skip_chat_check && !opts.preview_only && !opts.list_managers && !link) {
     return { owner_id: ownerId, skipped: "no_reports_bot_linked" };
