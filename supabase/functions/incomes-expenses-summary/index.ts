@@ -81,10 +81,9 @@ async function buildAndSend(
   brandName: string,
   titleLabel: string,
 ): Promise<boolean> {
-  const { data: link } = await admin.from("telegram_reports_links")
-    .select("chat_id").eq("user_id", userId).maybeSingle();
+  const link = await getReportsLinkForUser(admin, userId);
   if (!link) return false;
-  const chatId = Number((link as any).chat_id);
+  const chatId = Number(link.chat_id);
 
   // Incomes a receber (pendentes/atrasadas) com vencimento na data
   const { data: incomes } = await admin.from("incomes")
