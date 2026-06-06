@@ -33,21 +33,17 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
-    // Find admin's Telegram chat from telegram_links (bot used to register expenses)
-    // OR telegram_reports_links (reports bot). Prefer reports bot since it's the admin/notifier channel.
-    const { data: reportsLink } = await supabase
-      .from("telegram_reports_links")
-      .select("chat_id")
-      .eq("user_id", owner_id)
-      .maybeSingle();
-
-    const { data: mainLink } = await supabase
-      .from("telegram_links")
-      .select("chat_id")
-      .eq("user_id", owner_id)
-      .maybeSingle();
-
-    const chatId = reportsLink?.chat_id || mainLink?.chat_id;
+    // Prefer reports bot link; fall back to expenses bot link.
+    const reportsLink = await getReportsLinkForUser(supabase, owner_id);
+    const reportsBotId = await getReportsBotId(supabase);
+    let expensesChat: number | null = null;
+    if (!reportsLink) {
+      let q = supabase.from("telegram_links").select("chat_id").eq("user_id", owner_id);
+      if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+      const { data: mainLink } = await q.maybeSingle();
+      expensesChat = mainLink?.chat_id ? Number(mainLink.chat_id) : null;
+    }
+    const chatId = reportsLink?.chat_id || expensesChat;
 
     if (!chatId) {
       return new Response(JSON.stringify({ ok: true, skipped: "no_telegram_link" }), {
