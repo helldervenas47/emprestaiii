@@ -56,8 +56,7 @@ async function buildAndSendWeekly(
   today: string,
   brandName: string,
 ): Promise<boolean> {
-  const { data: link } = await admin.from("telegram_reports_links")
-    .select("chat_id").eq("user_id", userId).maybeSingle();
+  const link = await getReportsLinkForUser(admin, userId);
   if (!link) return false;
 
   const weekStart = addDaysISO(today, -6);
