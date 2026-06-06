@@ -5,7 +5,7 @@ import {
   tgSendPhoto,
   type BrandInfo,
 } from "../_shared/renderReportImage.ts";
-import { getImageDeliveryPrefs, sendReportsMessage, sendReportsPhoto } from "../_shared/reports-bot.ts";
+import { getImageDeliveryPrefs, sendReportsMessage, sendReportsPhoto, getReportsLinkForUser } from "../_shared/reports-bot.ts";
 
 const GATEWAY_URL = "https://api.telegram.org";
 
