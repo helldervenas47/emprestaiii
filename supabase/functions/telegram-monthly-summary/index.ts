@@ -78,8 +78,7 @@ async function buildAndSendMonthly(
   brand: BrandInfo,
   format: "text" | "image" = "text",
 ): Promise<boolean> {
-  const { data: link } = await admin.from("telegram_reports_links")
-    .select("chat_id").eq("user_id", userId).maybeSingle();
+  const link = await getReportsLinkForUser(admin, userId);
   if (!link) return false;
 
   const currMonth = today.slice(0, 7);
