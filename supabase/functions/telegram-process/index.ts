@@ -839,6 +839,7 @@ Vou interpretar e cadastrar automaticamente.
 /meus\_aportes — últimos 10 aportes nas caixinhas
 /resgatar — resgatar saldo de uma caixinha para a conta. Ex.: \`resgatar 200 da caixinha 1\` ou \`resgatar tudo do cofrinho\`
 /help — esta mensagem
+/code — gerar código para colar no app
 /start CODIGO — vincular conta`;
 
 const fmtBRL = (n: number) =>
@@ -1583,6 +1584,22 @@ function telegramHeaders(telegramKey: string, json = true) {
     headers["X-Connection-Api-Key"] = telegramKey;
   }
   return headers;
+}
+
+async function generateChatLinkCode(chatId: number, kind: "expenses" | "reports", secret: string, now = Date.now()): Promise<string> {
+  const bucket = Math.floor(now / (15 * 60 * 1000));
+  const payload = `${kind}:${chatId}:${bucket}`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
+  const bytes = Array.from(new Uint8Array(signature.slice(0, 8)));
+  const value = bytes.reduce((acc, byte) => acc * 256n + BigInt(byte), 0n);
+  return value.toString(36).toUpperCase().padStart(10, "0").slice(0, 6);
 }
 
 async function tgSend(chatId: number, text: string, telegramKey: string): Promise<number | null> {
