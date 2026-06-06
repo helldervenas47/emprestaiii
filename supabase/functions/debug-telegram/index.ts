@@ -36,8 +36,10 @@ Deno.serve(async (req) => {
   const { data: bots } = await supabase.from("system_telegram_bots").select("*");
   const { data: userCodes } = await supabase.from("telegram_link_codes").select("*");
   const { data: reportCodes } = await supabase.from("telegram_reports_link_codes").select("*");
+  const { data: reportLinks } = await supabase.from("telegram_reports_links").select("*").order("created_at", { ascending: false }).limit(10);
+  const { data: userLinks } = await supabase.from("telegram_links").select("*").order("created_at", { ascending: false }).limit(10);
 
-  return new Response(JSON.stringify({ bots, userCodes, reportCodes }), {
+  return new Response(JSON.stringify({ bots, userCodes, reportCodes, reportLinks, userLinks }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
