@@ -1522,7 +1522,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
   const [categoryFilter, setCategoryFilter] = useState<SaleCategory>("all");
   const [incomeCategoryFilter, setIncomeCategoryFilter] = useState<string>("all");
   const [view, setView] = useState<"cards" | "list" | "folders">("list");
-  const [breakdownCard, setBreakdownCard] = useState<null | "overdue" | "paid" | "receivable">(null);
+  const [breakdownCard, setBreakdownCard] = useState<null | "overdue" | "paid" | "receivable" | "ontrack">(null);
 
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
