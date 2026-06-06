@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendReportsMessage } from "../_shared/reports-bot.ts";
+import { sendReportsMessage, getReportsLinkForUser } from "../_shared/reports-bot.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
