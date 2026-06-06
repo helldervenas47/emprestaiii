@@ -26,11 +26,13 @@ export function IncomeTelegramBotButton() {
   const refresh = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setConnected(false); return false; }
-    const { data } = await supabase
+    const reportsBotId = await fetchReportsBotId();
+    let q = supabase
       .from("telegram_links" as any)
       .select("chat_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
+      .eq("user_id", user.id);
+    if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+    const { data } = await q.maybeSingle();
     const isConnected = !!data;
     setConnected(isConnected);
     return isConnected;
