@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { CheckCircle2, Copy, Link2, RefreshCw, Unlink } from "lucide-react";
 import { toast } from "sonner";
 import { generateTelegramLinkCode, invokeUserFunction } from "@/lib/telegramLinkCode";
+import { fetchReportsBotId } from "@/lib/telegramReportsBot";
 
 const TelegramIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
