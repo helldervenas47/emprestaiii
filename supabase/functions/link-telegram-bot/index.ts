@@ -69,18 +69,22 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
     return json({ error: `Esse código é de ${kind === "reports" ? "relatórios" : "despesas"}.` }, 400);
   }
 
-  const table = kind === "reports" ? "telegram_reports_links" : "telegram_links";
+  // Both expenses and reports links live in telegram_links, distinguished by bot_id.
   const rawBotId = matched.raw_update?._system_bot_id ?? null;
   const { data: systemBot } = rawBotId
     ? await admin.from("system_telegram_bots").select("id, bot_username, name").eq("id", rawBotId).maybeSingle()
     : await admin.from("system_telegram_bots").select("id, bot_username, name").eq("purpose", kind).eq("active", true).order("created_at", { ascending: true }).limit(1).maybeSingle();
   const chatId = Number(matched.chat_id);
+  const targetBotId = systemBot?.id ?? null;
 
-  await admin.from(table).delete().or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
-  const { error: insErr } = await admin.from(table).insert({
+  // Remove only the same-kind link for this user/chat (keep the other-kind link intact)
+  let delQuery = admin.from("telegram_links").delete().or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
+  if (targetBotId) delQuery = delQuery.eq("bot_id", targetBotId);
+  await delQuery;
+  const { error: insErr } = await admin.from("telegram_links").insert({
     user_id: userId,
     chat_id: chatId,
-    bot_id: systemBot?.id ?? null,
+    bot_id: targetBotId,
   });
   if (insErr) return json({ error: insErr.message }, 500);
 
