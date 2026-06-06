@@ -79,21 +79,23 @@ export function TelegramBotsManager() {
 
   const loadConnected = async () => {
     setLoadingConnected(true);
-    const [expRes, repRes] = await Promise.all([
-      supabase.from("telegram_links" as any).select("id, chat_id, label, created_at"),
-      supabase.from("telegram_reports_links" as any).select("id, chat_id, label, created_at"),
-    ]);
-    const items: ConnectedLink[] = [
-      ...(((expRes.data as any[]) ?? []).map(r => ({ ...r, kind: "expenses" as const }))),
-      ...(((repRes.data as any[]) ?? []).map(r => ({ ...r, kind: "reports" as const }))),
-    ];
+    // Both expenses and reports links live in telegram_links, differentiated by bot purpose.
+    const { data } = await supabase
+      .from("telegram_links" as any)
+      .select("id, chat_id, label, created_at, bot_id, system_telegram_bots(purpose)");
+    const items: ConnectedLink[] = ((data as any[]) ?? []).map((r) => ({
+      id: r.id,
+      chat_id: r.chat_id,
+      label: r.label,
+      created_at: r.created_at,
+      kind: (r.system_telegram_bots?.purpose === "reports" ? "reports" : "expenses") as "reports" | "expenses",
+    }));
     setConnected(items);
     setLoadingConnected(false);
   };
 
   const disconnectLink = async (link: ConnectedLink) => {
-    const table = link.kind === "reports" ? "telegram_reports_links" : "telegram_links";
-    const { error } = await supabase.from(table as any).delete().eq("id", link.id);
+    const { error } = await supabase.from("telegram_links" as any).delete().eq("id", link.id);
     if (error) toast.error("Erro ao desconectar", { description: error.message });
     else { toast.success("Bot desconectado"); loadConnected(); }
   };
