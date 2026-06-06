@@ -23,6 +23,21 @@ async function tgGetMe(token: string) {
   return await r.json().catch(() => ({}));
 }
 
+async function telegramPostForm(token: string, method: string, params: Record<string, string | boolean | string[]>) {
+  const body = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    body.set(key, Array.isArray(value) ? JSON.stringify(value) : String(value));
+  }
+
+  const r = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+  const data = await r.json().catch(() => ({}));
+  return { ok: r.ok && data?.ok !== false, data };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -51,20 +66,15 @@ Deno.serve(async (req) => {
     // 1) DESPESAS -> setWebhook
     if (expensesToken) {
       const secret = await deriveTelegramWebhookSecret(expensesToken);
-      const r = await fetch(`https://api.telegram.org/bot${expensesToken}/setWebhook`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: webhookUrl,
-          secret_token: secret,
-          allowed_updates: ["message", "edited_message"],
-          drop_pending_updates: true,
-        }),
+      const { ok: setOk, data } = await telegramPostForm(expensesToken, "setWebhook", {
+        url: webhookUrl,
+        secret_token: secret,
+        allowed_updates: ["message", "edited_message", "callback_query"],
+        drop_pending_updates: false,
       });
-      const data = await r.json().catch(() => ({}));
       const me = await tgGetMe(expensesToken);
       const username = me?.result?.username ?? null;
-      results.push({ kind: "expenses", action: "setWebhook", token: maskToken(expensesToken), ok: r.ok && data?.ok !== false, telegram: data, username });
+      results.push({ kind: "expenses", action: "setWebhook", token: maskToken(expensesToken), ok: setOk, telegram: data, username });
       if (username) {
         await supabase.from("system_telegram_bots")
           .update({ last_success_at: new Date().toISOString(), last_error: null, last_error_at: null })
@@ -76,15 +86,12 @@ Deno.serve(async (req) => {
 
     // 2) RELATÓRIOS -> deleteWebhook (usa polling/cron)
     if (reportsToken) {
-      const r = await fetch(`https://api.telegram.org/bot${reportsToken}/deleteWebhook`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ drop_pending_updates: false }),
+      const { ok: deleteOk, data } = await telegramPostForm(reportsToken, "deleteWebhook", {
+        drop_pending_updates: false,
       });
-      const data = await r.json().catch(() => ({}));
       const me = await tgGetMe(reportsToken);
       const username = me?.result?.username ?? null;
-      results.push({ kind: "reports", action: "deleteWebhook", token: maskToken(reportsToken), ok: r.ok && data?.ok !== false, telegram: data, username });
+      results.push({ kind: "reports", action: "deleteWebhook", token: maskToken(reportsToken), ok: deleteOk, telegram: data, username });
     } else {
       results.push({ kind: "reports", skipped: true, reason: "TELEGRAM_BOT_TOKEN_REPORTS ausente" });
     }
