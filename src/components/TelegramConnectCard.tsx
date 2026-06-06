@@ -40,14 +40,17 @@ export function TelegramConnectCard() {
   const refresh = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
-    const { data } = await supabase
+    const reportsBotId = await fetchReportsBotId();
+    let q = supabase
       .from("telegram_links" as any)
       .select("chat_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
+      .eq("user_id", user.id);
+    if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+    const { data } = await q.maybeSingle();
     setLinked(data ? { chat_id: (data as any).chat_id } : null);
     setLoading(false);
   };
+
 
   useEffect(() => {
     refresh();
