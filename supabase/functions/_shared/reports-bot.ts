@@ -1,7 +1,43 @@
 // Shared helpers for the GLOBAL "reports" Telegram bot.
-// Bots are now system-wide (table: system_telegram_bots) and the same bot is
-// reused by every account. Per-account routing is done via telegram_reports_links
-// (chat_id linked through the /code flow).
+// Reports links/codes live in `telegram_links` and `telegram_link_codes`,
+// filtered by `bot_id` = the reports bot (system_telegram_bots.purpose='reports').
+
+let _cachedReportsBotId: { id: string | null; ts: number } | null = null;
+
+/** Returns the active GLOBAL reports bot id (cached 5 min). */
+export async function getReportsBotId(supabase: any): Promise<string | null> {
+  if (_cachedReportsBotId && Date.now() - _cachedReportsBotId.ts < 5 * 60 * 1000) {
+    return _cachedReportsBotId.id;
+  }
+  const { data } = await supabase
+    .from("system_telegram_bots")
+    .select("id")
+    .eq("purpose", "reports")
+    .eq("active", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  const id = (data as any)?.id ?? null;
+  _cachedReportsBotId = { id, ts: Date.now() };
+  return id;
+}
+
+/** Returns { chat_id } for the user's reports-bot link, or null. */
+export async function getReportsLinkForUser(
+  supabase: any,
+  userId: string,
+): Promise<{ chat_id: number } | null> {
+  const botId = await getReportsBotId(supabase);
+  if (!botId) return null;
+  const { data } = await supabase
+    .from("telegram_links")
+    .select("chat_id")
+    .eq("user_id", userId)
+    .eq("bot_id", botId)
+    .maybeSingle();
+  if (!data) return null;
+  return { chat_id: Number((data as any).chat_id) };
+}
 
 export interface ReportsBot {
   id: string;
