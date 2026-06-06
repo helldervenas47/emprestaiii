@@ -77,7 +77,7 @@ function fmtBR(date: string) {
   return `${d}/${m}/${y}`;
 }
 
-import { sendReportsAsImage } from "../_shared/reports-bot.ts";
+import { sendReportsAsImage, getReportsLinkForUser } from "../_shared/reports-bot.ts";
 
 const DEFAULT_TEMPLATE =
   `Olá {nome_gerente}! 👋
