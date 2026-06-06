@@ -21,7 +21,7 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
   const botCode = rawCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (!/^[A-Z0-9]{6,12}$/.test(botCode)) return null;
 
-  const kind = requestedKind === "reports" ? "reports" : "expenses";
+  let kind = requestedKind === "reports" ? "reports" : "expenses";
   const since = new Date(Date.now() - 16 * 60 * 1000).toISOString();
   const { data: recentMessages, error: msgErr } = await admin
     .from("telegram_messages")
@@ -46,7 +46,25 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
     }
   }
 
-  if (!matched) return null;
+  if (!matched) {
+    const { data: legacyRow, error: legacyErr } = await admin
+      .from("telegram_bots")
+      .select("id, kind, chat_id, bot_id, expires_at")
+      .eq("bot_code", botCode)
+      .maybeSingle();
+    if (legacyErr && legacyErr.code !== "PGRST205" && legacyErr.code !== "42P01") throw legacyErr;
+    if (!legacyRow) return null;
+    kind = legacyRow.kind === "reports" ? "reports" : "expenses";
+    if (legacyRow.expires_at && new Date(legacyRow.expires_at).getTime() < Date.now()) {
+      await admin.from("telegram_bots").delete().eq("id", legacyRow.id);
+      return json({ error: "Código expirado. Gere um novo no Telegram." }, 410);
+    }
+    matched = {
+      chat_id: legacyRow.chat_id,
+      raw_update: { _system_bot_id: legacyRow.bot_id },
+      legacy_id: legacyRow.id,
+    };
+  }
   if (requestedKind && requestedKind !== kind) {
     return json({ error: `Esse código é de ${kind === "reports" ? "relatórios" : "despesas"}.` }, 400);
   }
@@ -68,6 +86,10 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
     label,
   });
   if (insErr) return json({ error: insErr.message }, 500);
+
+  if (matched.legacy_id) {
+    await admin.from("telegram_bots").delete().eq("id", matched.legacy_id);
+  }
 
   return json({ ok: true, kind, chat_id: chatId, message: "Bot vinculado com sucesso." });
 }
