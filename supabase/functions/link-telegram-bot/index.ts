@@ -74,7 +74,6 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
   const { data: systemBot } = rawBotId
     ? await admin.from("system_telegram_bots").select("id, bot_username, name").eq("id", rawBotId).maybeSingle()
     : await admin.from("system_telegram_bots").select("id, bot_username, name").eq("purpose", kind).eq("active", true).order("created_at", { ascending: true }).limit(1).maybeSingle();
-  const label = systemBot?.bot_username ? `@${systemBot.bot_username}` : systemBot?.name ?? null;
   const chatId = Number(matched.chat_id);
 
   await admin.from(table).delete().or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
@@ -82,8 +81,6 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
     user_id: userId,
     chat_id: chatId,
     bot_id: systemBot?.id ?? null,
-    bot_code: botCode,
-    label,
   });
   if (insErr) return json({ error: insErr.message }, 500);
 
