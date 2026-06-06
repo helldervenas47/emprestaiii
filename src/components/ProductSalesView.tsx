@@ -1771,7 +1771,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                   const isRecorrente = s.paymentMode === "recorrente" && s.installments > 1;
                   const value = isRecorrente
                     ? getFutureInstallmentsValue(s) + getDueTodayInstallmentValue(s)
-                    : (getSaleCategory(s) === "on-track" || getSaleCategory(s) === "due-today" ? getRemaining(s) : 0);
+                    : (getSaleCategory(s) === "on_track" || getSaleCategory(s) === "due_today" ? getRemaining(s) : 0);
                   return { sale: s, value };
                 })
                 .filter((x) => x.value > 0) }
