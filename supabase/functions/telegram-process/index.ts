@@ -48,8 +48,11 @@ const LINK_CACHE_TTL_MS = 5 * 60 * 1000;
 async function getLinkedUserId(admin: any, chatId: number): Promise<string | null> {
   const cached = linkCache.get(chatId);
   if (cached && cached.expires > Date.now()) return cached.userId;
-  const { data } = await admin.from("telegram_links")
-    .select("user_id").eq("chat_id", chatId).maybeSingle();
+  const reportsBotId = await getReportsBotId(admin);
+  let q = admin.from("telegram_links")
+    .select("user_id").eq("chat_id", chatId);
+  if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+  const { data } = await q.maybeSingle();
   const userId = data?.user_id ?? null;
   linkCache.set(chatId, { userId, expires: Date.now() + LINK_CACHE_TTL_MS });
   return userId;
