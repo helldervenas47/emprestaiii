@@ -38,7 +38,7 @@ function calcLoanTotal(amount: number, rate: number, installments: number) {
   return amount * (1 + (rate / 100) * installments);
 }
 
-import { sendReportsMessage } from "../_shared/reports-bot.ts";
+import { sendReportsMessage, getReportsLinkForUser } from "../_shared/reports-bot.ts";
 
 type IncomeGroup = "Empréstimos" | "Vendas" | "Veículos";
 interface Row { origin: string; description: string; amount: number; group?: IncomeGroup; }
