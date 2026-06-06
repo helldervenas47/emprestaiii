@@ -1763,6 +1763,18 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           : breakdownCard === "paid"
           ? { title: "Pagos", color: "text-success", total: totalPaid,
               items: sales.map((s) => ({ sale: s, value: getSalePaidAmount(s) })).filter((x) => x.value > 0) }
+          : breakdownCard === "ontrack"
+          ? { title: "No Prazo", color: "text-primary", total: totalOnTrack + totalDueToday,
+              items: sales
+                .filter((s) => getSaleCategory(s) !== "paid")
+                .map((s) => {
+                  const isRecorrente = s.paymentMode === "recorrente" && s.installments > 1;
+                  const value = isRecorrente
+                    ? getFutureInstallmentsValue(s) + getDueTodayInstallmentValue(s)
+                    : (getSaleCategory(s) === "on-track" || getSaleCategory(s) === "due-today" ? getRemaining(s) : 0);
+                  return { sale: s, value };
+                })
+                .filter((x) => x.value > 0) }
           : { title: "Total a Receber", color: "text-warning", total: totalAReceber,
               items: sales.filter((s) => getSaleCategory(s) !== "paid").map((s) => ({ sale: s, value: getRemaining(s) })).filter((x) => x.value > 0) };
         const sorted = [...cfg.items].sort((a, b) => b.value - a.value);
