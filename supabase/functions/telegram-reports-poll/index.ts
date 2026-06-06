@@ -194,6 +194,25 @@ Deno.serve(async (req) => {
   const REPORTS_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN_REPORTS") ?? "";
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  // Concurrency guard: if another invocation logged a run < 15s ago and we're not
+  // forced, skip silently to prevent overlapping getUpdates → 409 noise.
+  const force = new URL(req.url).searchParams.get("force") === "1";
+  if (!force) {
+    const { data: recent } = await supabase
+      .from("telegram_job_logs")
+      .select("created_at")
+      .eq("job", "telegram-reports-poll")
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const lastTs = recent?.[0]?.created_at ? new Date(recent[0].created_at as string).getTime() : 0;
+    const sinceLastMs = Date.now() - lastTs;
+    if (lastTs && sinceLastMs < 15_000) {
+      return new Response(JSON.stringify({ ok: true, skipped: true, reason: "recent run in flight", sinceLastMs }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
   // Load all active GLOBAL reports bots (system-wide, shared by all accounts)
   const { data: bots, error } = await supabase
     .from("system_telegram_bots")
