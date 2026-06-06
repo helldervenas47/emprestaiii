@@ -156,21 +156,25 @@ Deno.serve(async (req) => {
     }).catch(() => null);
 
     // Já vinculado? (telegram-process pode ter criado o link via /start CODE)
-    const { data: existingLink } = await admin
+    // Filtra para NÃO considerar links do bot de relatórios.
+    const reportsBotId = await getReportsBotId(admin);
+    let existingQuery = admin
       .from("telegram_links")
       .select("chat_id")
-      .eq("user_id", userId)
-      .maybeSingle();
+      .eq("user_id", userId);
+    if (reportsBotId) existingQuery = existingQuery.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+    const { data: existingLink } = await existingQuery.maybeSingle();
     if (existingLink) {
       return json({ ok: true, chat_id: existingLink.chat_id, already_linked: true });
     }
 
-    // Localiza o código gerado pelo app
-    const { data: codeRow } = await admin
+    // Localiza o código gerado pelo app (somente códigos de despesas — bot_id null ou != reports)
+    let codeQuery = admin
       .from("telegram_link_codes")
-      .select("code, user_id, expires_at")
-      .eq("code", code)
-      .maybeSingle();
+      .select("code, user_id, expires_at, bot_id")
+      .eq("code", code);
+    if (reportsBotId) codeQuery = codeQuery.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+    const { data: codeRow } = await codeQuery.maybeSingle();
 
     if (!codeRow) {
       return json({ error: `Código ${code} não encontrado. Gere um novo no app.` }, 404);
@@ -200,11 +204,13 @@ Deno.serve(async (req) => {
       }, 404);
     }
 
-    // Remove vínculos antigos do mesmo chat ou usuário, depois cria o novo
-    await admin
+    // Remove vínculos antigos do mesmo chat ou usuário (somente do lado despesas), depois cria o novo
+    let delQuery = admin
       .from("telegram_links")
       .delete()
       .or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
+    if (reportsBotId) delQuery = delQuery.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+    await delQuery;
 
     const { error: insErr } = await admin
       .from("telegram_links")
