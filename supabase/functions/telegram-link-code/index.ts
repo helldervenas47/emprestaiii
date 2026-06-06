@@ -5,6 +5,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -14,15 +21,14 @@ Deno.serve(async (req) => {
 
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    return json({ error: "Unauthorized" }, 401);
   }
 
-  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: { user }, error: userErr } = await userClient.auth.getUser();
+  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const { data: { user }, error: userErr } = await userClient.auth.getUser(token);
   if (userErr || !user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    return json({ error: "Unauthorized" }, 401);
   }
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -31,22 +37,11 @@ Deno.serve(async (req) => {
   const { data: existing } = await admin.from("telegram_links")
     .select("chat_id").eq("user_id", user.id).maybeSingle();
   if (existing) {
-    return new Response(JSON.stringify({ alreadyLinked: true, chat_id: existing.chat_id }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ alreadyLinked: true, chat_id: existing.chat_id });
   }
 
   // Cleanup old codes for this user
   await admin.from("telegram_link_codes").delete().eq("user_id", user.id);
-
-  const { data: expenseBot } = await admin
-    .from("system_telegram_bots")
-    .select("id")
-    .eq("active", true)
-    .eq("purpose", "expenses")
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
 
   // Generate unique 6-digit code
   let code = "";
@@ -63,10 +58,8 @@ Deno.serve(async (req) => {
     expires_at: expiresAt,
   });
   if (insErr) {
-    return new Response(JSON.stringify({ error: insErr.message }), { status: 500, headers: corsHeaders });
+    return json({ error: insErr.message }, 500);
   }
 
-  return new Response(JSON.stringify({ code, expiresAt, expiresInMinutes: 30 }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  return json({ code, expiresAt, expiresInMinutes: 30 });
 });
