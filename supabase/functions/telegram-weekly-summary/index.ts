@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildTextReportSVG, svgToPng, tgSendPhoto, buildCaptionFromLines } from "../_shared/renderReportImage.ts";
-import { getImageDeliveryPrefs } from "../_shared/reports-bot.ts";
+import { getImageDeliveryPrefs, sendReportsMessage, sendReportsPhoto } from "../_shared/reports-bot.ts";
 
 const GATEWAY_URL = "https://api.telegram.org";
 
@@ -54,10 +54,9 @@ async function buildAndSendWeekly(
   admin: any,
   userId: string,
   today: string,
-  telegramKey: string,
   brandName: string,
 ): Promise<boolean> {
-  const { data: link } = await admin.from("telegram_links")
+  const { data: link } = await admin.from("telegram_reports_links")
     .select("chat_id").eq("user_id", userId).maybeSingle();
   if (!link) return false;
 
@@ -116,10 +115,12 @@ async function buildAndSendWeekly(
     const svg = buildTextReportSVG(lines, { name: brandName });
     const png = await svgToPng(svg);
     const caption = prefs.includeText ? buildCaptionFromLines(lines, { name: brandName }) : "";
-    await tgSendPhoto(Number(link.chat_id), png, caption, telegramKey);
+    const photoRes = await sendReportsPhoto(admin, userId, Number(link.chat_id), png, caption);
+    if (!photoRes.sent) throw new Error(photoRes.reason ?? "send_photo_failed");
   } catch (e) {
     console.error("weekly-summary image render failed, falling back to text", e);
-    await tgSend(Number(link.chat_id), lines.join("\n"), telegramKey);
+    const textRes = await sendReportsMessage(admin, userId, Number(link.chat_id), lines.join("\n"));
+    if (!textRes.sent) throw new Error(textRes.reason ?? "send_message_failed");
   }
   return true;
 }
@@ -127,7 +128,6 @@ async function buildAndSendWeekly(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
     if (userErr || !user) return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
     if (user.id !== forceUserId) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
 
-    const ok = await buildAndSendWeekly(admin, forceUserId, today, TELEGRAM_API_KEY, brandName);
+    const ok = await buildAndSendWeekly(admin, forceUserId, today, brandName);
     return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0 }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
       if (nowMin < target || nowMin >= target + 5) continue;
       if ((pref as any).last_weekly_sent_date === today) continue;
 
-      const ok = await buildAndSendWeekly(admin, (pref as any).user_id, today, TELEGRAM_API_KEY, brandName);
+      const ok = await buildAndSendWeekly(admin, (pref as any).user_id, today, brandName);
       if (ok) {
         await admin.from("telegram_summary_prefs")
           .update({ last_weekly_sent_date: today })
