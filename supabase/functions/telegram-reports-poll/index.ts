@@ -186,6 +186,26 @@ Deno.serve(async (req) => {
   const REPORTS_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN_REPORTS") ?? "";
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  // Segurança: o polling de relatórios estava limpando o webhook do bot de
+  // despesas por conflito 409. Enquanto o vínculo financeiro depende de
+  // webhook, esta função não pode chamar getUpdates/deleteWebhook.
+  await supabase.from("telegram_job_logs").insert({
+    job: "telegram-reports-poll",
+    ok: true,
+    processed: 0,
+    duration_ms: Date.now() - startTime,
+    details: { skipped: true, reason: "polling disabled to preserve expenses webhook" },
+  }).then(() => null).catch(() => null);
+  return new Response(JSON.stringify({
+    ok: true,
+    processed: 0,
+    bots: 0,
+    skipped: true,
+    note: "reports polling disabled to preserve expenses webhook",
+  }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
   // Load all active GLOBAL reports bots (system-wide, shared by all accounts)
   const { data: bots, error } = await supabase
     .from("system_telegram_bots")
