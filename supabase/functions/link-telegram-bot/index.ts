@@ -3,6 +3,7 @@
 // 1) /code no bot -> usuário cola o código alfanumérico no app.
 // 2) código numérico do app -> usuário enviou /start CODE ao bot.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getReportsBotId } from "../_shared/reports-bot.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
