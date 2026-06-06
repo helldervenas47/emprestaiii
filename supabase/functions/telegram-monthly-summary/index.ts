@@ -5,7 +5,7 @@ import {
   tgSendPhoto,
   type BrandInfo,
 } from "../_shared/renderReportImage.ts";
-import { getImageDeliveryPrefs, sendReportsMessage, sendReportsPhoto } from "../_shared/reports-bot.ts";
+import { getImageDeliveryPrefs, sendReportsMessage, sendReportsPhoto, getReportsLinkForUser } from "../_shared/reports-bot.ts";
 
 const GATEWAY_URL = "https://api.telegram.org";
 
@@ -78,8 +78,7 @@ async function buildAndSendMonthly(
   brand: BrandInfo,
   format: "text" | "image" = "text",
 ): Promise<boolean> {
-  const { data: link } = await admin.from("telegram_reports_links")
-    .select("chat_id").eq("user_id", userId).maybeSingle();
+  const link = await getReportsLinkForUser(admin, userId);
   if (!link) return false;
 
   const currMonth = today.slice(0, 7);

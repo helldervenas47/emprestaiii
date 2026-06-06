@@ -117,15 +117,15 @@ async function processBot(
       if (startMatch) {
         const code = startMatch[1];
         const { data: codeRow } = await supabase
-          .from("telegram_reports_link_codes")
-          .select("user_id, expires_at").eq("code", code).maybeSingle();
+          .from("telegram_link_codes")
+          .select("user_id, expires_at, bot_id").eq("code", code).eq("bot_id", bot.id).maybeSingle();
         if (!codeRow) {
           await tgSend(bot.token, chatId, "❌ Código inválido ou expirado. Gere um novo no app.");
         } else if (new Date((codeRow as any).expires_at).getTime() < Date.now()) {
           await tgSend(bot.token, chatId, "⌛ Código expirado. Gere um novo no app.");
-          await supabase.from("telegram_reports_link_codes").delete().eq("code", code);
+          await supabase.from("telegram_link_codes").delete().eq("code", code);
         } else {
-          await supabase.from("telegram_reports_links").upsert(
+          await supabase.from("telegram_links").upsert(
             {
               user_id: (codeRow as any).user_id,
               chat_id: chatId,
@@ -134,7 +134,8 @@ async function processBot(
             },
             { onConflict: "user_id,chat_id" },
           );
-          await supabase.from("telegram_reports_link_codes").delete().eq("user_id", (codeRow as any).user_id);
+          await supabase.from("telegram_link_codes").delete()
+            .eq("user_id", (codeRow as any).user_id).eq("bot_id", bot.id);
           await tgSend(bot.token, chatId, "✅ *Bot de Relatórios conectado!*\n\nVocê receberá os relatórios nos horários configurados.");
         }
       } else if (codeMatch) {

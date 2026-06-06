@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildTextReportSVG, svgToPng, tgSendPhoto, buildCaptionFromLines } from "../_shared/renderReportImage.ts";
-import { getImageDeliveryPrefs, sendReportsMessage, sendReportsPhoto } from "../_shared/reports-bot.ts";
+import { getImageDeliveryPrefs, sendReportsMessage, sendReportsPhoto, getReportsLinkForUser } from "../_shared/reports-bot.ts";
 
 const GATEWAY_URL = "https://api.telegram.org";
 
@@ -101,8 +101,7 @@ Deno.serve(async (req) => {
       }
 
       // Resolve chat
-      const { data: link } = await admin.from("telegram_reports_links")
-        .select("chat_id").eq("user_id", pref.user_id).maybeSingle();
+      const link = await getReportsLinkForUser(admin, pref.user_id);
       if (!link) continue;
 
       // Today's personal expenses paid today

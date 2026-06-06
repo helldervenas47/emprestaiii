@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getReportsBotId } from "../_shared/reports-bot.ts";
 
 const GATEWAY_URL = "https://api.telegram.org";
 const AI_GATEWAY = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
@@ -47,8 +48,11 @@ const LINK_CACHE_TTL_MS = 5 * 60 * 1000;
 async function getLinkedUserId(admin: any, chatId: number): Promise<string | null> {
   const cached = linkCache.get(chatId);
   if (cached && cached.expires > Date.now()) return cached.userId;
-  const { data } = await admin.from("telegram_links")
-    .select("user_id").eq("chat_id", chatId).maybeSingle();
+  const reportsBotId = await getReportsBotId(admin);
+  let q = admin.from("telegram_links")
+    .select("user_id").eq("chat_id", chatId);
+  if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+  const { data } = await q.maybeSingle();
   const userId = data?.user_id ?? null;
   linkCache.set(chatId, { userId, expires: Date.now() + LINK_CACHE_TTL_MS });
   return userId;
@@ -2821,12 +2825,15 @@ Deno.serve(async (req) => {
       if (startMatch) {
         const code = startMatch[1];
         const rawBotId = (msg.raw_update as any)?._system_bot_id as string | undefined;
-        const { data: codeRow } = await admin.from("telegram_link_codes")
+        const reportsBotIdEx = await getReportsBotId(admin);
+        // Lookup expenses code only (exclui códigos do bot de relatórios)
+        let codeQ = admin.from("telegram_link_codes")
           .select("*")
           .eq("code", code)
           .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(1);
+        if (reportsBotIdEx) codeQ = codeQ.or(`bot_id.is.null,bot_id.neq.${reportsBotIdEx}`);
+        const { data: codeRow } = await codeQ.maybeSingle();
         if (!codeRow) {
           const { data: anyCode } = await admin.from("telegram_link_codes")
             .select("expires_at")
@@ -2842,8 +2849,10 @@ Deno.serve(async (req) => {
           await admin.from("telegram_link_codes").delete().eq("id", codeRow.id);
           await tgSend(chatId, "⏰ Código expirado. Gere um novo no app e envie logo em seguida neste bot.", telegramKey);
         } else {
-          // Remove any prior link for this chat or user
-          await admin.from("telegram_links").delete().or(`chat_id.eq.${chatId},user_id.eq.${codeRow.user_id}`);
+          // Remove any prior expenses link for this chat or user (preserva link de relatórios)
+          let delQ = admin.from("telegram_links").delete().or(`chat_id.eq.${chatId},user_id.eq.${codeRow.user_id}`);
+          if (reportsBotIdEx) delQ = delQ.or(`bot_id.is.null,bot_id.neq.${reportsBotIdEx}`);
+          await delQ;
           invalidateLinkCache(chatId);
           const { error: linkErr } = await admin.from("telegram_links")
             .insert({ user_id: codeRow.user_id, chat_id: chatId, bot_id: codeRow.bot_id ?? rawBotId ?? null });

@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { CheckCircle2, Copy, Link2, RefreshCw, Unlink } from "lucide-react";
 import { toast } from "sonner";
 import { generateTelegramLinkCode, invokeUserFunction } from "@/lib/telegramLinkCode";
+import { fetchReportsBotId } from "@/lib/telegramReportsBot";
 
 const TelegramIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
@@ -25,11 +26,13 @@ export function IncomeTelegramBotButton() {
   const refresh = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setConnected(false); return false; }
-    const { data } = await supabase
+    const reportsBotId = await fetchReportsBotId();
+    let q = supabase
       .from("telegram_links" as any)
       .select("chat_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
+      .eq("user_id", user.id);
+    if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+    const { data } = await q.maybeSingle();
     const isConnected = !!data;
     setConnected(isConnected);
     return isConnected;
@@ -121,7 +124,10 @@ export function IncomeTelegramBotButton() {
   const handleDisconnect = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { error } = await supabase.from("telegram_links" as any).delete().eq("user_id", user.id);
+    const reportsBotId = await fetchReportsBotId();
+    let q = supabase.from("telegram_links" as any).delete().eq("user_id", user.id);
+    if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+    const { error } = await q;
     if (error) {
       toast.error("Erro ao desconectar", { description: error.message });
       return;

@@ -3,6 +3,7 @@
 // 1) /code no bot -> usuário cola o código alfanumérico no app.
 // 2) código numérico do app -> usuário enviou /start CODE ao bot.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getReportsBotId } from "../_shared/reports-bot.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -69,18 +70,22 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
     return json({ error: `Esse código é de ${kind === "reports" ? "relatórios" : "despesas"}.` }, 400);
   }
 
-  const table = kind === "reports" ? "telegram_reports_links" : "telegram_links";
+  // Both expenses and reports links live in telegram_links, distinguished by bot_id.
   const rawBotId = matched.raw_update?._system_bot_id ?? null;
   const { data: systemBot } = rawBotId
     ? await admin.from("system_telegram_bots").select("id, bot_username, name").eq("id", rawBotId).maybeSingle()
     : await admin.from("system_telegram_bots").select("id, bot_username, name").eq("purpose", kind).eq("active", true).order("created_at", { ascending: true }).limit(1).maybeSingle();
   const chatId = Number(matched.chat_id);
+  const targetBotId = systemBot?.id ?? null;
 
-  await admin.from(table).delete().or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
-  const { error: insErr } = await admin.from(table).insert({
+  // Remove only the same-kind link for this user/chat (keep the other-kind link intact)
+  let delQuery = admin.from("telegram_links").delete().or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
+  if (targetBotId) delQuery = delQuery.eq("bot_id", targetBotId);
+  await delQuery;
+  const { error: insErr } = await admin.from("telegram_links").insert({
     user_id: userId,
     chat_id: chatId,
-    bot_id: systemBot?.id ?? null,
+    bot_id: targetBotId,
   });
   if (insErr) return json({ error: insErr.message }, 500);
 
@@ -151,21 +156,25 @@ Deno.serve(async (req) => {
     }).catch(() => null);
 
     // Já vinculado? (telegram-process pode ter criado o link via /start CODE)
-    const { data: existingLink } = await admin
+    // Filtra para NÃO considerar links do bot de relatórios.
+    const reportsBotId = await getReportsBotId(admin);
+    let existingQuery = admin
       .from("telegram_links")
       .select("chat_id")
-      .eq("user_id", userId)
-      .maybeSingle();
+      .eq("user_id", userId);
+    if (reportsBotId) existingQuery = existingQuery.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+    const { data: existingLink } = await existingQuery.maybeSingle();
     if (existingLink) {
       return json({ ok: true, chat_id: existingLink.chat_id, already_linked: true });
     }
 
-    // Localiza o código gerado pelo app
-    const { data: codeRow } = await admin
+    // Localiza o código gerado pelo app (somente códigos de despesas — bot_id null ou != reports)
+    let codeQuery = admin
       .from("telegram_link_codes")
-      .select("code, user_id, expires_at")
-      .eq("code", code)
-      .maybeSingle();
+      .select("code, user_id, expires_at, bot_id")
+      .eq("code", code);
+    if (reportsBotId) codeQuery = codeQuery.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+    const { data: codeRow } = await codeQuery.maybeSingle();
 
     if (!codeRow) {
       return json({ error: `Código ${code} não encontrado. Gere um novo no app.` }, 404);
@@ -195,11 +204,13 @@ Deno.serve(async (req) => {
       }, 404);
     }
 
-    // Remove vínculos antigos do mesmo chat ou usuário, depois cria o novo
-    await admin
+    // Remove vínculos antigos do mesmo chat ou usuário (somente do lado despesas), depois cria o novo
+    let delQuery = admin
       .from("telegram_links")
       .delete()
       .or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
+    if (reportsBotId) delQuery = delQuery.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+    await delQuery;
 
     const { error: insErr } = await admin
       .from("telegram_links")

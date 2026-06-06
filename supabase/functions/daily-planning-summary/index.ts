@@ -38,7 +38,7 @@ function calcLoanTotal(amount: number, rate: number, installments: number) {
   return amount * (1 + (rate / 100) * installments);
 }
 
-import { sendReportsMessage } from "../_shared/reports-bot.ts";
+import { sendReportsMessage, getReportsLinkForUser } from "../_shared/reports-bot.ts";
 
 type IncomeGroup = "Empréstimos" | "Vendas" | "Veículos";
 interface Row { origin: string; description: string; amount: number; group?: IncomeGroup; }
@@ -51,11 +51,10 @@ async function buildAndSend(
   titleLabel = "Planejamento do Dia",
 ): Promise<boolean> {
   // Resolve report bot chat
-  const { data: link } = await admin.from("telegram_reports_links")
-    .select("chat_id").eq("user_id", userId).maybeSingle();
+  const link = await getReportsLinkForUser(admin, userId);
   if (!link) return false;
 
-  const chatId = Number((link as any).chat_id);
+  const chatId = Number(link.chat_id);
   const day = Number(date.slice(8, 10));
 
   // Loans + schedules
