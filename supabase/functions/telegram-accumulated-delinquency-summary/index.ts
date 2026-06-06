@@ -251,7 +251,7 @@ function buildTelegramMessage(items: ReportItem[]) {
   return lines.join("\n").trim();
 }
 
-import { sendReportsAsImage } from "../_shared/reports-bot.ts";
+import { sendReportsAsImage, getReportsLinkForUser } from "../_shared/reports-bot.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
