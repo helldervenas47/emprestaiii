@@ -1522,7 +1522,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
   const [categoryFilter, setCategoryFilter] = useState<SaleCategory>("all");
   const [incomeCategoryFilter, setIncomeCategoryFilter] = useState<string>("all");
   const [view, setView] = useState<"cards" | "list" | "folders">("list");
-  const [breakdownCard, setBreakdownCard] = useState<null | "overdue" | "paid" | "receivable">(null);
+  const [breakdownCard, setBreakdownCard] = useState<null | "overdue" | "paid" | "receivable" | "ontrack">(null);
 
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -1728,14 +1728,14 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           <p className="text-[10px] text-muted-foreground mt-1">{overdueSales.length} contratos</p>
         </button>
         {!hideOnTrackCard && (
-          <div className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
+          <button type="button" onClick={() => setBreakdownCard("ontrack")} className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center hover:border-primary/40 hover:shadow-md transition-all cursor-pointer" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
               <Clock className="h-4 w-4 text-primary" />
             </div>
             <p className="text-[10px] sm:text-xs text-muted-foreground">No Prazo</p>
             <p className="text-sm sm:text-xl font-bold text-primary mt-0.5">{formatCurrency(totalOnTrack + totalDueToday)}</p>
             <p className="text-[10px] text-muted-foreground mt-1">{onTrackSales.length + dueTodaySales.length} contratos</p>
-          </div>
+          </button>
         )}
         <button type="button" onClick={() => setBreakdownCard("paid")} className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center hover:border-success/40 hover:shadow-md transition-all cursor-pointer" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
           <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
@@ -1763,6 +1763,18 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           : breakdownCard === "paid"
           ? { title: "Pagos", color: "text-success", total: totalPaid,
               items: sales.map((s) => ({ sale: s, value: getSalePaidAmount(s) })).filter((x) => x.value > 0) }
+          : breakdownCard === "ontrack"
+          ? { title: "No Prazo", color: "text-primary", total: totalOnTrack + totalDueToday,
+              items: sales
+                .filter((s) => getSaleCategory(s) !== "paid")
+                .map((s) => {
+                  const isRecorrente = s.paymentMode === "recorrente" && s.installments > 1;
+                  const value = isRecorrente
+                    ? getFutureInstallmentsValue(s) + getDueTodayInstallmentValue(s)
+                    : (getSaleCategory(s) === "on_track" || getSaleCategory(s) === "due_today" ? getRemaining(s) : 0);
+                  return { sale: s, value };
+                })
+                .filter((x) => x.value > 0) }
           : { title: "Total a Receber", color: "text-warning", total: totalAReceber,
               items: sales.filter((s) => getSaleCategory(s) !== "paid").map((s) => ({ sale: s, value: getRemaining(s) })).filter((x) => x.value > 0) };
         const sorted = [...cfg.items].sort((a, b) => b.value - a.value);
