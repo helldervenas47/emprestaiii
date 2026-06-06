@@ -36,14 +36,16 @@ Deno.serve(async (req) => {
   const { data: bots, error: botsErr } = await supabase.from("system_telegram_bots").select("*");
   const { data: expenseCodes, error: ucErr } = await supabase.from("telegram_link_codes").select("*").order("created_at", { ascending: false });
   const { data: expenseLinks, error: ulErr } = await supabase.from("telegram_links").select("*").order("created_at", { ascending: false }).limit(20);
-  const { data: reportCodes, error: rcErr } = await supabase.from("telegram_reports_link_codes").select("*").order("created_at", { ascending: false });
-  const { data: reportLinks, error: rlErr } = await supabase.from("telegram_reports_links").select("*").order("created_at", { ascending: false }).limit(20);
+  // Reports e despesas agora compartilham telegram_links / telegram_link_codes,
+  // diferenciados por bot_id (system_telegram_bots.purpose).
+  const reportCodes = (expenseCodes ?? []).filter((c: any) => bots?.some?.((b: any) => b.id === c.bot_id && b.purpose === "reports"));
+  const reportLinks = (expenseLinks ?? []).filter((l: any) => bots?.some?.((b: any) => b.id === l.bot_id && b.purpose === "reports"));
 
   return new Response(JSON.stringify({
     bots,
     expenseCodes, expenseLinks,
     reportCodes, reportLinks,
-    errors: { botsErr, ucErr, ulErr, rcErr, rlErr },
+    errors: { botsErr, ucErr, ulErr },
   }, null, 2), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
