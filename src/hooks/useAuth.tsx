@@ -156,7 +156,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Initial session check — trust localStorage (Supabase manages it).
     // Each device has its own refresh token, so multiple devices can stay logged in.
-    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
+    (async () => {
+      // Guard: tokens emitidos por outro projeto Supabase (ex.: pós-migração)
+      // retornam "bad_jwt" / "invalid claim: missing sub claim". Limpamos local
+      // e seguimos sem sessão, evitando loop de 403 em /auth/v1/user.
+      try {
+        const { error: userErr } = await supabase.auth.getUser();
+        if (userErr) {
+          const msg = `${(userErr as any)?.code || ""} ${userErr.message || ""}`.toLowerCase();
+          if (msg.includes("bad_jwt") || msg.includes("missing sub") || msg.includes("invalid claim")) {
+            await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+            try {
+              Object.keys(localStorage).forEach((k) => { if (k.startsWith("sb-")) localStorage.removeItem(k); });
+            } catch {}
+          }
+        }
+      } catch {}
+
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
       if (!mounted) return;
 
       if (currentSession) {
@@ -166,7 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (mounted) setLoading(false);
-    });
+    })();
 
     // Cross-tab sync: when auth changes in another tab of the same browser,
     // Supabase updates localStorage. Listen and refresh our state.
