@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildTextReportSVG, svgToPng, tgSendPhoto, buildCaptionFromLines } from "../_shared/renderReportImage.ts";
-import { getImageDeliveryPrefs } from "../_shared/reports-bot.ts";
+import { getImageDeliveryPrefs, sendReportsMessage, sendReportsPhoto } from "../_shared/reports-bot.ts";
 
 const GATEWAY_URL = "https://api.telegram.org";
 
@@ -41,7 +41,6 @@ async function tgSend(chatId: number, text: string, telegramKey: string) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -102,7 +101,7 @@ Deno.serve(async (req) => {
       }
 
       // Resolve chat
-      const { data: link } = await admin.from("telegram_links")
+      const { data: link } = await admin.from("telegram_reports_links")
         .select("chat_id").eq("user_id", pref.user_id).maybeSingle();
       if (!link) continue;
 
@@ -204,10 +203,12 @@ Deno.serve(async (req) => {
         const svg = buildTextReportSVG(lines, { name: brandName });
         const png = await svgToPng(svg);
         const caption = dailyPrefs.includeText ? buildCaptionFromLines(lines, { name: brandName }) : "";
-        await tgSendPhoto(Number(link.chat_id), png, caption, TELEGRAM_API_KEY);
+        const photoRes = await sendReportsPhoto(admin, pref.user_id, Number(link.chat_id), png, caption);
+        if (!photoRes.sent) throw new Error(photoRes.reason ?? "send_photo_failed");
       } catch (e) {
         console.error("daily-summary image render failed, falling back to text", e);
-        await tgSend(Number(link.chat_id), lines.join("\n"), TELEGRAM_API_KEY);
+        const textRes = await sendReportsMessage(admin, pref.user_id, Number(link.chat_id), lines.join("\n"));
+        if (!textRes.sent) throw new Error(textRes.reason ?? "send_message_failed");
       }
 
       if (!forceUserId) {
