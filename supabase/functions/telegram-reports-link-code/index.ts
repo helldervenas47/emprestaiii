@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getReportsBotId } from "../_shared/reports-bot.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,34 +18,38 @@ Deno.serve(async (req) => {
 
   const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const token = authHeader.replace(/^Bearer\s+/i, "");
-    const { data: { user }, error: userErr } = await userClient.auth.getUser(token);
-    const userId = user?.id;
-    if (userErr || !userId) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-    }
+  const { data: { user }, error: userErr } = await userClient.auth.getUser(token);
+  const userId = user?.id;
+  if (userErr || !userId) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+  }
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const reportsBotId = await getReportsBotId(admin);
+  if (!reportsBotId) {
+    return new Response(JSON.stringify({ error: "Bot de relatórios não configurado." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
 
-  const { data: existing } = await admin.from("telegram_reports_links")
-    .select("chat_id").eq("user_id", userId).maybeSingle();
+  const { data: existing } = await admin.from("telegram_links")
+    .select("chat_id").eq("user_id", userId).eq("bot_id", reportsBotId).maybeSingle();
   if (existing) {
     return new Response(JSON.stringify({ alreadyLinked: true, chat_id: existing.chat_id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  await admin.from("telegram_reports_link_codes").delete().eq("user_id", userId);
+  await admin.from("telegram_link_codes").delete().eq("user_id", userId).eq("bot_id", reportsBotId);
 
   let code = "";
   for (let i = 0; i < 5; i++) {
     code = Math.floor(100000 + Math.random() * 900000).toString();
-    const { data: clash } = await admin.from("telegram_reports_link_codes").select("id").eq("code", code).maybeSingle();
+    const { data: clash } = await admin.from("telegram_link_codes").select("id").eq("code", code).maybeSingle();
     if (!clash) break;
   }
 
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-  const { error: insErr } = await admin.from("telegram_reports_link_codes").insert({
-    code, user_id: userId, expires_at: expiresAt,
+  const { error: insErr } = await admin.from("telegram_link_codes").insert({
+    code, user_id: userId, bot_id: reportsBotId, expires_at: expiresAt,
   });
   if (insErr) return new Response(JSON.stringify({ error: insErr.message }), { status: 500, headers: corsHeaders });
 
