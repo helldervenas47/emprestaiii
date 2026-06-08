@@ -503,6 +503,11 @@ const Index = () => {
   });
 
   const canAccessTab = (id: Tab) => visibleTabs.some((t) => t.id === id);
+  // Tab existe na configuração geral mas o usuário não tem permissão →
+  // exibimos página de "acesso negado" em vez de redirecionar silenciosamente.
+  const tabAccessDenied = !loading
+    && tabConfig.some((t) => t.id === tab)
+    && !visibleTabs.some((t) => t.id === tab);
 
   // Itens da barra inferior mobile: prioriza pinnedTabs (ordem do usuário),
   // completa com as demais abas visíveis e limita a 4 (o 5º slot é "Mais").
@@ -516,7 +521,13 @@ const Index = () => {
   const bottomItemIds = bottomItems.map((i) => i.id);
 
   useEffect(() => {
-    if (visibleTabs.length > 0 && !visibleTabs.find((item) => item.id === tab)) {
+    // Só redireciona se a aba atual sumiu da configuração (ex: feature removida).
+    // Se existe na configuração mas o usuário não tem permissão, mantemos
+    // a aba selecionada para renderizar a tela de "acesso negado".
+    if (
+      visibleTabs.length > 0
+      && !tabConfig.some((item) => item.id === tab)
+    ) {
       setTab(visibleTabs[0].id);
     }
   }, [tab, visibleTabs]);
