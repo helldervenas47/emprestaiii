@@ -35,7 +35,8 @@ function normalizeTelegramBotCode(input: string) {
 
 async function linkByBotCode(admin: any, userId: string, rawCode: string, requestedKind?: string) {
   const botCode = normalizeTelegramBotCode(rawCode);
-  if (!/^[A-Z0-9]{6,12}$/.test(botCode)) return null;
+  const rawIsCodeCommand = /^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i.test(rawCode.trim());
+  if (!rawIsCodeCommand && !/^[A-Z0-9]{6,12}$/.test(botCode)) return null;
 
   let kind = requestedKind === "reports" ? "reports" : "expenses";
   const since = new Date(Date.now() - 16 * 60 * 1000).toISOString();
@@ -53,6 +54,11 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
     if (!/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i.test(text)) continue;
     const savedCode = normalizeTelegramBotCode(String(message.raw_update?._bot_link_code ?? ""));
     const savedKind = message.raw_update?._bot_link_kind === "reports" ? "reports" : message.raw_update?._bot_link_kind === "expenses" ? "expenses" : null;
+    if (rawIsCodeCommand && savedCode && (!requestedKind || savedKind === requestedKind)) {
+      if (savedKind) kind = savedKind;
+      matched = message;
+      break;
+    }
     if (savedCode && savedCode === botCode) {
       if (savedKind) kind = savedKind;
       matched = message;
@@ -166,11 +172,6 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch { body = {}; }
 
     const rawCode = typeof body?.bot_code === "string" ? body.bot_code : "";
-    if (/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i.test(rawCode.trim())) {
-      return json({
-        error: "Envie /code dentro do Telegram e cole aqui apenas o código que o bot responder.",
-      }, 400);
-    }
     const requestedKind = body?.kind === "reports" || body?.kind === "expenses" ? body.kind : undefined;
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 

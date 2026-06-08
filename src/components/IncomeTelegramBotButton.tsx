@@ -95,12 +95,6 @@ export function IncomeTelegramBotButton() {
   };
 
   const linkByBotCode = async () => {
-    if (/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i.test(botCodeInput.trim())) {
-      toast.info("Envie /code dentro do Telegram", {
-        description: "Depois cole aqui o código que o bot responder, não o comando /code.",
-      });
-      return;
-    }
     const normalized = normalizeTelegramBotCode(botCodeInput);
     if (!normalized) {
       toast.error("Digite o código recebido no Telegram");
