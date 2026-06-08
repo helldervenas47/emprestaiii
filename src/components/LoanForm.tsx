@@ -132,7 +132,9 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   const calcInterest = calcTotal - amount;
 
   const [monthlyOverride, setMonthlyOverride] = useState("");
+  const [monthlyTouched, setMonthlyTouched] = useState(false);
   const [interestOverride, setInterestOverride] = useState("");
+  const [interestTouched, setInterestTouched] = useState(false);
 
   const skipResetRef = (typeof window !== "undefined") ? (window as any) : null;
   // Use a ref to skip the reset effect when overrides are the origin of the rate change
@@ -144,7 +146,9 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
       return;
     }
     setMonthlyOverride("");
+    setMonthlyTouched(false);
     setInterestOverride("");
+    setInterestTouched(false);
   }, [form.amount, form.interestRate, form.installments]);
 
   const monthlyPayment = monthlyOverride !== "" ? parseFloat(monthlyOverride) || 0 : calcMonthly;
@@ -211,20 +215,24 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
 
   const handleMonthlyChange = (val: string) => {
     setMonthlyOverride(val);
+    setMonthlyTouched(true);
     const mp = parseFloat(val) || 0;
     if (mp > 0 && installments > 0) {
       const newTotal = mp * installments;
       const ti = newTotal - amount;
       setInterestOverride(ti.toFixed(2));
+      setInterestTouched(true);
       syncRateFromInterest(ti);
     }
   };
 
   const handleInterestChange = (val: string) => {
     setInterestOverride(val);
+    setInterestTouched(true);
     const ti = parseFloat(val) || 0;
     if (installments > 0) {
       setMonthlyOverride(((amount + ti) / installments).toFixed(2));
+      setMonthlyTouched(true);
     }
     syncRateFromInterest(ti);
   };
@@ -509,7 +517,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                   type="number"
                   step="0.01"
                   min="0"
-                  value={interestOverride !== "" ? interestOverride : (calcInterest > 0 ? calcInterest.toFixed(2) : "")}
+                  value={interestTouched ? interestOverride : (calcInterest > 0 ? calcInterest.toFixed(2) : "")}
                   onChange={(e) => handleInterestChange(e.target.value)}
                   placeholder="0.00"
                 />
@@ -522,7 +530,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                   type="number"
                   step="0.01"
                   min="0"
-                  value={monthlyOverride !== "" ? monthlyOverride : (calcMonthly > 0 ? calcMonthly.toFixed(2) : "")}
+                  value={monthlyTouched ? monthlyOverride : (calcMonthly > 0 ? calcMonthly.toFixed(2) : "")}
                   onChange={(e) => handleMonthlyChange(e.target.value)}
                   placeholder="0.00"
                 />
@@ -771,7 +779,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                     <Label className="text-xs text-muted-foreground">Parcela (R$)</Label>
                     <Input
                       type="number" step="0.01"
-                      value={monthlyOverride !== "" ? monthlyOverride : calcMonthly.toFixed(2)}
+                      value={monthlyTouched ? monthlyOverride : calcMonthly.toFixed(2)}
                       onChange={(e) => handleMonthlyChange(e.target.value)}
                       className="h-8 text-sm"
                     />
