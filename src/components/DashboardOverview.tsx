@@ -1126,6 +1126,16 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         await userSupabase.auth.signOut({ scope: "local" });
         throw new Error("Sessão expirada. Faça login novamente.");
       }
+      const { data: appSession } = await appSupabase.auth.getSession();
+      if (!appSession.session?.access_token) {
+        if (cacheKey) {
+          setCachedInsightReports((current) => ({ ...current, [cacheKey]: localReport }));
+        }
+        if (openSheet) {
+          setRiskAiReport(localReport);
+        }
+        return;
+      }
       const { data: result, error } = await appSupabase.functions.invoke("generate-risk-reduction-report", {
         body: { type, metrics },
       });
