@@ -3,14 +3,20 @@ import { supabase, USER_SUPABASE_PUBLISHABLE_KEY, USER_SUPABASE_URL } from "@/in
 type TelegramLinkCodeFunction = "telegram-link-code" | "telegram-reports-link-code";
 
 export function normalizeTelegramBotCode(input: string) {
-  const compact = input.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
   const commandMatch = input.match(/\/start(?:@\w+)?\s+(\d{6})\b/i);
   if (commandMatch) return commandMatch[1];
-  const spacedCodeMatch = input.toUpperCase().match(/\b([A-Z0-9][\s\-.]*){6,12}\b/);
-  if (spacedCodeMatch) {
-    const candidate = spacedCodeMatch[0].replace(/[^A-Z0-9]/g, "");
+
+  for (const line of input.split(/\r?\n/)) {
+    const candidate = line.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
     if (/^[A-Z0-9]{6,12}$/.test(candidate)) return candidate;
   }
+
+  const tokens = input.toUpperCase().match(/[A-Z0-9]{6,12}/g) ?? [];
+  const mixedToken = tokens.find((token) => /[A-Z]/.test(token) && /\d/.test(token));
+  if (mixedToken) return mixedToken;
+  const numericToken = tokens.find((token) => /^\d{6}$/.test(token));
+  if (numericToken) return numericToken;
+  const compact = input.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
   return compact;
 }
 
