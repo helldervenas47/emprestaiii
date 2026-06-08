@@ -43,6 +43,22 @@ async function deleteWebhook(token: string) {
   }
 }
 
+async function generateChatLinkCode(chatId: number, kind: "expenses" | "reports", secret: string, now = Date.now()): Promise<string> {
+  const bucket = Math.floor(now / (15 * 60 * 1000));
+  const payload = `${kind}:${chatId}:${bucket}`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
+  const bytes = Array.from(new Uint8Array(signature.slice(0, 8)));
+  const value = bytes.reduce((acc, byte) => acc * 256n + BigInt(byte), 0n);
+  return value.toString(36).toUpperCase().padStart(10, "0").slice(0, 6);
+}
+
 async function processBot(
   supabase: any,
   bot: { id: string; token: string; bot_username: string | null; update_offset: number },
@@ -139,33 +155,23 @@ async function processBot(
           await tgSend(bot.token, chatId, "✅ *Bot de Relatórios conectado!*\n\nVocê receberá os relatórios nos horários configurados.");
         }
       } else if (codeMatch) {
-        // Generate a short bot_code that the user pastes back into the app
-        await supabase.from("telegram_bots").delete().eq("kind", "reports").eq("chat_id", chatId);
-        let botCode = "";
-        for (let i = 0; i < 6; i++) {
-          botCode = Math.random().toString(36).slice(2, 8).toUpperCase().replace(/[^A-Z0-9]/g, "");
-          if (botCode.length === 6) {
-            const { data: clash } = await supabase
-              .from("telegram_bots").select("id").eq("bot_code", botCode).maybeSingle();
-            if (!clash) break;
-          }
-        }
-        const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-        const { error: insErr } = await supabase.from("telegram_bots").insert({
-          bot_code: botCode, kind: "reports", chat_id: chatId, bot_id: bot.id, expires_at: expiresAt,
-        });
-        if (insErr) {
-          console.error("[reports-poll] insert telegram_bots failed", insErr);
-          await tgSend(bot.token, chatId, "⚠️ Não consegui gerar o código agora. Tente novamente em instantes.");
-        } else {
-          await tgSend(
-            bot.token, chatId,
-            `🔑 *Seu código de vínculo:*\n\n\`${botCode}\`\n\n` +
-              `1. Abra o app\n2. Vá em *Configurações → Bots do Telegram*\n` +
-              `3. Cole este código no campo *"Tenho um código"*\n\n` +
-              `_Válido por 15 min._`,
-          );
-        }
+        const botCode = await generateChatLinkCode(chatId, "reports", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+        await supabase.from("telegram_messages").upsert({
+          update_id: u.update_id,
+          chat_id: chatId,
+          text,
+          raw_update: { ...u, _system_bot_id: bot.id },
+          bot_id: bot.id,
+          processed: true,
+          processed_at: new Date().toISOString(),
+        }, { onConflict: "update_id" }).then(() => null).catch(() => null);
+        await tgSend(
+          bot.token, chatId,
+          `🔑 *Seu código de vínculo:*\n\n\`${botCode}\`\n\n` +
+            `1. Abra o app\n2. Vá em *Configurações → Bots do Telegram*\n` +
+            `3. Cole este código no campo *"Tenho um código"*\n\n` +
+            `_Válido por 15 min._`,
+        );
       } else if (text === "/start" || text === "/help") {
         await tgSend(bot.token, chatId,
           "👋 Este é o *Bot de Relatórios*.\n\nEnvie /code aqui para gerar um código de vínculo e cole no app.");
