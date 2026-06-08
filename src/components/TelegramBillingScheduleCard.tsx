@@ -130,6 +130,27 @@ export function TelegramBillingScheduleCard() {
                 <Send className="h-3.5 w-3.5 mr-1" />
                 {sendingNow ? "Enviando..." : "Enviar agora"}
               </Button>
+              <WhatsAppShareButton
+                getText={async () => {
+                  if (!user) return null;
+                  const { data: session } = await supabase.auth.getSession();
+                  const token = session.session?.access_token;
+                  if (!token) throw new Error("Faça login novamente");
+                  const url = `${USER_SUPABASE_URL}/functions/v1/telegram-billing-summary?user_id=${user.id}&return_text=1`;
+                  const res = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                      apikey: USER_SUPABASE_PUBLISHABLE_KEY,
+                      "Content-Type": "application/json",
+                    },
+                    body: "{}",
+                  });
+                  const json = await res.json();
+                  if (!res.ok) throw new Error(json.error || "Falha ao gerar resumo");
+                  return json.text as string;
+                }}
+              />
             </div>
 
             <p className="text-[11px] text-muted-foreground">
