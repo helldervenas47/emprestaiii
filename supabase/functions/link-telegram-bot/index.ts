@@ -36,6 +36,14 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
   for (const message of recentMessages ?? []) {
     const text = String(message.text ?? "").trim();
     if (!/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i.test(text)) continue;
+    const savedCode = String(message.raw_update?._bot_link_code ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const savedKind = message.raw_update?._bot_link_kind === "reports" ? "reports" : message.raw_update?._bot_link_kind === "expenses" ? "expenses" : null;
+    if (savedCode && savedCode === botCode) {
+      if (savedKind) kind = savedKind;
+      matched = message;
+      break;
+    }
+
     const chatId = Number(message.chat_id);
     const validCodes = [
       await generateChatLinkCode(chatId, kind, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!),
