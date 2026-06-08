@@ -50,12 +50,13 @@ async function buildAndSend(
   date: string,
   brandName: string,
   titleLabel = "Planejamento do Dia",
-): Promise<boolean> {
-  // Resolve report bot chat
+  opts?: { returnText?: boolean },
+): Promise<{ sent: boolean; text?: string }> {
+  // Resolve report bot chat (not required when only returning text).
   const link = await getReportsLinkForUser(admin, userId);
-  if (!link) return false;
+  if (!link && !opts?.returnText) return { sent: false };
 
-  const chatId = Number(link.chat_id);
+  const chatId = link ? Number(link.chat_id) : 0;
   const day = Number(date.slice(8, 10));
 
   // Loans + schedules
