@@ -41,11 +41,13 @@ Deno.serve(async (req) => {
 
     const actualSecret = req.headers.get("X-Telegram-Bot-Api-Secret-Token");
     let authenticated = false;
+    let matchedToken: string | null = null;
 
     for (const token of tokens) {
       const expectedSecret = await deriveTelegramWebhookSecret(token);
       if (safeEqual(actualSecret, expectedSecret)) {
         authenticated = true;
+        matchedToken = token;
         break;
       }
     }
@@ -70,14 +72,25 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Store message for async processing
+    const { data: systemBot } = matchedToken
+      ? await supabase
+        .from("system_telegram_bots")
+        .select("id")
+        .eq("token", matchedToken)
+        .maybeSingle()
+      : { data: null };
+    const botId = (systemBot as any)?.id ?? null;
+
+    // Store message for async processing. Keep payload aligned with the live
+    // telegram_messages schema: it has bot_id, but no Telegram sender user_id.
+    const rawUpdate = botId ? { ...update, _system_bot_id: botId } : update;
     const { error } = await supabase.from("telegram_messages").upsert(
       {
         update_id: update.update_id,
         chat_id: message.chat.id,
-        user_id: message.from?.id ?? null,
         text: message.text ?? null,
-        raw_update: update,
+        raw_update: rawUpdate,
+        bot_id: botId,
         processed: false,
       },
       { onConflict: "update_id" },
