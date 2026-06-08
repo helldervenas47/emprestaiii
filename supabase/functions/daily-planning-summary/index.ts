@@ -338,6 +338,7 @@ Deno.serve(async (req) => {
     if (!userErr && user) {
       let body: any = {};
       try { body = await req.json(); } catch (_) {}
+      const returnText = body?.return_text === true;
       // Manual send: respect user pref, default to tomorrow
       let manualTarget = (body?.date as string) || tomorrow;
       let manualLabel = "Planejamento de Amanhã";
@@ -354,8 +355,8 @@ Deno.serve(async (req) => {
       } else if (body.date === today) {
         manualLabel = "Planejamento do Dia";
       }
-      const ok = await buildAndSend(admin, user.id, manualTarget, brandName, manualLabel);
-      return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0, date: manualTarget }), {
+      const res = await buildAndSend(admin, user.id, manualTarget, brandName, manualLabel, { returnText });
+      return new Response(JSON.stringify({ ok: true, sent: res.sent ? 1 : 0, date: manualTarget, text: res.text }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -371,8 +372,9 @@ Deno.serve(async (req) => {
     if (userErr || !user) return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
     if (user.id !== queryUserId) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
 
-    const ok = await buildAndSend(admin, queryUserId, tomorrow, brandName, "Planejamento de Amanhã");
-    return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0 }), {
+    const returnText = url.searchParams.get("return_text") === "1";
+    const res = await buildAndSend(admin, queryUserId, tomorrow, brandName, "Planejamento de Amanhã", { returnText });
+    return new Response(JSON.stringify({ ok: true, sent: res.sent ? 1 : 0, text: res.text }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
