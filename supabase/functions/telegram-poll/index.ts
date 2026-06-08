@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getExternalAdmin } from "../_shared/external-supabase.ts";
 
 // Keep polling short and non-overlapping. The UI can call this while the
 // dialog is open, so long-polling here creates Telegram 409 conflicts.
@@ -165,7 +166,7 @@ Deno.serve(async (req) => {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = getExternalAdmin();
 
   const { data: bots, error: botsErr } = await supabase
     .from("system_telegram_bots")
