@@ -10,6 +10,7 @@ import { useIncomesExpensesTelegramPrefs } from "@/hooks/useIncomesExpensesTeleg
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
 import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
+import { WhatsAppShareButton } from "@/components/WhatsAppShareButton";
 
 type SlotKey = "send_time_1" | "send_time_2" | "send_time_3";
 
@@ -96,6 +97,16 @@ export function TelegramIncomesExpensesScheduleCard() {
                 <Send className="h-3.5 w-3.5 mr-1" />
                 {sendingNow ? "Enviando..." : "Enviar agora"}
               </Button>
+              <WhatsAppShareButton
+                getText={async () => {
+                  const { data, error } = await supabase.functions.invoke(
+                    "incomes-expenses-summary",
+                    { body: { return_text: true } },
+                  );
+                  if (error) throw error;
+                  return (data as any)?.text as string;
+                }}
+              />
             </div>
             {!linked && (
               <p className="text-[11px] text-muted-foreground">Conecte o Bot de Relatórios para habilitar os envios.</p>

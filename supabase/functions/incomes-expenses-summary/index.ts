@@ -81,10 +81,11 @@ async function buildAndSend(
   date: string,
   brandName: string,
   titleLabel: string,
-): Promise<boolean> {
+  opts?: { returnText?: boolean },
+): Promise<{ sent: boolean; text?: string }> {
   const link = await getReportsLinkForUser(admin, userId);
-  if (!link) return false;
-  const chatId = Number(link.chat_id);
+  if (!link && !opts?.returnText) return { sent: false };
+  const chatId = link ? Number(link.chat_id) : 0;
 
   // Incomes a receber (pendentes/atrasadas) com vencimento na data
   const { data: incomes } = await admin.from("incomes")
@@ -245,8 +246,10 @@ async function buildAndSend(
     lines.push("_Nenhum lançamento previsto para este dia._");
   }
 
-  const sendRes = await sendReportsMessage(admin, userId, chatId, lines.join("\n"));
-  return sendRes.sent;
+  const text = lines.join("\n");
+  if (opts?.returnText) return { sent: false, text };
+  const sendRes = await sendReportsMessage(admin, userId, chatId, text);
+  return { sent: sendRes.sent, text };
 }
 
 Deno.serve(async (req) => {
@@ -275,6 +278,7 @@ Deno.serve(async (req) => {
     if (!userErr && user) {
       let body: any = {};
       try { body = await req.json(); } catch (_) {}
+      const returnText = body?.return_text === true;
       let manualTarget = (body?.date as string) || tomorrow;
       let manualLabel = "Receitas e Despesas — Amanhã";
       if (!body?.date) {
@@ -290,8 +294,8 @@ Deno.serve(async (req) => {
       } else if (body.date === today) {
         manualLabel = "Receitas e Despesas — Hoje";
       }
-      const ok = await buildAndSend(admin, user.id, manualTarget, brandName, manualLabel);
-      return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0, date: manualTarget }), {
+      const res = await buildAndSend(admin, user.id, manualTarget, brandName, manualLabel, { returnText });
+      return new Response(JSON.stringify({ ok: true, sent: res.sent ? 1 : 0, date: manualTarget, text: res.text }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -332,8 +336,8 @@ Deno.serve(async (req) => {
       const isToday = (pref as any).send_target === "today";
       const targetDate = isToday ? today : tomorrow;
       const label = isToday ? "Receitas e Despesas — Hoje" : "Receitas e Despesas — Amanhã";
-      const ok = await buildAndSend(admin, (pref as any).user_id, targetDate, brandName, label);
-      if (ok) {
+      const res = await buildAndSend(admin, (pref as any).user_id, targetDate, brandName, label);
+      if (res.sent) {
         const newLast = { ...lastSent, [firedSlot]: today };
         await admin.from("incomes_expenses_telegram_prefs")
           .update({ last_sent: newLast })

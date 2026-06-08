@@ -225,6 +225,7 @@ Deno.serve(async (req) => {
 
   const url = new URL(req.url);
   const forceUserId = url.searchParams.get("user_id");
+  const returnText = url.searchParams.get("return_text") === "1";
 
   // If forcing for a specific user, require that user to be authenticated as themselves
   if (forceUserId) {
@@ -236,6 +237,20 @@ Deno.serve(async (req) => {
     const userId = claimsData?.claims?.sub;
     if (claimsErr || !userId) return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
     if (userId !== forceUserId) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
+  }
+
+  // return_text mode: build text and return without sending to Telegram.
+  if (forceUserId && returnText) {
+    let brandName2 = "EmprestAI";
+    try {
+      const { data: bRow } = await admin.from("app_branding").select("brand_name").limit(1).maybeSingle();
+      if (bRow?.brand_name) brandName2 = bRow.brand_name;
+    } catch { /* ignore */ }
+    const { date: today2 } = todayInTZ();
+    const text = await buildBillingReport(admin, forceUserId, today2, brandName2);
+    return new Response(JSON.stringify({ ok: true, text }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const { date: today, hhmm } = todayInTZ();

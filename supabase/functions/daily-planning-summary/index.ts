@@ -50,12 +50,13 @@ async function buildAndSend(
   date: string,
   brandName: string,
   titleLabel = "Planejamento do Dia",
-): Promise<boolean> {
-  // Resolve report bot chat
+  opts?: { returnText?: boolean },
+): Promise<{ sent: boolean; text?: string }> {
+  // Resolve report bot chat (not required when only returning text).
   const link = await getReportsLinkForUser(admin, userId);
-  if (!link) return false;
+  if (!link && !opts?.returnText) return { sent: false };
 
-  const chatId = Number(link.chat_id);
+  const chatId = link ? Number(link.chat_id) : 0;
   const day = Number(date.slice(8, 10));
 
   // Loans + schedules
@@ -301,8 +302,10 @@ async function buildAndSend(
     lines.push("_Nenhum lançamento previsto para este dia._");
   }
 
-  const sendRes = await sendReportsMessage(admin, userId, chatId, lines.join("\n"));
-  return sendRes.sent;
+  const text = lines.join("\n");
+  if (opts?.returnText) return { sent: false, text };
+  const sendRes = await sendReportsMessage(admin, userId, chatId, text);
+  return { sent: sendRes.sent, text };
 }
 
 Deno.serve(async (req) => {
@@ -335,6 +338,7 @@ Deno.serve(async (req) => {
     if (!userErr && user) {
       let body: any = {};
       try { body = await req.json(); } catch (_) {}
+      const returnText = body?.return_text === true;
       // Manual send: respect user pref, default to tomorrow
       let manualTarget = (body?.date as string) || tomorrow;
       let manualLabel = "Planejamento de Amanhã";
@@ -351,8 +355,8 @@ Deno.serve(async (req) => {
       } else if (body.date === today) {
         manualLabel = "Planejamento do Dia";
       }
-      const ok = await buildAndSend(admin, user.id, manualTarget, brandName, manualLabel);
-      return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0, date: manualTarget }), {
+      const res = await buildAndSend(admin, user.id, manualTarget, brandName, manualLabel, { returnText });
+      return new Response(JSON.stringify({ ok: true, sent: res.sent ? 1 : 0, date: manualTarget, text: res.text }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -368,8 +372,9 @@ Deno.serve(async (req) => {
     if (userErr || !user) return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
     if (user.id !== queryUserId) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
 
-    const ok = await buildAndSend(admin, queryUserId, tomorrow, brandName, "Planejamento de Amanhã");
-    return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0 }), {
+    const returnText = url.searchParams.get("return_text") === "1";
+    const res = await buildAndSend(admin, queryUserId, tomorrow, brandName, "Planejamento de Amanhã", { returnText });
+    return new Response(JSON.stringify({ ok: true, sent: res.sent ? 1 : 0, text: res.text }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
@@ -411,8 +416,8 @@ Deno.serve(async (req) => {
       const isToday = (pref as any).send_target === "today";
       const targetDate = isToday ? today : tomorrow;
       const label = isToday ? "Planejamento do Dia" : "Planejamento de Amanhã";
-      const ok = await buildAndSend(admin, (pref as any).user_id, targetDate, brandName, label);
-      if (ok) {
+      const res = await buildAndSend(admin, (pref as any).user_id, targetDate, brandName, label);
+      if (res.sent) {
         const newLast = { ...lastSent, [firedSlot]: today };
         await admin.from("daily_planning_telegram_prefs")
           .update({ last_sent: newLast })
