@@ -136,8 +136,23 @@ Deno.serve(async (req) => {
     const requestedKind = body?.kind === "reports" || body?.kind === "expenses" ? body.kind : undefined;
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // Flush pending Telegram updates so the recent /code message is persisted.
+    await Promise.all([
+      fetch(`${SUPABASE_URL}/functions/v1/telegram-poll`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+        body: "{}",
+      }).catch(() => null),
+      fetch(`${SUPABASE_URL}/functions/v1/telegram-reports-poll`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+        body: "{}",
+      }).catch(() => null),
+    ]);
+
     const botCodeResult = await linkByBotCode(admin, userId, rawCode, requestedKind);
     if (botCodeResult) return botCodeResult;
+
 
     const code = rawCode.trim().replace(/[^0-9]/g, "");
     if (!code || code.length !== 6) {
