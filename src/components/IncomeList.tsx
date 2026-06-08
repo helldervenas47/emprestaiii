@@ -31,6 +31,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { validateIncomeDate } from "@/lib/paymentValidation";
 import { toast } from "sonner";
+import { EditScopeDialog } from "@/components/EditScopeDialog";
+import { applyIncomeScopedUpdate, isIncomeInSeries } from "@/lib/seriesEdit";
 
 function fmtBRL(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
