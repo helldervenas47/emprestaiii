@@ -1111,7 +1111,16 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       });
 
       if (error) throw error;
-      const report = (result as { report?: string })?.report ?? "Não foi possível gerar o relatório.";
+      const payload = (result ?? {}) as { report?: string; fallback?: boolean; message?: string };
+      if (payload.fallback) {
+        const fb = payload.message || "Serviço de IA temporariamente indisponível. Tente novamente em alguns instantes.";
+        if (openSheet) {
+          toast.error("Serviço de IA indisponível", { description: fb });
+          setRiskAiReport(`> ${fb}`);
+        }
+        return;
+      }
+      const report = payload.report ?? "Não foi possível gerar o relatório.";
       if (cacheKey) {
         setCachedInsightReports((current) => ({ ...current, [cacheKey]: report }));
       }
