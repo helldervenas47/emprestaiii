@@ -97,6 +97,7 @@ async function getExpenseBotTokenForMessage(admin: any, msg: any, fallback: stri
       .select("token")
       .eq("active", true)
       .eq("purpose", "expenses")
+      .order("bot_id", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
@@ -2850,13 +2851,25 @@ Deno.serve(async (req) => {
           await admin.from("telegram_link_codes").delete().eq("id", codeRow.id);
           await tgSend(chatId, "⏰ Código expirado. Gere um novo no app e envie logo em seguida neste bot.", telegramKey);
         } else {
+          let targetBotId = codeRow.bot_id ?? rawBotId ?? null;
+          if (!targetBotId) {
+            const { data: activeExpenseBot } = await admin.from("system_telegram_bots")
+              .select("id")
+              .eq("purpose", "expenses")
+              .eq("active", true)
+              .order("bot_id", { ascending: false, nullsFirst: false })
+              .order("created_at", { ascending: true })
+              .limit(1)
+              .maybeSingle();
+            targetBotId = (activeExpenseBot as any)?.id ?? null;
+          }
           // Remove any prior expenses link for this chat or user (preserva link de relatórios)
           let delQ = admin.from("telegram_links").delete().or(`chat_id.eq.${chatId},user_id.eq.${codeRow.user_id}`);
           if (reportsBotIdEx) delQ = delQ.or(`bot_id.is.null,bot_id.neq.${reportsBotIdEx}`);
           await delQ;
           invalidateLinkCache(chatId);
           const { error: linkErr } = await admin.from("telegram_links")
-            .insert({ user_id: codeRow.user_id, chat_id: chatId, bot_id: codeRow.bot_id ?? rawBotId ?? null });
+            .insert({ user_id: codeRow.user_id, chat_id: chatId, bot_id: targetBotId });
           if (linkErr) {
             await tgSend(chatId, "❌ Erro ao vincular: " + linkErr.message, telegramKey);
           } else {

@@ -13,6 +13,7 @@ export async function fetchReportsBotId(): Promise<string | null> {
     .select("id")
     .eq("purpose", "reports")
     .eq("active", true)
+    .order("bot_id", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();

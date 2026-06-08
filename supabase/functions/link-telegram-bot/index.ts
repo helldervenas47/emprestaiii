@@ -113,13 +113,14 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
   const rawBotId = matched.raw_update?._system_bot_id ?? null;
   const { data: systemBot } = rawBotId
     ? await admin.from("system_telegram_bots").select("id, bot_username, name").eq("id", rawBotId).maybeSingle()
-    : await admin.from("system_telegram_bots").select("id, bot_username, name").eq("purpose", kind).eq("active", true).order("created_at", { ascending: true }).limit(1).maybeSingle();
+    : await admin.from("system_telegram_bots").select("id, bot_username, name").eq("purpose", kind).eq("active", true).order("bot_id", { ascending: false, nullsFirst: false }).order("created_at", { ascending: true }).limit(1).maybeSingle();
   const chatId = Number(matched.chat_id);
   const targetBotId = systemBot?.id ?? null;
 
   // Remove only the same-kind link for this user/chat (keep the other-kind link intact)
   let delQuery = admin.from("telegram_links").delete().or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
   if (targetBotId) delQuery = delQuery.eq("bot_id", targetBotId);
+  else delQuery = delQuery.is("bot_id", null);
   await delQuery;
   const { error: insErr } = await admin.from("telegram_links").insert({
     user_id: userId,
@@ -251,17 +252,37 @@ Deno.serve(async (req) => {
     const since = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const { data: messages } = await admin
       .from("telegram_messages")
-      .select("chat_id, text, created_at")
+      .select("chat_id, text, created_at, raw_update, bot_id")
       .gte("created_at", since)
       .ilike("text", `%${code}%`)
       .order("created_at", { ascending: false })
-      .limit(1);
+      .limit(10);
 
-    const chatId = messages?.[0]?.chat_id;
+    const message = (messages ?? []).find((m: any) => {
+      const messageBotId = m.bot_id ?? m.raw_update?._system_bot_id ?? null;
+      if (codeRow.bot_id) return messageBotId === codeRow.bot_id;
+      if (reportsBotId && messageBotId === reportsBotId) return false;
+      return true;
+    }) ?? null;
+    const chatId = message?.chat_id;
     if (!chatId) {
       return json({
         error: "Ainda não recebemos sua mensagem. Envie /start " + code + " ao bot no Telegram e tente de novo.",
       }, 404);
+    }
+
+    const rawMessageBotId = (message as any)?.bot_id ?? (message as any)?.raw_update?._system_bot_id ?? null;
+    let targetBotId = codeRow.bot_id ?? rawMessageBotId ?? null;
+    if (!targetBotId) {
+      const { data: activeExpenseBot } = await admin.from("system_telegram_bots")
+        .select("id")
+        .eq("purpose", "expenses")
+        .eq("active", true)
+        .order("bot_id", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      targetBotId = (activeExpenseBot as any)?.id ?? null;
     }
 
     // Remove vínculos antigos do mesmo chat ou usuário (somente do lado despesas), depois cria o novo
@@ -274,7 +295,7 @@ Deno.serve(async (req) => {
 
     const { error: insErr } = await admin
       .from("telegram_links")
-      .insert({ user_id: userId, chat_id: chatId });
+      .insert({ user_id: userId, chat_id: chatId, bot_id: targetBotId });
     if (insErr) return json({ error: insErr.message }, 500);
 
     await admin.from("telegram_link_codes").delete().eq("code", code);
