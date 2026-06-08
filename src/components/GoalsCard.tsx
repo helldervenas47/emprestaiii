@@ -756,8 +756,12 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       if (!isMonthClosed(computeMonth)) return;
       const existing = getSnapshot(g.goalType, computeMonth);
       if (existing?.finalized) return;
-      // Salva snapshot com o valor atual computado
-      void upsertSnapshot(g.goalType, computeMonth, g.actual, g.targetValue ?? null, g.pct ?? null);
+      // Salva snapshot com o valor atual computado.
+      // Para `daily_received_avg`, salva o TOTAL recebido (receivedTotal) — a média é recalculada na visualização.
+      const snapshotValue = g.goalType === "daily_received_avg"
+        ? (g.receivedTotal ?? 0)
+        : g.actual;
+      void upsertSnapshot(g.goalType, computeMonth, snapshotValue, g.targetValue ?? null, g.pct ?? null);
     });
   }, [enriched, selectedMonth, getSnapshot, upsertSnapshot]);
 
