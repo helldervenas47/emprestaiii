@@ -336,8 +336,8 @@ Deno.serve(async (req) => {
       const isToday = (pref as any).send_target === "today";
       const targetDate = isToday ? today : tomorrow;
       const label = isToday ? "Receitas e Despesas — Hoje" : "Receitas e Despesas — Amanhã";
-      const ok = await buildAndSend(admin, (pref as any).user_id, targetDate, brandName, label);
-      if (ok) {
+      const res = await buildAndSend(admin, (pref as any).user_id, targetDate, brandName, label);
+      if (res.sent) {
         const newLast = { ...lastSent, [firedSlot]: today };
         await admin.from("incomes_expenses_telegram_prefs")
           .update({ last_sent: newLast })
