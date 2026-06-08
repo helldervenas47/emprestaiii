@@ -69,7 +69,8 @@ Deno.serve(async (req) => {
       const me = await tgGetMe(expensesToken);
       const username = me?.result?.username ?? null;
       const botId = me?.result?.id ? String(me.result.id) : null;
-      // Sync token into DB so polling/processing uses the new token.
+      // Sync token into DB so polling/processing uses the new token, keeping
+      // only one active row per purpose to avoid ambiguous bot resolution.
       if (username && botId) {
         const patch = {
           token: expensesToken,
@@ -79,9 +80,18 @@ Deno.serve(async (req) => {
           last_validated_at: new Date().toISOString(),
           update_offset: 0,
         };
-        const { data: upd } = await supabase.from("system_telegram_bots")
-          .update(patch).eq("purpose", "expenses").select("id");
-        if (!upd || upd.length === 0) {
+        const { data: canonical } = await supabase.from("system_telegram_bots")
+          .select("id")
+          .eq("purpose", "expenses")
+          .or(`bot_username.eq.${username},bot_id.eq.${botId}`)
+          .order("bot_id", { ascending: false, nullsFirst: false })
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if ((canonical as any)?.id) {
+          await supabase.from("system_telegram_bots").update(patch).eq("id", (canonical as any).id);
+          await supabase.from("system_telegram_bots").update({ active: false }).eq("purpose", "expenses").neq("id", (canonical as any).id);
+        } else {
           await supabase.from("system_telegram_bots").insert({ purpose: "expenses", ...patch });
         }
       }
@@ -117,9 +127,18 @@ Deno.serve(async (req) => {
           last_validated_at: new Date().toISOString(),
           update_offset: 0,
         };
-        const { data: upd } = await supabase.from("system_telegram_bots")
-          .update(patch).eq("purpose", "reports").select("id");
-        if (!upd || upd.length === 0) {
+        const { data: canonical } = await supabase.from("system_telegram_bots")
+          .select("id")
+          .eq("purpose", "reports")
+          .or(`bot_username.eq.${username},bot_id.eq.${botId}`)
+          .order("bot_id", { ascending: false, nullsFirst: false })
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if ((canonical as any)?.id) {
+          await supabase.from("system_telegram_bots").update(patch).eq("id", (canonical as any).id);
+          await supabase.from("system_telegram_bots").update({ active: false }).eq("purpose", "reports").neq("id", (canonical as any).id);
+        } else {
           await supabase.from("system_telegram_bots").insert({ purpose: "reports", ...patch });
         }
       }
