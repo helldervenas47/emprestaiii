@@ -699,6 +699,43 @@ export function IncomeList({ readOnly }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EditScopeDialog
+        open={!!pendingIncomeScope}
+        onOpenChange={(o) => { if (!o) setPendingIncomeScope(null); }}
+        onConfirm={async (scope) => {
+          if (!pendingIncomeScope) return;
+          const { target, data } = pendingIncomeScope;
+          try {
+            await applyIncomeScopedUpdate({
+              target,
+              patch: {
+                description: data.description,
+                amount: data.amount,
+                category: data.category,
+                clientId: data.clientId,
+                source: data.source,
+                paymentMethodId: data.paymentMethodId,
+                receivedDate: data.receivedDate,
+                notes: data.notes,
+              },
+              scope,
+              incomes,
+              onUpdateLocal: async (id, patch) => { await updateIncome(id, patch); },
+            });
+            toast.success(
+              scope === "all"
+                ? "Receita e histórico atualizados"
+                : scope === "pending"
+                  ? "Esta receita e as próximas atualizadas"
+                  : "Receita atualizada",
+            );
+          } finally {
+            setPendingIncomeScope(null);
+          }
+        }}
+      />
     </div>
   );
 }
+
