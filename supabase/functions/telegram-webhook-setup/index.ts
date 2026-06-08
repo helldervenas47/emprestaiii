@@ -65,6 +65,26 @@ Deno.serve(async (req) => {
 
     // 1) DESPESAS -> setWebhook
     if (expensesToken) {
+      const me = await tgGetMe(expensesToken);
+      const username = me?.result?.username ?? null;
+      const botId = me?.result?.id ? String(me.result.id) : null;
+      // Sync token into DB so polling/processing uses the new token.
+      if (username && botId) {
+        const patch = {
+          token: expensesToken,
+          bot_username: username,
+          active: true,
+          validation_status: "valid",
+          last_validated_at: new Date().toISOString(),
+          update_offset: 0,
+        };
+        const { data: upd } = await supabase.from("system_telegram_bots")
+          .update(patch).eq("purpose", "expenses").select("id");
+        if (!upd || upd.length === 0) {
+          await supabase.from("system_telegram_bots").insert({ purpose: "expenses", ...patch });
+        }
+      }
+
       const secret = await deriveTelegramWebhookSecret(expensesToken);
       const { ok: setOk, data } = await telegramPostForm(expensesToken, "setWebhook", {
         url: webhookUrl,
@@ -72,8 +92,6 @@ Deno.serve(async (req) => {
         allowed_updates: ["message", "edited_message", "callback_query"],
         drop_pending_updates: false,
       });
-      const me = await tgGetMe(expensesToken);
-      const username = me?.result?.username ?? null;
       results.push({ kind: "expenses", action: "setWebhook", token: maskToken(expensesToken), ok: setOk, telegram: data, username });
       if (username) {
         await supabase.from("system_telegram_bots")
@@ -86,15 +104,33 @@ Deno.serve(async (req) => {
 
     // 2) RELATÓRIOS -> deleteWebhook (usa polling/cron)
     if (reportsToken) {
+      const me = await tgGetMe(reportsToken);
+      const username = me?.result?.username ?? null;
+      const botId = me?.result?.id ? String(me.result.id) : null;
+      if (username && botId) {
+        const patch = {
+          token: reportsToken,
+          bot_username: username,
+          active: true,
+          validation_status: "valid",
+          last_validated_at: new Date().toISOString(),
+          update_offset: 0,
+        };
+        const { data: upd } = await supabase.from("system_telegram_bots")
+          .update(patch).eq("purpose", "reports").select("id");
+        if (!upd || upd.length === 0) {
+          await supabase.from("system_telegram_bots").insert({ purpose: "reports", ...patch });
+        }
+      }
+
       const { ok: deleteOk, data } = await telegramPostForm(reportsToken, "deleteWebhook", {
         drop_pending_updates: false,
       });
-      const me = await tgGetMe(reportsToken);
-      const username = me?.result?.username ?? null;
       results.push({ kind: "reports", action: "deleteWebhook", token: maskToken(reportsToken), ok: deleteOk, telegram: data, username });
     } else {
       results.push({ kind: "reports", skipped: true, reason: "TELEGRAM_BOT_TOKEN_REPORTS ausente" });
     }
+
 
     const ok = results.every((r) => r.skipped || r.ok);
     await logRun(ok, ok ? null : "alguma operação falhou", { webhook_url: webhookUrl, results });
