@@ -36,6 +36,14 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
   for (const message of recentMessages ?? []) {
     const text = String(message.text ?? "").trim();
     if (!/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i.test(text)) continue;
+    const savedCode = String(message.raw_update?._bot_link_code ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const savedKind = message.raw_update?._bot_link_kind === "reports" ? "reports" : message.raw_update?._bot_link_kind === "expenses" ? "expenses" : null;
+    if (savedCode && savedCode === botCode) {
+      if (savedKind) kind = savedKind;
+      matched = message;
+      break;
+    }
+
     const chatId = Number(message.chat_id);
     const validCodes = [
       await generateChatLinkCode(chatId, kind, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!),
@@ -153,12 +161,17 @@ Deno.serve(async (req) => {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
         body: "{}",
       }).catch(() => null),
-      fetch(`${SUPABASE_URL}/functions/v1/telegram-reports-poll`, {
+      fetch(`${SUPABASE_URL}/functions/v1/telegram-reports-poll?force=1`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
         body: "{}",
       }).catch(() => null),
     ]);
+    await fetch(`${SUPABASE_URL}/functions/v1/telegram-process`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+      body: "{}",
+    }).catch(() => null);
 
     const botCodeResult = await linkByBotCode(admin, userId, rawCode, requestedKind);
     if (botCodeResult) return botCodeResult;

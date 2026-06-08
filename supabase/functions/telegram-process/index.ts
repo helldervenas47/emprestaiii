@@ -2866,6 +2866,9 @@ Deno.serve(async (req) => {
         }
       } else if (/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i.test(text)) {
         const botCode = await generateChatLinkCode(chatId, "expenses", SUPABASE_SERVICE_ROLE_KEY);
+        await admin.from("telegram_messages")
+          .update({ raw_update: { ...(msg.raw_update as any), _bot_link_code: botCode, _bot_link_kind: "expenses" } })
+          .eq("update_id", msg.update_id);
         await tgSend(chatId,
           `🔑 *Seu código de vínculo:*\n\n\`${botCode}\`\n\n` +
           `1. Abra a aba *Financeiro* no app\n` +
