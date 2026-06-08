@@ -779,7 +779,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                     <Label className="text-xs text-muted-foreground">Parcela (R$)</Label>
                     <Input
                       type="number" step="0.01"
-                      value={monthlyOverride !== "" ? monthlyOverride : calcMonthly.toFixed(2)}
+                      value={monthlyTouched ? monthlyOverride : calcMonthly.toFixed(2)}
                       onChange={(e) => handleMonthlyChange(e.target.value)}
                       className="h-8 text-sm"
                     />
