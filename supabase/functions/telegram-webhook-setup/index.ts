@@ -108,17 +108,21 @@ Deno.serve(async (req) => {
       const username = me?.result?.username ?? null;
       const botId = me?.result?.id ? String(me.result.id) : null;
       if (username && botId) {
-        await supabase.from("system_telegram_bots").upsert({
-          purpose: "reports",
+        const patch = {
           token: reportsToken,
           bot_username: username,
-          telegram_bot_id: botId,
           active: true,
           validation_status: "valid",
           last_validated_at: new Date().toISOString(),
           update_offset: 0,
-        }, { onConflict: "purpose" });
+        };
+        const { data: upd } = await supabase.from("system_telegram_bots")
+          .update(patch).eq("purpose", "reports").select("id");
+        if (!upd || upd.length === 0) {
+          await supabase.from("system_telegram_bots").insert({ purpose: "reports", ...patch });
+        }
       }
+
       const { ok: deleteOk, data } = await telegramPostForm(reportsToken, "deleteWebhook", {
         drop_pending_updates: false,
       });
