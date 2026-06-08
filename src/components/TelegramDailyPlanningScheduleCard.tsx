@@ -97,6 +97,16 @@ export function TelegramDailyPlanningScheduleCard() {
                 <Send className="h-3.5 w-3.5 mr-1" />
                 {sendingNow ? "Enviando..." : "Enviar agora"}
               </Button>
+              <WhatsAppShareButton
+                getText={async () => {
+                  const { data, error } = await supabase.functions.invoke(
+                    "daily-planning-summary",
+                    { body: { return_text: true } },
+                  );
+                  if (error) throw error;
+                  return (data as any)?.text as string;
+                }}
+              />
             </div>
             {!linked && (
               <p className="text-[11px] text-muted-foreground">Conecte o Bot de Relatórios para habilitar os envios.</p>
