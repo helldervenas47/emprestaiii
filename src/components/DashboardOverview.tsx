@@ -1113,10 +1113,14 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       if (error) throw error;
       const payload = (result ?? {}) as { report?: string; fallback?: boolean; message?: string };
       if (payload.fallback) {
-        const fb = payload.message || "Serviço de IA temporariamente indisponível. Tente novamente em alguns instantes.";
+        const fb = payload.message || "A IA demorou para responder. Um relatório local foi gerado com os dados disponíveis.";
+        const report = payload.report ?? `> ${fb}`;
+        if (cacheKey) {
+          setCachedInsightReports((current) => ({ ...current, [cacheKey]: report }));
+        }
         if (openSheet) {
-          toast.error("Serviço de IA indisponível", { description: fb });
-          setRiskAiReport(`> ${fb}`);
+          toast.info("Relatório gerado em modo local", { description: fb });
+          setRiskAiReport(report);
         }
         return;
       }
