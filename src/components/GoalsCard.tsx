@@ -701,8 +701,13 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
 
       // Se o mês já fechou e existe snapshot finalizado, usa o valor congelado.
       // Caso contrário, calcula em tempo real.
+      // Observação: para `daily_received_avg` ignoramos o snapshot e recomputamos
+      // o TOTAL recebido a partir dos pagamentos (snapshots antigos podem ter sido
+      // gravados como média diária, gerando divisão dupla).
       let actual: number;
-      if (monthClosed && snapshot?.finalized) {
+      if (g.goalType === "daily_received_avg") {
+        actual = computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules, renegotiations);
+      } else if (monthClosed && snapshot?.finalized) {
         actual = Number(snapshot.realizedValue) || 0;
       } else {
         actual = g.goalType === "active_capital"
@@ -753,9 +758,16 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       const computeMonth = selectedMonth || g.month;
       if (!isMonthClosed(computeMonth)) return;
       const existing = getSnapshot(g.goalType, computeMonth);
-      if (existing?.finalized) return;
-      // Salva snapshot com o valor atual computado
-      void upsertSnapshot(g.goalType, computeMonth, g.actual, g.targetValue ?? null, g.pct ?? null);
+      // Para `daily_received_avg`, snapshots antigos podem ter sido salvos como média;
+      // sobrescreve se o valor armazenado diferir do TOTAL recém-computado.
+      const snapshotValue = g.goalType === "daily_received_avg"
+        ? (g.receivedTotal ?? 0)
+        : g.actual;
+      if (existing?.finalized) {
+        if (g.goalType !== "daily_received_avg") return;
+        if (Math.abs(Number(existing.realizedValue || 0) - snapshotValue) < 0.01) return;
+      }
+      void upsertSnapshot(g.goalType, computeMonth, snapshotValue, g.targetValue ?? null, g.pct ?? null);
     });
   }, [enriched, selectedMonth, getSnapshot, upsertSnapshot]);
 
