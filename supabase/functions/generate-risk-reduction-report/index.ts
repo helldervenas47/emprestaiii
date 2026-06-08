@@ -124,11 +124,14 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      // Erros transitórios/upstream: retorna 200 com fallback para não quebrar a UI.
       return new Response(JSON.stringify({
-        error: "Serviço de IA temporariamente indisponível. Tente novamente em alguns instantes.",
+        fallback: true,
+        error: "AI_SERVICE_UNAVAILABLE",
+        message: "Serviço de IA temporariamente indisponível. Tente novamente em alguns instantes.",
         details: lastErrText?.slice(0, 500),
       }), {
-        status: 503,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -140,8 +143,13 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
-      status: 500,
+    // Erro inesperado: também sinaliza fallback para o client em vez de 500.
+    return new Response(JSON.stringify({
+      fallback: true,
+      error: "EDGE_FUNCTION_FAILED",
+      message: error instanceof Error ? error.message : "Unknown error",
+    }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
