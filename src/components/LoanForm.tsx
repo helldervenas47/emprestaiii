@@ -530,7 +530,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                   type="number"
                   step="0.01"
                   min="0"
-                  value={monthlyOverride !== "" ? monthlyOverride : (calcMonthly > 0 ? calcMonthly.toFixed(2) : "")}
+                  value={monthlyTouched ? monthlyOverride : (calcMonthly > 0 ? calcMonthly.toFixed(2) : "")}
                   onChange={(e) => handleMonthlyChange(e.target.value)}
                   placeholder="0.00"
                 />
