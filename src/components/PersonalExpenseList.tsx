@@ -24,6 +24,7 @@ import {
 import { PersonalCategoryCreator } from "@/components/PersonalCategoryCreator";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ExpenseEditDialog } from "@/components/ExpenseEditDialog";
+import { applyExpenseScopedUpdate } from "@/lib/seriesEdit";
 import { ExpenseBoletoLinkButton } from "@/components/ExpenseBoletoLinkButton";
 import { supabase } from "@/integrations/supabase/userClient";
 import { InstallmentSummaryDialog } from "@/components/InstallmentSummaryDialog";
@@ -1287,72 +1288,39 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         onSave={async (patch, scope) => {
           if (!editingExpense || !onUpdate) return;
           const exp = editingExpense;
-          const isParcelada = exp.type === "recorrente" && (exp.installments ?? 0) > 1;
-          const isChild = !!exp.parentExpenseId;
-
-          await onUpdate(exp.id, {
-            description: patch.description,
-            amount: patch.amount,
-            dueDate: patch.dueDate,
-            category: patch.category,
-            notes: patch.notes ?? undefined,
-          });
-
-          if (scope !== "this" && (isParcelada || isChild)) {
-            try {
-              const parentId = isChild ? exp.parentExpenseId! : exp.id;
-              const parentExpense = isChild
-                ? expenses.find((e) => e.id === exp.parentExpenseId)
-                : exp;
-              const totalInstallments = parentExpense?.installments ?? exp.installments ?? 1;
-              const perInstallment = isChild
-                ? patch.amount
-                : totalInstallments > 0
-                  ? patch.amount / totalInstallments
-                  : patch.amount;
-              const parentTotalAmount = totalInstallments > 0
-                ? perInstallment * totalInstallments
-                : patch.amount;
-
-              let q = supabase
-                .from("expenses")
-                .select("id, paid")
-                .eq("parent_expense_id", parentId);
-              if (scope === "pending") q = q.eq("paid", false);
-              const { data: siblings } = await q;
-
-              const updates = (siblings ?? []).filter((s: any) => s.id !== exp.id);
-              for (const s of updates) {
-                await supabase
-                  .from("expenses")
-                  .update({
-                    description: patch.description,
-                    amount: perInstallment,
-                    category: patch.category,
-                    notes: patch.notes ?? null,
-                  })
-                  .eq("id", s.id);
-              }
-
-              if (isChild) {
-                await onUpdate(parentId, {
-                  description: patch.description,
-                  amount: parentTotalAmount,
-                  category: patch.category,
-                  notes: patch.notes ?? undefined,
-                });
-              }
-            } catch (err) {
-              console.error("[scope-edit] propagation failed", err);
-            }
+          const totalInstallments = exp.parentExpenseId
+            ? expenses.find((e) => e.id === exp.parentExpenseId)?.installments ?? exp.installments ?? 1
+            : (exp.installments ?? 1);
+          // patch.amount vem como TOTAL do dialog; converte para POR PARCELA.
+          const perInstallment = (exp.type === "recorrente" && (exp.installments ?? 0) > 1)
+            ? patch.amount / totalInstallments
+            : exp.parentExpenseId
+              ? patch.amount
+              : patch.amount;
+          try {
+            await applyExpenseScopedUpdate({
+              target: exp,
+              patch: {
+                description: patch.description,
+                amount: perInstallment,
+                dueDate: patch.dueDate,
+                category: patch.category,
+                notes: patch.notes,
+              },
+              scope,
+              expenses,
+              onUpdateLocal: async (id, data) => { await onUpdate(id, data); },
+            });
+          } catch (err) {
+            console.error("[scope-edit] propagation failed", err);
           }
 
           toast.success(
             scope === "all"
               ? "Despesa e histórico atualizados"
               : scope === "pending"
-                ? "Parcelas pendentes atualizadas"
-                : "Despesa atualizada",
+                ? "Esta parcela e as próximas atualizadas"
+                : "Parcela atualizada",
           );
         }}
       />

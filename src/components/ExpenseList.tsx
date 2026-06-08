@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ExpenseBoletoLinkButton } from "@/components/ExpenseBoletoLinkButton";
+import { EditScopeDialog } from "@/components/EditScopeDialog";
+import { applyExpenseScopedUpdate, isExpenseInSeries } from "@/lib/seriesEdit";
 
 const categories = [
   "Aluguel", "Energia", "Água", "Internet", "Telefone",
@@ -265,6 +267,10 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
   const [viewDateExpenseId, setViewDateExpenseId] = useState<string | null>(null);
   const [editingPaidDate, setEditingPaidDate] = useState(false);
   const [editPaidDateValue, setEditPaidDateValue] = useState("");
+  const [pendingScopeEdit, setPendingScopeEdit] = useState<
+    { target: Expense; patch: Partial<Omit<Expense, "id" | "createdAt">> } | null
+  >(null);
+
 
   const getInstallmentAmount = useCallback((e: Expense) => {
     const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
@@ -646,7 +652,11 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                     open={editingExpenseId === expense.id}
                     onOpenChange={(open) => { if (!open) setEditingExpenseId(null); }}
                     onSave={(data) => {
-                      onUpdate(expense.id, data);
+                      if (isExpenseInSeries(expense)) {
+                        setPendingScopeEdit({ target: expense, patch: data });
+                      } else {
+                        onUpdate(expense.id, data);
+                      }
                       setEditingExpenseId(null);
                     }}
                     formatCurrency={formatCurrency}
@@ -820,6 +830,42 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
           })()}
         </DialogContent>
       </Dialog>
+
+      <EditScopeDialog
+        open={!!pendingScopeEdit}
+        onOpenChange={(o) => { if (!o) setPendingScopeEdit(null); }}
+        onConfirm={async (scope) => {
+          if (!pendingScopeEdit || !onUpdate) return;
+          const { target, patch } = pendingScopeEdit;
+          const totalInstallments = target.parentExpenseId
+            ? expenses.find((e) => e.id === target.parentExpenseId)?.installments ?? target.installments ?? 1
+            : (target.installments ?? 1);
+          const perInstallment = patch.amount === undefined
+            ? undefined
+            : (target.type === "recorrente" && (target.installments ?? 0) > 1)
+              ? (patch.amount as number) / totalInstallments
+              : (patch.amount as number);
+          try {
+            await applyExpenseScopedUpdate({
+              target,
+              patch: {
+                description: patch.description as any,
+                amount: perInstallment,
+                dueDate: patch.dueDate as any,
+                category: patch.category as any,
+                notes: patch.notes as any,
+                paymentMethodId: patch.paymentMethodId as any,
+              },
+              scope,
+              expenses,
+              onUpdateLocal: async (id, data) => { await onUpdate(id, data); },
+            });
+          } finally {
+            setPendingScopeEdit(null);
+          }
+        }}
+      />
     </div>
   );
 }
+

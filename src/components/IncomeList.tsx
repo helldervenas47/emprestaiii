@@ -31,6 +31,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { validateIncomeDate } from "@/lib/paymentValidation";
 import { toast } from "sonner";
+import { EditScopeDialog } from "@/components/EditScopeDialog";
+import { applyIncomeScopedUpdate, isIncomeInSeries } from "@/lib/seriesEdit";
 
 function fmtBRL(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -90,6 +92,10 @@ export function IncomeList({ readOnly }: Props) {
   const [editPayDateValue, setEditPayDateValue] = useState("");
   const [savingPayDate, setSavingPayDate] = useState(false);
   const [incomesExpanded, setIncomesExpanded] = useState(false);
+  const [pendingIncomeScope, setPendingIncomeScope] = useState<
+    { target: Income; data: Omit<Income, "id" | "createdAt"> } | null
+  >(null);
+
 
   const nowD = todayDateInAppTz();
   const [selectedMonth, setSelectedMonth] = useState<string>(
@@ -469,8 +475,15 @@ export function IncomeList({ readOnly }: Props) {
         onClose={() => { setFormOpen(false); setEditing(null); }}
         initial={editing}
         onSubmit={async (data) => {
-          if (editing) await updateIncome(editing.id, data);
-          else await addIncome(data);
+          if (editing) {
+            if (isIncomeInSeries(editing, incomes)) {
+              setPendingIncomeScope({ target: editing, data });
+            } else {
+              await updateIncome(editing.id, data);
+            }
+          } else {
+            await addIncome(data);
+          }
         }}
       />
 
@@ -686,6 +699,43 @@ export function IncomeList({ readOnly }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EditScopeDialog
+        open={!!pendingIncomeScope}
+        onOpenChange={(o) => { if (!o) setPendingIncomeScope(null); }}
+        onConfirm={async (scope) => {
+          if (!pendingIncomeScope) return;
+          const { target, data } = pendingIncomeScope;
+          try {
+            await applyIncomeScopedUpdate({
+              target,
+              patch: {
+                description: data.description,
+                amount: data.amount,
+                category: data.category,
+                clientId: data.clientId,
+                source: data.source,
+                paymentMethodId: data.paymentMethodId,
+                receivedDate: data.receivedDate,
+                notes: data.notes,
+              },
+              scope,
+              incomes,
+              onUpdateLocal: async (id, patch) => { await updateIncome(id, patch); },
+            });
+            toast.success(
+              scope === "all"
+                ? "Receita e histórico atualizados"
+                : scope === "pending"
+                  ? "Esta receita e as próximas atualizadas"
+                  : "Receita atualizada",
+            );
+          } finally {
+            setPendingIncomeScope(null);
+          }
+        }}
+      />
     </div>
   );
 }
+
