@@ -16,6 +16,48 @@ const toneGuide: Record<InsightTone, string> = {
   friendly: "Tom próximo, leve e fácil de entender, sem perder utilidade.",
 };
 
+const jsonResponse = (payload: Record<string, unknown>, status = 200) => new Response(JSON.stringify(payload), {
+  status,
+  headers: { ...corsHeaders, "Content-Type": "application/json" },
+});
+
+const asNumber = (value: unknown) => {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const formatCurrency = (value: unknown) => asNumber(value).toLocaleString("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  maximumFractionDigits: 0,
+});
+
+const formatPercent = (value: unknown) => `${asNumber(value).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+
+const buildLocalReport = (reportType: ReportType, metrics: Record<string, unknown>) => {
+  if (reportType === "priority-insight") {
+    const title = String(metrics?.title ?? metrics?.insight ?? "Insight prioritário");
+    return `## Resumo executivo\n- ${title}\n- Priorize a ação de maior impacto com base nos indicadores atuais.\n\n## Ação imediata\n- Revise os contratos ou clientes que mais pesam no indicador.\n- Acompanhe o efeito da ação no próximo fechamento do período.`;
+  }
+
+  const risk = metrics?.riskScore ?? metrics?.risco ?? metrics?.risk ?? 0;
+  const returns = metrics?.returnScore ?? metrics?.retorno ?? metrics?.return ?? 0;
+  const defaultRate = metrics?.defaultRate ?? metrics?.inadimplencia ?? metrics?.default_rate ?? 0;
+  const received = metrics?.received ?? metrics?.recebido ?? metrics?.totalIncome ?? metrics?.income ?? 0;
+
+  return `## Resumo executivo\n- Risco atual: ${formatPercent(risk)}; retorno: ${formatPercent(returns)}; inadimplência: ${formatPercent(defaultRate)}.\n- Recebido no período: ${formatCurrency(received)}. Foque em reduzir exposição sem travar as operações rentáveis.\n\n## Ações imediatas\n- Priorize cobrança dos maiores saldos em atraso e renegocie contratos com maior risco.\n- Evite novas liberações para perfis com atraso recorrente até o indicador estabilizar.`;
+};
+
+const fetchWithTimeout = async (input: string, init: RequestInit, timeoutMs = 4500) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -23,10 +65,7 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace(/^Bearer\s+/i, "");
     if (!token) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Unauthorized" }, 401);
     }
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -37,21 +76,15 @@ Deno.serve(async (req) => {
     const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
     const userId = claimsData?.claims?.sub;
     if (claimsErr || !userId) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Unauthorized" }, 401);
     }
 
     const body = await req.json();
     const reportType = ((body?.type as ReportType) ?? "risk-reduction");
-    const metrics = body?.metrics;
+    const metrics = body?.metrics as Record<string, unknown> | undefined;
 
     if (!metrics) {
-      return new Response(JSON.stringify({ error: "Missing metrics" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Missing metrics" }, 400);
     }
 
     const promptByType: Record<ReportType, { system: string[]; userIntro: string }> = {
@@ -88,11 +121,12 @@ Deno.serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const callGateway = async () => LOVABLE_API_KEY
-      ? fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      ? fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "Lovable-API-Key": LOVABLE_API_KEY,
+            "X-Lovable-AIG-SDK": "edge-function-fetch",
           },
           body: JSON.stringify({
             model: "google/gemini-3-flash-preview",
@@ -102,7 +136,7 @@ Deno.serve(async (req) => {
             ],
           }),
         })
-      : fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+      : fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -117,11 +151,11 @@ Deno.serve(async (req) => {
           }),
         });
 
-    // Retry com backoff em erros transitórios (502/503/504) e quando upstream cai
+    // Mantém o tempo total baixo para evitar timeout/503 da plataforma quando a IA oscila.
     let response: Response | null = null;
     let lastErrText = "";
     const transient = new Set([500, 502, 503, 504]);
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 2; attempt++) {
       try {
         response = await callGateway();
         if (response.ok) break;
@@ -130,44 +164,43 @@ Deno.serve(async (req) => {
       } catch (err) {
         lastErrText = err instanceof Error ? err.message : String(err);
       }
-      await new Promise((r) => setTimeout(r, 600 * Math.pow(2, attempt)));
+      await new Promise((r) => setTimeout(r, 350 * Math.pow(2, attempt)));
     }
 
     if (!response || !response.ok) {
       const status = response?.status ?? 502;
+      const localReport = buildLocalReport(reportType, metrics);
       if (status === 429 || status === 402) {
-        return new Response(JSON.stringify({ error: lastErrText || "AI error" }), {
-          status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        return jsonResponse({
+          report: localReport,
+          fallback: true,
+          error: status === 402 ? "AI_CREDITS_EXHAUSTED" : "AI_RATE_LIMITED",
+          message: status === 402
+            ? "Créditos de IA indisponíveis. Um relatório local foi gerado para manter o fluxo funcionando."
+            : "Limite temporário de IA atingido. Um relatório local foi gerado para manter o fluxo funcionando.",
+          details: lastErrText?.slice(0, 500),
         });
       }
-      // Erros transitórios/upstream: retorna 200 com fallback para não quebrar a UI.
-      return new Response(JSON.stringify({
+      // Erros transitórios/upstream: responde com relatório determinístico para nunca derrubar a UI.
+      return jsonResponse({
+        report: localReport,
         fallback: true,
         error: "AI_SERVICE_UNAVAILABLE",
-        message: "Serviço de IA temporariamente indisponível. Tente novamente em alguns instantes.",
+        message: "A IA demorou para responder. Um relatório local foi gerado com os dados disponíveis.",
         details: lastErrText?.slice(0, 500),
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const result = await response.json();
     const report = result?.choices?.[0]?.message?.content ?? "Não foi possível gerar o relatório.";
 
-    return new Response(JSON.stringify({ report }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ report });
   } catch (error) {
-    // Erro inesperado: também sinaliza fallback para o client em vez de 500.
-    return new Response(JSON.stringify({
+    // Erro inesperado: também devolve 200 para impedir runtime error/blank screen no client.
+    return jsonResponse({
       fallback: true,
       error: "EDGE_FUNCTION_FAILED",
       message: error instanceof Error ? error.message : "Unknown error",
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
