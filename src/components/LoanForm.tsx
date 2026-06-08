@@ -132,7 +132,9 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   const calcInterest = calcTotal - amount;
 
   const [monthlyOverride, setMonthlyOverride] = useState("");
+  const [monthlyTouched, setMonthlyTouched] = useState(false);
   const [interestOverride, setInterestOverride] = useState("");
+  const [interestTouched, setInterestTouched] = useState(false);
 
   const skipResetRef = (typeof window !== "undefined") ? (window as any) : null;
   // Use a ref to skip the reset effect when overrides are the origin of the rate change
@@ -144,7 +146,9 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
       return;
     }
     setMonthlyOverride("");
+    setMonthlyTouched(false);
     setInterestOverride("");
+    setInterestTouched(false);
   }, [form.amount, form.interestRate, form.installments]);
 
   const monthlyPayment = monthlyOverride !== "" ? parseFloat(monthlyOverride) || 0 : calcMonthly;
