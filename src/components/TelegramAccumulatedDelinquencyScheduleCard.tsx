@@ -85,6 +85,18 @@ export function TelegramAccumulatedDelinquencyScheduleCard() {
                 <Send className="h-3.5 w-3.5 mr-1" />
                 {sendingNow ? "Enviando..." : "Enviar agora"}
               </Button>
+              <WhatsAppShareButton
+                getText={async () => {
+                  const { data: u } = await supabase.auth.getUser();
+                  if (!u.user) return null;
+                  const { data, error } = await supabase.functions.invoke(
+                    "telegram-accumulated-delinquency-summary",
+                    { body: { user_id: u.user.id, return_text: true } },
+                  );
+                  if (error) throw error;
+                  return (data as any)?.text as string;
+                }}
+              />
             </div>
             {!linked && (
               <p className="text-[11px] text-muted-foreground">Conecte o Bot de Relatórios para habilitar os envios.</p>
