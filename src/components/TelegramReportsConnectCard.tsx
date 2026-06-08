@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
 import { usePersonalInsightsTelegramPrefs, type InsightTone } from "@/hooks/usePersonalInsightsTelegramPrefs";
-import { generateTelegramLinkCode, invokeUserFunction } from "@/lib/telegramLinkCode";
+import { generateTelegramLinkCode, invokeUserFunction, normalizeTelegramBotCode } from "@/lib/telegramLinkCode";
 
 
 const TONE_OPTIONS: { value: InsightTone; label: string; hint: string }[] = [
@@ -70,7 +70,7 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
       toast.error("Digite o código recebido no Telegram");
       return;
     }
-    const normalized = trimmed.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const normalized = normalizeTelegramBotCode(trimmed);
     if (/^\d{6}$/.test(normalized)) {
       toast.info("Esse código é do app", {
         description: `Envie /start ${normalized} dentro do Telegram. Neste campo, cole apenas o código que o bot responde após você enviar /code.`,

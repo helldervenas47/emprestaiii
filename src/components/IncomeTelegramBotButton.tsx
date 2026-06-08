@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { CheckCircle2, Copy, Link2, RefreshCw, Unlink } from "lucide-react";
 import { toast } from "sonner";
-import { generateTelegramLinkCode, invokeUserFunction } from "@/lib/telegramLinkCode";
+import { generateTelegramLinkCode, invokeUserFunction, normalizeTelegramBotCode } from "@/lib/telegramLinkCode";
 import { fetchReportsBotId } from "@/lib/telegramReportsBot";
 
 const TelegramIcon = ({ className }: { className?: string }) => (
@@ -95,7 +95,7 @@ export function IncomeTelegramBotButton() {
   };
 
   const linkByBotCode = async () => {
-    const normalized = botCodeInput.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const normalized = normalizeTelegramBotCode(botCodeInput);
     if (!normalized) {
       toast.error("Digite o código recebido no Telegram");
       return;
