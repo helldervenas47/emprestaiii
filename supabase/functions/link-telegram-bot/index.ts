@@ -56,7 +56,15 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
       .eq("bot_code", botCode)
       .maybeSingle();
     if (legacyErr && legacyErr.code !== "PGRST205" && legacyErr.code !== "42P01") throw legacyErr;
-    if (!legacyRow) return null;
+    if (!legacyRow) {
+      if (hasLetters) {
+        return json({
+          error: "Código não encontrado ou expirado. Envie /code novamente no bot do Telegram e cole o novo código em até 15 min.",
+        }, 404);
+      }
+      return null;
+    }
+
     kind = legacyRow.kind === "reports" ? "reports" : "expenses";
     if (legacyRow.expires_at && new Date(legacyRow.expires_at).getTime() < Date.now()) {
       await admin.from("telegram_bots").delete().eq("id", legacyRow.id);
