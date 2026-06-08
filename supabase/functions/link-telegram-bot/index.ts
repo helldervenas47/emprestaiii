@@ -166,6 +166,11 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch { body = {}; }
 
     const rawCode = typeof body?.bot_code === "string" ? body.bot_code : "";
+    if (/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i.test(rawCode.trim())) {
+      return json({
+        error: "Envie /code dentro do Telegram e cole aqui apenas o código que o bot responder.",
+      }, 400);
+    }
     const requestedKind = body?.kind === "reports" || body?.kind === "expenses" ? body.kind : undefined;
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
