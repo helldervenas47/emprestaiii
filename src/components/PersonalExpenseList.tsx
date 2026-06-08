@@ -24,6 +24,7 @@ import {
 import { PersonalCategoryCreator } from "@/components/PersonalCategoryCreator";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ExpenseEditDialog } from "@/components/ExpenseEditDialog";
+import { applyExpenseScopedUpdate } from "@/lib/seriesEdit";
 import { ExpenseBoletoLinkButton } from "@/components/ExpenseBoletoLinkButton";
 import { supabase } from "@/integrations/supabase/userClient";
 import { InstallmentSummaryDialog } from "@/components/InstallmentSummaryDialog";
