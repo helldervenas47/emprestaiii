@@ -48,7 +48,7 @@ const buildLocalReport = (reportType: ReportType, metrics: Record<string, unknow
   return `## Resumo executivo\n- Risco atual: ${formatPercent(risk)}; retorno: ${formatPercent(returns)}; inadimplência: ${formatPercent(defaultRate)}.\n- Recebido no período: ${formatCurrency(received)}. Foque em reduzir exposição sem travar as operações rentáveis.\n\n## Ações imediatas\n- Priorize cobrança dos maiores saldos em atraso e renegocie contratos com maior risco.\n- Evite novas liberações para perfis com atraso recorrente até o indicador estabilizar.`;
 };
 
-const fetchWithTimeout = async (input: string, init: RequestInit, timeoutMs = 8500) => {
+const fetchWithTimeout = async (input: string, init: RequestInit, timeoutMs = 4500) => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -151,11 +151,11 @@ Deno.serve(async (req) => {
           }),
         });
 
-    // Retry com backoff em erros transitórios (502/503/504) e quando upstream cai
+    // Mantém o tempo total baixo para evitar timeout/503 da plataforma quando a IA oscila.
     let response: Response | null = null;
     let lastErrText = "";
     const transient = new Set([500, 502, 503, 504]);
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 2; attempt++) {
       try {
         response = await callGateway();
         if (response.ok) break;
@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
       } catch (err) {
         lastErrText = err instanceof Error ? err.message : String(err);
       }
-      await new Promise((r) => setTimeout(r, 600 * Math.pow(2, attempt)));
+      await new Promise((r) => setTimeout(r, 350 * Math.pow(2, attempt)));
     }
 
     if (!response || !response.ok) {
