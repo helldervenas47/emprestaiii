@@ -758,12 +758,15 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       const computeMonth = selectedMonth || g.month;
       if (!isMonthClosed(computeMonth)) return;
       const existing = getSnapshot(g.goalType, computeMonth);
-      if (existing?.finalized) return;
-      // Salva snapshot com o valor atual computado.
-      // Para `daily_received_avg`, salva o TOTAL recebido (receivedTotal) — a média é recalculada na visualização.
+      // Para `daily_received_avg`, snapshots antigos podem ter sido salvos como média;
+      // sobrescreve se o valor armazenado diferir do TOTAL recém-computado.
       const snapshotValue = g.goalType === "daily_received_avg"
         ? (g.receivedTotal ?? 0)
         : g.actual;
+      if (existing?.finalized) {
+        if (g.goalType !== "daily_received_avg") return;
+        if (Math.abs(Number(existing.realizedValue || 0) - snapshotValue) < 0.01) return;
+      }
       void upsertSnapshot(g.goalType, computeMonth, snapshotValue, g.targetValue ?? null, g.pct ?? null);
     });
   }, [enriched, selectedMonth, getSnapshot, upsertSnapshot]);
