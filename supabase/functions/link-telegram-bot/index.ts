@@ -161,12 +161,17 @@ Deno.serve(async (req) => {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
         body: "{}",
       }).catch(() => null),
-      fetch(`${SUPABASE_URL}/functions/v1/telegram-reports-poll`, {
+      fetch(`${SUPABASE_URL}/functions/v1/telegram-reports-poll?force=1`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
         body: "{}",
       }).catch(() => null),
     ]);
+    await fetch(`${SUPABASE_URL}/functions/v1/telegram-process`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+      body: "{}",
+    }).catch(() => null);
 
     const botCodeResult = await linkByBotCode(admin, userId, rawCode, requestedKind);
     if (botCodeResult) return botCodeResult;
