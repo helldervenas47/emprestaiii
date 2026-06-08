@@ -266,6 +266,12 @@ export function TelegramManagerWeeklyCard() {
                         >
                           {sending === m.client_id ? "…" : <Send className="h-3.5 w-3.5" />}
                         </Button>
+                        <WhatsAppShareButton
+                          size="sm"
+                          variant="ghost"
+                          label=""
+                          getText={async () => m.message}
+                        />
                       </div>
                     </div>
                   ))}
