@@ -830,6 +830,42 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
           })()}
         </DialogContent>
       </Dialog>
+
+      <EditScopeDialog
+        open={!!pendingScopeEdit}
+        onOpenChange={(o) => { if (!o) setPendingScopeEdit(null); }}
+        onConfirm={async (scope) => {
+          if (!pendingScopeEdit || !onUpdate) return;
+          const { target, patch } = pendingScopeEdit;
+          const totalInstallments = target.parentExpenseId
+            ? expenses.find((e) => e.id === target.parentExpenseId)?.installments ?? target.installments ?? 1
+            : (target.installments ?? 1);
+          const perInstallment = patch.amount === undefined
+            ? undefined
+            : (target.type === "recorrente" && (target.installments ?? 0) > 1)
+              ? (patch.amount as number) / totalInstallments
+              : (patch.amount as number);
+          try {
+            await applyExpenseScopedUpdate({
+              target,
+              patch: {
+                description: patch.description as any,
+                amount: perInstallment,
+                dueDate: patch.dueDate as any,
+                category: patch.category as any,
+                notes: patch.notes as any,
+                paymentMethodId: patch.paymentMethodId as any,
+              },
+              scope,
+              expenses,
+              onUpdateLocal: async (id, data) => { await onUpdate(id, data); },
+            });
+          } finally {
+            setPendingScopeEdit(null);
+          }
+        }}
+      />
     </div>
   );
 }
+
