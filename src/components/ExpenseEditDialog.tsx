@@ -385,7 +385,7 @@ export function ExpenseEditDialog({
                 >
                   <RadioGroupItem value="this" id="scope-this" className="mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-medium text-foreground">Apenas esta despesa</div>
+                    <div className="text-xs font-medium text-foreground">Apenas esta parcela</div>
                     <div className="text-[11px] text-muted-foreground">Altera somente o lançamento selecionado.</div>
                   </div>
                 </label>
@@ -397,8 +397,8 @@ export function ExpenseEditDialog({
                 >
                   <RadioGroupItem value="pending" id="scope-pending" className="mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-medium text-foreground">Todas as parcelas pendentes</div>
-                    <div className="text-[11px] text-muted-foreground">Mantém o histórico de parcelas já pagas inalterado.</div>
+                    <div className="text-xs font-medium text-foreground">Esta parcela e as próximas</div>
+                    <div className="text-[11px] text-muted-foreground">Mantém inalteradas as parcelas anteriores e já pagas.</div>
                   </div>
                 </label>
                 <label
@@ -411,11 +411,12 @@ export function ExpenseEditDialog({
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-medium text-foreground flex items-center gap-1.5">
                       <AlertTriangle className="h-3 w-3 text-destructive" />
-                      Todas as despesas (incluindo pagas)
+                      Todas as parcelas
                     </div>
                     <div className="text-[11px] text-muted-foreground">Reescreve também o histórico de parcelas já quitadas.</div>
                   </div>
                 </label>
+
               </RadioGroup>
             </div>
           )}
