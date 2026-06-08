@@ -517,7 +517,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                   type="number"
                   step="0.01"
                   min="0"
-                  value={interestOverride !== "" ? interestOverride : (calcInterest > 0 ? calcInterest.toFixed(2) : "")}
+                  value={interestTouched ? interestOverride : (calcInterest > 0 ? calcInterest.toFixed(2) : "")}
                   onChange={(e) => handleInterestChange(e.target.value)}
                   placeholder="0.00"
                 />
