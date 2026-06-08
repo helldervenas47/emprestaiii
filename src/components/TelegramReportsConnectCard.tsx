@@ -70,12 +70,6 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
       toast.error("Digite o código recebido no Telegram");
       return;
     }
-    if (/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i.test(trimmed)) {
-      toast.info("Envie /code dentro do Telegram", {
-        description: "Depois cole aqui o código que o bot responder, não o comando /code.",
-      });
-      return;
-    }
     const normalized = normalizeTelegramBotCode(trimmed);
     setLinkingByCode(true);
     try {
