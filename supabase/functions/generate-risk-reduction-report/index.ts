@@ -61,6 +61,10 @@ const fetchWithTimeout = async (input: string, init: RequestInit, timeoutMs = 45
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  let fallbackReport = "";
+  let fallbackReportType: ReportType = "risk-reduction";
+  let fallbackMetrics: Record<string, unknown> = {};
+
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace(/^Bearer\s+/i, "");
@@ -79,13 +83,18 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Unauthorized" }, 401);
     }
 
-    const body = await req.json();
-    const reportType = ((body?.type as ReportType) ?? "risk-reduction");
+    const body = await req.json().catch(() => null);
+    const requestedType = body?.type === "priority-insight" ? "priority-insight" : "risk-reduction";
+    const reportType = requestedType as ReportType;
     const metrics = body?.metrics as Record<string, unknown> | undefined;
 
     if (!metrics) {
       return jsonResponse({ error: "Missing metrics" }, 400);
     }
+
+    fallbackReportType = reportType;
+    fallbackMetrics = metrics;
+    fallbackReport = buildLocalReport(reportType, metrics);
 
     const promptByType: Record<ReportType, { system: string[]; userIntro: string }> = {
       "risk-reduction": {
@@ -169,10 +178,9 @@ Deno.serve(async (req) => {
 
     if (!response || !response.ok) {
       const status = response?.status ?? 502;
-      const localReport = buildLocalReport(reportType, metrics);
       if (status === 429 || status === 402) {
         return jsonResponse({
-          report: localReport,
+          report: fallbackReport,
           fallback: true,
           error: status === 402 ? "AI_CREDITS_EXHAUSTED" : "AI_RATE_LIMITED",
           message: status === 402
@@ -183,7 +191,7 @@ Deno.serve(async (req) => {
       }
       // Erros transitórios/upstream: responde com relatório determinístico para nunca derrubar a UI.
       return jsonResponse({
-        report: localReport,
+        report: fallbackReport,
         fallback: true,
         error: "AI_SERVICE_UNAVAILABLE",
         message: "A IA demorou para responder. Um relatório local foi gerado com os dados disponíveis.",
@@ -191,13 +199,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    const result = await response.json();
-    const report = result?.choices?.[0]?.message?.content ?? "Não foi possível gerar o relatório.";
+    const result = await response.json().catch(() => null);
+    const report = result?.choices?.[0]?.message?.content || fallbackReport;
 
     return jsonResponse({ report });
   } catch (error) {
     // Erro inesperado: também devolve 200 para impedir runtime error/blank screen no client.
     return jsonResponse({
+      report: fallbackReport || buildLocalReport(fallbackReportType, fallbackMetrics),
       fallback: true,
       error: "EDGE_FUNCTION_FAILED",
       message: error instanceof Error ? error.message : "Unknown error",
