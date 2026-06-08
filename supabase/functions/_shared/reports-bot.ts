@@ -14,6 +14,7 @@ export async function getReportsBotId(supabase: any): Promise<string | null> {
     .select("id")
     .eq("purpose", "reports")
     .eq("active", true)
+    .order("bot_id", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
@@ -55,7 +56,9 @@ export async function getReportsBot(supabase: any): Promise<ReportsBot | null> {
     .from("system_telegram_bots")
     .select("id, token, name, bot_username, purpose")
     .eq("active", true)
-    .eq("purpose", "reports");
+    .eq("purpose", "reports")
+    .order("bot_id", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: true });
 
   if (error) {
     console.error("[getReportsBot] query error", error);
