@@ -18,8 +18,23 @@ function json(body: unknown, status = 200) {
   });
 }
 
+function normalizeTelegramBotCode(input: string) {
+  const commandMatch = input.match(/\/start(?:@\w+)?\s+(\d{6})\b/i);
+  if (commandMatch) return commandMatch[1];
+  for (const line of input.split(/\r?\n/)) {
+    const candidate = line.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (/^[A-Z0-9]{6,12}$/.test(candidate)) return candidate;
+  }
+  const tokens = input.toUpperCase().match(/[A-Z0-9]{6,12}/g) ?? [];
+  const mixedToken = tokens.find((token) => /[A-Z]/.test(token) && /\d/.test(token));
+  if (mixedToken) return mixedToken;
+  const numericToken = tokens.find((token) => /^\d{6}$/.test(token));
+  if (numericToken) return numericToken;
+  return input.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
 async function linkByBotCode(admin: any, userId: string, rawCode: string, requestedKind?: string) {
-  const botCode = rawCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const botCode = normalizeTelegramBotCode(rawCode);
   if (!/^[A-Z0-9]{6,12}$/.test(botCode)) return null;
 
   let kind = requestedKind === "reports" ? "reports" : "expenses";
@@ -36,7 +51,7 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
   for (const message of recentMessages ?? []) {
     const text = String(message.text ?? "").trim();
     if (!/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i.test(text)) continue;
-    const savedCode = String(message.raw_update?._bot_link_code ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const savedCode = normalizeTelegramBotCode(String(message.raw_update?._bot_link_code ?? ""));
     const savedKind = message.raw_update?._bot_link_kind === "reports" ? "reports" : message.raw_update?._bot_link_kind === "expenses" ? "expenses" : null;
     if (savedCode && savedCode === botCode) {
       if (savedKind) kind = savedKind;
@@ -177,7 +192,7 @@ Deno.serve(async (req) => {
     if (botCodeResult) return botCodeResult;
 
 
-    const code = rawCode.trim().replace(/[^0-9]/g, "");
+    const code = normalizeTelegramBotCode(rawCode).replace(/[^0-9]/g, "");
     if (!code || code.length !== 6) {
       return json({
         error: "Código inválido. Gere um código no app ou envie /code no bot do Telegram.",
