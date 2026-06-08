@@ -156,13 +156,14 @@ Deno.serve(async (req) => {
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const { getExternalAdmin, getExternalUserClient } = await import("../_shared/external-supabase.ts");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return json({ error: "Unauthorized" }, 401);
 
-    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const userClient = getExternalUserClient();
     const token = authHeader.replace(/^Bearer\s+/i, "");
     const { data: { user }, error: userErr } = await userClient.auth.getUser(token);
     const userId = user?.id;
@@ -173,7 +174,7 @@ Deno.serve(async (req) => {
 
     const rawCode = typeof body?.bot_code === "string" ? body.bot_code : "";
     const requestedKind = body?.kind === "reports" || body?.kind === "expenses" ? body.kind : undefined;
-    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const admin = getExternalAdmin();
 
     // Flush pending Telegram updates so the recent /code message is persisted.
     await Promise.all([
