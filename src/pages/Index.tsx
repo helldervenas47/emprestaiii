@@ -1169,6 +1169,7 @@ const Index = () => {
         {tab === "system" && canAccessTab("system") && (
           <SystemSettings />
         )}
+        </>)}
         </Suspense>
       </main>
 
