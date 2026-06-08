@@ -35,6 +35,18 @@ Deno.serve(async (req) => {
       Deno.env.get("TELEGRAM_BOT_TOKEN_REPORTS"),
     ].filter(Boolean) as string[];
 
+    const { getExternalAdmin } = await import("../_shared/external-supabase.ts");
+    const supabase = getExternalAdmin();
+    const { data: activeDbBots } = await supabase
+      .from("system_telegram_bots")
+      .select("id, token")
+      .eq("active", true)
+      .not("token", "is", null);
+    for (const bot of activeDbBots ?? []) {
+      const token = String((bot as any)?.token ?? "");
+      if (token && !tokens.includes(token)) tokens.push(token);
+    }
+
     if (tokens.length === 0) {
       throw new Error("Nenhum TELEGRAM_BOT_TOKEN configurado");
     }
@@ -59,8 +71,6 @@ Deno.serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     if (!SUPABASE_URL) throw new Error("SUPABASE_URL not configured");
 
-    const { getExternalAdmin } = await import("../_shared/external-supabase.ts");
-    const supabase = getExternalAdmin();
     const update = await req.json();
     const message = update.message ?? update.edited_message;
 

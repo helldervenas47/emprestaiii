@@ -235,7 +235,6 @@ Deno.serve(async (req) => {
 
   const list = ((bots ?? []) as any[]).filter((bot) => {
     if (EXPENSES_BOT_TOKEN && bot.token === EXPENSES_BOT_TOKEN) return false;
-    if (REPORTS_BOT_TOKEN && bot.token !== REPORTS_BOT_TOKEN) return false;
     return true;
   });
   if (list.length === 0) {

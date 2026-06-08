@@ -120,6 +120,7 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
   // Remove only the same-kind link for this user/chat (keep the other-kind link intact)
   let delQuery = admin.from("telegram_links").delete().or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
   if (targetBotId) delQuery = delQuery.eq("bot_id", targetBotId);
+  else delQuery = delQuery.is("bot_id", null);
   await delQuery;
   const { error: insErr } = await admin.from("telegram_links").insert({
     user_id: userId,
