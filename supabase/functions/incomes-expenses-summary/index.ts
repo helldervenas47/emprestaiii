@@ -278,6 +278,7 @@ Deno.serve(async (req) => {
     if (!userErr && user) {
       let body: any = {};
       try { body = await req.json(); } catch (_) {}
+      const returnText = body?.return_text === true;
       let manualTarget = (body?.date as string) || tomorrow;
       let manualLabel = "Receitas e Despesas — Amanhã";
       if (!body?.date) {
@@ -293,8 +294,8 @@ Deno.serve(async (req) => {
       } else if (body.date === today) {
         manualLabel = "Receitas e Despesas — Hoje";
       }
-      const ok = await buildAndSend(admin, user.id, manualTarget, brandName, manualLabel);
-      return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0, date: manualTarget }), {
+      const res = await buildAndSend(admin, user.id, manualTarget, brandName, manualLabel, { returnText });
+      return new Response(JSON.stringify({ ok: true, sent: res.sent ? 1 : 0, date: manualTarget, text: res.text }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
