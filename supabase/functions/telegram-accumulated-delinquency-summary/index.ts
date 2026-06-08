@@ -269,6 +269,7 @@ Deno.serve(async (req) => {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const bodyUserId = typeof body.user_id === "string" ? body.user_id : null;
     const forceUserId = bodyUserId ?? url.searchParams.get("user_id") ?? null;
+    const returnText = url.searchParams.get("return_text") === "1" || body.return_text === true;
 
     if (forceUserId) {
       const authHeader = req.headers.get("Authorization") ?? "";
@@ -287,6 +288,32 @@ Deno.serve(async (req) => {
       if (authData.user.id !== forceUserId) {
         return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
+    }
+
+    // return_text mode: build and return text without sending.
+    if (forceUserId && returnText) {
+      const { data: ownerId } = await admin.rpc("get_data_owner_id", { _user_id: forceUserId });
+      const resolvedOwnerId = ownerId ?? forceUserId;
+      const { data: accountSettings } = await admin
+        .from("account_settings").select("timezone").eq("owner_id", resolvedOwnerId).maybeSingle();
+      const timeZone = accountSettings?.timezone || "America/Sao_Paulo";
+      const { today, currentMonthStart } = getCurrentDateParts(timeZone);
+      const [{ data: loans }, { data: schedules }, { data: clients }] = await Promise.all([
+        admin.from("loans").select("id, user_id, borrower_id, borrower_name, due_date, installments, paid_installments, remaining_amount, custom_installment_value, amount, interest_rate, status, late_interest_type, late_interest_value, penalty_value").eq("user_id", resolvedOwnerId).neq("status", "paid"),
+        admin.from("loan_installments").select("loan_id, installment_number, due_date, amount").eq("user_id", resolvedOwnerId),
+        admin.from("clients").select("id, name, phone").eq("user_id", resolvedOwnerId),
+      ]);
+      const items = buildAccumulatedDelinquencyItems(
+        (loans ?? []) as LoanRow[],
+        (schedules ?? []) as ScheduleRow[],
+        (clients ?? []) as ClientRow[],
+        today,
+        currentMonthStart,
+      );
+      const text = buildTelegramMessage(items);
+      return new Response(JSON.stringify({ ok: true, text }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     let query = admin
