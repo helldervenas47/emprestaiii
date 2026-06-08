@@ -33,6 +33,14 @@ function normalizeTelegramBotCode(input: string) {
   return input.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+function foldAmbiguousCode(code: string) {
+  return code.toUpperCase().replace(/[IL|]/g, "1").replace(/[OQ]/g, "0");
+}
+
+function codesEquivalent(a: string, b: string) {
+  return a === b || foldAmbiguousCode(a) === foldAmbiguousCode(b);
+}
+
 async function linkByBotCode(admin: any, userId: string, rawCode: string, requestedKind?: string) {
   const botCode = normalizeTelegramBotCode(rawCode);
   const rawIsCodeCommand = /^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i.test(rawCode.trim());
@@ -59,7 +67,7 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
       matched = message;
       break;
     }
-    if (savedCode && savedCode === botCode) {
+    if (savedCode && codesEquivalent(savedCode, botCode)) {
       if (savedKind) kind = savedKind;
       matched = message;
       break;
@@ -70,7 +78,7 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
       await generateChatLinkCode(chatId, kind, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!),
       await generateChatLinkCode(chatId, kind, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, Date.now() - 15 * 60 * 1000),
     ];
-    if (validCodes.includes(botCode)) {
+    if (validCodes.some((code) => codesEquivalent(code, botCode))) {
       matched = message;
       break;
     }
@@ -149,7 +157,14 @@ async function generateChatLinkCode(chatId: number, kind: string, secret: string
   const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
   const bytes = Array.from(new Uint8Array(signature.slice(0, 8)));
   const value = bytes.reduce((acc, byte) => acc * 256n + BigInt(byte), 0n);
-  return value.toString(36).toUpperCase().padStart(10, "0").slice(0, 6);
+  const alphabet = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+  let n = value;
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code = alphabet[Number(n % BigInt(alphabet.length))] + code;
+    n /= BigInt(alphabet.length);
+  }
+  return code;
 }
 
 Deno.serve(async (req) => {

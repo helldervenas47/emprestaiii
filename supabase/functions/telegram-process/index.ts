@@ -1604,7 +1604,14 @@ async function generateChatLinkCode(chatId: number, kind: "expenses" | "reports"
   const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
   const bytes = Array.from(new Uint8Array(signature.slice(0, 8)));
   const value = bytes.reduce((acc, byte) => acc * 256n + BigInt(byte), 0n);
-  return value.toString(36).toUpperCase().padStart(10, "0").slice(0, 6);
+  const alphabet = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+  let n = value;
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code = alphabet[Number(n % BigInt(alphabet.length))] + code;
+    n /= BigInt(alphabet.length);
+  }
+  return code;
 }
 
 async function tgSend(chatId: number, text: string, telegramKey: string): Promise<number | null> {
