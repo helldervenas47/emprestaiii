@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const reportType = ((body?.type as ReportType) ?? "risk-reduction");
-    const metrics = body?.metrics;
+    const metrics = body?.metrics as Record<string, unknown> | undefined;
 
     if (!metrics) {
       return jsonResponse({ error: "Missing metrics" }, 400);
@@ -121,11 +121,12 @@ Deno.serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const callGateway = async () => LOVABLE_API_KEY
-      ? fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      ? fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "Lovable-API-Key": LOVABLE_API_KEY,
+            "X-Lovable-AIG-SDK": "edge-function-fetch",
           },
           body: JSON.stringify({
             model: "google/gemini-3-flash-preview",
@@ -135,7 +136,7 @@ Deno.serve(async (req) => {
             ],
           }),
         })
-      : fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+      : fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -168,39 +169,38 @@ Deno.serve(async (req) => {
 
     if (!response || !response.ok) {
       const status = response?.status ?? 502;
+      const localReport = buildLocalReport(reportType, metrics);
       if (status === 429 || status === 402) {
-        return new Response(JSON.stringify({ error: lastErrText || "AI error" }), {
-          status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        return jsonResponse({
+          report: localReport,
+          fallback: true,
+          error: status === 402 ? "AI_CREDITS_EXHAUSTED" : "AI_RATE_LIMITED",
+          message: status === 402
+            ? "Créditos de IA indisponíveis. Um relatório local foi gerado para manter o fluxo funcionando."
+            : "Limite temporário de IA atingido. Um relatório local foi gerado para manter o fluxo funcionando.",
+          details: lastErrText?.slice(0, 500),
         });
       }
-      // Erros transitórios/upstream: retorna 200 com fallback para não quebrar a UI.
-      return new Response(JSON.stringify({
+      // Erros transitórios/upstream: responde com relatório determinístico para nunca derrubar a UI.
+      return jsonResponse({
+        report: localReport,
         fallback: true,
         error: "AI_SERVICE_UNAVAILABLE",
-        message: "Serviço de IA temporariamente indisponível. Tente novamente em alguns instantes.",
+        message: "A IA demorou para responder. Um relatório local foi gerado com os dados disponíveis.",
         details: lastErrText?.slice(0, 500),
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const result = await response.json();
     const report = result?.choices?.[0]?.message?.content ?? "Não foi possível gerar o relatório.";
 
-    return new Response(JSON.stringify({ report }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ report });
   } catch (error) {
-    // Erro inesperado: também sinaliza fallback para o client em vez de 500.
-    return new Response(JSON.stringify({
+    // Erro inesperado: também devolve 200 para impedir runtime error/blank screen no client.
+    return jsonResponse({
       fallback: true,
       error: "EDGE_FUNCTION_FAILED",
       message: error instanceof Error ? error.message : "Unknown error",
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
