@@ -780,6 +780,26 @@ const Index = () => {
           );
         })()}
         <Suspense fallback={<div className="flex justify-center py-12"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div>}>
+        {tabAccessDenied ? (
+          <Card className="max-w-xl mx-auto mt-8">
+            <CardContent className="py-10 text-center space-y-4">
+              <div className="mx-auto h-14 w-14 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="h-7 w-7 text-destructive" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-foreground">Acesso negado</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Você não possui permissão para acessar esta aba. Solicite ao administrador a liberação em <span className="font-medium">Sistema &gt; Usuários &gt; Abas</span>.
+                </p>
+              </div>
+              {visibleTabs.length > 0 && (
+                <Button onClick={() => setTab(visibleTabs[0].id)} variant="outline">
+                  Ir para {visibleTabs[0].label}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        ) : (<>
         {tab === "overview" && (
           <SubscriptionGate requiredTier={1} featureName="Dashboard">
           <DashboardOverview loans={filteredLoans} sales={filteredSales} payments={filteredPayments} expenses={expenses.filter(e => (e.scope ?? "business") === "business" && !isVehicleExpenseForVehicles(e))} installmentSchedules={filteredInstallments} clients={clients} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} readOnly={isReadOnly} />
