@@ -475,8 +475,15 @@ export function IncomeList({ readOnly }: Props) {
         onClose={() => { setFormOpen(false); setEditing(null); }}
         initial={editing}
         onSubmit={async (data) => {
-          if (editing) await updateIncome(editing.id, data);
-          else await addIncome(data);
+          if (editing) {
+            if (isIncomeInSeries(editing, incomes)) {
+              setPendingIncomeScope({ target: editing, data });
+            } else {
+              await updateIncome(editing.id, data);
+            }
+          } else {
+            await addIncome(data);
+          }
         }}
       />
 
