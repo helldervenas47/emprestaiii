@@ -215,20 +215,24 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
 
   const handleMonthlyChange = (val: string) => {
     setMonthlyOverride(val);
+    setMonthlyTouched(true);
     const mp = parseFloat(val) || 0;
     if (mp > 0 && installments > 0) {
       const newTotal = mp * installments;
       const ti = newTotal - amount;
       setInterestOverride(ti.toFixed(2));
+      setInterestTouched(true);
       syncRateFromInterest(ti);
     }
   };
 
   const handleInterestChange = (val: string) => {
     setInterestOverride(val);
+    setInterestTouched(true);
     const ti = parseFloat(val) || 0;
     if (installments > 0) {
       setMonthlyOverride(((amount + ti) / installments).toFixed(2));
+      setMonthlyTouched(true);
     }
     syncRateFromInterest(ti);
   };
