@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useTelegramManagerWeeklyPrefs } from "@/hooks/useTelegramManagerWeeklyPrefs";
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
+import { WhatsAppShareButton } from "@/components/WhatsAppShareButton";
 
 const WEEKDAYS = [
   { value: 0, label: "Domingo" },
