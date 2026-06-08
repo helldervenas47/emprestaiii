@@ -92,6 +92,10 @@ export function IncomeList({ readOnly }: Props) {
   const [editPayDateValue, setEditPayDateValue] = useState("");
   const [savingPayDate, setSavingPayDate] = useState(false);
   const [incomesExpanded, setIncomesExpanded] = useState(false);
+  const [pendingIncomeScope, setPendingIncomeScope] = useState<
+    { target: Income; data: Omit<Income, "id" | "createdAt"> } | null
+  >(null);
+
 
   const nowD = todayDateInAppTz();
   const [selectedMonth, setSelectedMonth] = useState<string>(
