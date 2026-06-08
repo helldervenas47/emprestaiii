@@ -503,6 +503,11 @@ const Index = () => {
   });
 
   const canAccessTab = (id: Tab) => visibleTabs.some((t) => t.id === id);
+  // Tab existe na configuração geral mas o usuário não tem permissão →
+  // exibimos página de "acesso negado" em vez de redirecionar silenciosamente.
+  const tabAccessDenied = !loading
+    && tabConfig.some((t) => t.id === tab)
+    && !visibleTabs.some((t) => t.id === tab);
 
   // Itens da barra inferior mobile: prioriza pinnedTabs (ordem do usuário),
   // completa com as demais abas visíveis e limita a 4 (o 5º slot é "Mais").
@@ -516,7 +521,13 @@ const Index = () => {
   const bottomItemIds = bottomItems.map((i) => i.id);
 
   useEffect(() => {
-    if (visibleTabs.length > 0 && !visibleTabs.find((item) => item.id === tab)) {
+    // Só redireciona se a aba atual sumiu da configuração (ex: feature removida).
+    // Se existe na configuração mas o usuário não tem permissão, mantemos
+    // a aba selecionada para renderizar a tela de "acesso negado".
+    if (
+      visibleTabs.length > 0
+      && !tabConfig.some((item) => item.id === tab)
+    ) {
       setTab(visibleTabs[0].id);
     }
   }, [tab, visibleTabs]);
@@ -769,6 +780,26 @@ const Index = () => {
           );
         })()}
         <Suspense fallback={<div className="flex justify-center py-12"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div>}>
+        {tabAccessDenied ? (
+          <Card className="max-w-xl mx-auto mt-8">
+            <CardContent className="py-10 text-center space-y-4">
+              <div className="mx-auto h-14 w-14 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="h-7 w-7 text-destructive" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-foreground">Acesso negado</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Você não possui permissão para acessar esta aba. Solicite ao administrador a liberação em <span className="font-medium">Sistema &gt; Usuários &gt; Abas</span>.
+                </p>
+              </div>
+              {visibleTabs.length > 0 && (
+                <Button onClick={() => setTab(visibleTabs[0].id)} variant="outline">
+                  Ir para {visibleTabs[0].label}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        ) : (<>
         {tab === "overview" && (
           <SubscriptionGate requiredTier={1} featureName="Dashboard">
           <DashboardOverview loans={filteredLoans} sales={filteredSales} payments={filteredPayments} expenses={expenses.filter(e => (e.scope ?? "business") === "business" && !isVehicleExpenseForVehicles(e))} installmentSchedules={filteredInstallments} clients={clients} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} readOnly={isReadOnly} />
@@ -1138,6 +1169,7 @@ const Index = () => {
         {tab === "system" && canAccessTab("system") && (
           <SystemSettings />
         )}
+        </>)}
         </Suspense>
       </main>
 
