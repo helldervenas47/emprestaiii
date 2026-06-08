@@ -296,7 +296,11 @@ export function TelegramManagerWeeklyCard() {
           <pre className="whitespace-pre-wrap text-xs bg-muted/40 rounded-md p-3 max-h-[60vh] overflow-y-auto">
             {activePreview?.message}
           </pre>
-          <DialogFooter>
+          <DialogFooter className="gap-2">
+            <WhatsAppShareButton
+              getText={async () => activePreview?.message ?? ""}
+              disabled={!activePreview}
+            />
             <Button
               onClick={() => activePreview && sendOne(activePreview.client_id)}
               disabled={sending !== null}
