@@ -193,7 +193,7 @@ export function IncomeTelegramBotButton() {
                 onChange={(e) => setBotCodeInput(e.target.value.toUpperCase())}
                 placeholder="Código recebido do bot"
                 className="h-9 font-mono text-sm uppercase"
-                maxLength={12}
+                maxLength={512}
               />
               <Button size="sm" className="h-9 gap-2" onClick={linkByBotCode} disabled={linkingByCode}>
                 <Link2 className="h-4 w-4" />
