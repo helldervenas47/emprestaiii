@@ -59,10 +59,8 @@ Deno.serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     if (!SUPABASE_URL) throw new Error("SUPABASE_URL not configured");
 
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("SUPABASE_SERVICE_ROLE_KEY not configured");
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const { getExternalAdmin } = await import("../_shared/external-supabase.ts");
+    const supabase = getExternalAdmin();
     const update = await req.json();
     const message = update.message ?? update.edited_message;
 
