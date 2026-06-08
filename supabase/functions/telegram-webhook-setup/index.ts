@@ -70,17 +70,21 @@ Deno.serve(async (req) => {
       const botId = me?.result?.id ? String(me.result.id) : null;
       // Sync token into DB so polling/processing uses the new token.
       if (username && botId) {
-        await supabase.from("system_telegram_bots").upsert({
-          purpose: "expenses",
+        const patch = {
           token: expensesToken,
           bot_username: username,
-          telegram_bot_id: botId,
           active: true,
           validation_status: "valid",
           last_validated_at: new Date().toISOString(),
           update_offset: 0,
-        }, { onConflict: "purpose" });
+        };
+        const { data: upd } = await supabase.from("system_telegram_bots")
+          .update(patch).eq("purpose", "expenses").select("id");
+        if (!upd || upd.length === 0) {
+          await supabase.from("system_telegram_bots").insert({ purpose: "expenses", ...patch });
+        }
       }
+
       const secret = await deriveTelegramWebhookSecret(expensesToken);
       const { ok: setOk, data } = await telegramPostForm(expensesToken, "setWebhook", {
         url: webhookUrl,
