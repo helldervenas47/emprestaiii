@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getExternalAdmin } from "../_shared/external-supabase.ts";
 
 const MAX_RUNTIME_MS = 55_000;
 const MIN_REMAINING_MS = 5_000;
@@ -199,7 +200,7 @@ Deno.serve(async (req) => {
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const EXPENSES_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
   const REPORTS_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN_REPORTS") ?? "";
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = getExternalAdmin();
 
   // Concurrency guard: if another invocation logged a run < 15s ago and we're not
   // forced, skip silently to prevent overlapping getUpdates → 409 noise.
