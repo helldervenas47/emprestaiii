@@ -110,7 +110,8 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
       const meta = GOAL_TYPE_META[g.goalType];
       let actual = computeActual(g.goalType, g.month);
       let target = g.targetValue;
-      // Para "Média Geral Recebida por Dia": exibir e comparar em base diária
+      // Para "Média Geral Recebida por Dia": targetValue É a meta DIÁRIA.
+      // Comparamos a média diária realizada diretamente contra ela.
       if (g.goalType === "daily_received_avg") {
         const [yy, mm] = g.month.split("-").map(Number);
         const today = new Date();
@@ -120,8 +121,8 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
         const daysElapsed = isCurrent
           ? today.getDate()
           : (g.month < currentMonth ? daysInMonth : 1);
-        actual = daysElapsed > 0 ? actual / daysElapsed : 0; // média diária recebida
-        target = g.targetValue / daysInMonth; // meta diária implícita
+        actual = daysElapsed > 0 ? actual / daysElapsed : 0; // média diária realizada
+        // target permanece como meta diária direta (não dividir)
       }
       let pct = 0;
       if (target > 0) {
