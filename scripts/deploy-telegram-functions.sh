@@ -57,6 +57,8 @@ FUNCTIONS=(
   telegram-manager-weekly-summary
   validate-telegram-bot
   send-personal-insights-telegram
+  daily-planning-summary
+  incomes-expenses-summary
 )
 
 # ---- Deploy (sem verificação de JWT, igual ao webhook do Telegram) ----------
