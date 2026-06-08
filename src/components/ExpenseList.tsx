@@ -267,6 +267,10 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
   const [viewDateExpenseId, setViewDateExpenseId] = useState<string | null>(null);
   const [editingPaidDate, setEditingPaidDate] = useState(false);
   const [editPaidDateValue, setEditPaidDateValue] = useState("");
+  const [pendingScopeEdit, setPendingScopeEdit] = useState<
+    { target: Expense; patch: Partial<Omit<Expense, "id" | "createdAt">> } | null
+  >(null);
+
 
   const getInstallmentAmount = useCallback((e: Expense) => {
     const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
