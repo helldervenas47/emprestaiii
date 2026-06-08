@@ -160,7 +160,7 @@ async function processBot(
           update_id: u.update_id,
           chat_id: chatId,
           text,
-          raw_update: { ...u, _system_bot_id: bot.id },
+          raw_update: { ...u, _system_bot_id: bot.id, _bot_link_code: botCode, _bot_link_kind: "reports" },
           bot_id: bot.id,
           processed: true,
           processed_at: new Date().toISOString(),
