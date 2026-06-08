@@ -81,10 +81,11 @@ async function buildAndSend(
   date: string,
   brandName: string,
   titleLabel: string,
-): Promise<boolean> {
+  opts?: { returnText?: boolean },
+): Promise<{ sent: boolean; text?: string }> {
   const link = await getReportsLinkForUser(admin, userId);
-  if (!link) return false;
-  const chatId = Number(link.chat_id);
+  if (!link && !opts?.returnText) return { sent: false };
+  const chatId = link ? Number(link.chat_id) : 0;
 
   // Incomes a receber (pendentes/atrasadas) com vencimento na data
   const { data: incomes } = await admin.from("incomes")
