@@ -1535,13 +1535,20 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                             <CheckCircle2 className="h-4 w-4 text-success mb-0.5" />
                             <p className="text-sm font-bold text-success">Meta diária atingida</p>
                           </div>
-                        ) : (
-                          <div className="rounded-md border border-warning/30 bg-warning/5 p-2">
-                            <p className="text-[10px] text-muted-foreground uppercase">Falta/dia</p>
-                            <p className="text-sm font-bold text-warning">{fmtValue(dailyShortfall, "R$", hidden)}</p>
-                            <p className="text-[9px] text-muted-foreground mt-0.5">para atingir a média</p>
-                          </div>
-                        )}
+                        ) : (() => {
+                          const daysRemaining = Math.max(0, daysInMonth - daysElapsed);
+                          const totalTarget = dailyTarget * daysInMonth;
+                          const totalShortfall = Math.max(0, totalTarget - receivedTotal);
+                          return (
+                            <div className="rounded-md border border-warning/30 bg-warning/5 p-2">
+                              <p className="text-[10px] text-muted-foreground uppercase">Falta/dia</p>
+                              <p className="text-sm font-bold text-warning">{fmtValue(dailyShortfall, "R$", hidden)}</p>
+                              <p className="text-[9px] text-muted-foreground mt-0.5">
+                                Faltam {fmtValue(totalShortfall, "R$", hidden)} {daysRemaining > 0 ? `em ${daysRemaining} ${daysRemaining === 1 ? "dia" : "dias"}` : "no período"}
+                              </p>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   );
