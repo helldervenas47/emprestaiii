@@ -701,6 +701,8 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
 
       // Se o mês já fechou e existe snapshot finalizado, usa o valor congelado.
       // Caso contrário, calcula em tempo real.
+      // Observação: para `daily_received_avg` o snapshot armazena o TOTAL recebido
+      // (não a média), pois a média é derivada dividindo pelo nº de dias do mês.
       let actual: number;
       if (monthClosed && snapshot?.finalized) {
         actual = Number(snapshot.realizedValue) || 0;
