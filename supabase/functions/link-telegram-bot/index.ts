@@ -47,14 +47,24 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
     }
   }
 
+  const hasLetters = /[A-Z]/.test(botCode);
   if (!matched) {
+
     const { data: legacyRow, error: legacyErr } = await admin
       .from("telegram_bots")
       .select("id, kind, chat_id, bot_id, expires_at")
       .eq("bot_code", botCode)
       .maybeSingle();
     if (legacyErr && legacyErr.code !== "PGRST205" && legacyErr.code !== "42P01") throw legacyErr;
-    if (!legacyRow) return null;
+    if (!legacyRow) {
+      if (hasLetters) {
+        return json({
+          error: "Código não encontrado ou expirado. Envie /code novamente no bot do Telegram e cole o novo código em até 15 min.",
+        }, 404);
+      }
+      return null;
+    }
+
     kind = legacyRow.kind === "reports" ? "reports" : "expenses";
     if (legacyRow.expires_at && new Date(legacyRow.expires_at).getTime() < Date.now()) {
       await admin.from("telegram_bots").delete().eq("id", legacyRow.id);
@@ -136,8 +146,23 @@ Deno.serve(async (req) => {
     const requestedKind = body?.kind === "reports" || body?.kind === "expenses" ? body.kind : undefined;
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // Flush pending Telegram updates so the recent /code message is persisted.
+    await Promise.all([
+      fetch(`${SUPABASE_URL}/functions/v1/telegram-poll`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+        body: "{}",
+      }).catch(() => null),
+      fetch(`${SUPABASE_URL}/functions/v1/telegram-reports-poll`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+        body: "{}",
+      }).catch(() => null),
+    ]);
+
     const botCodeResult = await linkByBotCode(admin, userId, rawCode, requestedKind);
     if (botCodeResult) return botCodeResult;
+
 
     const code = rawCode.trim().replace(/[^0-9]/g, "");
     if (!code || code.length !== 6) {
