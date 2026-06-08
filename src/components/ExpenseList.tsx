@@ -652,7 +652,11 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                     open={editingExpenseId === expense.id}
                     onOpenChange={(open) => { if (!open) setEditingExpenseId(null); }}
                     onSave={(data) => {
-                      onUpdate(expense.id, data);
+                      if (isExpenseInSeries(expense)) {
+                        setPendingScopeEdit({ target: expense, patch: data });
+                      } else {
+                        onUpdate(expense.id, data);
+                      }
                       setEditingExpenseId(null);
                     }}
                     formatCurrency={formatCurrency}
