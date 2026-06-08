@@ -246,8 +246,10 @@ async function buildAndSend(
     lines.push("_Nenhum lançamento previsto para este dia._");
   }
 
-  const sendRes = await sendReportsMessage(admin, userId, chatId, lines.join("\n"));
-  return sendRes.sent;
+  const text = lines.join("\n");
+  if (opts?.returnText) return { sent: false, text };
+  const sendRes = await sendReportsMessage(admin, userId, chatId, text);
+  return { sent: sendRes.sent, text };
 }
 
 Deno.serve(async (req) => {
