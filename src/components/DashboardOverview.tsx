@@ -6,7 +6,8 @@ import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
 import { useAuth } from "@/hooks/useAuth";
 import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { supabase } from "@/integrations/supabase/userClient";
+import { supabase as appSupabase } from "@/integrations/supabase/client";
+import { supabase as userSupabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { Switch } from "@/components/ui/switch";
@@ -1120,12 +1121,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     }
     try {
       // Validate session against the server before invoking — cached JWTs may be stale.
-      const { data: userCheck, error: userErr } = await supabase.auth.getUser();
+      const { data: userCheck, error: userErr } = await userSupabase.auth.getUser();
       if (userErr || !userCheck?.user) {
-        await supabase.auth.signOut({ scope: "local" });
+        await userSupabase.auth.signOut({ scope: "local" });
         throw new Error("Sessão expirada. Faça login novamente.");
       }
-      const { data: result, error } = await supabase.functions.invoke("generate-risk-reduction-report", {
+      const { data: result, error } = await appSupabase.functions.invoke("generate-risk-reduction-report", {
         body: { type, metrics },
       });
 
