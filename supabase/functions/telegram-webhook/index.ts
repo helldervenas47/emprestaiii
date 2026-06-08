@@ -75,6 +75,10 @@ Deno.serve(async (req) => {
         .from("system_telegram_bots")
         .select("id")
         .eq("token", matchedToken)
+        .eq("active", true)
+        .order("bot_id", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: true })
+        .limit(1)
         .maybeSingle()
       : { data: null };
     const botId = (systemBot as any)?.id ?? null;
