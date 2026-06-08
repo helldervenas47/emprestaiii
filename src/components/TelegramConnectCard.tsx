@@ -130,12 +130,6 @@ export function TelegramConnectCard() {
       return;
     }
     const normalized = normalizeTelegramBotCode(trimmed);
-    if (/^\d{6}$/.test(normalized)) {
-      toast.info("Esse código é do app", {
-        description: `Envie /start ${normalized} dentro do Telegram. Neste campo, cole apenas o código que o bot responde após você enviar /code.`,
-      });
-      return;
-    }
     setLinkingByCode(true);
     try {
       // (telegram-poll removido — evitar 409 por getUpdates concorrentes)
@@ -456,7 +450,7 @@ export function TelegramConnectCard() {
                   value={botCodeInput}
                   onChange={(e) => setBotCodeInput(e.target.value.toUpperCase())}
                   placeholder="Ex.: ABC123"
-                  maxLength={12}
+                  maxLength={512}
                   className="h-9 text-sm font-mono uppercase tracking-wider"
                   onKeyDown={(e) => { if (e.key === "Enter") linkByBotCode(); }}
                 />
