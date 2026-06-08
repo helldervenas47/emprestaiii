@@ -2,6 +2,18 @@ import { supabase, USER_SUPABASE_PUBLISHABLE_KEY, USER_SUPABASE_URL } from "@/in
 
 type TelegramLinkCodeFunction = "telegram-link-code" | "telegram-reports-link-code";
 
+export function normalizeTelegramBotCode(input: string) {
+  const compact = input.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const commandMatch = input.match(/\/start(?:@\w+)?\s+(\d{6})\b/i);
+  if (commandMatch) return commandMatch[1];
+  const spacedCodeMatch = input.toUpperCase().match(/\b([A-Z0-9][\s\-.]*){6,12}\b/);
+  if (spacedCodeMatch) {
+    const candidate = spacedCodeMatch[0].replace(/[^A-Z0-9]/g, "");
+    if (/^[A-Z0-9]{6,12}$/.test(candidate)) return candidate;
+  }
+  return compact;
+}
+
 export async function invokeUserFunction(functionName: string, body: unknown = {}) {
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   const accessToken = sessionData.session?.access_token;
