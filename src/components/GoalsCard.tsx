@@ -188,20 +188,20 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     measurement: "Meta INVERSA: quanto menor, melhor. Atingimento = máx(0, 100 − (Realizado ÷ Meta) × 100).",
   },
   daily_received_avg: {
-    formula: "Média diária = Total Recebido no mês ÷ Dias corridos do mês até hoje",
+    formula: "Média diária = Total Recebido no período ÷ Dias corridos do período até hoje",
     indicators: [
-      "Total Recebido = soma de todos os pagamentos com data no mês",
-      "Dias corridos = somente dias do início do mês até a data atual (não conta o mês inteiro)",
-      "Necessário/dia = (Meta diária − Total recebido) ÷ Dias restantes do mês",
-      "Atingimento medido contra a META DIÁRIA cadastrada",
+      "Meta cadastrada é o valor-alvo POR DIA (não mensal)",
+      "Média diária = Total Recebido ÷ Dias corridos no período selecionado",
+      "Atingimento = (Média diária ÷ Meta diária) × 100",
+      "Falta/dia = max(0, Meta diária − Média diária)",
     ],
-    dataSource: ["Tabela de Pagamentos (payments)", "Campo: amount, date", "Filtro: date no mês selecionado"],
+    dataSource: ["Tabela de Pagamentos (payments)", "Campo: amount, date", "Filtro: date no período selecionado"],
     example: {
-      setup: "Hoje é dia 10 do mês. Meta diária: R$ 60.000. Total recebido: R$ 20.000.",
-      calc: "Média diária = 20.000 ÷ 10 = R$ 2.000/dia. Necessário/dia = (60.000 − 20.000) ÷ 20 dias restantes",
-      result: "Média diária atual = R$ 2.000/dia · Necessário = R$ 2.000/dia",
+      setup: "Hoje é dia 10 do mês. Meta diária: R$ 2.000. Total recebido até hoje: R$ 18.000.",
+      calc: "Média diária = 18.000 ÷ 10 = R$ 1.800/dia. Atingimento = 1.800 ÷ 2.000 = 90%",
+      result: "Média diária atual = R$ 1.800/dia · Falta/dia = R$ 200",
     },
-    measurement: "Atingimento = (Total Recebido ÷ Meta Diária) × 100. Quando atingir 100%, exibe 'Meta atingida'.",
+    measurement: "Atingimento = (Média Diária Realizada ÷ Meta Diária) × 100. Quando a média diária ≥ meta diária, exibe 'Meta diária atingida'.",
   },
 };
 
@@ -723,7 +723,8 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         ? expectedReceivable * (g.targetValue / 100)
         : null;
 
-      // Para "Média Geral Recebida por Dia": exibir como média diária e comparar contra meta diária implícita
+      // Para "Média Geral Recebida por Dia": targetValue É a meta DIÁRIA.
+      // Exibimos a média diária realizada e comparamos diretamente contra a meta diária.
       let receivedTotal: number | null = null;
       let monthlyPct: number | null = null;
       if (g.goalType === "daily_received_avg") {
@@ -733,12 +734,11 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         const daysInMonth = new Date(yy, mm, 0).getDate();
         const isCurrent = computeMonth === cur;
         const daysElapsed = isCurrent ? today.getDate() : (computeMonth < cur ? daysInMonth : 1);
-        receivedTotal = actual;
-        monthlyPct = g.targetValue > 0 ? Math.min(100, (actual / g.targetValue) * 100) : 0;
+        receivedTotal = actual; // total recebido no período (apenas informativo)
         const dailyAvg = daysElapsed > 0 ? actual / daysElapsed : 0;
-        const dailyTarget = daysInMonth > 0 ? g.targetValue / daysInMonth : 0;
         actual = dailyAvg;
-        pct = dailyTarget > 0 ? Math.min(100, (dailyAvg / dailyTarget) * 100) : 0;
+        pct = g.targetValue > 0 ? Math.min(100, (dailyAvg / g.targetValue) * 100) : 0;
+        monthlyPct = pct; // mantido por compat — mesmo valor (base diária)
       }
 
       return { ...g, actual, pct, meta, expectedReceivable, targetAmount, receivedTotal, monthlyPct, isLocked: monthClosed && !!snapshot?.finalized };
@@ -1494,13 +1494,12 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                   const daysElapsed = isCurrent
                     ? today.getDate()
                     : (computeMonth < currentMonth ? daysInMonth : 1);
-                  const daysLeft = isCurrent ? Math.max(0, daysInMonth - today.getDate()) : 0;
-                  const receivedTotal = (goal as any).receivedTotal ?? goal.actual;
+                  const receivedTotal = (goal as any).receivedTotal ?? 0;
                   const dailyAvg = daysElapsed > 0 ? receivedTotal / daysElapsed : 0;
-                  const reached = receivedTotal >= goal.targetValue;
-                  const remaining = Math.max(0, goal.targetValue - receivedTotal);
-                  const neededPerDay = !reached && daysLeft > 0 ? remaining / daysLeft : 0;
-                  const monthlyPct = (goal as any).monthlyPct ?? (goal.targetValue > 0 ? Math.min(100, (receivedTotal / goal.targetValue) * 100) : 0);
+                  const dailyTarget = goal.targetValue; // meta DIÁRIA direta
+                  const reached = dailyAvg >= dailyTarget && dailyTarget > 0;
+                  const dailyShortfall = Math.max(0, dailyTarget - dailyAvg);
+                  const pctDaily = dailyTarget > 0 ? Math.min(100, (dailyAvg / dailyTarget) * 100) : 0;
                   return (
                     <div className="mt-3 space-y-2">
                       <div className="grid grid-cols-2 gap-2 text-center">
@@ -1511,29 +1510,24 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                         </div>
                         <div className="rounded-md border border-border bg-card/60 p-2">
                           <p className="text-[10px] text-muted-foreground uppercase">Meta diária</p>
-                          <p className="text-sm font-bold text-foreground">{fmtValue(goal.targetValue, "R$", hidden)}</p>
-                          <p className="text-[9px] text-muted-foreground mt-0.5">{monthlyPct.toFixed(0)}% atingido</p>
+                          <p className="text-sm font-bold text-foreground">{fmtValue(dailyTarget, "R$", hidden)}</p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5">{pctDaily.toFixed(0)}% atingido</p>
                         </div>
                         <div className="rounded-md border border-border bg-card/60 p-2">
-                          <p className="text-[10px] text-muted-foreground uppercase">Recebido total</p>
+                          <p className="text-[10px] text-muted-foreground uppercase">Recebido no período</p>
                           <p className="text-sm font-bold text-foreground">{fmtValue(receivedTotal, "R$", hidden)}</p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5">informativo</p>
                         </div>
                         {reached ? (
                           <div className="rounded-md border border-success/40 bg-success/10 p-2 flex flex-col items-center justify-center">
                             <CheckCircle2 className="h-4 w-4 text-success mb-0.5" />
-                            <p className="text-sm font-bold text-success">Meta atingida</p>
-                          </div>
-                        ) : isCurrent && daysLeft > 0 ? (
-                          <div className="rounded-md border border-warning/30 bg-warning/5 p-2">
-                            <p className="text-[10px] text-muted-foreground uppercase">Necessário/dia</p>
-                            <p className="text-sm font-bold text-warning">{fmtValue(neededPerDay, "R$", hidden)}</p>
-                            <p className="text-[9px] text-muted-foreground mt-0.5">em {daysLeft} {daysLeft === 1 ? "dia restante" : "dias restantes"}</p>
+                            <p className="text-sm font-bold text-success">Meta diária atingida</p>
                           </div>
                         ) : (
-                          <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2">
-                            <p className="text-[10px] text-muted-foreground uppercase">Falta para a meta</p>
-                            <p className="text-sm font-bold text-destructive">{fmtValue(remaining, "R$", hidden)}</p>
-                            <p className="text-[9px] text-muted-foreground mt-0.5">sem dias restantes</p>
+                          <div className="rounded-md border border-warning/30 bg-warning/5 p-2">
+                            <p className="text-[10px] text-muted-foreground uppercase">Falta/dia</p>
+                            <p className="text-sm font-bold text-warning">{fmtValue(dailyShortfall, "R$", hidden)}</p>
+                            <p className="text-[9px] text-muted-foreground mt-0.5">para atingir a média</p>
                           </div>
                         )}
                       </div>
