@@ -1088,6 +1088,23 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     };
   }, [data.monthlyInterestRate.rate, data.periodProfitRealized, data.totalIncome, loans, portfolio.defaultRate]);
 
+  const buildLocalAiReport = useCallback((type: "risk-reduction" | "priority-insight", metrics: Record<string, unknown>) => {
+    const asNumber = (value: unknown) => {
+      const parsed = typeof value === "number" ? value : Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+    const asPercent = (value: unknown) => `${asNumber(value).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+    if (type === "priority-insight") {
+      const insight = String(metrics.title ?? metrics.insight ?? "Insight prioritário");
+      return `## Resumo executivo\n- ${insight}\n- Priorize a ação de maior impacto com base nos indicadores atuais.\n\n## Ação imediata\n- Revise os contratos ou clientes que mais pesam no indicador.\n- Acompanhe o efeito da ação no próximo fechamento do período.`;
+    }
+    const risk = metrics.riskScore ?? metrics.risco ?? metrics.risk ?? 0;
+    const returns = metrics.returnScore ?? metrics.retorno ?? metrics.return ?? 0;
+    const defaultRate = metrics.defaultRate ?? metrics.inadimplencia ?? metrics.default_rate ?? 0;
+    const received = metrics.received ?? metrics.recebido ?? metrics.totalIncome ?? metrics.income ?? 0;
+    return `## Resumo executivo\n- Risco atual: ${asPercent(risk)}; retorno: ${asPercent(returns)}; inadimplência: ${asPercent(defaultRate)}.\n- Recebido no período: ${formatCurrency(asNumber(received))}. Foque em reduzir exposição sem travar operações rentáveis.\n\n## Ações imediatas\n- Priorize cobrança dos maiores saldos em atraso e renegocie contratos com maior risco.\n- Evite novas liberações para perfis com atraso recorrente até o indicador estabilizar.`;
+  }, [formatCurrency]);
+
   const generateAiReport = useCallback(async ({ title, type, metrics, cacheKey, openSheet = true }: { title: string; type: "risk-reduction" | "priority-insight"; metrics: Record<string, unknown>; cacheKey?: string; openSheet?: boolean }) => {
     if (openSheet) {
       setRiskAiOpen(true);
@@ -1130,16 +1147,20 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       }
       if (openSheet) setRiskAiReport(report);
     } catch (error: any) {
-      const message = error?.message || "Erro ao gerar relatório com IA";
+      const report = buildLocalAiReport(type, metrics);
+      if (cacheKey) {
+        setCachedInsightReports((current) => ({ ...current, [cacheKey]: report }));
+      }
+      const message = error?.message || "A IA demorou para responder. Um relatório local foi gerado com os dados disponíveis.";
       if (openSheet) {
-        toast.error("Falha ao gerar relatório", { description: message });
-        setRiskAiReport("Não foi possível gerar o relatório agora.");
+        toast.info("Relatório gerado em modo local", { description: message });
+        setRiskAiReport(report);
       }
     } finally {
       if (openSheet) setRiskAiLoading(false);
       if (cacheKey) prefetchingInsightReportsRef.current.delete(cacheKey);
     }
-  }, [cachedInsightReports]);
+  }, [buildLocalAiReport, cachedInsightReports]);
 
   const generateRiskAiReport = useCallback(async () => {
     await generateAiReport({
