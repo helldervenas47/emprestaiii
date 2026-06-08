@@ -33,9 +33,30 @@ Deno.serve(async (req) => {
     }
   }
 
-  const { data: bots, error: botsErr } = await supabase.from("system_telegram_bots").select("*");
+  const { data: botsRaw, error: botsErr } = await supabase.from("system_telegram_bots").select("*");
+  const bots = (botsRaw ?? []).map((bot: any) => ({
+    ...bot,
+    token: bot.token ? `${String(bot.token).slice(0, 4)}…${String(bot.token).slice(-4)}` : null,
+  }));
   const { data: expenseCodes, error: ucErr } = await supabase.from("telegram_link_codes").select("*").order("created_at", { ascending: false });
   const { data: expenseLinks, error: ulErr } = await supabase.from("telegram_links").select("*").order("created_at", { ascending: false }).limit(20);
+  const { data: recentMessages, error: msgErr } = await supabase.from("telegram_messages")
+    .select("update_id, chat_id, text, bot_id, processed, processed_at, created_at, raw_update")
+    .order("created_at", { ascending: false })
+    .limit(20);
+  const messages = (recentMessages ?? []).map((m: any) => ({
+    update_id: m.update_id,
+    chat_id: m.chat_id,
+    text: m.text,
+    bot_id: m.bot_id,
+    processed: m.processed,
+    processed_at: m.processed_at,
+    created_at: m.created_at,
+    system_bot_id: m.raw_update?._system_bot_id ?? null,
+    bot_link_kind: m.raw_update?._bot_link_kind ?? null,
+    has_bot_link_code: Boolean(m.raw_update?._bot_link_code),
+    bot_link_code_preview: m.raw_update?._bot_link_code ? `${String(m.raw_update._bot_link_code).slice(0, 2)}…` : null,
+  }));
   // Reports e despesas agora compartilham telegram_links / telegram_link_codes,
   // diferenciados por bot_id (system_telegram_bots.purpose).
   const reportCodes = (expenseCodes ?? []).filter((c: any) => bots?.some?.((b: any) => b.id === c.bot_id && b.purpose === "reports"));
@@ -43,9 +64,10 @@ Deno.serve(async (req) => {
 
   return new Response(JSON.stringify({
     bots,
+    messages,
     expenseCodes, expenseLinks,
     reportCodes, reportLinks,
-    errors: { botsErr, ucErr, ulErr },
+    errors: { botsErr, ucErr, ulErr, msgErr },
   }, null, 2), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
