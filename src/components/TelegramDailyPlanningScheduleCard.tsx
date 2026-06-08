@@ -10,6 +10,7 @@ import { useDailyPlanningTelegramPrefs } from "@/hooks/useDailyPlanningTelegramP
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
 import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
+import { WhatsAppShareButton } from "@/components/WhatsAppShareButton";
 
 type SlotKey = "send_time_1" | "send_time_2" | "send_time_3";
 
