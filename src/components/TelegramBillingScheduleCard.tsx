@@ -9,6 +9,7 @@ import { useTelegramBillingPref } from "@/hooks/useTelegramBillingPref";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase, USER_SUPABASE_URL, USER_SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
+import { WhatsAppShareButton } from "@/components/WhatsAppShareButton";
 
 type SlotKey = "send_time_1" | "send_time_2" | "send_time_3";
 
