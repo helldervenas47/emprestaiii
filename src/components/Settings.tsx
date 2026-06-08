@@ -17,6 +17,7 @@ import { TimezoneSettingsCard } from "@/components/TimezoneSettingsCard";
 import { AIVoiceSettingsCard } from "@/components/AIVoiceSettingsCard";
 import { ThemeSettingsCard } from "@/components/ThemeSettingsCard";
 import { ChangePasswordCard } from "@/components/ChangePasswordCard";
+import { ProfilePhoneCard } from "@/components/ProfilePhoneCard";
 
 const NotificationSettings = lazy(() => import("@/components/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
 const PaymentFeedbackSettings = lazy(() => import("@/components/PaymentFeedbackSettings").then(m => ({ default: m.PaymentFeedbackSettings })));
@@ -112,6 +113,9 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
 
       {/* Alteração de senha */}
       <ChangePasswordCard />
+
+      {/* Telefone (WhatsApp) */}
+      <ProfilePhoneCard />
 
       {/* Sincronização offline */}
       <PendingSyncCard />
