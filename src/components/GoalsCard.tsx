@@ -192,16 +192,16 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     indicators: [
       "Total Recebido = soma de todos os pagamentos com data no mês",
       "Dias corridos = somente dias do início do mês até a data atual (não conta o mês inteiro)",
-      "Necessário/dia = (Meta mensal − Total recebido) ÷ Dias restantes do mês",
-      "Atingimento medido contra a Meta MENSAL cadastrada",
+      "Necessário/dia = (Meta diária − Total recebido) ÷ Dias restantes do mês",
+      "Atingimento medido contra a META DIÁRIA cadastrada",
     ],
     dataSource: ["Tabela de Pagamentos (payments)", "Campo: amount, date", "Filtro: date no mês selecionado"],
     example: {
-      setup: "Hoje é dia 10 do mês. Meta mensal: R$ 60.000. Total recebido: R$ 20.000.",
+      setup: "Hoje é dia 10 do mês. Meta diária: R$ 60.000. Total recebido: R$ 20.000.",
       calc: "Média diária = 20.000 ÷ 10 = R$ 2.000/dia. Necessário/dia = (60.000 − 20.000) ÷ 20 dias restantes",
       result: "Média diária atual = R$ 2.000/dia · Necessário = R$ 2.000/dia",
     },
-    measurement: "Atingimento = (Total Recebido ÷ Meta Mensal) × 100. Quando atingir 100%, exibe 'Meta atingida'.",
+    measurement: "Atingimento = (Total Recebido ÷ Meta Diária) × 100. Quando atingir 100%, exibe 'Meta atingida'.",
   },
 };
 
@@ -219,7 +219,7 @@ const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: Unit; c
   max_default_rate:   { label: "Taxa de Inadimplência",             icon: AlertTriangle, unit: "%",   color: "text-destructive", bgColor: "bg-destructive/15", description: "Limite máximo de % de parcelas em atraso (meta inversa).", inverse: true },
   new_clients_count:  { label: "Novos Clientes",                   icon: UserPlus,      unit: "qtd", color: "text-primary",     bgColor: "bg-primary/15",     description: "Clientes cadastrados no período." },
   renegotiation_rate: { label: "Contratos Renegociados",           icon: RefreshCw,     unit: "qtd", color: "text-destructive", bgColor: "bg-destructive/15", description: "Limite máximo de contratos renegociados no mês (meta inversa).", inverse: true },
-  daily_received_avg: { label: "Receita Média Diária",           icon: HandCoins,     unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Meta mensal com média diária e necessário/dia restante." },
+  daily_received_avg: { label: "Receita Média Diária",           icon: HandCoins,     unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Meta diária com média diária e necessário/dia restante." },
 };
 
 interface Props {
@@ -545,7 +545,7 @@ export function computeActual(
       return (received / expected) * 100;
     }
     case "daily_received_avg": {
-      // Total recebido no mês — pct é calculado contra a meta MENSAL.
+      // Total recebido no mês — pct é calculado contra a meta DIÁRIA.
       // A média diária e o necessário/dia são derivados na visualização (small card e dashboard).
       return payments
         .filter((p: any) => inMonth(p.date, m))
@@ -1510,7 +1510,7 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                           <p className="text-[9px] text-muted-foreground mt-0.5">em {daysElapsed} {daysElapsed === 1 ? "dia" : "dias"}</p>
                         </div>
                         <div className="rounded-md border border-border bg-card/60 p-2">
-                          <p className="text-[10px] text-muted-foreground uppercase">Meta mensal</p>
+                          <p className="text-[10px] text-muted-foreground uppercase">Meta diária</p>
                           <p className="text-sm font-bold text-foreground">{fmtValue(goal.targetValue, "R$", hidden)}</p>
                           <p className="text-[9px] text-muted-foreground mt-0.5">{monthlyPct.toFixed(0)}% atingido</p>
                         </div>
