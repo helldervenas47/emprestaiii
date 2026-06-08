@@ -32,6 +32,15 @@ Deno.serve(async (req) => {
   const admin = getExternalAdmin();
 
   const reportsBotId = await getReportsBotId(admin);
+  const { data: activeExpenseBot } = await admin.from("system_telegram_bots")
+    .select("id")
+    .eq("purpose", "expenses")
+    .eq("active", true)
+    .order("bot_id", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  const expensesBotId = (activeExpenseBot as any)?.id ?? null;
 
   // Already linked? (exclui links do bot de relatórios)
   let existQ = admin.from("telegram_links")
@@ -60,6 +69,7 @@ Deno.serve(async (req) => {
   const { error: insErr } = await admin.from("telegram_link_codes").insert({
     code,
     user_id: user.id,
+    bot_id: expensesBotId,
     expires_at: expiresAt,
   });
   if (insErr) {
