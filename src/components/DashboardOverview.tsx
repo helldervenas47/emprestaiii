@@ -1106,10 +1106,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   }, [formatCurrency]);
 
   const generateAiReport = useCallback(async ({ title, type, metrics, cacheKey, openSheet = true }: { title: string; type: "risk-reduction" | "priority-insight"; metrics: Record<string, unknown>; cacheKey?: string; openSheet?: boolean }) => {
+    const localReport = buildLocalAiReport(type, metrics);
     if (openSheet) {
       setRiskAiOpen(true);
       setRiskAiLoading(true);
       setRiskAiTitle(title);
+      setRiskAiReport(localReport);
       if (cacheKey && cachedInsightReports[cacheKey]) {
         setRiskAiReport(cachedInsightReports[cacheKey]);
         setRiskAiLoading(false);
@@ -1127,7 +1129,16 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         body: { type, metrics },
       });
 
-      if (error) throw error;
+      if (error) {
+        if (cacheKey) {
+          setCachedInsightReports((current) => ({ ...current, [cacheKey]: localReport }));
+        }
+        if (openSheet) {
+          toast.info("Relatório gerado em modo local", { description: "A IA demorou para responder. Mantivemos o relatório local com os dados disponíveis." });
+          setRiskAiReport(localReport);
+        }
+        return;
+      }
       const payload = (result ?? {}) as { report?: string; fallback?: boolean; message?: string };
       if (payload.fallback) {
         const fb = payload.message || "A IA demorou para responder. Um relatório local foi gerado com os dados disponíveis.";
@@ -1147,14 +1158,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       }
       if (openSheet) setRiskAiReport(report);
     } catch (error: any) {
-      const report = buildLocalAiReport(type, metrics);
       if (cacheKey) {
-        setCachedInsightReports((current) => ({ ...current, [cacheKey]: report }));
+        setCachedInsightReports((current) => ({ ...current, [cacheKey]: localReport }));
       }
       const message = error?.message || "A IA demorou para responder. Um relatório local foi gerado com os dados disponíveis.";
       if (openSheet) {
         toast.info("Relatório gerado em modo local", { description: message });
-        setRiskAiReport(report);
+        setRiskAiReport(localReport);
       }
     } finally {
       if (openSheet) setRiskAiLoading(false);
