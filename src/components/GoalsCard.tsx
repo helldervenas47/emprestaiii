@@ -1530,21 +1530,26 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                           <p className="text-sm font-bold text-foreground">{fmtValue(receivedTotal, "R$", hidden)}</p>
                           <p className="text-[9px] text-muted-foreground mt-0.5">informativo</p>
                         </div>
-                        {reached ? (
-                          <div className="rounded-md border border-success/40 bg-success/10 p-2 flex flex-col items-center justify-center">
-                            <CheckCircle2 className="h-4 w-4 text-success mb-0.5" />
-                            <p className="text-sm font-bold text-success">Meta diária atingida</p>
-                          </div>
-                        ) : (() => {
+                        {(() => {
                           const daysRemaining = Math.max(0, daysInMonth - daysElapsed);
                           const totalTarget = dailyTarget * daysInMonth;
                           const totalShortfall = Math.max(0, totalTarget - receivedTotal);
+                          const neededPerDay = daysRemaining > 0
+                            ? totalShortfall / daysRemaining
+                            : 0;
+                          const onTrack = totalShortfall <= 0;
+                          const borderCls = onTrack ? "border-success/30 bg-success/5" : "border-warning/30 bg-warning/5";
+                          const valueCls = onTrack ? "text-success" : "text-warning";
                           return (
-                            <div className="rounded-md border border-warning/30 bg-warning/5 p-2">
-                              <p className="text-[10px] text-muted-foreground uppercase">Falta/dia</p>
-                              <p className="text-sm font-bold text-warning">{fmtValue(dailyShortfall, "R$", hidden)}</p>
+                            <div className={`rounded-md border ${borderCls} p-2`}>
+                              <p className="text-[10px] text-muted-foreground uppercase">Necessário/dia restante</p>
+                              <p className={`text-sm font-bold ${valueCls}`}>
+                                {fmtValue(neededPerDay, "R$", hidden)}
+                              </p>
                               <p className="text-[9px] text-muted-foreground mt-0.5">
-                                Faltam {fmtValue(totalShortfall, "R$", hidden)} {daysRemaining > 0 ? `em ${daysRemaining} ${daysRemaining === 1 ? "dia" : "dias"}` : "no período"}
+                                {onTrack
+                                  ? `Meta projetada já atingida${daysRemaining > 0 ? ` · ${daysRemaining} ${daysRemaining === 1 ? "dia restante" : "dias restantes"}` : ""}`
+                                  : `Faltam ${fmtValue(totalShortfall, "R$", hidden)} ${daysRemaining > 0 ? `em ${daysRemaining} ${daysRemaining === 1 ? "dia" : "dias"}` : "no período"}`}
                               </p>
                             </div>
                           );
