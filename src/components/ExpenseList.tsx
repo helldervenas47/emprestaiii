@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ExpenseBoletoLinkButton } from "@/components/ExpenseBoletoLinkButton";
+import { EditScopeDialog } from "@/components/EditScopeDialog";
+import { applyExpenseScopedUpdate, isExpenseInSeries } from "@/lib/seriesEdit";
 
 const categories = [
   "Aluguel", "Energia", "Água", "Internet", "Telefone",
