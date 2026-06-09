@@ -51,19 +51,23 @@ async function buildReport(admin: any, ownerId: string, type: string) {
     type === "weekly" ? addDays(today, -6) :
     monthStart;
 
-  const [{ data: loans }, { data: payments }, { data: expenses }, { data: incomes }] = await Promise.all([
+  const [loansRes, paymentsRes, expensesRes, incomesRes] = await Promise.all([
     admin.from("loans").select("id,borrower_name,remaining_amount,due_date,status,paid_installments")
       .eq("user_id", ownerId).neq("status", "paid"),
     admin.from("payments").select("amount,date").eq("user_id", ownerId).gte("date", rangeStart),
     admin.from("expenses").select("amount,paid,due_date,description").eq("user_id", ownerId).gte("due_date", rangeStart),
-    admin.from("incomes").select("amount,date,description").eq("user_id", ownerId).gte("date", rangeStart).maybeSingle().then((r: any) => r).catch(() => ({ data: [] as any[] })),
+    admin.from("incomes").select("amount,date,description").eq("user_id", ownerId).gte("date", rangeStart),
   ]);
+  const loans = loansRes.data ?? [];
+  const payments = paymentsRes.data ?? [];
+  const expenses = expensesRes.data ?? [];
+  const incomes = incomesRes.data ?? [];
 
-  const received = (payments ?? []).reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-  const expTotal = (expenses ?? []).reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
-  const expPaid = (expenses ?? []).filter((e: any) => e.paid).reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
+  const received = payments.reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+  const expTotal = expenses.reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
+  const expPaid = expenses.filter((e: any) => e.paid).reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
   const expPend = expTotal - expPaid;
-  const incomesTotal = Array.isArray(incomes) ? incomes.reduce((s: number, i: any) => s + Number(i.amount || 0), 0) : 0;
+  const incomesTotal = incomes.reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
 
   const overdue = (loans ?? []).filter((l: any) => l.due_date && l.due_date < today);
   const toReceive = (loans ?? []).reduce((s: number, l: any) => s + Number(l.remaining_amount || 0), 0);
