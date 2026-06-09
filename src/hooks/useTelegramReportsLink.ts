@@ -2,8 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 
-// Reports links are stored in telegram_links, distinguished by bot_id pointing
-// to the active system bot with purpose='reports'.
+// Reports links prefer telegram_reports_links so they never compete with expenses.
 async function fetchReportsBotId(): Promise<string | null> {
   const { data } = await supabase
     .from("system_telegram_bots" as any)
@@ -28,6 +27,19 @@ export function useTelegramReportsLink() {
     const botId = reportsBotId ?? await fetchReportsBotId();
     if (botId !== reportsBotId) setReportsBotId(botId);
     if (!botId) { setLinked(null); setLoading(false); return; }
+    const { data: dedicated, error: dedicatedErr } = await supabase
+      .from("telegram_reports_links" as any)
+      .select("chat_id").eq("user_id", user.id).eq("bot_id", botId).maybeSingle();
+    if (dedicated) {
+      setLinked({ chat_id: (dedicated as any).chat_id });
+      setLoading(false);
+      return;
+    }
+    if (dedicatedErr && dedicatedErr.code !== "42P01" && dedicatedErr.code !== "PGRST205") {
+      setLinked(null);
+      setLoading(false);
+      return;
+    }
     const { data } = await supabase
       .from("telegram_links" as any)
       .select("chat_id").eq("user_id", user.id).eq("bot_id", botId).maybeSingle();
@@ -46,7 +58,7 @@ export function useTelegramReportsLink() {
       {
         event: "*",
         schema: "public",
-        table: "telegram_links",
+        table: "telegram_reports_links",
         filter: user ? `user_id=eq.${user.id}` : undefined,
       },
       () => refresh(),
@@ -61,8 +73,12 @@ export function useTelegramReportsLink() {
     if (!user) return;
     const botId = reportsBotId ?? await fetchReportsBotId();
     if (!botId) return;
-    await supabase.from("telegram_links" as any).delete()
+    const { error } = await supabase.from("telegram_reports_links" as any).delete()
       .eq("user_id", user.id).eq("bot_id", botId);
+    if (error && (error.code === "42P01" || error.code === "PGRST205")) {
+      await supabase.from("telegram_links" as any).delete()
+        .eq("user_id", user.id).eq("bot_id", botId);
+    }
     setLinked(null);
   }, [user, reportsBotId]);
 
