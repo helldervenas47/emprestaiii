@@ -255,25 +255,16 @@ Deno.serve(async (req) => {
       body: "{}",
     }).catch(() => null);
 
-    // Já vinculado? (telegram-process pode ter criado o link via /start CODE)
-    // Filtra para NÃO considerar links do bot de relatórios.
     const reportsBotId = await getReportsBotId(admin);
-    let existingQuery = admin
-      .from("telegram_links")
-      .select("chat_id")
-      .eq("user_id", userId);
-    if (reportsBotId) existingQuery = existingQuery.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
-    const { data: existingLink } = await existingQuery.maybeSingle();
-    if (existingLink) {
-      return json({ ok: true, chat_id: existingLink.chat_id, already_linked: true });
-    }
+    const activeExpenseBotId = await getActiveSystemBotId(admin, "expenses");
 
-    // Localiza o código gerado pelo app (somente códigos de despesas — bot_id null ou != reports)
+    // Localiza o código gerado pelo app para o bot de despesas atual.
     let codeQuery = admin
       .from("telegram_link_codes")
       .select("code, user_id, expires_at, bot_id")
       .eq("code", code);
-    if (reportsBotId) codeQuery = codeQuery.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+    if (activeExpenseBotId) codeQuery = codeQuery.eq("bot_id", activeExpenseBotId);
+    else if (reportsBotId) codeQuery = codeQuery.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
     const { data: codeRow } = await codeQuery.maybeSingle();
 
     if (!codeRow) {
@@ -300,6 +291,7 @@ Deno.serve(async (req) => {
     const message = (messages ?? []).find((m: any) => {
       const messageBotId = m.bot_id ?? m.raw_update?._system_bot_id ?? null;
       if (codeRow.bot_id) return messageBotId === codeRow.bot_id;
+      if (activeExpenseBotId) return messageBotId === activeExpenseBotId;
       if (reportsBotId && messageBotId === reportsBotId) return false;
       return true;
     }) ?? null;
@@ -311,7 +303,7 @@ Deno.serve(async (req) => {
     }
 
     const rawMessageBotId = (message as any)?.bot_id ?? (message as any)?.raw_update?._system_bot_id ?? null;
-    let targetBotId = codeRow.bot_id ?? rawMessageBotId ?? null;
+    let targetBotId = codeRow.bot_id ?? rawMessageBotId ?? activeExpenseBotId ?? null;
     if (!targetBotId) {
       const { data: activeExpenseBot } = await admin.from("system_telegram_bots")
         .select("id")
