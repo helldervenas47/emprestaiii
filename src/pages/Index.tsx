@@ -46,7 +46,6 @@ const LocadorList = lazy(() => import("@/components/LocadorList").then(m => ({ d
 const SubscriptionBanner = lazy(() => import("@/components/SubscriptionBanner").then(m => ({ default: m.SubscriptionBanner })));
 const SubscriptionGate = lazy(() => import("@/components/SubscriptionGate").then(m => ({ default: m.SubscriptionGate })));
 const VehicleExpenseForm = lazy(() => import("@/components/VehicleExpenseForm").then(m => ({ default: m.VehicleExpenseForm })));
-import { VoiceExpenseButton } from "@/components/VoiceExpenseButton";
 const NotificationSettings = lazy(() => import("@/components/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
 const MonthlyGoalsManager = lazy(() => import("@/components/MonthlyGoalsManager").then(m => ({ default: m.MonthlyGoalsManager })));
 const AccountantReport = lazy(() => import("@/components/AccountantReport").then(m => ({ default: m.AccountantReport })));
@@ -1262,27 +1261,6 @@ const Index = () => {
       {showExpenseForm && <ExpenseForm onAdd={addExpense} onClose={() => { setShowExpenseForm(false); setExpenseDefaults(null); }} scope={expenseDefaults?.scope === "personal" ? "personal" : "business"} defaults={expenseDefaults ?? undefined} />}
       {showPersonalExpenseForm && <PersonalExpenseForm onAdd={addExpense} onClose={() => setShowPersonalExpenseForm(false)} />}
       {showVehicleExpenseForm && <VehicleExpenseForm onAdd={addExpense} onClose={() => setShowVehicleExpenseForm(false)} />}
-
-      {!isReadOnly && tab === "expenses" && incExpTab !== "incomes" && (
-        <div
-          className="fixed z-50"
-          style={{ right: `calc(env(safe-area-inset-right) + 16px)`, bottom: isMobile ? `calc(env(safe-area-inset-bottom) + 76px + 58px)` : `calc(env(safe-area-inset-bottom) + 20px + 64px)` }}
-        >
-          <VoiceExpenseButton
-            onExtracted={(d) => {
-              setExpenseDefaults({
-                description: d.description,
-                amount: d.amount,
-                category: d.category,
-                dueDate: d.dueDate,
-                notes: d.notes,
-                scope: d.scope,
-              });
-              setShowExpenseForm(true);
-            }}
-          />
-        </div>
-      )}
 
       {/* Mobile Bottom Navigation */}
       {isMobile && (
