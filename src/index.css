@@ -318,6 +318,9 @@
   .glow-success {
     box-shadow: 0 0 20px -8px hsl(160 75% 42% / 0.15);
   }
+  .glow-purple {
+    box-shadow: 0 0 20px -8px hsl(262 80% 62% / 0.15);
+  }
 
   /* Reusable glassmorphism surface */
   .glass-surface {
