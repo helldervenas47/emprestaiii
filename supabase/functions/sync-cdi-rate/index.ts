@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
           source = `${cached.source} (stale/cached)`;
         }
       } catch (err) {
-        console.error("Critical failure fetching cache:", err);
+        console.warn("Critical failure fetching cache (likely missing table):", err.message);
         result = { rate: HARDCODED_RATE, date: HARDCODED_DATE };
         source = "Hardcoded Fallback (Cache exception)";
       }
@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
     const newRate = Number(result.rate.toFixed(4));
     const today = new Date().toISOString().slice(0, 10);
 
-    // Only try to update cache if we have a fresh fetch and table exists
+    // Only try to update cache if we have a fresh fetch
     if (!source.includes("Fallback") && !source.includes("stale/cached")) {
       try {
         await supabase
@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
             fetched_at: new Date().toISOString(),
           }, { onConflict: "indicator" });
       } catch (e) {
-        console.error("Cache update failed (table might be missing):", e);
+        console.warn("Cache update failed (table might be missing):", e.message);
       }
     }
 
@@ -116,23 +116,29 @@ Deno.serve(async (req) => {
           const current = Number(pb.annual_rate);
           if (Math.abs(current - newRate) < 0.01) continue;
 
-          await supabase.from("piggy_bank_rate_history").insert({
-            piggy_bank_id: pb.id,
-            user_id: pb.user_id,
-            annual_rate: newRate,
-            effective_from: today,
-          });
+          try {
+            await supabase.from("piggy_bank_rate_history").insert({
+              piggy_bank_id: pb.id,
+              user_id: pb.user_id,
+              annual_rate: newRate,
+              effective_from: today,
+            });
 
-          await supabase
-            .from("piggy_banks")
-            .update({ annual_rate: newRate })
-            .eq("id", pb.id);
+            await supabase
+              .from("piggy_banks")
+              .update({ annual_rate: newRate })
+              .eq("id", pb.id);
 
-          updated++;
+            updated++;
+          } catch (innerErr) {
+            console.error(`Failed to update piggy bank ${pb.id}:`, innerErr);
+          }
         }
+      } else if (pbErr) {
+        console.warn("Could not fetch piggy_banks (table might be missing):", pbErr.message);
       }
     } catch (e) {
-      console.error("Piggy bank update failed:", e);
+      console.warn("Piggy bank update logic failed:", e.message);
     }
 
     return new Response(
@@ -147,7 +153,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
-    console.error("sync-cdi-rate error", e);
+    console.error("sync-cdi-rate unexpected error", e);
     return new Response(
       JSON.stringify({ ok: false, error: (e as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
