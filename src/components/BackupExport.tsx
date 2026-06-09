@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loan, Payment, Client, Sale, Expense } from "@/types/loan";
 import { exportLoansToCSV, exportClientsToCSV, exportSalesToCSV, importLoansFromCSV, importClientsFromCSV, importSalesFromCSV, downloadCSV } from "@/lib/csv";
 import { toast } from "sonner";
-import { AutoBackupCard } from "./AutoBackupCard";
+
 import { supabase } from "@/integrations/supabase/userClient";
 import { RestoreBackupDialog } from "./RestoreBackupDialog";
 
@@ -306,7 +306,6 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
 
   return (
     <div className="space-y-6">
-      <AutoBackupCard />
 
       {/* Backup completo em JSON */}
       <Card className="border-primary/30">
