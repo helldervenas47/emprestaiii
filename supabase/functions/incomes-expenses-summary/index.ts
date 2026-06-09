@@ -1,5 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { getExternalAdmin, getExternalUserClient } from "../_shared/external-supabase.ts";
 import { sendReportsMessage, getReportsLinkForUser } from "../_shared/reports-bot.ts";
 
 const corsHeaders = {
