@@ -42,18 +42,20 @@ Deno.serve(async (req) => {
     .maybeSingle();
   const expensesBotId = (activeExpenseBot as any)?.id ?? null;
 
-  // Already linked? (exclui links do bot de relatórios)
+  // Already linked to the active expenses bot? Do not treat the reports bot as a blocker.
   let existQ = admin.from("telegram_links")
     .select("chat_id").eq("user_id", user.id);
-  if (reportsBotId) existQ = existQ.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+  if (expensesBotId) existQ = existQ.eq("bot_id", expensesBotId);
+  else if (reportsBotId) existQ = existQ.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
   const { data: existing } = await existQ.maybeSingle();
   if (existing) {
     return json({ alreadyLinked: true, chat_id: existing.chat_id });
   }
 
-  // Cleanup old codes for this user (somente do lado despesas)
+  // Cleanup old codes for this user (somente do bot de despesas atual)
   let delQ = admin.from("telegram_link_codes").delete().eq("user_id", user.id);
-  if (reportsBotId) delQ = delQ.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+  if (expensesBotId) delQ = delQ.eq("bot_id", expensesBotId);
+  else if (reportsBotId) delQ = delQ.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
   await delQ;
 
 
