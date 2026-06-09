@@ -1,6 +1,6 @@
 // Shared helpers for the GLOBAL "reports" Telegram bot.
-// Reports links/codes live in `telegram_links` and `telegram_link_codes`,
-// filtered by `bot_id` = the reports bot (system_telegram_bots.purpose='reports').
+// Reports prefer dedicated `telegram_reports_links/codes` so they never compete
+// with expense links. Legacy fallback uses `telegram_links` filtered by bot_id.
 
 let _cachedReportsBotId: { id: string | null; ts: number } | null = null;
 
@@ -30,6 +30,15 @@ export async function getReportsLinkForUser(
 ): Promise<{ chat_id: number } | null> {
   const botId = await getReportsBotId(supabase);
   if (!botId) return null;
+  const { data: dedicated, error: dedicatedErr } = await supabase
+    .from("telegram_reports_links")
+    .select("chat_id")
+    .eq("user_id", userId)
+    .eq("bot_id", botId)
+    .maybeSingle();
+  if (dedicated) return { chat_id: Number((dedicated as any).chat_id) };
+  if (dedicatedErr && dedicatedErr.code !== "42P01" && dedicatedErr.code !== "PGRST205") return null;
+
   const { data } = await supabase
     .from("telegram_links")
     .select("chat_id")
@@ -143,16 +152,26 @@ export async function getBotForChat(
   const reportsBotId = await getReportsBotId(supabase);
   if (!reportsBotId) return null;
 
-  // Prefer the reports link for this user+chat (telegram_links filtered by reports bot)
-  const { data: rLink } = await supabase
-    .from("telegram_links")
+  // Prefer the reports link for this user+chat from the dedicated reports table.
+  const { data: dedicatedLink, error: dedicatedErr } = await supabase
+    .from("telegram_reports_links")
     .select("bot_id")
     .eq("user_id", userId)
     .eq("chat_id", numericChat)
     .eq("bot_id", reportsBotId)
     .maybeSingle();
 
-  const botId: string | null = (rLink as any)?.bot_id ?? null;
+  let botId: string | null = (dedicatedLink as any)?.bot_id ?? null;
+  if (!botId && (!dedicatedErr || dedicatedErr.code === "42P01" || dedicatedErr.code === "PGRST205")) {
+    const { data: legacyLink } = await supabase
+      .from("telegram_links")
+      .select("bot_id")
+      .eq("user_id", userId)
+      .eq("chat_id", numericChat)
+      .eq("bot_id", reportsBotId)
+      .maybeSingle();
+    botId = (legacyLink as any)?.bot_id ?? null;
+  }
 
   if (botId) {
     const { data: bot } = await supabase
