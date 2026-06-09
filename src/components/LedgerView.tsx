@@ -165,12 +165,6 @@ export function LedgerView({ readOnly = false }: Props) {
       .filter((e) => {
         // Transferências internas entre carteiras não são receita/despesa real
         if (e.category === "transfer") return false;
-        if (filterDir !== "all" && e.direction !== filterDir) return false;
-        if (filterCat !== "all" && e.category !== filterCat) return false;
-        if (filterWallet !== "all" && (e.wallet ?? "account") !== filterWallet) return false;
-      .filter((e) => {
-        // Transferências internas entre carteiras não são receita/despesa real
-        if (e.category === "transfer") return false;
         // Movimentações originadas do módulo Veículos não devem aparecer no
         // extrato financeiro (continuam preservadas em seus próprios relatórios).
         if (isVehicleLedgerEntry(e)) return false;
