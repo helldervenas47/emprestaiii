@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { CheckCircle2, Copy, Link2, RefreshCw, Unlink } from "lucide-react";
 import { toast } from "sonner";
 import { generateTelegramLinkCode, invokeUserFunction, normalizeTelegramBotCode } from "@/lib/telegramLinkCode";
-import { fetchReportsBotId } from "@/lib/telegramReportsBot";
+import { fetchExpensesBotId, fetchReportsBotId } from "@/lib/telegramReportsBot";
 
 const TelegramIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
@@ -26,12 +26,14 @@ export function IncomeTelegramBotButton() {
   const refresh = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setConnected(false); return false; }
+    const expensesBotId = await fetchExpensesBotId();
     const reportsBotId = await fetchReportsBotId();
     let q = supabase
       .from("telegram_links" as any)
       .select("chat_id")
       .eq("user_id", user.id);
-    if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+    if (expensesBotId) q = q.eq("bot_id", expensesBotId);
+    else if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
     const { data } = await q.maybeSingle();
     const isConnected = !!data;
     setConnected(isConnected);
@@ -124,9 +126,11 @@ export function IncomeTelegramBotButton() {
   const handleDisconnect = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    const expensesBotId = await fetchExpensesBotId();
     const reportsBotId = await fetchReportsBotId();
     let q = supabase.from("telegram_links" as any).delete().eq("user_id", user.id);
-    if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+    if (expensesBotId) q = q.eq("bot_id", expensesBotId);
+    else if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
     const { error } = await q;
     if (error) {
       toast.error("Erro ao desconectar", { description: error.message });
