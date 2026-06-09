@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Wallet, FileText, Lock, Unlock, RefreshCw, Trash2, CheckCircle2, Undo2, History } from "lucide-react";
