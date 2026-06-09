@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Copy, CheckCircle2, Unlink, Clock, Zap, CalendarDays, CalendarRange } from "lucide-react";
 import { generateTelegramLinkCode, invokeUserFunction, normalizeTelegramBotCode } from "@/lib/telegramLinkCode";
-import { fetchReportsBotId } from "@/lib/telegramReportsBot";
+import { fetchExpensesBotId, fetchReportsBotId } from "@/lib/telegramReportsBot";
 
 const TelegramIcon = ({ className }: { className?: string }) => (
   <span className={className} aria-hidden="true">
@@ -40,12 +40,14 @@ export function TelegramConnectCard() {
   const refresh = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
+    const expensesBotId = await fetchExpensesBotId();
     const reportsBotId = await fetchReportsBotId();
     let q = supabase
       .from("telegram_links" as any)
       .select("chat_id")
       .eq("user_id", user.id);
-    if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+    if (expensesBotId) q = q.eq("bot_id", expensesBotId);
+    else if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
     const { data } = await q.maybeSingle();
     setLinked(data ? { chat_id: (data as any).chat_id } : null);
     setLoading(false);
@@ -109,9 +111,11 @@ export function TelegramConnectCard() {
   const disconnect = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    const expensesBotId = await fetchExpensesBotId();
     const reportsBotId = await fetchReportsBotId();
     let q = supabase.from("telegram_links" as any).delete().eq("user_id", user.id);
-    if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+    if (expensesBotId) q = q.eq("bot_id", expensesBotId);
+    else if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
     await q;
     setLinked(null);
     toast.success("Telegram desvinculado");

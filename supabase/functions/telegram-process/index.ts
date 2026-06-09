@@ -41,25 +41,35 @@ function nonVehicleCategory(cat: string | null | undefined): string {
 }
 
 // In-memory cache (per-isolate) for chat_id → user_id lookups. TTL 5min.
-const linkCache = new Map<number, { userId: string | null; expires: number }>();
+const linkCache = new Map<string, { userId: string | null; expires: number }>();
 const botTokenCache = new Map<string, { token: string | null; expires: number }>();
 const LINK_CACHE_TTL_MS = 5 * 60 * 1000;
 
-async function getLinkedUserId(admin: any, chatId: number): Promise<string | null> {
-  const cached = linkCache.get(chatId);
+async function getLinkedUserId(admin: any, chatId: number, botId?: string | null): Promise<string | null> {
+  const cacheKey = botId ? `${chatId}:${botId}` : String(chatId);
+  const cached = linkCache.get(cacheKey);
   if (cached && cached.expires > Date.now()) return cached.userId;
-  const reportsBotId = await getReportsBotId(admin);
   let q = admin.from("telegram_links")
-    .select("user_id").eq("chat_id", chatId);
-  if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+    .select("user_id").eq("chat_id", chatId)
+    .order("bot_id", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (botId) {
+    q = q.eq("bot_id", botId);
+  } else {
+    const reportsBotId = await getReportsBotId(admin);
+    if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+  }
   const { data } = await q.maybeSingle();
   const userId = data?.user_id ?? null;
-  linkCache.set(chatId, { userId, expires: Date.now() + LINK_CACHE_TTL_MS });
+  linkCache.set(cacheKey, { userId, expires: Date.now() + LINK_CACHE_TTL_MS });
   return userId;
 }
 
 function invalidateLinkCache(chatId: number) {
-  linkCache.delete(chatId);
+  for (const key of linkCache.keys()) {
+    if (key === String(chatId) || key.startsWith(`${chatId}:`)) linkCache.delete(key);
+  }
 }
 
 async function getExpenseBotTokenForMessage(admin: any, msg: any, fallback: string): Promise<string> {
@@ -83,11 +93,15 @@ async function getExpenseBotTokenForMessage(admin: any, msg: any, fallback: stri
   }
 
   if (!token) {
-    const { data: link } = await admin
+    let linkQ = admin
       .from("telegram_links")
       .select("bot_id, system_telegram_bots(token)")
       .eq("chat_id", chatId)
-      .maybeSingle();
+      .order("bot_id", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (rawBotId) linkQ = linkQ.eq("bot_id", rawBotId);
+    const { data: link } = await linkQ.maybeSingle();
     token = (link as any)?.system_telegram_bots?.token ?? null;
   }
 
@@ -2481,6 +2495,7 @@ Deno.serve(async (req) => {
       const photos = (msg.raw_update as any)?.message?.photo as any[] | undefined;
       const caption = ((msg.raw_update as any)?.message?.caption as string | null)?.trim() ?? "";
       const callback = (msg.raw_update as any)?.callback_query;
+      const messageBotId = (msg.bot_id as string | null | undefined) ?? (msg.raw_update as any)?._system_bot_id ?? null;
       const telegramKey = await getExpenseBotTokenForMessage(admin, msg, TELEGRAM_API_KEY);
 
       try {
@@ -2490,7 +2505,7 @@ Deno.serve(async (req) => {
         const data = (callback.data as string) ?? "";
         const messageId = callback.message?.message_id as number | undefined;
 
-        const userId = await getLinkedUserId(admin, chatId);
+        const userId = await getLinkedUserId(admin, chatId, messageBotId);
         const link = userId ? { user_id: userId } : null;
         if (!link || !messageId) {
           await tgAnswerCallback(cbId, "Conta não vinculada", telegramKey);
@@ -2634,7 +2649,7 @@ Deno.serve(async (req) => {
 
       // 📸 Photo handling
       if (photos && photos.length > 0) {
-        const userId = await getLinkedUserId(admin, chatId);
+        const userId = await getLinkedUserId(admin, chatId, messageBotId);
         const link = userId ? { user_id: userId } : null;
         if (!link) {
           await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", telegramKey);
@@ -2720,7 +2735,7 @@ Deno.serve(async (req) => {
       const audio = (msg.raw_update as any)?.message?.audio;
       const audioMsg = voice || audio;
       if (audioMsg) {
-        const userId = await getLinkedUserId(admin, chatId);
+        const userId = await getLinkedUserId(admin, chatId, messageBotId);
         const link = userId ? { user_id: userId } : null;
         if (!link) {
           await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", telegramKey);
@@ -2908,7 +2923,7 @@ Deno.serve(async (req) => {
         await tgSend(chatId, HELP_TEXT, telegramKey);
       } else if (text) {
         // Resolve user (cached)
-        const userId = await getLinkedUserId(admin, chatId);
+        const userId = await getLinkedUserId(admin, chatId, messageBotId);
         const link = userId ? { user_id: userId } : null;
         if (!link) {
           await tgSend(chatId, "🔒 Conta não vinculada. Envie /code aqui e cole o código na aba Financeiro do app.", telegramKey);
