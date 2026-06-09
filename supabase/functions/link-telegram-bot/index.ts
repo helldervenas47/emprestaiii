@@ -225,10 +225,12 @@ Deno.serve(async (req) => {
     if (userErr || !userId) return json({ error: "Unauthorized" }, 401);
 
     let body: any = {};
-    try { body = await req.json(); } catch { body = {}; }
+    let rawBodyText = "";
+    try { rawBodyText = await req.text(); body = rawBodyText ? JSON.parse(rawBodyText) : {}; } catch { body = {}; }
 
     const rawCode = typeof body?.bot_code === "string" ? body.bot_code : "";
     const requestedKind = body?.kind === "reports" || body?.kind === "expenses" ? body.kind : undefined;
+    console.log("[link-telegram-bot] received", { userId, requestedKind, rawCodeLen: rawCode.length, rawBodyLen: rawBodyText.length, bodyKeys: Object.keys(body ?? {}) });
     const admin = getExternalAdmin();
 
     // Flush pending Telegram updates so the recent /code message is persisted.
@@ -260,12 +262,12 @@ Deno.serve(async (req) => {
         const isAlphanumeric = /[A-Z]/.test(rawCode.toUpperCase());
         return json({
           error: isAlphanumeric
-            ? "Código alfanumérico não encontrado ou expirado. Envie /code novamente no bot do Telegram."
-            : "Código numérico inválido. No app, gere um novo código e envie /start CÓDIGO ao bot.",
+            ? `Código alfanumérico não encontrado ou expirado. Envie /code novamente no bot do Telegram. (recebido: "${rawCode.slice(0, 32)}")`
+            : `Código numérico inválido. No app, gere um novo código e envie /start CÓDIGO ao bot. (recebido: "${rawCode.slice(0, 32)}")`,
         }, 404);
       }
       return json({
-        error: "Código inválido. Gere um código no app ou envie /code no bot do Telegram.",
+        error: `Código inválido. Gere um código no app ou envie /code no bot do Telegram. (debug: body vazio recebido — bodyLen=${rawBodyText.length}, keys=[${Object.keys(body ?? {}).join(",")}])`,
       }, 400);
     }
 
