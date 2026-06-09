@@ -234,11 +234,17 @@ Deno.serve(async (req) => {
     let force = false;
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
 
-    // Two modes: with JWT (user click) or with explicit user_id (internal call from cron/trigger)
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace("Bearer ", "");
+    
+    // External Supabase logic
+    const externalUrl = "https://syyxnqzxqabeuqbuptkh.supabase.co";
+    const externalKey = Deno.env.get("SUPABASE_ANON_KEY") || serviceKey;
+    const externalSupabase = createClient(externalUrl, externalKey);
+
     if (token) {
-      const { data: userData } = await supabase.auth.getUser(token);
+      // Validate token against the EXTERNAL Supabase where users are actually authenticated
+      const { data: userData } = await externalSupabase.auth.getUser(token);
       if (userData?.user) {
         const { data: ownerRow } = await supabase
           .from("user_owner")
@@ -249,7 +255,6 @@ Deno.serve(async (req) => {
       }
     }
     if (!ownerId && body.user_id) {
-      // Internal trigger: requires service-role key in header (Authorization), already verified by Deno serve
       ownerId = body.user_id;
     }
     if (!ownerId) {
