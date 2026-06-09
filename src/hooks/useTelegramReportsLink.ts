@@ -75,10 +75,10 @@ export function useTelegramReportsLink() {
     if (!botId) return;
     const { error } = await supabase.from("telegram_reports_links" as any).delete()
       .eq("user_id", user.id).eq("bot_id", botId);
-    if (error && (error.code === "42P01" || error.code === "PGRST205")) {
-      await supabase.from("telegram_links" as any).delete()
-        .eq("user_id", user.id).eq("bot_id", botId);
-    }
+    if (error && error.code !== "42P01" && error.code !== "PGRST205") throw error;
+    const { error: legacyError } = await supabase.from("telegram_links" as any).delete()
+      .eq("user_id", user.id).eq("bot_id", botId);
+    if (legacyError) throw legacyError;
     setLinked(null);
   }, [user, reportsBotId]);
 
