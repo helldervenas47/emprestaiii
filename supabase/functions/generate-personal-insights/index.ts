@@ -138,15 +138,28 @@ function buildPrompt(ctx: any) {
 
 async function callAI(systemPrompt: string, userPrompt: string) {
   const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-  const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+  // Prefer Lovable AI Gateway if available, otherwise use direct Gemini API
+  const useGateway = !!LOVABLE_API_KEY;
+  const url = useGateway 
+    ? "https://api.lovable.dev/v1/chat/completions" 
+    : "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+  
+  const authKey = useGateway ? LOVABLE_API_KEY : GEMINI_API_KEY;
+  
+  if (!authKey) {
+    throw new Error("Neither LOVABLE_API_KEY nor GEMINI_API_KEY is configured.");
+  }
+
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "Authorization": `Bearer ${authKey}`,
     },
     body: JSON.stringify({
-      model: "gemini-2.5-flash",
+      model: useGateway ? "gpt-4o-mini" : "gemini-2.0-flash",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -157,8 +170,8 @@ async function callAI(systemPrompt: string, userPrompt: string) {
   if (response.status === 429) {
     throw new Error("Rate limit excedido. Tente novamente em alguns instantes.");
   }
-  if (response.status === 402) {
-    throw new Error("Créditos de IA esgotados. Adicione créditos no workspace.");
+  if (response.status === 402 || response.status === 401) {
+    throw new Error("Erro de autenticação ou créditos de IA esgotados. Verifique as chaves no Dashboard.");
   }
   if (!response.ok) {
     const t = await response.text();
