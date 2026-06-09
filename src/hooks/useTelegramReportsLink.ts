@@ -27,23 +27,27 @@ export function useTelegramReportsLink() {
     const botId = reportsBotId ?? await fetchReportsBotId();
     if (botId !== reportsBotId) setReportsBotId(botId);
     if (!botId) { setLinked(null); setLoading(false); return; }
-    const { data: dedicated, error: dedicatedErr } = await supabase
+    const { data: dedicated } = await supabase
       .from("telegram_reports_links" as any)
-      .select("chat_id").eq("user_id", user.id).eq("bot_id", botId).maybeSingle();
+      .select("chat_id")
+      .eq("user_id", user.id)
+      .eq("bot_id", botId)
+      .maybeSingle();
+
     if (dedicated) {
       setLinked({ chat_id: (dedicated as any).chat_id });
       setLoading(false);
       return;
     }
-    if (dedicatedErr && dedicatedErr.code !== "42P01" && dedicatedErr.code !== "PGRST205") {
-      setLinked(null);
-      setLoading(false);
-      return;
-    }
-    const { data } = await supabase
+
+    const { data: legacy } = await supabase
       .from("telegram_links" as any)
-      .select("chat_id").eq("user_id", user.id).eq("bot_id", botId).maybeSingle();
-    setLinked(data ? { chat_id: (data as any).chat_id } : null);
+      .select("chat_id")
+      .eq("user_id", user.id)
+      .eq("bot_id", botId)
+      .maybeSingle();
+
+    setLinked(legacy ? { chat_id: (legacy as any).chat_id } : null);
     setLoading(false);
   }, [user, reportsBotId]);
 
