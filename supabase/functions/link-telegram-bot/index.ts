@@ -41,6 +41,18 @@ function codesEquivalent(a: string, b: string) {
   return a === b || foldAmbiguousCode(a) === foldAmbiguousCode(b);
 }
 
+async function getActiveSystemBotId(admin: any, purpose: "expenses" | "reports") {
+  const { data } = await admin.from("system_telegram_bots")
+    .select("id")
+    .eq("purpose", purpose)
+    .eq("active", true)
+    .order("bot_id", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return (data as any)?.id ?? null;
+}
+
 async function linkByBotCode(admin: any, userId: string, rawCode: string, requestedKind?: string) {
   const botCode = normalizeTelegramBotCode(rawCode);
   const rawIsCodeCommand = /^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i.test(rawCode.trim());
@@ -121,7 +133,7 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
   const rawBotId = matched.raw_update?._system_bot_id ?? null;
   const { data: systemBot } = rawBotId
     ? await admin.from("system_telegram_bots").select("id, bot_username, name").eq("id", rawBotId).maybeSingle()
-    : await admin.from("system_telegram_bots").select("id, bot_username, name").eq("purpose", kind).eq("active", true).order("bot_id", { ascending: false, nullsFirst: false }).order("created_at", { ascending: true }).limit(1).maybeSingle();
+    : { data: { id: await getActiveSystemBotId(admin, kind as "expenses" | "reports") } };
   const chatId = Number(matched.chat_id);
   const targetBotId = systemBot?.id ?? null;
 
