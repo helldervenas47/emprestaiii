@@ -260,8 +260,8 @@ Deno.serve(async (req) => {
         const isAlphanumeric = /[A-Z]/.test(rawCode.toUpperCase());
         return json({
           error: isAlphanumeric
-            ? "Código alfanumérico não encontrado ou expirado. Envie /code novamente no bot do Telegram."
-            : "Código numérico inválido. No app, gere um novo código e envie /start CÓDIGO ao bot.",
+            ? `Código alfanumérico não encontrado ou expirado. Envie /code novamente no bot do Telegram. (recebido: "${rawCode.slice(0, 32)}")`
+            : `Código numérico inválido. No app, gere um novo código e envie /start CÓDIGO ao bot. (recebido: "${rawCode.slice(0, 32)}")`,
         }, 404);
       }
       return json({
