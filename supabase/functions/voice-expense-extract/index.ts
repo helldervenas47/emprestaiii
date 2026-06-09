@@ -34,21 +34,55 @@ function extractJson(raw: string): any {
   }
 }
 
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+
+const jsonResponse = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
+  status,
+  headers: { ...corsHeaders, "Content-Type": "application/json" },
+});
+
+async function callGemini(apiKey: string, payload: unknown) {
+  let lastError = "";
+
+  for (const model of GEMINI_MODELS) {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      const body = await resp.text();
+      if (resp.ok) return { body, model };
+
+      lastError = `Gemini ${model} ${resp.status}: ${body}`;
+      console.error("Gemini error", { model, attempt, status: resp.status, body });
+
+      if (![429, 500, 502, 503, 504].includes(resp.status)) {
+        throw new Error(lastError);
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, attempt * 450));
+    }
+  }
+
+  throw new Error(lastError || "Gemini indisponível");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) {
-      return new Response(JSON.stringify({ error: "GEMINI_API_KEY ausente" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Configuração de IA ausente" });
     }
 
     const { audioBase64, mimeType } = await req.json();
     if (!audioBase64 || typeof audioBase64 !== "string") {
-      return new Response(JSON.stringify({ error: "audioBase64 obrigatório" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Áudio obrigatório" }, 400);
     }
 
     // Normalizar mimeType para algo que o Gemini aceita
@@ -71,58 +105,40 @@ Responda APENAS um JSON válido (sem markdown, sem texto extra) com:
 }
 Se não conseguir identificar valor ou descrição, retorne {"error":"motivo"}.`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-    const resp = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{
-          role: "user",
-          parts: [
-            { text: prompt },
-            { inline_data: { mime_type: mt, data: audioBase64 } },
-          ],
-        }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 1024,
-          responseMimeType: "application/json",
-        },
-      }),
-    });
+    const payload = {
+      contents: [{
+        role: "user",
+        parts: [
+          { text: prompt },
+          { inline_data: { mime_type: mt, data: audioBase64 } },
+        ],
+      }],
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 1024,
+        responseMimeType: "application/json",
+      },
+    };
 
-    const body = await resp.text();
-    if (!resp.ok) {
-      console.error("Gemini error", resp.status, body);
-      return new Response(JSON.stringify({ error: `Gemini ${resp.status}`, detail: body }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const { body } = await callGemini(GEMINI_API_KEY, payload);
 
     let data: any;
     try { data = JSON.parse(body); } catch { data = {}; }
     const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).filter(Boolean).join("") ?? "";
     if (!text) {
-      return new Response(JSON.stringify({ error: "Resposta vazia da IA", raw: data }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Não consegui entender o áudio. Tente gravar novamente mais perto do microfone." });
     }
 
     let parsed: any;
     try { parsed = extractJson(text); }
     catch (e) {
-      return new Response(JSON.stringify({ error: "Resposta inválida da IA", raw: text }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("Invalid AI response", text);
+      return jsonResponse({ error: "Não consegui extrair os dados da despesa. Tente informar descrição e valor no áudio." });
     }
 
-    return new Response(JSON.stringify(parsed), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse(parsed);
   } catch (e) {
     console.error(e);
-    return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Serviço de áudio temporariamente indisponível. Tente novamente em instantes." });
   }
 });
