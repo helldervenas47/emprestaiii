@@ -137,6 +137,24 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
   const chatId = Number(matched.chat_id);
   const targetBotId = systemBot?.id ?? null;
 
+  if (kind === "reports") {
+    const linkPayload = { user_id: userId, chat_id: chatId, bot_id: targetBotId };
+    if (targetBotId) {
+      const { error: delErr } = await admin
+        .from("telegram_reports_links")
+        .delete()
+        .eq("bot_id", targetBotId)
+        .or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
+      if (delErr && delErr.code !== "42P01" && delErr.code !== "PGRST205") return json({ error: delErr.message }, 500);
+    }
+    const { error: repInsErr } = await admin.from("telegram_reports_links").insert(linkPayload);
+    if (!repInsErr) {
+      if (matched.legacy_id) await admin.from("telegram_bots").delete().eq("id", matched.legacy_id);
+      return json({ ok: true, kind, chat_id: chatId, message: "Bot vinculado com sucesso." });
+    }
+    if (repInsErr.code !== "42P01" && repInsErr.code !== "PGRST205") return json({ error: repInsErr.message }, 500);
+  }
+
   // Remove apenas o link do MESMO bot para este usuário/chat. Se não conseguimos
   // resolver targetBotId, NÃO apagamos nada (para não derrubar outro bot com bot_id nulo).
   if (targetBotId) {
