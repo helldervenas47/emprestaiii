@@ -1,5 +1,5 @@
 import { getExternalAdmin, getExternalUserClient } from "../_shared/external-supabase.ts";
-import { sendReportsMessage, getReportsLinkForUser } from "../_shared/reports-bot.ts";
+import { sendReportsMessage, getReportsLinkForUser, sendReportsAsImage } from "../_shared/reports-bot.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -247,8 +247,13 @@ async function buildAndSend(
 
   const text = lines.join("\n");
   if (opts?.returnText) return { sent: false, text };
-  const sendRes = await sendReportsMessage(admin, userId, chatId, text);
-  return { sent: sendRes.sent, text };
+  
+  const res = await sendReportsAsImage(admin, userId, chatId, lines, { name: brandName }, {
+    title: titleLabel,
+    reportKey: "incomes_expenses",
+  });
+  
+  return { sent: res.sent, text };
 }
 
 Deno.serve(async (req) => {
