@@ -52,6 +52,7 @@ const MonthlyGoalsManager = lazy(() => import("@/components/MonthlyGoalsManager"
 const AccountantReport = lazy(() => import("@/components/AccountantReport").then(m => ({ default: m.AccountantReport })));
 const TelegramBotsHub = lazy(() => import("@/components/TelegramBotsHub").then(m => ({ default: m.TelegramBotsHub })));
 const WhatsappBillingCard = lazy(() => import("@/components/WhatsappBillingCard").then(m => ({ default: m.WhatsappBillingCard })));
+const WhatsappReportCard = lazy(() => import("@/components/WhatsappReportCard").then(m => ({ default: m.WhatsappReportCard })));
 const WhatsappAutoBillingCard = lazy(() => import("@/components/WhatsappAutoBillingCard").then(m => ({ default: m.WhatsappAutoBillingCard })));
 const WhatsappAssistantCard = lazy(() => import("@/components/WhatsappAssistantCard").then(m => ({ default: m.WhatsappAssistantCard })));
 const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })));
@@ -1072,6 +1073,7 @@ const Index = () => {
             )}
             {overdueSubTab === "whatsapp-cobranca" && (
               <div className="space-y-4">
+                <WhatsappReportCard />
                 <WhatsappBillingCard />
               </div>
             )}
