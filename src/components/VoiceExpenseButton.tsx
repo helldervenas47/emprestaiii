@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, Loader2, Square } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 
 export interface VoiceExpenseExtraction {
@@ -68,7 +68,13 @@ export function VoiceExpenseButton({ onExtracted, className }: Props) {
           const { data, error } = await supabase.functions.invoke("voice-expense-extract", {
             body: { audioBase64: base64, mimeType: rec.mimeType },
           });
-          if (error) throw error;
+          if (error) {
+            console.error("voice-expense-extract error", error);
+            toast.error("Falha ao processar áudio", {
+              description: "Verifique se a função voice-expense-extract está deployada no backend externo.",
+            });
+            return;
+          }
           if ((data as any)?.error) {
             toast.error("Não consegui entender", { description: (data as any).error });
             return;
