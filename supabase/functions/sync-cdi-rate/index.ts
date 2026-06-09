@@ -77,17 +77,22 @@ Deno.serve(async (req) => {
     const newRate = Number(result.rate.toFixed(4));
     const today = new Date().toISOString().slice(0, 10);
 
-    // upsert do cache
-    const { error: upErr } = await supabase
-      .from("market_rates")
-      .upsert({
-        indicator: "cdi",
-        annual_rate: newRate,
-        source,
-        reference_date: result.date,
-        fetched_at: new Date().toISOString(),
-      }, { onConflict: "indicator" });
-    if (upErr) throw upErr;
+    // upsert do cache (only if it's a fresh fetch)
+    if (!source.includes("stale/cached")) {
+      const { error: upErr } = await supabase
+        .from("market_rates")
+        .upsert({
+          indicator: "cdi",
+          annual_rate: newRate,
+          source,
+          reference_date: result.date,
+          fetched_at: new Date().toISOString(),
+        }, { onConflict: "indicator" });
+      if (upErr) {
+        console.error("Error updating market_rates cache:", upErr);
+        // We continue even if cache update fails
+      }
+    }
 
     // propaga para cofrinhos com auto_rate=true se a taxa mudou >= 0.01 p.p.
     const { data: pbs, error: pbErr } = await supabase
