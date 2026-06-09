@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { dueSlotKeys } from "../_shared/schedule.ts";
 
 const GATEWAY_URL = "https://api.telegram.org";
 const corsHeaders = {
@@ -342,23 +343,13 @@ Deno.serve(async (req) => {
         const { today, currentMonthStart, hhmm } = getCurrentDateParts(timeZone);
         const [hour, minute] = hhmm.split(":").map(Number);
         const nowMin = hour * 60 + minute;
-        const slots = ["send_time_1", "send_time_2", "send_time_3"] as const;
-        const slotsToSend: string[] = [];
-
-        if (forceUserId) {
-          slotsToSend.push("manual");
-        } else {
-          for (const slot of slots) {
-            const slotValue = (pref as Record<string, string | null>)[slot];
-            if (!slotValue) continue;
-            const [slotHour, slotMinute] = slotValue.split(":").map(Number);
-            const target = slotHour * 60 + slotMinute;
-            if (nowMin < target || nowMin >= target + 5) continue;
-            const lastSent = (pref.last_sent ?? {}) as Record<string, string>;
-            if (lastSent[slot] === today) continue;
-            slotsToSend.push(slot);
-          }
-        }
+        const slots = [
+          { key: "send_time_1", time: (pref as any).send_time_1 },
+          { key: "send_time_2", time: (pref as any).send_time_2 },
+          { key: "send_time_3", time: (pref as any).send_time_3 },
+        ] as const;
+        const lastSent = (pref.last_sent ?? {}) as Record<string, string>;
+        const slotsToSend: string[] = forceUserId ? ["manual"] : dueSlotKeys(slots, nowMin, today, lastSent);
 
         if (slotsToSend.length === 0) continue;
 
@@ -394,7 +385,7 @@ Deno.serve(async (req) => {
         }
 
         if (!forceUserId) {
-          const merged = { ...(pref.last_sent ?? {}) } as Record<string, string>;
+          const merged = { ...lastSent } as Record<string, string>;
           for (const slot of slotsToSend) merged[slot] = today;
           await admin
             .from("telegram_accumulated_delinquency_prefs")

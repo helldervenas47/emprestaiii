@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { isTimeDueToday } from "../_shared/schedule.ts";
 import { buildTextReportSVG, svgToPng, tgSendPhoto, buildCaptionFromLines } from "../_shared/renderReportImage.ts";
 import { getImageDeliveryPrefs, sendReportsMessage, sendReportsPhoto, getReportsLinkForUser } from "../_shared/reports-bot.ts";
 
@@ -94,10 +95,7 @@ Deno.serve(async (req) => {
   for (const pref of prefs ?? []) {
     try {
       if (!forceUserId) {
-        const [ph, pm] = (pref.send_time as string).split(":").map(Number);
-        const target = ph * 60 + pm;
-        // Trigger window: cron runs every 5 min; fire if now is within [target, target+5)
-        if (nowMin < target || nowMin >= target + 5) continue;
+        if (!isTimeDueToday(pref.send_time as string, nowMin)) continue;
         if (pref.last_sent_date === today) continue;
       }
 

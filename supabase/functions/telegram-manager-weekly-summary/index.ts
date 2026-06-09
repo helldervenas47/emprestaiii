@@ -15,6 +15,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { isTimeDueToday } from "../_shared/schedule.ts";
 
 const GATEWAY_URL = "https://api.telegram.org";
 const APP_TZ = "America/Sao_Paulo";
@@ -409,10 +410,7 @@ Deno.serve(async (req) => {
     for (const p of prefs ?? []) {
       try {
         if (Number((p as any).send_weekday) !== weekday) continue;
-        const [ph, pm] = String((p as any).send_time || "09:00").split(":").map(Number);
-        const target = ph * 60 + pm;
-        // 5-minute window so a 5-min cron does not miss
-        if (nowMin < target || nowMin >= target + 5) continue;
+        if (!isTimeDueToday(String((p as any).send_time || "09:00"), nowMin)) continue;
         if ((p as any).last_sent_date === today) continue; // anti-duplicate
 
         const result = await processOwner(

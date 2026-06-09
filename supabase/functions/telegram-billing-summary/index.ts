@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { dueSlotKeys } from "../_shared/schedule.ts";
 
 const GATEWAY_URL = "https://api.telegram.org";
 
@@ -276,26 +277,13 @@ Deno.serve(async (req) => {
 
   for (const pref of prefs ?? []) {
     try {
-      // Find which slot(s) should fire now (window of 5 min)
-      const slots = ["send_time_1", "send_time_2", "send_time_3"] as const;
-      const slotsToSend: string[] = [];
-
-      if (forceUserId) {
-        slotsToSend.push("manual");
-      } else {
-        for (const slot of slots) {
-          const t = (pref as any)[slot] as string | null;
-          if (!t) continue;
-          const [ph, pm] = t.split(":").map(Number);
-          if (Number.isNaN(ph) || Number.isNaN(pm)) continue;
-          const target = ph * 60 + pm;
-          if (nowMin < target || nowMin >= target + 5) continue;
-          // Dedup: not yet sent today for this slot
-          const lastSent = (pref.last_sent ?? {}) as Record<string, string>;
-          if (lastSent[slot] === today) continue;
-          slotsToSend.push(slot);
-        }
-      }
+      const slots = [
+        { key: "send_time_1", time: (pref as any).send_time_1 },
+        { key: "send_time_2", time: (pref as any).send_time_2 },
+        { key: "send_time_3", time: (pref as any).send_time_3 },
+      ] as const;
+      const lastSent = (pref.last_sent ?? {}) as Record<string, string>;
+      const slotsToSend: string[] = forceUserId ? ["manual"] : dueSlotKeys(slots, nowMin, today, lastSent);
 
       if (slotsToSend.length === 0) continue;
 
@@ -319,7 +307,7 @@ Deno.serve(async (req) => {
       }
 
       if (!forceUserId) {
-        const merged = { ...(pref.last_sent ?? {}) } as Record<string, string>;
+        const merged = { ...lastSent } as Record<string, string>;
         for (const slot of slotsToSend) merged[slot] = today;
         await admin.from("telegram_billing_prefs")
           .update({ last_sent: merged })

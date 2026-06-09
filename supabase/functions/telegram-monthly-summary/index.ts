@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { isTimeDueToday } from "../_shared/schedule.ts";
 import {
   buildMonthlySummarySVG,
   svgToPng,
@@ -262,9 +263,7 @@ Deno.serve(async (req) => {
       const targetDay = Math.min(Number((pref as any).monthly_send_day), lastDayOfMonth);
       if (day !== targetDay) continue;
 
-      const [ph, pm] = ((pref as any).monthly_send_time as string).split(":").map(Number);
-      const target = ph * 60 + pm;
-      if (nowMin < target || nowMin >= target + 5) continue;
+      if (!isTimeDueToday((pref as any).monthly_send_time as string, nowMin)) continue;
       if ((pref as any).last_monthly_sent_month === currMonth) continue;
 
       const format = ((pref as any).monthly_format === "image" ? "image" : "text") as "text" | "image";

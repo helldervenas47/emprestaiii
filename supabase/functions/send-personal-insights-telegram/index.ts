@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { dueSlotKeys } from "../_shared/schedule.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,25 +14,14 @@ function currentMonth(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function todayISO(): string {
-  return new Date().toISOString().split("T")[0];
-}
-
 // Brasília time HH:MM (UTC-3, no DST currently)
-function nowBrasiliaHM(): { h: number; m: number; key: string } {
+function nowBrasiliaHM(): { date: string; h: number; m: number; key: string } {
   const utc = new Date();
   const brasilia = new Date(utc.getTime() - 3 * 60 * 60 * 1000);
+  const date = `${brasilia.getUTCFullYear()}-${String(brasilia.getUTCMonth() + 1).padStart(2, "0")}-${String(brasilia.getUTCDate()).padStart(2, "0")}`;
   const h = brasilia.getUTCHours();
   const m = brasilia.getUTCMinutes();
-  return { h, m, key: `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}` };
-}
-
-function timeWithinWindow(target: string | null | undefined, nowH: number, nowM: number): boolean {
-  if (!target) return false;
-  const [th, tm] = target.split(":").map(Number);
-  if (Number.isNaN(th) || Number.isNaN(tm)) return false;
-  const diff = (nowH * 60 + nowM) - (th * 60 + tm);
-  return diff >= 0 && diff < 5; // within 5-minute window after target
+  return { date, h, m, key: `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}` };
 }
 
 import { sendReportsAsImage, getReportsLinkForUser } from "../_shared/reports-bot.ts";
@@ -65,7 +55,7 @@ async function processUser(
   brandName: string = "EmprestAI",
 ) {
   const ownerId = pref.user_id;
-  const today = todayISO();
+  const today = nowBrasiliaHM().date;
   const lastSent = (pref.last_sent || {}) as Record<string, string>;
 
   // Check telegram link (reports bot)
@@ -151,8 +141,8 @@ Deno.serve(async (req) => {
     }
 
     // ---------- SCHEDULED MODE: cron every 5 min, check all enabled users ----------
-    const { h, m } = nowBrasiliaHM();
-    const today = todayISO();
+    const { date: today, h, m } = nowBrasiliaHM();
+    const nowMin = h * 60 + m;
 
     const { data: prefs } = await supabase
       .from("personal_insights_telegram_prefs")
@@ -162,27 +152,24 @@ Deno.serve(async (req) => {
     const results: any[] = [];
     for (const pref of (prefs || []) as any[]) {
       const lastSent = (pref.last_sent || {}) as Record<string, string>;
-      // Determine which slot is due now (1, 2 or 3) and not yet sent today
       const slots = [
-        { i: 1, t: pref.send_time_1 },
-        { i: 2, t: pref.send_time_2 },
-        { i: 3, t: pref.send_time_3 },
-      ];
-      const dueSlot = slots.find((s) => timeWithinWindow(s.t, h, m));
-      if (!dueSlot) continue;
-
-      const slotKey = `slot-${dueSlot.i}-${today}`;
-      if (lastSent[slotKey]) continue; // already sent today
+        { key: "slot-1", time: pref.send_time_1 },
+        { key: "slot-2", time: pref.send_time_2 },
+        { key: "slot-3", time: pref.send_time_3 },
+      ] as const;
+      const dueSlots = dueSlotKeys(slots, nowMin, today, lastSent);
+      if (dueSlots.length === 0) continue;
 
       const r = await processUser(supabase, pref, "scheduled", undefined, brandName);
       // Mark slot as sent regardless of skip reason (avoid loops)
-      const newLastSent = { ...lastSent, [slotKey]: new Date().toISOString() };
+      const newLastSent = { ...lastSent };
+      for (const slot of dueSlots) newLastSent[slot] = today;
       await supabase
         .from("personal_insights_telegram_prefs")
         .update({ last_sent: newLastSent })
         .eq("user_id", pref.user_id);
 
-      results.push({ user_id: pref.user_id, slot: dueSlot.i, ...r });
+      results.push({ user_id: pref.user_id, slots: dueSlots, ...r });
     }
 
     return new Response(JSON.stringify({ ok: true, results, time: `${h}:${m}` }), {

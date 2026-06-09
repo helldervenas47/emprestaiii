@@ -1,5 +1,6 @@
 import { getExternalAdmin, getExternalUserClient } from "../_shared/external-supabase.ts";
 import { sendReportsMessage, getReportsLinkForUser, sendReportsAsImage } from "../_shared/reports-bot.ts";
+import { dueSlotKeys } from "../_shared/schedule.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -331,30 +332,22 @@ Deno.serve(async (req) => {
   let sent = 0;
   for (const pref of (prefs ?? [])) {
     try {
-      const slots: { key: string; time: string | null }[] = [
+      const slots = [
         { key: "send_time_1", time: (pref as any).send_time_1 },
         { key: "send_time_2", time: (pref as any).send_time_2 },
         { key: "send_time_3", time: (pref as any).send_time_3 },
-      ];
+      ] as const;
       const lastSent = ((pref as any).last_sent ?? {}) as Record<string, string>;
-      let firedSlot: string | null = null;
-      for (const slot of slots) {
-        if (!slot.time) continue;
-        const [ph, pm] = slot.time.split(":").map(Number);
-        const target = ph * 60 + pm;
-        if (nowMin < target || nowMin >= target + 5) continue;
-        if (lastSent[slot.key] === today) continue;
-        firedSlot = slot.key;
-        break;
-      }
-      if (!firedSlot) continue;
+      const firedSlots = dueSlotKeys(slots, nowMin, today, lastSent);
+      if (firedSlots.length === 0) continue;
 
       const isToday = (pref as any).send_target === "today";
       const targetDate = isToday ? today : tomorrow;
       const label = isToday ? "Receitas e Despesas — Hoje" : "Receitas e Despesas — Amanhã";
       const res = await buildAndSend(admin, (pref as any).user_id, targetDate, brandName, label);
       if (res.sent) {
-        const newLast = { ...lastSent, [firedSlot]: today };
+        const newLast = { ...lastSent };
+        for (const slot of firedSlots) newLast[slot] = today;
         await admin.from("incomes_expenses_telegram_prefs")
           .update({ last_sent: newLast })
           .eq("user_id", (pref as any).user_id);
