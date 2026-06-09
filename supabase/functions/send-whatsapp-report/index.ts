@@ -69,8 +69,8 @@ async function buildReport(admin: any, ownerId: string, type: string) {
   const expPend = expTotal - expPaid;
   const incomesTotal = incomes.reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
 
-  const overdue = (loans ?? []).filter((l: any) => l.due_date && l.due_date < today);
-  const toReceive = (loans ?? []).reduce((s: number, l: any) => s + Number(l.remaining_amount || 0), 0);
+  const overdue = loans.filter((l: any) => l.due_date && l.due_date < today);
+  const toReceive = loans.reduce((s: number, l: any) => s + Number(l.remaining_amount || 0), 0);
 
   const label =
     type === "daily" ? `Relatório de hoje (${fmtBR(today)})` :
