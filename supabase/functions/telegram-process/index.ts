@@ -45,19 +45,24 @@ const linkCache = new Map<number, { userId: string | null; expires: number }>();
 const botTokenCache = new Map<string, { token: string | null; expires: number }>();
 const LINK_CACHE_TTL_MS = 5 * 60 * 1000;
 
-async function getLinkedUserId(admin: any, chatId: number): Promise<string | null> {
-  const cached = linkCache.get(chatId);
+async function getLinkedUserId(admin: any, chatId: number, botId?: string | null): Promise<string | null> {
+  const cacheKey = botId ? `${chatId}:${botId}` : String(chatId);
+  const cached = linkCache.get(cacheKey as any);
   if (cached && cached.expires > Date.now()) return cached.userId;
-  const reportsBotId = await getReportsBotId(admin);
   let q = admin.from("telegram_links")
     .select("user_id").eq("chat_id", chatId)
     .order("bot_id", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
     .limit(1);
-  if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+  if (botId) {
+    q = q.eq("bot_id", botId);
+  } else {
+    const reportsBotId = await getReportsBotId(admin);
+    if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+  }
   const { data } = await q.maybeSingle();
   const userId = data?.user_id ?? null;
-  linkCache.set(chatId, { userId, expires: Date.now() + LINK_CACHE_TTL_MS });
+  linkCache.set(cacheKey as any, { userId, expires: Date.now() + LINK_CACHE_TTL_MS });
   return userId;
 }
 
