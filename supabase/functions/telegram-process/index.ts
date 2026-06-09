@@ -41,13 +41,13 @@ function nonVehicleCategory(cat: string | null | undefined): string {
 }
 
 // In-memory cache (per-isolate) for chat_id → user_id lookups. TTL 5min.
-const linkCache = new Map<number, { userId: string | null; expires: number }>();
+const linkCache = new Map<string, { userId: string | null; expires: number }>();
 const botTokenCache = new Map<string, { token: string | null; expires: number }>();
 const LINK_CACHE_TTL_MS = 5 * 60 * 1000;
 
 async function getLinkedUserId(admin: any, chatId: number, botId?: string | null): Promise<string | null> {
   const cacheKey = botId ? `${chatId}:${botId}` : String(chatId);
-  const cached = linkCache.get(cacheKey as any);
+  const cached = linkCache.get(cacheKey);
   if (cached && cached.expires > Date.now()) return cached.userId;
   let q = admin.from("telegram_links")
     .select("user_id").eq("chat_id", chatId)
@@ -62,12 +62,14 @@ async function getLinkedUserId(admin: any, chatId: number, botId?: string | null
   }
   const { data } = await q.maybeSingle();
   const userId = data?.user_id ?? null;
-  linkCache.set(cacheKey as any, { userId, expires: Date.now() + LINK_CACHE_TTL_MS });
+  linkCache.set(cacheKey, { userId, expires: Date.now() + LINK_CACHE_TTL_MS });
   return userId;
 }
 
 function invalidateLinkCache(chatId: number) {
-  linkCache.delete(chatId);
+  for (const key of linkCache.keys()) {
+    if (key === String(chatId) || key.startsWith(`${chatId}:`)) linkCache.delete(key);
+  }
 }
 
 async function getExpenseBotTokenForMessage(admin: any, msg: any, fallback: string): Promise<string> {
