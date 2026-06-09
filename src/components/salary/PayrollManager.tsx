@@ -48,6 +48,37 @@ export function PayrollManager({ readOnly }: Props) {
     return { gross, net, paid, pending };
   }, [monthRows]);
 
+  // Auto-advance to next month after the current competence is fully paid.
+  const autoAdvancedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (readOnly) return;
+    if (monthRows.length === 0) return;
+    if (totals.net <= 0) return;
+    if (totals.pending > 0.01) return;
+    if (autoAdvancedRef.current.has(competence)) return;
+    autoAdvancedRef.current.add(competence);
+
+    const d = parseISO(competence + "-01");
+    d.setMonth(d.getMonth() + 1);
+    const nextCompetence = format(d, "yyyy-MM");
+    const nextExists = payrolls.some((p) => p.competence === nextCompetence);
+
+    (async () => {
+      if (!nextExists) {
+        try {
+          const created = await generateMonthlyBatch(employees, nextCompetence);
+          if (created.length > 0) {
+            toast.success(`Folha de ${format(d, "MMMM 'de' yyyy", { locale: ptBR })} gerada`);
+          }
+        } catch (e: any) {
+          toast.error("Falha ao gerar próxima folha", { description: e?.message });
+          return;
+        }
+      }
+      setMonthOffset((m) => m + 1);
+    })();
+  }, [competence, monthRows.length, totals.net, totals.pending, payrolls, employees, generateMonthlyBatch, readOnly]);
+
   const handleGenerate = async () => {
     const created = await generateMonthlyBatch(employees, competence);
     if (created.length === 0) toast.info("Folha já existe para todos os funcionários ativos.");
