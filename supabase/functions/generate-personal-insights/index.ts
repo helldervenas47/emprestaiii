@@ -137,17 +137,43 @@ function buildPrompt(ctx: any) {
 }
 
 async function callAI(systemPrompt: string, userPrompt: string) {
-  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    // Fallback to GEMINI if LOVABLE_API_KEY is not set
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("Neither LOVABLE_API_KEY nor GEMINI_API_KEY is configured.");
+    
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${GEMINI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gemini-1.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      }),
+    });
+    
+    if (!response.ok) {
+      const t = await response.text();
+      throw new Error(`Gemini API error ${response.status}: ${t}`);
+    }
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content as string;
+  }
 
-  const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+  const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${GEMINI_API_KEY}`,
+      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "gemini-1.5-flash",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -159,11 +185,11 @@ async function callAI(systemPrompt: string, userPrompt: string) {
     throw new Error("Rate limit excedido. Tente novamente em alguns instantes.");
   }
   if (response.status === 402 || response.status === 401) {
-    throw new Error("Erro de autenticação ou créditos de IA esgotados. Verifique as chaves no Dashboard.");
+    throw new Error("Erro de autenticação ou créditos de IA esgotados no Lovable Gateway.");
   }
   if (!response.ok) {
     const t = await response.text();
-    throw new Error(`AI gateway error ${response.status}: ${t}`);
+    throw new Error(`Lovable AI Gateway error ${response.status}: ${t}`);
   }
   const data = await response.json();
   return data.choices?.[0]?.message?.content as string;
