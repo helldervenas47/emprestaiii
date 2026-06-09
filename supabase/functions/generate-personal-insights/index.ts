@@ -152,14 +152,14 @@ async function callAI(systemPrompt: string, userPrompt: string) {
     throw new Error("Neither LOVABLE_API_KEY nor GEMINI_API_KEY is configured.");
   }
 
-  const response = await fetch(url, {
+  const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${authKey}`,
+      "Authorization": `Bearer ${GEMINI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: useGateway ? "gpt-4o-mini" : "gemini-2.0-flash",
+      model: "gemini-1.5-flash",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
