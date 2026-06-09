@@ -217,6 +217,11 @@ Deno.serve(async (req) => {
 
     const code = normalizeTelegramBotCode(rawCode).replace(/[^0-9]/g, "");
     if (!code || code.length !== 6) {
+      if (rawCode.trim()) {
+        return json({
+          error: "Código alfanumérico não encontrado ou expirado. Envie /code novamente no bot do Telegram.",
+        }, 404);
+      }
       return json({
         error: "Código inválido. Gere um código no app ou envie /code no bot do Telegram.",
       }, 400);
