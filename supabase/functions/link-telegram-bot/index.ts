@@ -125,11 +125,15 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
   const chatId = Number(matched.chat_id);
   const targetBotId = systemBot?.id ?? null;
 
-  // Remove only the same-kind link for this user/chat (keep the other-kind link intact)
-  let delQuery = admin.from("telegram_links").delete().or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
-  if (targetBotId) delQuery = delQuery.eq("bot_id", targetBotId);
-  else delQuery = delQuery.is("bot_id", null);
-  await delQuery;
+  // Remove apenas o link do MESMO bot para este usuário/chat. Se não conseguimos
+  // resolver targetBotId, NÃO apagamos nada (para não derrubar outro bot com bot_id nulo).
+  if (targetBotId) {
+    await admin
+      .from("telegram_links")
+      .delete()
+      .eq("bot_id", targetBotId)
+      .or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
+  }
   const { error: insErr } = await admin.from("telegram_links").insert({
     user_id: userId,
     chat_id: chatId,
@@ -305,15 +309,15 @@ Deno.serve(async (req) => {
       targetBotId = (activeExpenseBot as any)?.id ?? null;
     }
 
-    // Remove somente o vínculo do mesmo bot. Não derruba o bot de relatórios
-    // nem outros bots conectados ao mesmo usuário/chat.
-    let delQuery = admin
-      .from("telegram_links")
-      .delete()
-      .or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
-    if (targetBotId) delQuery = delQuery.eq("bot_id", targetBotId);
-    else delQuery = delQuery.is("bot_id", null);
-    await delQuery;
+    // Remove somente o vínculo do MESMO bot. Se targetBotId for nulo, não apagamos
+    // nada para evitar derrubar outros bots conectados.
+    if (targetBotId) {
+      await admin
+        .from("telegram_links")
+        .delete()
+        .eq("bot_id", targetBotId)
+        .or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
+    }
 
     const { error: insErr } = await admin
       .from("telegram_links")
