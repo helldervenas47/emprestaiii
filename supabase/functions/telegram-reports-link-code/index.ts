@@ -29,6 +29,11 @@ Deno.serve(async (req) => {
 
   const { data: existing, error: existingErr } = await admin.from("telegram_reports_links")
     .select("chat_id").eq("user_id", userId).eq("bot_id", reportsBotId).maybeSingle();
+  if (existingErr && (existingErr.code === "42P01" || existingErr.code === "PGRST205")) {
+    return new Response(JSON.stringify({
+      error: "Estrutura de dupla conexão ausente. Execute a restauração das tabelas de relatórios para habilitar bot de despesas e relatórios em paralelo.",
+    }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
   if (existingErr && existingErr.code !== "42P01" && existingErr.code !== "PGRST205") {
     return new Response(JSON.stringify({ error: existingErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
@@ -38,25 +43,17 @@ Deno.serve(async (req) => {
     });
   }
 
-  if (!existingErr) {
-    await admin.from("telegram_reports_link_codes").delete().eq("user_id", userId).eq("bot_id", reportsBotId);
-  } else {
-    await admin.from("telegram_link_codes").delete().eq("user_id", userId).eq("bot_id", reportsBotId);
-  }
+  await admin.from("telegram_reports_link_codes").delete().eq("user_id", userId).eq("bot_id", reportsBotId);
 
   let code = "";
   for (let i = 0; i < 5; i++) {
     code = Math.floor(100000 + Math.random() * 900000).toString();
-    const { data: clash } = !existingErr
-      ? await admin.from("telegram_reports_link_codes").select("id").eq("code", code).maybeSingle()
-      : await admin.from("telegram_link_codes").select("id").eq("code", code).maybeSingle();
+    const { data: clash } = await admin.from("telegram_reports_link_codes").select("id").eq("code", code).maybeSingle();
     if (!clash) break;
   }
 
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-  const { error: insErr } = !existingErr ? await admin.from("telegram_reports_link_codes").insert({
-    code, user_id: userId, bot_id: reportsBotId, expires_at: expiresAt,
-  }) : await admin.from("telegram_link_codes").insert({
+  const { error: insErr } = await admin.from("telegram_reports_link_codes").insert({
     code, user_id: userId, bot_id: reportsBotId, expires_at: expiresAt,
   });
   if (insErr) return new Response(JSON.stringify({ error: insErr.message }), { status: 500, headers: corsHeaders });
