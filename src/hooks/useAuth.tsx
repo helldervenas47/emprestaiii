@@ -50,21 +50,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const fetchTabPermissions = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("user_tab_permissions" as any)
       .select("allowed_tabs")
       .eq("user_id", userId)
       .maybeSingle();
 
-    setAllowedTabs((data as any)?.allowed_tabs || null);
+    if (error) {
+      console.error("[useAuth] fetchTabPermissions error:", error);
+    }
+    const tabs = (data as any)?.allowed_tabs ?? null;
+    console.debug("[useAuth] allowedTabs for", userId, "=", tabs);
+    setAllowedTabs(tabs);
   };
 
   const fetchLinkedClients = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("user_client_permissions" as any)
       .select("client_id")
       .eq("user_id", userId);
 
+    if (error) {
+      console.error("[useAuth] fetchLinkedClients error:", error);
+    }
     if (data && (data as any[]).length > 0) {
       setLinkedClientIds((data as any[]).map((d: any) => d.client_id));
     } else {
