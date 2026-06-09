@@ -137,62 +137,36 @@ function buildPrompt(ctx: any) {
 }
 
 async function callAI(systemPrompt: string, userPrompt: string) {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
-    // Fallback to GEMINI if LOVABLE_API_KEY is not set
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("Neither LOVABLE_API_KEY nor GEMINI_API_KEY is configured.");
-    
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${GEMINI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gemini-1.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
-    
-    if (!response.ok) {
-      const t = await response.text();
-      throw new Error(`Gemini API error ${response.status}: ${t}`);
-    }
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content as string;
-  }
-
-  const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured.");
+  
+  // Directly calling Google Gemini API without standard OpenAI wrapper to avoid header issues
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: `${systemPrompt}\n\nUser Data:\n${userPrompt}` }]
+        }
       ],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1000,
+      }
     }),
   });
-
-  if (response.status === 429) {
-    throw new Error("Rate limit excedido. Tente novamente em alguns instantes.");
-  }
-  if (response.status === 402 || response.status === 401) {
-    throw new Error("Erro de autenticação ou créditos de IA esgotados no Lovable Gateway.");
-  }
+  
   if (!response.ok) {
     const t = await response.text();
-    throw new Error(`Lovable AI Gateway error ${response.status}: ${t}`);
+    throw new Error(`Gemini API error ${response.status}: ${t}`);
   }
+  
   const data = await response.json();
-  return data.choices?.[0]?.message?.content as string;
+  return data.candidates?.[0]?.content?.parts?.[0]?.text as string;
 }
 
 const TONE_INSTRUCTIONS: Record<string, string> = {
