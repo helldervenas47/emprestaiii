@@ -267,7 +267,7 @@ Deno.serve(async (req) => {
         }, 404);
       }
       return json({
-        error: "Código inválido. Gere um código no app ou envie /code no bot do Telegram.",
+        error: `Código inválido. Gere um código no app ou envie /code no bot do Telegram. (debug: body vazio recebido — bodyLen=${rawBodyText.length}, keys=[${Object.keys(body ?? {}).join(",")}])`,
       }, 400);
     }
 
