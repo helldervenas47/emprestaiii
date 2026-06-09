@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "deploy:voice": "bash scripts/deploy-voice-expense.sh"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.0",
