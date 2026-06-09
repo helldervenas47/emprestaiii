@@ -2870,11 +2870,15 @@ Deno.serve(async (req) => {
               .maybeSingle();
             targetBotId = (activeExpenseBot as any)?.id ?? null;
           }
-          // Remove somente o vínculo do mesmo bot; mantém despesas e relatórios conectados em paralelo.
-          let delQ = admin.from("telegram_links").delete().or(`chat_id.eq.${chatId},user_id.eq.${codeRow.user_id}`);
-          if (targetBotId) delQ = delQ.eq("bot_id", targetBotId);
-          else delQ = delQ.is("bot_id", null);
-          await delQ;
+          // Remove somente o vínculo do MESMO bot; mantém despesas e relatórios conectados em paralelo.
+          // Se não conseguimos resolver o bot, não apagamos vínculos legados com bot_id nulo,
+          // pois eles podem representar outro bot já conectado.
+          if (targetBotId) {
+            await admin.from("telegram_links")
+              .delete()
+              .eq("bot_id", targetBotId)
+              .or(`chat_id.eq.${chatId},user_id.eq.${codeRow.user_id}`);
+          }
           invalidateLinkCache(chatId);
           const { error: linkErr } = await admin.from("telegram_links")
             .insert({ user_id: codeRow.user_id, chat_id: chatId, bot_id: targetBotId });
