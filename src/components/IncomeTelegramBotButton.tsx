@@ -56,7 +56,7 @@ export function IncomeTelegramBotButton() {
   useEffect(() => {
     if (!open || !code || connected) return;
     const tick = async () => {
-      await supabase.functions.invoke("telegram-process").catch(() => null);
+      await invokeUserFunction("telegram-process").catch(() => null);
       const ok = await refresh();
       if (ok) {
         toast.success("Bot vinculado com sucesso");
@@ -108,7 +108,7 @@ export function IncomeTelegramBotButton() {
     }
     setLinkingByCode(true);
     try {
-      await supabase.functions.invoke("telegram-process").catch(() => null);
+      await invokeUserFunction("telegram-process").catch(() => null);
       const data = await invokeUserFunction("link-telegram-bot", { bot_code: normalized, kind: "expenses" });
       if ((data as any)?.error) throw new Error((data as any).error);
       toast.success("Bot vinculado com sucesso");

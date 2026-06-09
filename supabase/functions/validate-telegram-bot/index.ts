@@ -1,5 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { getExternalUserClient } from "../_shared/external-supabase.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,11 +16,8 @@ Deno.serve(async (req) => {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-    const { data: { user } } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+    const userClient = getExternalUserClient();
+    const { data: { user } } = await userClient.auth.getUser(authHeader.replace("Bearer ", ""));
     if (!user) {
       return new Response(JSON.stringify({ ok: false, error: "Não autenticado" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
