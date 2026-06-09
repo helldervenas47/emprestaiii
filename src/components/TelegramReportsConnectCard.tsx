@@ -37,7 +37,7 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
       if (stopped || syncingTelegramRef.current) return;
       syncingTelegramRef.current = true;
       try {
-        await supabase.functions.invoke("telegram-reports-poll").catch(() => null);
+        await invokeUserFunction("telegram-reports-poll").catch(() => null);
         await refresh();
       } finally {
         syncingTelegramRef.current = false;
@@ -77,7 +77,7 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
     }
     setLinkingByCode(true);
     try {
-      await supabase.functions.invoke("telegram-reports-poll").catch(() => null);
+      await invokeUserFunction("telegram-reports-poll").catch(() => null);
       const data = await invokeUserFunction("link-telegram-bot", { bot_code: normalized, kind: "reports" });
       if ((data as any)?.error) throw new Error((data as any).error);
       toast.success("✅ Relatório conectado ao bot com sucesso");

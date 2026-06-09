@@ -72,7 +72,7 @@ export function TelegramConnectCard() {
       try {
         // Não chamamos telegram-poll: o cron já roda a cada minuto e duas chamadas
         // concorrentes de getUpdates no mesmo bot causam erro 409 no Telegram.
-        await supabase.functions.invoke("telegram-process").catch(() => null);
+        await invokeUserFunction("telegram-process").catch(() => null);
         await refresh();
       } finally {
         syncingTelegramRef.current = false;
@@ -131,7 +131,7 @@ export function TelegramConnectCard() {
     setLinkingByCode(true);
     try {
       // (telegram-poll removido — evitar 409 por getUpdates concorrentes)
-      await supabase.functions.invoke("telegram-process").catch(() => null);
+      await invokeUserFunction("telegram-process").catch(() => null);
       const data = await invokeUserFunction("link-telegram-bot", { bot_code: normalized, kind: "expenses" });
       if ((data as any)?.error) throw new Error((data as any).error);
       toast.success("✅ Relatório conectado ao bot com sucesso");
