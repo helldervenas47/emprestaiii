@@ -2495,6 +2495,7 @@ Deno.serve(async (req) => {
       const photos = (msg.raw_update as any)?.message?.photo as any[] | undefined;
       const caption = ((msg.raw_update as any)?.message?.caption as string | null)?.trim() ?? "";
       const callback = (msg.raw_update as any)?.callback_query;
+      const messageBotId = (msg.bot_id as string | null | undefined) ?? (msg.raw_update as any)?._system_bot_id ?? null;
       const telegramKey = await getExpenseBotTokenForMessage(admin, msg, TELEGRAM_API_KEY);
 
       try {
@@ -2504,7 +2505,7 @@ Deno.serve(async (req) => {
         const data = (callback.data as string) ?? "";
         const messageId = callback.message?.message_id as number | undefined;
 
-        const userId = await getLinkedUserId(admin, chatId);
+        const userId = await getLinkedUserId(admin, chatId, messageBotId);
         const link = userId ? { user_id: userId } : null;
         if (!link || !messageId) {
           await tgAnswerCallback(cbId, "Conta não vinculada", telegramKey);
@@ -2648,7 +2649,7 @@ Deno.serve(async (req) => {
 
       // 📸 Photo handling
       if (photos && photos.length > 0) {
-        const userId = await getLinkedUserId(admin, chatId);
+        const userId = await getLinkedUserId(admin, chatId, messageBotId);
         const link = userId ? { user_id: userId } : null;
         if (!link) {
           await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", telegramKey);
@@ -2734,7 +2735,7 @@ Deno.serve(async (req) => {
       const audio = (msg.raw_update as any)?.message?.audio;
       const audioMsg = voice || audio;
       if (audioMsg) {
-        const userId = await getLinkedUserId(admin, chatId);
+        const userId = await getLinkedUserId(admin, chatId, messageBotId);
         const link = userId ? { user_id: userId } : null;
         if (!link) {
           await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", telegramKey);
@@ -2922,7 +2923,7 @@ Deno.serve(async (req) => {
         await tgSend(chatId, HELP_TEXT, telegramKey);
       } else if (text) {
         // Resolve user (cached)
-        const userId = await getLinkedUserId(admin, chatId);
+        const userId = await getLinkedUserId(admin, chatId, messageBotId);
         const link = userId ? { user_id: userId } : null;
         if (!link) {
           await tgSend(chatId, "🔒 Conta não vinculada. Envie /code aqui e cole o código na aba Financeiro do app.", telegramKey);
