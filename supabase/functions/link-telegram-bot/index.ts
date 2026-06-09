@@ -225,10 +225,12 @@ Deno.serve(async (req) => {
     if (userErr || !userId) return json({ error: "Unauthorized" }, 401);
 
     let body: any = {};
-    try { body = await req.json(); } catch { body = {}; }
+    let rawBodyText = "";
+    try { rawBodyText = await req.text(); body = rawBodyText ? JSON.parse(rawBodyText) : {}; } catch { body = {}; }
 
     const rawCode = typeof body?.bot_code === "string" ? body.bot_code : "";
     const requestedKind = body?.kind === "reports" || body?.kind === "expenses" ? body.kind : undefined;
+    console.log("[link-telegram-bot] received", { userId, requestedKind, rawCodeLen: rawCode.length, rawBodyLen: rawBodyText.length, bodyKeys: Object.keys(body ?? {}) });
     const admin = getExternalAdmin();
 
     // Flush pending Telegram updates so the recent /code message is persisted.
