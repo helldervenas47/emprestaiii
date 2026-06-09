@@ -414,6 +414,7 @@ const Index = () => {
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showPersonalExpenseForm, setShowPersonalExpenseForm] = useState(false);
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
+  const [expenseDefaults, setExpenseDefaults] = useState<any | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [mobileNotifOpen, setMobileNotifOpen] = useState(false);
