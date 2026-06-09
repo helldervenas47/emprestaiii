@@ -38,6 +38,11 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
   try {
     let result = await fetchSeries(SGS_PRIMARY);
     let source = `BCB SGS ${SGS_PRIMARY}`;
@@ -45,17 +50,29 @@ Deno.serve(async (req) => {
       result = await fetchSeries(SGS_FALLBACK);
       source = `BCB SGS ${SGS_FALLBACK} (fallback)`;
     }
-    if (!result) {
-      return new Response(
-        JSON.stringify({ ok: false, error: "BCB API unavailable" }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    if (!result) {
+      console.warn("BCB API unavailable, using last cached rate from market_rates");
+      
+      const { data: cached, error: cacheErr } = await supabase
+        .from("market_rates")
+        .select("annual_rate, reference_date, source")
+        .eq("indicator", "cdi")
+        .maybeSingle();
+
+      if (cacheErr || !cached) {
+        return new Response(
+          JSON.stringify({ ok: false, error: "BCB API unavailable and no cache found" }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      result = { 
+        rate: Number(cached.annual_rate), 
+        date: cached.reference_date 
+      };
+      source = `${cached.source} (stale/cached)`;
+    }
 
     const newRate = Number(result.rate.toFixed(4));
     const today = new Date().toISOString().slice(0, 10);
