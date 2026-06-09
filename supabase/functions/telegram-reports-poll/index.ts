@@ -31,6 +31,22 @@ async function tgSend(token: string, chatId: number, text: string) {
   }
 }
 
+async function saveIncomingMessage(supabase: any, update: any, bot: { id: string }) {
+  const msg = update.message;
+  if (!msg?.chat?.id) return;
+  const botHash = (BigInt(`0x${bot.id.replace(/-/g, "").slice(0, 8)}`) % 900000n) + 100000n;
+  const scopedUpdateId = String(botHash * 10_000_000_000n + BigInt(update.update_id));
+  await supabase.from("telegram_messages").upsert({
+    update_id: scopedUpdateId,
+    chat_id: msg.chat.id,
+    text: msg.text ?? msg.caption ?? null,
+    raw_update: { ...update, _system_bot_id: bot.id },
+    bot_id: bot.id,
+    processed: true,
+    processed_at: new Date().toISOString(),
+  }, { onConflict: "update_id" }).then(() => null).catch(() => null);
+}
+
 async function deleteWebhook(token: string) {
   try {
     const r = await fetch(`https://api.telegram.org/bot${token}/deleteWebhook`, {
@@ -134,6 +150,7 @@ async function processBot(
       if (!msg) continue;
       const chatId = msg.chat.id;
       const text = (msg.text ?? "").trim();
+      await saveIncomingMessage(supabase, u, bot);
 
       const startMatch = text.match(/^\/start(?:@\w+)?\s+(\d{6})\s*$/);
       const codeMatch = text.match(/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i);
@@ -171,15 +188,11 @@ async function processBot(
         }
       } else if (codeMatch) {
         const botCode = await generateChatLinkCode(chatId, "reports", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-        await supabase.from("telegram_messages").upsert({
-          update_id: u.update_id,
-          chat_id: chatId,
-          text,
-          raw_update: { ...u, _system_bot_id: bot.id, _bot_link_code: botCode, _bot_link_kind: "reports" },
-          bot_id: bot.id,
-          processed: true,
-          processed_at: new Date().toISOString(),
-        }, { onConflict: "update_id" }).then(() => null).catch(() => null);
+        await supabase.from("telegram_messages")
+          .update({ raw_update: { ...u, _system_bot_id: bot.id, _bot_link_code: botCode, _bot_link_kind: "reports" } })
+          .eq("bot_id", bot.id)
+          .eq("raw_update->>update_id", String(u.update_id))
+          .then(() => null).catch(() => null);
         await tgSend(
           bot.token, chatId,
           `🔑 *Seu código de vínculo:*\n\n\`${botCode}\`\n\n` +

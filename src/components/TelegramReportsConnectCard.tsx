@@ -71,6 +71,10 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
       return;
     }
     const normalized = normalizeTelegramBotCode(trimmed);
+    if (!/^[A-Z0-9]{6,12}$/.test(normalized)) {
+      toast.error("Código inválido", { description: "Envie /code ao bot de relatórios e cole aqui o código retornado." });
+      return;
+    }
     setLinkingByCode(true);
     try {
       await supabase.functions.invoke("telegram-reports-poll").catch(() => null);
@@ -94,9 +98,13 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
   };
 
   const handleDisconnect = async () => {
-    await disconnect();
-    setCode(null);
-    toast.success("Bot de Relatórios desvinculado");
+    try {
+      await disconnect();
+      setCode(null);
+      toast.success("Bot de Relatórios desvinculado");
+    } catch (e: any) {
+      toast.error("Erro ao desconectar", { description: e?.message ?? "Tente novamente." });
+    }
   };
 
   if (loading) return null;
