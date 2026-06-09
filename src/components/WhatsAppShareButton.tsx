@@ -46,13 +46,16 @@ export function WhatsAppShareButton({
     try {
       const text = await getText();
       if (!text) {
-        toast.error("Não foi possível gerar o resumo agora.");
+        toast.error("Não foi possível gerar o resumo agora.", {
+          description:
+            "A função de resumo no servidor pode estar desatualizada. Faça o deploy mais recente das funções (./scripts/deploy-telegram-functions.sh) e tente novamente.",
+        });
         return;
       }
       const url = `https://wa.me/${target}?text=${encodeURIComponent(text)}`;
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (e: any) {
-      toast.error(e?.message || "Erro ao gerar resumo para WhatsApp");
+      toast.error("Erro ao gerar resumo para WhatsApp", { description: e?.message });
     } finally {
       setLoading(false);
     }
