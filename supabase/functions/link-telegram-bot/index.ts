@@ -268,6 +268,17 @@ Deno.serve(async (req) => {
     const { data: codeRow } = await codeQuery.maybeSingle();
 
     if (!codeRow) {
+      if (activeExpenseBotId) {
+        const { data: existingLink } = await admin
+          .from("telegram_links")
+          .select("chat_id")
+          .eq("user_id", userId)
+          .eq("bot_id", activeExpenseBotId)
+          .maybeSingle();
+        if (existingLink) {
+          return json({ ok: true, chat_id: existingLink.chat_id, already_linked: true });
+        }
+      }
       return json({ error: `Código ${code} não encontrado. Gere um novo no app.` }, 404);
     }
     if (codeRow.user_id !== userId) {
