@@ -1,5 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { getExternalAdmin, getExternalUserClient } from "../_shared/external-supabase.ts";
 import { sendReportsMessage, getReportsLinkForUser } from "../_shared/reports-bot.ts";
 
 const corsHeaders = {
@@ -255,8 +254,6 @@ async function buildAndSend(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = getExternalAdmin();
 
   let brandName = "EmprestAI";
@@ -269,37 +266,51 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
 
-  // Manual on-demand send
+  // Manual on-demand send — valida o JWT contra o Supabase EXTERNO (onde o usuário está logado)
   if (token && req.method === "POST") {
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data: { user }, error: userErr } = await userClient.auth.getUser();
-    if (!userErr && user) {
-      let body: any = {};
-      try { body = await req.json(); } catch (_) {}
-      const returnText = body?.return_text === true;
-      let manualTarget = (body?.date as string) || tomorrow;
-      let manualLabel = "Receitas e Despesas — Amanhã";
-      if (!body?.date) {
-        const { data: pref } = await admin
-          .from("incomes_expenses_telegram_prefs")
-          .select("send_target")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if ((pref as any)?.send_target === "today") {
-          manualTarget = today;
-          manualLabel = "Receitas e Despesas — Hoje";
-        }
-      } else if (body.date === today) {
+    const userClient = getExternalUserClient();
+    const { data: { user }, error: userErr } = await userClient.auth.getUser(token);
+    if (userErr || !user) {
+      return new Response(
+        JSON.stringify({ error: "unauthorized", detail: userErr?.message ?? "invalid token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    let body: any = {};
+    try { body = await req.json(); } catch (_) {}
+    const returnText = body?.return_text === true;
+    let manualTarget = (body?.date as string) || tomorrow;
+    let manualLabel = "Receitas e Despesas — Amanhã";
+    if (!body?.date) {
+      const { data: pref } = await admin
+        .from("incomes_expenses_telegram_prefs")
+        .select("send_target")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if ((pref as any)?.send_target === "today") {
+        manualTarget = today;
         manualLabel = "Receitas e Despesas — Hoje";
       }
-      const res = await buildAndSend(admin, user.id, manualTarget, brandName, manualLabel, { returnText });
-      return new Response(JSON.stringify({ ok: true, sent: res.sent ? 1 : 0, date: manualTarget, text: res.text }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    } else if (body.date === today) {
+      manualLabel = "Receitas e Despesas — Hoje";
     }
+    // Checa link antes para devolver erro claro ao front
+    if (!returnText) {
+      const link = await getReportsLinkForUser(admin, user.id);
+      if (!link) {
+        return new Response(
+          JSON.stringify({ ok: false, error: "no_reports_link", message: "Conecte o Bot de Relatórios (/code) antes de enviar." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+    const res = await buildAndSend(admin, user.id, manualTarget, brandName, manualLabel, { returnText });
+    return new Response(
+      JSON.stringify({ ok: res.sent || returnText, sent: res.sent ? 1 : 0, date: manualTarget, text: res.text }),
+      { status: res.sent || returnText ? 200 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
+
 
   // Cron mode
   const [hh, mm] = hhmm.split(":").map(Number);
