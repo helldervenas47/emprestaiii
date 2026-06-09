@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useTelegramManagerWeeklyPrefs } from "@/hooks/useTelegramManagerWeeklyPrefs";
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
-import { WhatsAppShareButton } from "@/components/WhatsAppShareButton";
+
 
 const WEEKDAYS = [
   { value: 0, label: "Domingo" },
@@ -266,12 +266,6 @@ export function TelegramManagerWeeklyCard() {
                         >
                           {sending === m.client_id ? "…" : <Send className="h-3.5 w-3.5" />}
                         </Button>
-                        <WhatsAppShareButton
-                          size="sm"
-                          variant="ghost"
-                          label=""
-                          getText={async () => m.message}
-                        />
                       </div>
                     </div>
                   ))}
@@ -297,10 +291,6 @@ export function TelegramManagerWeeklyCard() {
             {activePreview?.message}
           </pre>
           <DialogFooter className="gap-2">
-            <WhatsAppShareButton
-              getText={async () => activePreview?.message ?? ""}
-              disabled={!activePreview}
-            />
             <Button
               onClick={() => activePreview && sendOne(activePreview.client_id)}
               disabled={sending !== null}
