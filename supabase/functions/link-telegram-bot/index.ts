@@ -222,8 +222,11 @@ Deno.serve(async (req) => {
     const code = normalizeTelegramBotCode(rawCode).replace(/[^0-9]/g, "");
     if (!code || code.length !== 6) {
       if (rawCode.trim()) {
+        const isAlphanumeric = /[A-Z]/.test(rawCode.toUpperCase());
         return json({
-          error: "Código alfanumérico não encontrado ou expirado. Envie /code novamente no bot do Telegram.",
+          error: isAlphanumeric
+            ? "Código alfanumérico não encontrado ou expirado. Envie /code novamente no bot do Telegram."
+            : "Código numérico inválido. No app, gere um novo código e envie /start CÓDIGO ao bot.",
         }, 404);
       }
       return json({
