@@ -12,7 +12,7 @@ export function isTimeDueToday(value: string | null | undefined, nowMinutes: num
 }
 
 export function dueSlotKeys<T extends string>(
-  slots: Array<{ key: T; time: string | null | undefined }>,
+  slots: ReadonlyArray<{ key: T; time: string | null | undefined }>,
   nowMinutes: number,
   today: string,
   lastSent: Record<string, string>,
