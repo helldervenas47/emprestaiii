@@ -34,8 +34,10 @@ async function tgSend(token: string, chatId: number, text: string) {
 async function saveIncomingMessage(supabase: any, update: any, bot: { id: string }) {
   const msg = update.message;
   if (!msg?.chat?.id) return;
+  const botHash = (BigInt(`0x${bot.id.replace(/-/g, "").slice(0, 8)}`) % 900000n) + 100000n;
+  const scopedUpdateId = String(botHash * 10_000_000_000n + BigInt(update.update_id));
   await supabase.from("telegram_messages").upsert({
-    update_id: update.update_id,
+    update_id: scopedUpdateId,
     chat_id: msg.chat.id,
     text: msg.text ?? msg.caption ?? null,
     raw_update: { ...update, _system_bot_id: bot.id },
@@ -188,7 +190,8 @@ async function processBot(
         const botCode = await generateChatLinkCode(chatId, "reports", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
         await supabase.from("telegram_messages")
           .update({ raw_update: { ...u, _system_bot_id: bot.id, _bot_link_code: botCode, _bot_link_kind: "reports" } })
-          .eq("update_id", u.update_id)
+          .eq("bot_id", bot.id)
+          .eq("raw_update->>update_id", String(u.update_id))
           .then(() => null).catch(() => null);
         await tgSend(
           bot.token, chatId,
