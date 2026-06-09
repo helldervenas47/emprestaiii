@@ -20,6 +20,19 @@ import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { ConsolidatedBalanceCards } from "@/components/ConsolidatedBalanceCards";
 import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
+import { isVehicleExpenseCategory } from "@/components/VehicleExpenseForm";
+
+/**
+ * Detecta lançamentos originados do módulo "Veículos" para ocultá-los do extrato
+ * financeiro. Os registros originais não são removidos; apenas a exibição
+ * (e os filtros/totais derivados) é filtrada.
+ */
+const isVehicleLedgerEntry = (e: LedgerEntry): boolean => {
+  const md = (e.metadata ?? {}) as Record<string, any>;
+  if (md.scope === "vehicle" || md.source === "vehicle" || md.vehicle === true) return true;
+  if (typeof md.category === "string" && isVehicleExpenseCategory(md.category)) return true;
+  return false;
+};
 
 const formatBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
