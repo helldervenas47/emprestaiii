@@ -137,36 +137,51 @@ function buildPrompt(ctx: any) {
 }
 
 async function callAI(systemPrompt: string, userPrompt: string) {
-  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured.");
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    // Fallback to GEMINI_API_KEY if available
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (GEMINI_API_KEY) {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\nUser Data:\n${userPrompt}` }] }],
+          generationConfig: { temperature: 0.7, maxOutputTokens: 1000 },
+        }),
+      });
+      if (!response.ok) throw new Error(`Gemini API error ${response.status}: ${await response.text()}`);
+      const data = await response.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text as string;
+    }
+    throw new Error("Neither LOVABLE_API_KEY nor GEMINI_API_KEY is configured.");
+  }
   
-  // Directly calling Google Gemini API without standard OpenAI wrapper to avoid header issues
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+  const response = await fetch("https://api.lovable.dev/v1/ai/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
     },
     body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: `${systemPrompt}\n\nUser Data:\n${userPrompt}` }]
-        }
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `User Data:\n${userPrompt}` },
       ],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 1000,
-      }
+      temperature: 0.7,
+      max_tokens: 1000,
     }),
   });
   
   if (!response.ok) {
-    const t = await response.text();
-    throw new Error(`Gemini API error ${response.status}: ${t}`);
+    const errorText = await response.text();
+    console.error(`AI Gateway error ${response.status}:`, errorText);
+    throw new Error(`AI gateway error ${response.status}: ${errorText}`);
   }
   
   const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text as string;
+  return data.choices?.[0]?.message?.content as string;
 }
 
 const TONE_INSTRUCTIONS: Record<string, string> = {
