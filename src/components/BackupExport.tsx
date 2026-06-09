@@ -306,7 +306,6 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
 
   return (
     <div className="space-y-6">
-      <AutoBackupCard />
 
       {/* Backup completo em JSON */}
       <Card className="border-primary/30">
