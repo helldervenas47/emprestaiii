@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { isTimeDueToday } from "../_shared/schedule.ts";
 import { buildTextReportSVG, svgToPng, tgSendPhoto, buildCaptionFromLines } from "../_shared/renderReportImage.ts";
 import { getImageDeliveryPrefs, sendReportsMessage, sendReportsPhoto, getReportsLinkForUser } from "../_shared/reports-bot.ts";
 
@@ -178,9 +179,7 @@ Deno.serve(async (req) => {
   for (const pref of prefs ?? []) {
     try {
       if ((pref as any).weekly_send_weekday !== weekday) continue;
-      const [ph, pm] = ((pref as any).weekly_send_time as string).split(":").map(Number);
-      const target = ph * 60 + pm;
-      if (nowMin < target || nowMin >= target + 5) continue;
+      if (!isTimeDueToday((pref as any).weekly_send_time as string, nowMin)) continue;
       if ((pref as any).last_weekly_sent_date === today) continue;
 
       const ok = await buildAndSendWeekly(admin, (pref as any).user_id, today, brandName);
