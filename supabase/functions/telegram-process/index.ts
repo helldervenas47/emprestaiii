@@ -50,7 +50,10 @@ async function getLinkedUserId(admin: any, chatId: number): Promise<string | nul
   if (cached && cached.expires > Date.now()) return cached.userId;
   const reportsBotId = await getReportsBotId(admin);
   let q = admin.from("telegram_links")
-    .select("user_id").eq("chat_id", chatId);
+    .select("user_id").eq("chat_id", chatId)
+    .order("bot_id", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(1);
   if (reportsBotId) q = q.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
   const { data } = await q.maybeSingle();
   const userId = data?.user_id ?? null;
@@ -83,11 +86,15 @@ async function getExpenseBotTokenForMessage(admin: any, msg: any, fallback: stri
   }
 
   if (!token) {
-    const { data: link } = await admin
+    let linkQ = admin
       .from("telegram_links")
       .select("bot_id, system_telegram_bots(token)")
       .eq("chat_id", chatId)
-      .maybeSingle();
+      .order("bot_id", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (rawBotId) linkQ = linkQ.eq("bot_id", rawBotId);
+    const { data: link } = await linkQ.maybeSingle();
     token = (link as any)?.system_telegram_bots?.token ?? null;
   }
 
