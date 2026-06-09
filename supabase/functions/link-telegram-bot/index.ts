@@ -305,12 +305,14 @@ Deno.serve(async (req) => {
       targetBotId = (activeExpenseBot as any)?.id ?? null;
     }
 
-    // Remove vínculos antigos do mesmo chat ou usuário (somente do lado despesas), depois cria o novo
+    // Remove somente o vínculo do mesmo bot. Não derruba o bot de relatórios
+    // nem outros bots conectados ao mesmo usuário/chat.
     let delQuery = admin
       .from("telegram_links")
       .delete()
       .or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
-    if (reportsBotId) delQuery = delQuery.or(`bot_id.is.null,bot_id.neq.${reportsBotId}`);
+    if (targetBotId) delQuery = delQuery.eq("bot_id", targetBotId);
+    else delQuery = delQuery.is("bot_id", null);
     await delQuery;
 
     const { error: insErr } = await admin

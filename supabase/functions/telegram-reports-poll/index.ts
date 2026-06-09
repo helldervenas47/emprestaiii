@@ -149,15 +149,15 @@ async function processBot(
           await tgSend(bot.token, chatId, "⌛ Código expirado. Gere um novo no app.");
           await supabase.from("telegram_link_codes").delete().eq("code", code);
         } else {
-          await supabase.from("telegram_links").upsert(
-            {
-              user_id: (codeRow as any).user_id,
-              chat_id: chatId,
-              bot_id: bot.id,
-              label: bot.bot_username ? `@${bot.bot_username}` : null,
-            },
-            { onConflict: "user_id,chat_id" },
-          );
+          await supabase.from("telegram_links").delete()
+            .or(`chat_id.eq.${chatId},user_id.eq.${(codeRow as any).user_id}`)
+            .eq("bot_id", bot.id);
+          await supabase.from("telegram_links").insert({
+            user_id: (codeRow as any).user_id,
+            chat_id: chatId,
+            bot_id: bot.id,
+            label: bot.bot_username ? `@${bot.bot_username}` : null,
+          });
           await supabase.from("telegram_link_codes").delete()
             .eq("user_id", (codeRow as any).user_id).eq("bot_id", bot.id);
           await tgSend(bot.token, chatId, "✅ *Bot de Relatórios conectado!*\n\nVocê receberá os relatórios nos horários configurados.");
