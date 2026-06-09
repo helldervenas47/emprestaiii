@@ -1256,9 +1256,30 @@ const Index = () => {
       {showClientForm && <ClientForm onAdd={addClient} onClose={() => setShowClientForm(false)} />}
       {showProductForm && <ProductForm onAdd={addProduct} onClose={() => setShowProductForm(false)} />}
       {showSaleForm && <SaleForm onAdd={addSale} onClose={() => setShowSaleForm(false)} clients={clients} defaultBusinessType={tab === "vehicles" ? "aluguel_veiculo" : (productsSubTab === "streaming" ? "streaming" : undefined)} registeredVehicles={registeredVehicles} locadores={locadores} products={products} />}
-      {showExpenseForm && <ExpenseForm onAdd={addExpense} onClose={() => setShowExpenseForm(false)} scope="business" />}
+      {showExpenseForm && <ExpenseForm onAdd={addExpense} onClose={() => { setShowExpenseForm(false); setExpenseDefaults(null); }} scope={expenseDefaults?.scope === "personal" ? "personal" : "business"} defaults={expenseDefaults ?? undefined} />}
       {showPersonalExpenseForm && <PersonalExpenseForm onAdd={addExpense} onClose={() => setShowPersonalExpenseForm(false)} />}
       {showVehicleExpenseForm && <VehicleExpenseForm onAdd={addExpense} onClose={() => setShowVehicleExpenseForm(false)} />}
+
+      {!isReadOnly && tab === "expenses" && incExpTab !== "incomes" && (
+        <div
+          className="fixed z-50"
+          style={{ right: `calc(env(safe-area-inset-right) + 16px)`, bottom: isMobile ? `calc(env(safe-area-inset-bottom) + 76px + 58px)` : `calc(env(safe-area-inset-bottom) + 20px + 64px)` }}
+        >
+          <VoiceExpenseButton
+            onExtracted={(d) => {
+              setExpenseDefaults({
+                description: d.description,
+                amount: d.amount,
+                category: d.category,
+                dueDate: d.dueDate,
+                notes: d.notes,
+                scope: d.scope,
+              });
+              setShowExpenseForm(true);
+            }}
+          />
+        </div>
+      )}
 
       {/* Mobile Bottom Navigation */}
       {isMobile && (
