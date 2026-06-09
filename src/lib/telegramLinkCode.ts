@@ -1,4 +1,11 @@
-import { supabase, USER_SUPABASE_PUBLISHABLE_KEY, USER_SUPABASE_URL } from "@/integrations/supabase/userClient";
+import { supabase } from "@/integrations/supabase/userClient";
+
+const APP_FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const APP_FUNCTIONS_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
+if (!APP_FUNCTIONS_URL || !APP_FUNCTIONS_PUBLISHABLE_KEY) {
+  throw new Error("[telegram] VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY são obrigatórios para chamar as funções do app.");
+}
 
 type TelegramLinkCodeFunction = "telegram-link-code" | "telegram-reports-link-code";
 
@@ -29,11 +36,11 @@ export async function invokeUserFunction(functionName: string, body: unknown = {
     throw new Error("Sessão expirada. Saia e entre novamente para continuar.");
   }
 
-  const response = await fetch(`${USER_SUPABASE_URL}/functions/v1/${functionName}`, {
+  const response = await fetch(`${APP_FUNCTIONS_URL}/functions/v1/${functionName}`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
-      apikey: USER_SUPABASE_PUBLISHABLE_KEY,
+      apikey: APP_FUNCTIONS_PUBLISHABLE_KEY,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
