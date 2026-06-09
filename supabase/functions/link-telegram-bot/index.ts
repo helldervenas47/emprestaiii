@@ -152,7 +152,12 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
       if (matched.legacy_id) await admin.from("telegram_bots").delete().eq("id", matched.legacy_id);
       return json({ ok: true, kind, chat_id: chatId, message: "Bot vinculado com sucesso." });
     }
-    if (repInsErr.code !== "42P01" && repInsErr.code !== "PGRST205") return json({ error: repInsErr.message }, 500);
+    if (repInsErr.code === "42P01" || repInsErr.code === "PGRST205") {
+      return json({
+        error: "Estrutura de dupla conexão ausente. Restaure as tabelas telegram_reports_links e telegram_reports_link_codes antes de conectar o bot de relatórios.",
+      }, 500);
+    }
+    return json({ error: repInsErr.message }, 500);
   }
 
   // Remove apenas o link do MESMO bot para este usuário/chat. Se não conseguimos

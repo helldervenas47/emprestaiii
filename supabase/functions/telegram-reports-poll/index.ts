@@ -143,16 +143,17 @@ async function processBot(
         const { data: reportCodeRow, error: reportCodeErr } = await supabase
           .from("telegram_reports_link_codes")
           .select("id, user_id, expires_at, bot_id").eq("code", code).eq("bot_id", bot.id).maybeSingle();
-        const { data: codeRow } = reportCodeErr
-          ? await supabase.from("telegram_link_codes")
-            .select("id, user_id, expires_at, bot_id").eq("code", code).eq("bot_id", bot.id).maybeSingle()
-          : { data: reportCodeRow };
+        if (reportCodeErr) {
+          await tgSend(bot.token, chatId, "❌ Estrutura de dupla conexão ausente. Peça ao administrador para restaurar as tabelas de relatórios.");
+          totalProcessed++;
+          continue;
+        }
+        const codeRow = reportCodeRow;
         if (!codeRow) {
           await tgSend(bot.token, chatId, "❌ Código inválido ou expirado. Gere um novo no app.");
         } else if (new Date((codeRow as any).expires_at).getTime() < Date.now()) {
           await tgSend(bot.token, chatId, "⌛ Código expirado. Gere um novo no app.");
-          if (!reportCodeErr) await supabase.from("telegram_reports_link_codes").delete().eq("id", (codeRow as any).id);
-          else await supabase.from("telegram_link_codes").delete().eq("id", (codeRow as any).id);
+          await supabase.from("telegram_reports_link_codes").delete().eq("id", (codeRow as any).id);
         } else {
           const linkPayload = {
             user_id: (codeRow as any).user_id,
@@ -160,21 +161,12 @@ async function processBot(
             bot_id: bot.id,
             label: bot.bot_username ? `@${bot.bot_username}` : null,
           };
-          if (!reportCodeErr) {
-            await supabase.from("telegram_reports_links").delete()
-              .or(`chat_id.eq.${chatId},user_id.eq.${(codeRow as any).user_id}`)
-              .eq("bot_id", bot.id);
-            await supabase.from("telegram_reports_links").insert(linkPayload);
-            await supabase.from("telegram_reports_link_codes").delete()
-              .eq("user_id", (codeRow as any).user_id).eq("bot_id", bot.id);
-          } else {
-            await supabase.from("telegram_links").delete()
-              .or(`chat_id.eq.${chatId},user_id.eq.${(codeRow as any).user_id}`)
-              .eq("bot_id", bot.id);
-            await supabase.from("telegram_links").insert(linkPayload);
-            await supabase.from("telegram_link_codes").delete()
-              .eq("user_id", (codeRow as any).user_id).eq("bot_id", bot.id);
-          }
+          await supabase.from("telegram_reports_links").delete()
+            .or(`chat_id.eq.${chatId},user_id.eq.${(codeRow as any).user_id}`)
+            .eq("bot_id", bot.id);
+          await supabase.from("telegram_reports_links").insert(linkPayload);
+          await supabase.from("telegram_reports_link_codes").delete()
+            .eq("user_id", (codeRow as any).user_id).eq("bot_id", bot.id);
           await tgSend(bot.token, chatId, "✅ *Bot de Relatórios conectado!*\n\nVocê receberá os relatórios nos horários configurados.");
         }
       } else if (codeMatch) {
