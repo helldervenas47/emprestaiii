@@ -184,6 +184,10 @@ export function PiggyBankList({ readOnly = false }: Props) {
     const baseCdi = cdiRate ? cdiRate.annualRate : 11.15;
     const rate = Number((baseCdi * (pct / 100)).toFixed(4));
 
+    const goalAmount = draft.goalAmount.trim() ? Number(draft.goalAmount.replace(",", ".")) : null;
+    const category = draft.category.trim() || null;
+    const targetDate = draft.targetDate.trim() || null;
+
     // Validate short id (1..99, unique within this account).
     let shortId: number | null = null;
     if (draft.shortId.trim()) {
@@ -208,6 +212,9 @@ export function PiggyBankList({ readOnly = false }: Props) {
         shortId,
         autoRate: true,
         cdiPercent: pct,
+        goalAmount,
+        category,
+        targetDate,
       });
       if (rateChanged) {
         // Forward: mantém histórico de rendimentos passados intacto.
@@ -221,6 +228,9 @@ export function PiggyBankList({ readOnly = false }: Props) {
         autoRate: true,
         cdiPercent: pct,
         shortId,
+        goalAmount,
+        category,
+        targetDate,
       });
     }
     setCreateOpen(false);
