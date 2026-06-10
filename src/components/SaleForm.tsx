@@ -532,41 +532,43 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
 
             {!isVehicleRental && (
               <>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Quantidade</Label>
-                  <Input type="number" min="1" value={form.quantity} onChange={(e) => {
-                    const qStr = e.target.value;
-                    const qty = parseInt(qStr) || 1;
-                    const prod = products.find((p) => p.id === form.productId);
-                    if (prod && isVenda) {
-                      const newTotal = (prod.price * qty).toFixed(2);
-                      setForm((p) => ({ ...p, quantity: qStr, total: newTotal }));
-                      const count = parseInt(form.installments) || 1;
-                      if (form.paymentMode === "recorrente" && count > 0) {
-                        const newInstVal = (parseFloat(newTotal) / count).toFixed(2);
-                        setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: newInstVal }));
-                        setForm((p) => ({ ...p, installmentValue: newInstVal }));
+              {!(isVenda && !isAvulsa && form.productId) && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Quantidade</Label>
+                    <Input type="number" min="1" value={form.quantity} onChange={(e) => {
+                      const qStr = e.target.value;
+                      const qty = parseInt(qStr) || 1;
+                      const prod = products.find((p) => p.id === form.productId);
+                      if (prod && isVenda) {
+                        const newTotal = (prod.price * qty).toFixed(2);
+                        setForm((p) => ({ ...p, quantity: qStr, total: newTotal }));
+                        const count = parseInt(form.installments) || 1;
+                        if (form.paymentMode === "recorrente" && count > 0) {
+                          const newInstVal = (parseFloat(newTotal) / count).toFixed(2);
+                          setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: newInstVal }));
+                          setForm((p) => ({ ...p, installmentValue: newInstVal }));
+                        }
+                      } else {
+                        update("quantity", qStr);
                       }
-                    } else {
-                      update("quantity", qStr);
-                    }
-                  }} required />
+                    }} required />
+                  </div>
+                  <div>
+                    <Label>{totalLabel}</Label>
+                    <Input type="number" step="0.01" min="0.01" value={form.total} onChange={(e) => {
+                      update("total", e.target.value);
+                      const totalVal = parseFloat(e.target.value) || 0;
+                      const count = parseInt(form.installments) || 1;
+                      if (form.paymentMode === "recorrente" && totalVal > 0 && count > 0) {
+                        const newInstVal = (totalVal / count).toFixed(2);
+                        update("installmentValue", newInstVal);
+                        setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: newInstVal }));
+                      }
+                    }} placeholder="0,00" required />
+                  </div>
                 </div>
-                <div>
-                  <Label>{totalLabel}</Label>
-                  <Input type="number" step="0.01" min="0.01" value={form.total} onChange={(e) => {
-                    update("total", e.target.value);
-                    const totalVal = parseFloat(e.target.value) || 0;
-                    const count = parseInt(form.installments) || 1;
-                    if (form.paymentMode === "recorrente" && totalVal > 0 && count > 0) {
-                      const newInstVal = (totalVal / count).toFixed(2);
-                      update("installmentValue", newInstVal);
-                      setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: newInstVal }));
-                    }
-                  }} placeholder="0,00" required />
-                </div>
-              </div>
+              )}
               {isVenda && (
                 <div>
                   <Label>Desconto (R$)</Label>
