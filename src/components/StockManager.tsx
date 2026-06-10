@@ -117,6 +117,9 @@ export function StockManager({ readOnly = false }: Props) {
             <Button onClick={() => setPurchaseOpen(true)} disabled={products.length === 0} variant="outline" className="w-full sm:w-auto">
               <ShoppingBag className="h-4 w-4 mr-2" /> Registrar compra
             </Button>
+            <Button onClick={() => setAdjustOpen(true)} disabled={activeProducts.length === 0} variant="outline" className="w-full sm:w-auto">
+              <Wrench className="h-4 w-4 mr-2" /> Ajuste de Estoque
+            </Button>
           </div>
         )}
 
