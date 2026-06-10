@@ -4,29 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Copy, CheckCircle2, Unlink, Sparkles, Clock, MessageSquare, BarChart3 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Send, Copy, CheckCircle2, Unlink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
-import { usePersonalInsightsTelegramPrefs, type InsightTone } from "@/hooks/usePersonalInsightsTelegramPrefs";
-import { useIncomesExpensesTelegramPrefs } from "@/hooks/useIncomesExpensesTelegramPrefs";
 import { generateTelegramLinkCode, invokeUserFunction, normalizeTelegramBotCode } from "@/lib/telegramLinkCode";
 
 
-const TONE_OPTIONS: { value: InsightTone; label: string; hint: string }[] = [
-  { value: "balanced", label: "⚖️ Equilibrado", hint: "Profissional e acolhedor" },
-  { value: "strict", label: "🎯 Rigoroso", hint: "Direto, sem rodeios" },
-  { value: "motivational", label: "🚀 Motivacional", hint: "Encorajador e positivo" },
-  { value: "technical", label: "📊 Técnico", hint: "Analítico, numérico" },
-  { value: "friendly", label: "😊 Amigável", hint: "Informal, como um amigo" },
-];
-
 export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<string, never>>(function TelegramReportsConnectCard(_, ref) {
   const { linked, loading, disconnect, refresh } = useTelegramReportsLink();
-  const { prefs, loading: prefsLoading, save } = usePersonalInsightsTelegramPrefs();
-  const { prefs: incomesExpensesPrefs, save: saveIncomesExpenses } = useIncomesExpensesTelegramPrefs();
   const [code, setCode] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [botCodeInput, setBotCodeInput] = useState("");
@@ -188,160 +174,8 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
           </div>
         )}
 
-        {/* AI Insights schedule — only when bot linked */}
-        {linked && !prefsLoading && (
-          <div className="border-t pt-3 mt-3 space-y-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <BarChart3 className="h-4 w-4 text-primary shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold">Receitas x Despesas</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Resumo diário de saldos previstos e cartões.
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-col items-end gap-2">
-                <Switch
-                  checked={incomesExpensesPrefs.enabled}
-                  onCheckedChange={(v) => saveIncomesExpenses({ enabled: v })}
-                />
-              </div>
-            </div>
 
-            {incomesExpensesPrefs.enabled && (
-              <div className="space-y-3 pl-6 border-l-2 border-primary/20 ml-2">
-                <div className="grid grid-cols-3 gap-2">
-                  {[1, 2, 3].map((slot) => {
-                    const key = `send_time_${slot}` as "send_time_1" | "send_time_2" | "send_time_3";
-                    return (
-                      <div key={slot} className="space-y-1">
-                        <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <Clock className="h-3 w-3" /> Horário {slot}
-                        </Label>
-                        <Input
-                          type="time"
-                          value={incomesExpensesPrefs[key] || ""}
-                          onChange={(e) => saveIncomesExpenses({ [key]: e.target.value || null } as any)}
-                          className="h-8 text-xs"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <Label className="text-xs text-muted-foreground">Considerar lançamentos de:</Label>
-                  <div className="flex bg-muted rounded-md p-0.5">
-                    <button
-                      onClick={() => saveIncomesExpenses({ send_target: "today" })}
-                      className={cn(
-                        "px-2 py-1 text-[10px] rounded-sm transition-colors",
-                        incomesExpensesPrefs.send_target === "today" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
-                      )}
-                    >
-                      Hoje
-                    </button>
-                    <button
-                      onClick={() => saveIncomesExpenses({ send_target: "tomorrow" })}
-                      className={cn(
-                        "px-2 py-1 text-[10px] rounded-sm transition-colors",
-                        incomesExpensesPrefs.send_target === "tomorrow" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
-                      )}
-                    >
-                      Amanhã
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
 
-            <div className="border-t pt-4 flex items-start justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <Sparkles className="h-4 w-4 text-primary shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold">Relatório Inteligente (IA)</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Análise de despesas pessoais com tom de voz personalizado.
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={prefs.enabled}
-                onCheckedChange={(v) => save({ enabled: v })}
-              />
-            </div>
-
-            {/* Tone selector — applies to both on-screen and Telegram reports */}
-            <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <MessageSquare className="h-3 w-3" /> Tom do relatório
-              </Label>
-              <Select
-                value={prefs.tone}
-                onValueChange={(v) => save({ tone: v as InsightTone })}
-              >
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TONE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value} className="text-xs">
-                      <span className="font-medium">{opt.label}</span>
-                      <span className="text-muted-foreground ml-1">— {opt.hint}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-[10px] text-muted-foreground">
-                Define o estilo de escrita da IA. Atualize o relatório para aplicar.
-              </p>
-            </div>
-
-            {prefs.enabled && (
-              <>
-                <div className="grid grid-cols-3 gap-2">
-                  {[1, 2, 3].map((slot) => {
-                    const key = `send_time_${slot}` as "send_time_1" | "send_time_2" | "send_time_3";
-                    return (
-                      <div key={slot} className="space-y-1">
-                        <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <Clock className="h-3 w-3" /> Horário {slot}
-                        </Label>
-                        <Input
-                          type="time"
-                          value={prefs[key] || ""}
-                          onChange={(e) => save({ [key]: e.target.value || null } as any)}
-                          className="h-8 text-xs"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="flex items-center justify-between gap-2 text-xs">
-                    <span className="text-foreground">Enviar quando uma categoria estourar</span>
-                    <Switch
-                      checked={prefs.alert_on_exceed}
-                      onCheckedChange={(v) => save({ alert_on_exceed: v })}
-                    />
-                  </label>
-                  <label className="flex items-center justify-between gap-2 text-xs">
-                    <span className="text-foreground">Enviar quando IA detectar tendência de alta</span>
-                    <Switch
-                      checked={prefs.alert_on_trend}
-                      onCheckedChange={(v) => save({ alert_on_trend: v })}
-                    />
-                  </label>
-                </div>
-
-                <p className="text-[10px] text-muted-foreground">
-                  Horários no fuso de Brasília. Deixe em branco para desativar um slot.
-                </p>
-              </>
-            )}
-          </div>
-        )}
 
       </CardContent>
     </Card>

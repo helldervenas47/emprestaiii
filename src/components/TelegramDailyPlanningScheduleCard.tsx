@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { Send, Plus, X, Clock, CalendarClock } from "lucide-react";
 import { useDailyPlanningTelegramPrefs } from "@/hooks/useDailyPlanningTelegramPrefs";
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
@@ -63,16 +63,6 @@ export function TelegramDailyPlanningScheduleCard() {
 
         {prefs.enabled && (
           <div className="space-y-3 pt-2 border-t border-border/40">
-            <div className="space-y-1">
-              <Label className="text-xs">Conteúdo do envio</Label>
-              <Select value={prefs.send_target} onValueChange={(v) => save({ send_target: v as "today" | "tomorrow" })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tomorrow">Planejamento do dia seguinte</SelectItem>
-                  <SelectItem value="today">Planejamento do dia atual</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
 
             {activeSlots.length === 0 && (
               <p className="text-xs text-muted-foreground">Nenhum horário configurado.</p>
