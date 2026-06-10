@@ -544,7 +544,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                       return (
                         <Input
                           type="number"
-                          min="1"
+                          min="0"
                           value={displayQty}
                           readOnly={hasExtras}
                           onChange={(e) => {
