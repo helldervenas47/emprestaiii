@@ -18,7 +18,6 @@ import { ManagerCommissionsChart } from "@/components/ManagerCommissionsChart";
 import { GoalsCard } from "@/components/GoalsCard";
 import { calculateInstallment, calculateTotalWithInterest, getLoanRemainingAmount } from "@/hooks/useLoans";
 import { getInstallmentAmount, getOverdueAmount, getOverdueInstallments } from "@/lib/loanInstallmentAmount";
-import { calcAccountantInterestPaidForMonth } from "@/lib/accountantInterestPaid";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -1900,33 +1899,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         const interestPendingInPeriod = data.periodProfitExpected;
         const interestDueInPeriod = interestReceivedInPeriod + interestPendingInPeriod;
 
-        // "Juros Pagos no Mês" — fonte única: mesma regra do card "Juros vs Principal
-        // — por pagamento" da aba Contador (mês corrente).
-        const currentMonthKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
-        const accountantInterestPaidMonth = calcAccountantInterestPaidForMonth(
-          payments as any[],
-          loans as any[],
-          currentMonthKey,
-        );
-
-        const items: Array<{ label: string; value: string; color: string; iconBg: string; iconColor: string; onClick?: () => void; tooltip?: string; subValue?: string; subLabel?: string; subTooltip?: string }> = [
+        const items: Array<{ label: string; value: string; color: string; iconBg: string; iconColor: string; onClick?: () => void; tooltip?: string }> = [
           { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", tooltip: "Soma do valor principal (sem juros) de todos os contratos ativos que ainda não foram totalmente quitados. Representa quanto do seu dinheiro está atualmente emprestado." },
           { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", tooltip: "Soma de tudo que ainda falta receber dos contratos ativos: principal + juros de todas as parcelas em aberto." },
           { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Valor restante a receber de todos os contratos de empréstimos ativos." },
           { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Total de juros previstos a receber considerando todos os contratos ativos até o final dos seus ciclos. É o lucro projetado se todos pagarem conforme o combinado." },
           { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: () => { setInterestExpectedFilter("all"); setShowInterestExpectedDetail(true); }, tooltip: "Soma dos 'Juros Recebidos no Mês' + 'Juros Pendentes do Mês'. Representa o total de juros do período: o que já entrou somado ao que ainda falta receber. Clique para ver o detalhamento." },
-          {
-            label: "Juros Recebidos",
-            value: formatCurrency(interestReceivedInPeriod),
-            color: "text-warning",
-            iconBg: "bg-warning/10",
-            iconColor: "text-warning",
-            onClick: () => setShowInterestDetail(true),
-            tooltip: "Critério: DATA DE PAGAMENTO + contabilidade JUROS PRIMEIRO. Cada pagamento amortiza antes o juros pendente do contrato; juros avulsos (sem parcela) contam 100% como juros; na quitação, todo o lucro residual (incl. acordos com bônus ou desconto) é alocado ao último pagamento. Clique para ver o detalhamento.",
-            subLabel: "Juros Pagos no Mês",
-            subValue: formatCurrency(accountantInterestPaidMonth),
-            subTooltip: "Mesma regra do card 'Juros vs Principal — por pagamento' da aba Contador (mês corrente). Considera split explícito, juros puro (installment 0), amortização (installment -3), pagamentos sem vínculo e proporção principal/total nos demais casos. Quitações somam o lucro total do contrato no mês da quitação.",
-          },
+          { label: "Juros Recebidos", value: formatCurrency(interestReceivedInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => setShowInterestDetail(true), tooltip: "Critério: DATA DE PAGAMENTO + contabilidade JUROS PRIMEIRO. Cada pagamento amortiza antes o juros pendente do contrato; juros avulsos (sem parcela) contam 100% como juros; na quitação, todo o lucro residual (incl. acordos com bônus ou desconto) é alocado ao último pagamento. Clique para ver o detalhamento." },
           { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => { setInterestExpectedFilter("pending"); setShowInterestExpectedDetail(true); }, tooltip: "Diferença entre 'Juros a Receber no Mês' (vencimento) e 'Juros Recebidos no Mês' (pagamento). Clique para ver o detalhamento do que está pendente de recebimento." },
         ];
 
@@ -1947,20 +1926,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     </div>
                     <p className="text-[10px] text-muted-foreground">{item.label}</p>
                     <p className={`text-base font-bold ${item.color} mt-0.5`}>{item.value}</p>
-                    {item.subLabel && (
-                      <div className="mt-1.5 pt-1.5 border-t border-border/40 w-full">
-                        <div className="flex items-center justify-center gap-1">
-                          <p className="text-[9px] text-muted-foreground leading-tight">{item.subLabel}</p>
-                          {item.subTooltip && <InfoPopover text={item.subTooltip} />}
-                        </div>
-                        <p className="text-xs font-semibold text-success mt-0.5">{item.subValue}</p>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               ))}
             </div>
-
 
             {/* Tablet (sm-lg): Pendente full width on top, then 2 rows of 3 */}
             <div className="hidden sm:grid lg:hidden gap-2">
@@ -1985,15 +1954,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                       </div>
                       <p className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</p>
                       <p className={`text-sm sm:text-lg font-bold ${item.color} mt-0.5`}>{item.value}</p>
-                      {item.subLabel && (
-                        <div className="mt-2 pt-2 border-t border-border/40 w-full">
-                          <div className="flex items-center justify-center gap-1">
-                            <p className="text-[10px] text-muted-foreground leading-tight">{item.subLabel}</p>
-                            {item.subTooltip && <InfoPopover text={item.subTooltip} />}
-                          </div>
-                          <p className="text-xs sm:text-sm font-semibold text-success mt-0.5">{item.subValue}</p>
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -2009,20 +1969,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                       </div>
                       <p className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</p>
                       <p className={`text-sm sm:text-lg font-bold ${item.color} mt-0.5`}>{item.value}</p>
-                      {item.subLabel && (
-                        <div className="mt-2 pt-2 border-t border-border/40 w-full">
-                          <div className="flex items-center justify-center gap-1">
-                            <p className="text-[10px] text-muted-foreground leading-tight">{item.subLabel}</p>
-                            {item.subTooltip && <InfoPopover text={item.subTooltip} />}
-                          </div>
-                          <p className="text-xs sm:text-sm font-semibold text-success mt-0.5">{item.subValue}</p>
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 ))}
               </div>
-
             </div>
 
             {/* Mobile: Pendente full width on top, then 3 rows of 2 */}
@@ -2048,15 +1998,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                       </div>
                       <p className="text-[10px] text-muted-foreground">{item.label}</p>
                       <p className={`text-sm font-bold ${item.color} mt-0.5`}>{item.value}</p>
-                      {item.subLabel && (
-                        <div className="mt-2 pt-2 border-t border-border/40 w-full">
-                          <div className="flex items-center justify-center gap-1">
-                            <p className="text-[10px] text-muted-foreground leading-tight">{item.subLabel}</p>
-                            {item.subTooltip && <InfoPopover text={item.subTooltip} />}
-                          </div>
-                          <p className="text-xs font-semibold text-success mt-0.5">{item.subValue}</p>
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -2072,15 +2013,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                       </div>
                       <p className="text-[10px] text-muted-foreground">{item.label}</p>
                       <p className={`text-sm font-bold ${item.color} mt-0.5`}>{item.value}</p>
-                      {item.subLabel && (
-                        <div className="mt-2 pt-2 border-t border-border/40 w-full">
-                          <div className="flex items-center justify-center gap-1">
-                            <p className="text-[10px] text-muted-foreground leading-tight">{item.subLabel}</p>
-                            {item.subTooltip && <InfoPopover text={item.subTooltip} />}
-                          </div>
-                          <p className="text-xs font-semibold text-success mt-0.5">{item.subValue}</p>
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -2096,20 +2028,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                       </div>
                       <p className="text-[10px] text-muted-foreground">{item.label}</p>
                       <p className={`text-sm font-bold ${item.color} mt-0.5`}>{item.value}</p>
-                      {item.subLabel && (
-                        <div className="mt-2 pt-2 border-t border-border/40 w-full">
-                          <div className="flex items-center justify-center gap-1">
-                            <p className="text-[10px] text-muted-foreground leading-tight">{item.subLabel}</p>
-                            {item.subTooltip && <InfoPopover text={item.subTooltip} />}
-                          </div>
-                          <p className="text-xs font-semibold text-success mt-0.5">{item.subValue}</p>
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 ))}
               </div>
-
             </div>
           </>
         );
