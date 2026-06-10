@@ -575,8 +575,47 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                   })()}
                 </div>
               )}
+              {canAddExtra && (
+                <div className="space-y-2">
+                  {extraItems.length > 0 && (
+                    <div className="border border-border/50 rounded-lg overflow-hidden">
+                      <div className="px-3 py-2 bg-muted/20 text-sm font-medium">
+                        Itens adicionais ({extraItems.length})
+                      </div>
+                      <div className="divide-y divide-border/30">
+                        {extraItems.map((it, idx) => (
+                          <div key={idx} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                            <div className="flex-1 min-w-0">
+                              <p className="truncate font-medium">{it.description}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {it.quantity}x · {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(it.total)}
+                                {it.isAvulsa ? " · avulsa" : ""}
+                              </p>
+                            </div>
+                            <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => removeExtraItem(idx)}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="px-3 py-2 bg-muted/20 text-xs text-muted-foreground flex justify-between">
+                        <span>Total geral da venda:</span>
+                        <span className="font-bold text-foreground">
+                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                            extraItems.reduce((s, it) => s + it.total, 0) + (parseFloat(form.total) || 0)
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <Button type="button" variant="outline" size="sm" className="w-full" onClick={handleAddExtraItem}>
+                    <Plus className="h-4 w-4 mr-2" /> Adicionar outro produto à venda
+                  </Button>
+                </div>
+              )}
               </>
             )}
+
 
             {isVehicleRental && (
               <div>
