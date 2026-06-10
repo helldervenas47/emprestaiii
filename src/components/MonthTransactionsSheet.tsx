@@ -30,8 +30,8 @@ interface Props {
   expenses: Expense[];
   sales?: Sale[];
   initialFilter?: string;
-  onPayIncome?: (id: string) => Promise<void> | void;
-  onPayExpense?: (id: string) => Promise<void> | void;
+  onPayIncome?: (id: string, opts: { date: string; amount?: number }) => Promise<void> | void;
+  onPayExpense?: (id: string, opts: { date: string; amount?: number }) => Promise<void> | void;
 }
 
 type Row = {
