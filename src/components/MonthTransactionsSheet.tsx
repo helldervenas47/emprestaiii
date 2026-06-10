@@ -64,6 +64,9 @@ const STATUS_BADGE: Record<Row["status"], string> = {
 
 export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, incomes, expenses, sales, initialFilter, onPayIncome, onPayExpense }: Props) {
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [payDateMap, setPayDateMap] = useState<Record<string, string>>({});
+  const [payAmountMap, setPayAmountMap] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState<string>(initialFilter ?? "all");
   const [sortBy, setSortBy] = useState<"date_desc" | "date_asc" | "amount">("date_desc");
 
