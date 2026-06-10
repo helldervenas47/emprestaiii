@@ -82,9 +82,14 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
   // Faturas de cartão pendentes no mês — usado no modo "Despesas pendentes".
   const cardInvoicesPendingMonth = useMemo(() => {
     if (type !== "expenses" || !pendingMode) return [] as Array<{ card: any; cycleKey: string; total: number; dueDate: string }>;
+    const [yy, mm] = monthKey.split("-").map(Number);
     return getCardInvoiceTotalsForMonth(expenses, cards, openings, monthKey)
       .filter((x) => !x.hasPaidOverride && !x.paid && x.total > 0)
-      .map((x: any) => ({ card: x.card, cycleKey: x.cycleKey, total: x.total, dueDate: x.dueDate || `${monthKey}-01` }));
+      .map((x) => {
+        const dueDay = Math.min(x.card.dueDay || 1, new Date(yy, mm, 0).getDate());
+        const dueDate = `${monthKey}-${String(dueDay).padStart(2, "0")}`;
+        return { card: x.card, cycleKey: monthKey, total: Math.max(0, x.total - x.paidTotal), dueDate };
+      });
   }, [type, pendingMode, expenses, cards, openings, monthKey]);
 
   const rows = useMemo<Row[]>(() => {
