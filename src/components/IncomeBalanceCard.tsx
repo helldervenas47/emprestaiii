@@ -311,21 +311,22 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
           </div>
         </div>
         <div className="-mt-2.5 flex items-center justify-between gap-2">
-          <div className={`text-3xl sm:text-4xl font-bold tracking-tight ${balanceColor} min-w-0 truncate`}>
-            {fmt(calc.balance, hide)}
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={`text-3xl sm:text-4xl font-bold tracking-tight ${balanceColor} truncate`}>
+              {fmt(calc.balance, hide)}
+            </div>
+            {!readOnly && onAdjust && (
+              <button
+                type="button"
+                className="p-1 hover:bg-accent rounded-md transition-colors shrink-0"
+                onClick={() => { setTarget(calc.balance.toFixed(2)); setAdjustOpen(true); }}
+                aria-label="Ajustar saldo"
+                title="Ajustar saldo"
+              >
+                <Settings2 className="h-4 w-4 text-muted-foreground" />
+              </button>
+            )}
           </div>
-          {!readOnly && onAdjust && (
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              onClick={() => { setTarget(calc.balance.toFixed(2)); setAdjustOpen(true); }}
-              aria-label="Ajustar saldo"
-              title="Ajustar saldo"
-            >
-              <Settings2 className="h-3.5 w-3.5" />
-            </Button>
-          )}
         </div>
         <div className="mt-1 text-xs text-muted-foreground">
           Receitas recebidas + vendas recebidas − despesas pessoais pagas
