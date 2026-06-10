@@ -7,9 +7,10 @@ import { Expense, Sale } from "@/types/loan";
 import { ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertTriangle, Repeat } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { isCreditCardExpense, listPaidInvoicesInRange } from "@/lib/creditCardInvoiceTotals";
+import { isCreditCardExpense, listPaidInvoicesInRange, getCardInvoiceTotalsForMonth } from "@/lib/creditCardInvoiceTotals";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
+import { isPiggyExpense } from "@/hooks/usePiggyBanks";
 
 function fmt(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
