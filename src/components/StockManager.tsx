@@ -893,7 +893,7 @@ function AdjustStockDialog({ open, onOpenChange, products, onSubmit }: {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Ajuste de Estoque</DialogTitle>
           <DialogDescription>
@@ -939,7 +939,7 @@ function AdjustStockDialog({ open, onOpenChange, products, onSubmit }: {
                 <Plus className="h-4 w-4 mr-1" /> Adicionar produto
               </Button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div>
                 <Label className="text-xs">Data</Label>
                 <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -953,16 +953,16 @@ function AdjustStockDialog({ open, onOpenChange, products, onSubmit }: {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            {reasonPreset === "Outro" && (
-              <div>
-                <Label className="text-xs">Motivo personalizado</Label>
-                <Input value={customReason} onChange={(e) => setCustomReason(e.target.value)} placeholder="Descreva o motivo" />
+              {reasonPreset === "Outro" && (
+                <div>
+                  <Label className="text-xs">Motivo personalizado</Label>
+                  <Input value={customReason} onChange={(e) => setCustomReason(e.target.value)} placeholder="Descreva o motivo" />
+                </div>
+              )}
+              <div className={reasonPreset === "Outro" ? "sm:col-span-3" : "sm:col-span-3"}>
+                <Label className="text-xs">Observação</Label>
+                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opcional" rows={2} />
               </div>
-            )}
-            <div>
-              <Label className="text-xs">Observação</Label>
-              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opcional" rows={2} />
             </div>
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
