@@ -1041,27 +1041,30 @@ const Index = () => {
         {tab === "overdue" && (
           <SubscriptionGate requiredTier={2} featureName="Relatórios">
           <div>
-            <div className="flex gap-2 mb-4 flex-wrap">
+            <div className="flex gap-2 mb-4">
               <Button
                 variant={overdueSubTab === "metas" ? "default" : "outline"}
                 size="sm"
+                className="flex-1 min-w-0"
                 onClick={() => setOverdueSubTab("metas")}
               >
-                <Target className="h-4 w-4 mr-1" /> Metas
+                <Target className="h-4 w-4 mr-1 shrink-0" /> <span className="truncate">Metas</span>
               </Button>
               <Button
                 variant={overdueSubTab === "bot-telegram" ? "default" : "outline"}
                 size="sm"
+                className="flex-1 min-w-0"
                 onClick={() => setOverdueSubTab("bot-telegram")}
               >
-                <Send className="h-4 w-4 mr-1" /> Bot Telegram
+                <Send className="h-4 w-4 mr-1 shrink-0" /> <span className="truncate">Bot Telegram</span>
               </Button>
               <Button
                 variant={overdueSubTab === "whatsapp-cobranca" ? "default" : "outline"}
                 size="sm"
+                className="flex-1 min-w-0"
                 onClick={() => setOverdueSubTab("whatsapp-cobranca")}
               >
-                <MessageCircle className="h-4 w-4 mr-1" /> Cobrança WhatsApp
+                <MessageCircle className="h-4 w-4 mr-1 shrink-0" /> <span className="truncate">Cobrança WhatsApp</span>
               </Button>
             </div>
             {overdueSubTab === "metas" && (
