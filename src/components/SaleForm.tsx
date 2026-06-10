@@ -469,9 +469,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                           }
                           const prod = products.find((p) => p.id === v);
                           const qty = parseInt(form.quantity) || 1;
-                          const disc = parseFloat(form.discount) || 0;
-                          const base = (prod?.price || 0) * qty;
-                          const newTotal = Math.max(0, base - disc).toFixed(2);
+                          const newTotal = prod ? (prod.price * qty).toFixed(2) : form.total;
                           setForm((p) => ({
                             ...p,
                             productId: v,
