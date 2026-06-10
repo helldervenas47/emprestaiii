@@ -168,10 +168,14 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const valorRecebido = parseFloat(form.total) || 0;
-    if (!form.description || valorRecebido <= 0 || !form.customerName) return;
+    const hasExtrasEarly = canAddExtra && extraItems.length > 0;
+    const hasMain = valorRecebido > 0 && !!form.description;
 
-    // Para vendas de produto cadastrado: valida estoque. Vendas avulsas não exigem produto.
-    if (form.businessType === "venda" && !isAvulsa && form.productId) {
+    if (!form.customerName) return;
+    if (!hasMain && !hasExtrasEarly) return;
+
+    // Para vendas de produto cadastrado (item principal): valida estoque.
+    if (hasMain && form.businessType === "venda" && !isAvulsa && form.productId) {
       const selectedProduct = products.find((p) => p.id === form.productId);
       if (!selectedProduct) {
         const { toast } = await import("sonner");
@@ -190,7 +194,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
         return;
       }
     }
-    if (form.businessType === "venda" && !form.productId) {
+    if (hasMain && form.businessType === "venda" && !form.productId) {
       const { toast } = await import("sonner");
       toast.error('Selecione um produto ou marque como "Venda avulsa".');
       return;
@@ -243,29 +247,31 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
         }]
       : undefined;
 
-    // Itens combinados em UMA única venda (venda à vista)
-    const hasExtras = canAddExtra && extraItems.length > 0;
+    // Itens combinados em UMA única venda (venda à vista).
+    // Soma SEMPRE: item principal (se preenchido) + extras adicionados.
+    const hasExtras = hasExtrasEarly;
+    const mainItem = hasMain
+      ? { productId: form.productId, isAvulsa, description: form.description, quantity: parseInt(form.quantity) || 1, total: valorRecebido }
+      : null;
     const allItems = hasExtras
-      ? [
-          { productId: form.productId, isAvulsa, description: form.description, quantity: parseInt(form.quantity) || 1, total: valorRecebido },
-          ...extraItems,
-        ]
+      ? (mainItem ? [mainItem, ...extraItems] : [...extraItems])
       : null;
 
-    const combinedDescription = hasExtras
+    const isComposite = hasExtras; // qualquer extra => venda composta
+    const combinedDescription = isComposite
       ? allItems!.map((it) => `${it.quantity}x ${it.description}`).join(", ")
       : form.description;
-    const combinedQuantity = hasExtras
+    const combinedQuantity = isComposite
       ? allItems!.reduce((s, it) => s + it.quantity, 0)
       : parseInt(form.quantity) || 1;
-    const combinedSubtotal = hasExtras
+    const combinedSubtotal = isComposite
       ? allItems!.reduce((s, it) => s + it.total, 0)
       : valorRecebido;
     const combinedTotal = combinedSubtotal + merchValorNum;
 
     // Quando há múltiplos itens, a venda fica sem product_id (pois é composta).
     // A baixa de estoque dos produtos cadastrados é feita manualmente abaixo.
-    const finalProductId = hasExtras
+    const finalProductId = isComposite
       ? undefined
       : (form.businessType === "venda" && !isAvulsa ? (form.productId || undefined) : undefined);
 
