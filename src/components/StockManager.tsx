@@ -703,10 +703,9 @@ const DEFAULT_ADJUST_REASONS = [
 function AdjustStockDialog({ open, onOpenChange, products, onSubmit }: {
   open: boolean; onOpenChange: (v: boolean) => void;
   products: { id: string; name: string; stock: number }[];
-  onSubmit: (v: { productId: string; quantity: number; date: string; reason: string; notes: string }) => Promise<void>;
+  onSubmit: (v: { items: { productId: string; quantity: number }[]; date: string; reason: string; notes: string }) => Promise<void>;
 }) {
-  const [productId, setProductId] = useState("");
-  const [quantity, setQuantity] = useState("");
+  const [items, setItems] = useState<{ productId: string; quantity: string }[]>([{ productId: "", quantity: "" }]);
   const [date, setDate] = useState(todayInAppTz());
   const [reasonPreset, setReasonPreset] = useState("Perda");
   const [customReason, setCustomReason] = useState("");
@@ -714,21 +713,32 @@ function AdjustStockDialog({ open, onOpenChange, products, onSubmit }: {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const product = products.find((p) => p.id === productId);
-  const qty = parseInt(quantity) || 0;
-  const stockAfter = (product?.stock ?? 0) - qty;
   const finalReason = reasonPreset === "Outro" ? customReason.trim() : reasonPreset;
 
+  const updateItem = (idx: number, patch: Partial<{ productId: string; quantity: string }>) =>
+    setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
+  const addItem = () => setItems((prev) => [...prev, { productId: "", quantity: "" }]);
+  const removeItem = (idx: number) =>
+    setItems((prev) => (prev.length === 1 ? prev : prev.filter((_, i) => i !== idx)));
+
+  const parsedItems = items
+    .map((it) => ({ productId: it.productId, quantity: parseInt(it.quantity) || 0 }))
+    .filter((it) => it.productId && it.quantity > 0);
+
   const reset = () => {
-    setProductId(""); setQuantity(""); setDate(todayInAppTz());
+    setItems([{ productId: "", quantity: "" }]);
+    setDate(todayInAppTz());
     setReasonPreset("Perda"); setCustomReason(""); setNotes(""); setConfirming(false);
   };
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!productId) { toast.error("Selecione o produto"); return; }
-    if (qty <= 0) { toast.error("Informe uma quantidade válida"); return; }
-    if (product && qty > product.stock) { toast.error(`Quantidade maior que o saldo (${product.stock})`); return; }
+    if (parsedItems.length === 0) { toast.error("Adicione ao menos um item válido"); return; }
+    for (const it of parsedItems) {
+      const p = products.find((x) => x.id === it.productId);
+      if (!p) { toast.error("Produto inválido"); return; }
+      if (it.quantity > p.stock) { toast.error(`Quantidade maior que o saldo de "${p.name}" (${p.stock})`); return; }
+    }
     if (!finalReason) { toast.error("Informe o motivo do ajuste"); return; }
     setConfirming(true);
   };
@@ -736,7 +746,7 @@ function AdjustStockDialog({ open, onOpenChange, products, onSubmit }: {
   const handleConfirm = async () => {
     setBusy(true);
     try {
-      await onSubmit({ productId, quantity: qty, date, reason: finalReason, notes });
+      await onSubmit({ items: parsedItems, date, reason: finalReason, notes });
       reset();
       onOpenChange(false);
     } finally { setBusy(false); }
@@ -744,7 +754,7 @@ function AdjustStockDialog({ open, onOpenChange, products, onSubmit }: {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Ajuste de Estoque</DialogTitle>
           <DialogDescription>
@@ -754,35 +764,56 @@ function AdjustStockDialog({ open, onOpenChange, products, onSubmit }: {
 
         {!confirming ? (
           <form onSubmit={handleNext} className="space-y-3">
-            <div>
-              <Label className="text-xs">Produto</Label>
-              <Select value={productId} onValueChange={setProductId}>
-                <SelectTrigger><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
-                <SelectContent>
-                  {products.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name} (estoque: {p.stock})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-2">
+              {items.map((it, idx) => {
+                const prod = products.find((p) => p.id === it.productId);
+                return (
+                  <div key={idx} className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      {idx === 0 && <Label className="text-xs">Produto</Label>}
+                      <Select value={it.productId} onValueChange={(v) => updateItem(idx, { productId: v })}>
+                        <SelectTrigger><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
+                        <SelectContent>
+                          {products.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>{p.name} (estoque: {p.stock})</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="w-28">
+                      {idx === 0 && <Label className="text-xs">Qtd a baixar</Label>}
+                      <Input
+                        type="number"
+                        min="1"
+                        max={prod?.stock ?? undefined}
+                        value={it.quantity}
+                        onChange={(e) => updateItem(idx, { quantity: e.target.value })}
+                      />
+                    </div>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(idx)} disabled={items.length === 1} aria-label="Remover">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              })}
+              <Button type="button" variant="outline" size="sm" onClick={addItem}>
+                <Plus className="h-4 w-4 mr-1" /> Adicionar produto
+              </Button>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs">Quantidade a baixar</Label>
-                <Input type="number" min="1" max={product?.stock ?? undefined} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-              </div>
               <div>
                 <Label className="text-xs">Data</Label>
                 <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
               </div>
-            </div>
-            <div>
-              <Label className="text-xs">Motivo do ajuste</Label>
-              <Select value={reasonPreset} onValueChange={setReasonPreset}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {DEFAULT_ADJUST_REASONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div>
+                <Label className="text-xs">Motivo do ajuste</Label>
+                <Select value={reasonPreset} onValueChange={setReasonPreset}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {DEFAULT_ADJUST_REASONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             {reasonPreset === "Outro" && (
               <div>
@@ -801,17 +832,28 @@ function AdjustStockDialog({ open, onOpenChange, products, onSubmit }: {
           </form>
         ) : (
           <div className="space-y-3">
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm space-y-1">
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm space-y-2">
               <div className="flex items-center gap-2 font-semibold text-amber-700 dark:text-amber-400">
-                <AlertTriangle className="h-4 w-4" /> Confirmar baixa de estoque
+                <AlertTriangle className="h-4 w-4" /> Confirmar baixa de estoque ({parsedItems.length} item{parsedItems.length === 1 ? "" : "ns"})
               </div>
-              <div><span className="text-muted-foreground">Produto:</span> <b>{product?.name}</b></div>
-              <div><span className="text-muted-foreground">Quantidade:</span> <b>-{qty}</b></div>
-              <div><span className="text-muted-foreground">Estoque antes:</span> {product?.stock ?? 0}</div>
-              <div><span className="text-muted-foreground">Estoque após:</span> <b>{stockAfter}</b></div>
-              <div><span className="text-muted-foreground">Data:</span> {date}</div>
-              <div><span className="text-muted-foreground">Motivo:</span> {finalReason}</div>
-              {notes && <div><span className="text-muted-foreground">Obs:</span> {notes}</div>}
+              <div className="space-y-1">
+                {parsedItems.map((it, idx) => {
+                  const p = products.find((x) => x.id === it.productId);
+                  const before = p?.stock ?? 0;
+                  return (
+                    <div key={idx} className="flex items-center justify-between gap-2 border-t border-amber-500/20 pt-1 first:border-t-0 first:pt-0">
+                      <span className="truncate"><b>{p?.name}</b></span>
+                      <span className="tabular-nums text-rose-600 dark:text-rose-400 font-semibold">-{it.quantity}</span>
+                      <span className="text-xs text-muted-foreground">{before} → {before - it.quantity}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="pt-1 border-t border-amber-500/20">
+                <div><span className="text-muted-foreground">Data:</span> {date}</div>
+                <div><span className="text-muted-foreground">Motivo:</span> {finalReason}</div>
+                {notes && <div><span className="text-muted-foreground">Obs:</span> {notes}</div>}
+              </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => setConfirming(false)} disabled={busy}>Voltar</Button>
