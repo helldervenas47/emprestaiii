@@ -17,6 +17,7 @@ import { ViewAsBanner } from "./components/ViewAsBanner";
 import { wireAutoSync } from "./lib/offline/sync";
 import { DevCacheErrorBoundary } from "./components/DevCacheErrorBoundary";
 import { PaymentCelebrationProvider } from "./hooks/usePaymentCelebration";
+import ScrollToTop from "./components/ScrollToTop";
 
 wireAutoSync();
 
@@ -77,6 +78,7 @@ const App = () => (
         <PWAInstallPrompt />
         <OfflineBadge />
         <BrowserRouter>
+          <ScrollToTop />
           <AuthProvider>
             <PaymentCelebrationProvider>
               <BrandTitleSync />
