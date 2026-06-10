@@ -540,8 +540,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                     const qty = parseInt(qStr) || 1;
                     const prod = products.find((p) => p.id === form.productId);
                     if (prod && isVenda) {
-                      const disc = parseFloat(form.discount) || 0;
-                      const newTotal = Math.max(0, prod.price * qty - disc).toFixed(2);
+                      const newTotal = (prod.price * qty).toFixed(2);
                       setForm((p) => ({ ...p, quantity: qStr, total: newTotal }));
                       const count = parseInt(form.installments) || 1;
                       if (form.paymentMode === "recorrente" && count > 0) {
