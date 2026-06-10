@@ -314,10 +314,6 @@ export function StockManager({ readOnly = false }: Props) {
               </tbody>
             </table>
           </div>
-                })}
-              </tbody>
-            </table>
-          </div>
 
           {/* Mobile: lista expansível com descrição completa e detalhes */}
           <div className="sm:hidden space-y-2">
