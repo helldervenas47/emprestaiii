@@ -331,7 +331,7 @@ export function StockManager({ readOnly = false }: Props) {
               const lastMov = lastMovementByProduct.get(p.id);
               const meta = lastMov ? movementMeta[lastMov.type] : null;
               return (
-                <div key={p.id} className="rounded-xl border border-blue-500/30 bg-blue-500/10 overflow-hidden">
+                <div key={p.id} className="rounded-xl border bg-card overflow-hidden">
                   <button
                     type="button"
                     onClick={() => toggleExpanded(p.id)}
