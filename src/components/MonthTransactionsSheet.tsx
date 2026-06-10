@@ -27,6 +27,8 @@ interface Props {
   expenses: Expense[];
   sales?: Sale[];
   initialFilter?: string;
+  onPayIncome?: (id: string) => Promise<void> | void;
+  onPayExpense?: (id: string) => Promise<void> | void;
 }
 
 type Row = {
@@ -36,6 +38,7 @@ type Row = {
   subtitle?: string;
   amount: number;
   status: "received" | "pending" | "overdue" | "paid" | "due" | "recurring";
+  payable?: { kind: "income" | "expense"; refId: string };
 };
 
 const STATUS_LABEL: Record<Row["status"], string> = {
