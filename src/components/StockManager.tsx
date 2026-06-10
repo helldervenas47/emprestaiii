@@ -197,7 +197,7 @@ export function StockManager({ readOnly = false }: Props) {
           </div>
 
 
-          <div className="rounded-lg border bg-card overflow-x-auto">
+          <div className="hidden sm:block rounded-lg border bg-card overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs text-muted-foreground">
                 <tr className="[&>th]:px-2 sm:[&>th]:px-3 [&>th]:py-2 [&>th]:font-medium">
