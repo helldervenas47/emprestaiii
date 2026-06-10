@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { getExternalAdmin, getExternalAnonKey, getExternalSupabaseUrl } from "../_shared/external-supabase.ts";
 import { dueSlotKeys } from "../_shared/schedule.ts";
 
 const GATEWAY_URL = "https://api.telegram.org";
@@ -52,10 +52,10 @@ async function buildAndSend(
   brandName: string,
   titleLabel = "Planejamento do Dia",
   opts?: { returnText?: boolean },
-): Promise<{ sent: boolean; text?: string }> {
+): Promise<{ sent: boolean; text?: string; reason?: string }> {
   // Resolve report bot chat (not required when only returning text).
   const link = await getReportsLinkForUser(admin, userId);
-  if (!link && !opts?.returnText) return { sent: false };
+  if (!link && !opts?.returnText) return { sent: false, reason: "no_reports_link" };
 
   const chatId = link ? Number(link.chat_id) : 0;
   const day = Number(date.slice(8, 10));
@@ -306,7 +306,7 @@ async function buildAndSend(
   const text = lines.join("\n");
   if (opts?.returnText) return { sent: false, text };
   const sendRes = await sendReportsMessage(admin, userId, chatId, text);
-  return { sent: sendRes.sent, text };
+  return { sent: sendRes.sent, text, reason: sendRes.reason };
 }
 
 Deno.serve(async (req) => {
