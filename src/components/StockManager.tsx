@@ -317,6 +317,10 @@ export function StockManager({ readOnly = false }: Props) {
 
           {/* Mobile: lista expansível com descrição completa e detalhes */}
           <div className="sm:hidden space-y-2">
+            <div className="flex items-center justify-between px-3 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+              <span>Descrição</span>
+              <span>Quantidade</span>
+            </div>
             {sortedProducts.map((p) => {
               const threshold = p.suggestedStock && p.suggestedStock > 0 ? p.suggestedStock : 5;
               const out = p.stock <= 0;
@@ -336,14 +340,8 @@ export function StockManager({ readOnly = false }: Props) {
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Descrição</div>
-                          <span className="font-semibold text-sm break-words">{p.name}</span>
-                        </div>
-                        <div className="shrink-0 text-right">
-                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Quantidade</div>
-                          <span className="font-bold tabular-nums text-sm">{p.stock} un.</span>
-                        </div>
+                        <span className="font-semibold text-sm break-words flex-1 min-w-0">{p.name}</span>
+                        <span className="font-bold tabular-nums text-sm shrink-0">{p.stock} un.</span>
                       </div>
                       {p.description && (
                         <p className={`text-xs text-muted-foreground mt-1 break-words ${expanded ? "" : "line-clamp-2"}`}>
