@@ -63,16 +63,6 @@ export function TelegramDailyPlanningScheduleCard() {
 
         {prefs.enabled && (
           <div className="space-y-3 pt-2 border-t border-border/40">
-            <div className="space-y-1">
-              <Label className="text-xs">Conteúdo do envio</Label>
-              <Select value={prefs.send_target} onValueChange={(v) => save({ send_target: v as "today" | "tomorrow" })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tomorrow">Planejamento do dia seguinte</SelectItem>
-                  <SelectItem value="today">Planejamento do dia atual</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
 
             {activeSlots.length === 0 && (
               <p className="text-xs text-muted-foreground">Nenhum horário configurado.</p>
