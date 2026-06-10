@@ -107,13 +107,22 @@ export function PiggyBankList({ readOnly = false }: Props) {
   const openCreate = () => {
     const next = nextAvailableShortId();
     const startRate = cdiRate?.annualRate ? cdiRate.annualRate.toFixed(2) : "11.15";
-    setDraft({ name: "", color: PALETTE[0], annualRate: startRate, autoRate: true, cdiPercent: "100", shortId: next ? String(next) : "" });
+    setDraft({ 
+      name: "", color: PALETTE[0], annualRate: startRate, autoRate: true, cdiPercent: "100", 
+      shortId: next ? String(next) : "", goalAmount: "", category: "", targetDate: "" 
+    });
     setEditing(null);
     setCreateOpen(true);
   };
   const openEdit = (pb: PiggyBankType) => {
     const startRate = cdiRate?.annualRate ? cdiRate.annualRate.toFixed(2) : String(pb.annualRate);
-    setDraft({ name: pb.name, color: pb.color, annualRate: startRate, autoRate: true, cdiPercent: String(pb.cdiPercent ?? 100), shortId: pb.shortId ? String(pb.shortId) : "" });
+    setDraft({ 
+      name: pb.name, color: pb.color, annualRate: startRate, autoRate: true, 
+      cdiPercent: String(pb.cdiPercent ?? 100), shortId: pb.shortId ? String(pb.shortId) : "",
+      goalAmount: pb.goalAmount ? String(pb.goalAmount) : "",
+      category: pb.category ?? "",
+      targetDate: pb.targetDate ?? ""
+    });
     setEditing(pb);
     setCreateOpen(true);
   };
