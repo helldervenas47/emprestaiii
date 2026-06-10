@@ -267,7 +267,8 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     const combinedSubtotal = isComposite
       ? allItems!.reduce((s, it) => s + it.total, 0)
       : valorRecebido;
-    const combinedTotal = combinedSubtotal + merchValorNum;
+    const discountNum = parseFloat(form.discount) || 0;
+    const combinedTotal = Math.max(0, combinedSubtotal + merchValorNum - discountNum);
 
     // Quando há múltiplos itens, a venda fica sem product_id (pois é composta).
     // A baixa de estoque dos produtos cadastrados é feita manualmente abaixo.
