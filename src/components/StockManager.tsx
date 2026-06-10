@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useProducts } from "@/hooks/useProducts";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useStockMovements, StockMovement, StockMovementType } from "@/hooks/useStockMovements";
@@ -46,6 +46,13 @@ export function StockManager({ readOnly = false }: Props) {
   const [entryOpen, setEntryOpen] = useState(false);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setAdjustOpen(true);
+    window.addEventListener("open-stock-adjust", handler);
+    return () => window.removeEventListener("open-stock-adjust", handler);
+  }, []);
+
   const [filterReason, setFilterReason] = useState<string>("all");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
@@ -116,9 +123,6 @@ export function StockManager({ readOnly = false }: Props) {
             </Button>
             <Button onClick={() => setPurchaseOpen(true)} disabled={products.length === 0} variant="outline" className="w-full sm:w-auto">
               <ShoppingBag className="h-4 w-4 mr-2" /> Registrar compra
-            </Button>
-            <Button onClick={() => setAdjustOpen(true)} disabled={activeProducts.length === 0} variant="outline" className="w-full sm:w-auto">
-              <Wrench className="h-4 w-4 mr-2" /> Ajuste de Estoque
             </Button>
           </div>
         )}
