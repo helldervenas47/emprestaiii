@@ -299,12 +299,13 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
             {onOpenStatement && (
               <Button
                 variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 whitespace-nowrap"
+                size="icon"
+                className="h-8 w-8 shrink-0"
                 onClick={onOpenStatement}
+                aria-label="Extrato"
+                title="Extrato"
               >
                 <Receipt className="h-3.5 w-3.5" />
-                Extrato
               </Button>
             )}
           </div>
