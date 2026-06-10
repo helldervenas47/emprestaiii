@@ -719,94 +719,141 @@ export function PiggyBankList({ readOnly = false }: Props) {
             </DialogTitle>
             <DialogDescription>
               {historyDeposits.length} {historyDeposits.length === 1 ? "movimentação" : "movimentações"}
-              {historyTarget && (
-                <> · Saldo atual: <span className="font-medium text-foreground">
-                  {fmt(balances.get(historyTarget.id)?.balance ?? 0)}
-                </span></>
-              )}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto -mx-2 px-2">
-            {historyDeposits.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-border/60 p-6 text-center">
-                <Receipt className="h-6 w-6 mx-auto text-muted-foreground/50 mb-1.5" />
-                <p className="text-xs text-muted-foreground">
-                  Nenhum aporte registrado ainda. Cadastre uma despesa pessoal e
-                  selecione "Destinar a um cofrinho" para criar uma movimentação.
-                </p>
+          <div className="flex-1 overflow-y-auto -mx-6 px-6">
+            <div className="space-y-6 py-4">
+              {/* Seção de Resumo */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <Info className="h-3 w-3" /> Resumo do Cofrinho
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-border/50 bg-muted/30 p-3 space-y-1">
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold">Saldo Atual</span>
+                    <p className="text-lg font-black text-foreground tabular-nums">
+                      {historyTarget && mask(fmt(balances.get(historyTarget.id)?.balance ?? 0))}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-muted/30 p-3 space-y-1">
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold">Objetivo</span>
+                    <p className="text-lg font-black text-muted-foreground tabular-nums">
+                      {historyTarget?.goalAmount ? mask(fmt(historyTarget.goalAmount)) : "---"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-muted/30 p-3 space-y-1">
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold">Progresso</span>
+                    <p className="text-lg font-black text-primary tabular-nums">
+                      {(() => {
+                        if (!historyTarget?.goalAmount) return "0%";
+                        const bal = balances.get(historyTarget.id)?.balance ?? 0;
+                        return `${Math.round(Math.min(100, (bal / historyTarget.goalAmount) * 100))}%`;
+                      })()}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border/50 bg-muted/30 p-3 space-y-1">
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold">Prazo</span>
+                    <p className="text-sm font-bold text-foreground truncate">
+                      {historyTarget?.targetDate 
+                        ? new Date(historyTarget.targetDate + "T12:00:00").toLocaleDateString('pt-BR') 
+                        : "Indeterminado"}
+                    </p>
+                  </div>
+                </div>
               </div>
-            ) : (
-              <ul className="divide-y divide-border/40">
-                {historyDeposits.map((d) => {
-                  const isPositive = d.amount >= 0;
-                  const exp = d.expenseId ? expensesById[d.expenseId] : null;
-                  const sourceLabel =
-                    d.source === "manual"
-                      ? "Ajuste manual"
-                      : d.source === "recurring"
-                      ? "Aporte recorrente"
-                      : exp?.description
-                      ? "Despesa vinculada"
-                      : "Aporte";
-                  const SourceIcon =
-                    d.source === "recurring" ? Repeat : isPositive ? ArrowUpCircle : ArrowDownCircle;
-                  return (
-                    <li key={d.id} className="py-2.5 flex items-start gap-3">
-                      <span
-                        className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
-                          isPositive ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
-                        }`}
-                      >
-                        <SourceIcon className="h-4 w-4" />
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-medium text-foreground truncate">
-                            {exp?.description || sourceLabel}
-                          </p>
-                          <p
-                            className={`text-sm font-semibold tabular-nums shrink-0 ${
-                              isPositive ? "text-success" : "text-destructive"
-                            }`}
-                          >
-                            {isPositive ? "+" : ""}
-                            {fmt(d.amount)}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-                          <span className="text-[11px] text-muted-foreground">
-                            {d.depositDate.split("-").reverse().join("/")}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground">·</span>
-                          <span className="text-[11px] text-muted-foreground">{sourceLabel}</span>
-                          {exp?.category && (
-                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">
-                              {exp.category}
-                            </Badge>
+
+              {/* Seção de Projeção (se houver meta e prazo) */}
+              {historyTarget?.goalAmount && historyTarget.targetDate && (() => {
+                const bal = balances.get(historyTarget.id)?.balance ?? 0;
+                const rem = historyTarget.goalAmount - bal;
+                if (rem <= 0) return null;
+
+                const today = new Date();
+                const target = new Date(historyTarget.targetDate + "T12:00:00");
+                const days = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                if (days <= 0) return null;
+
+                return (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                      <TrendingUp className="h-3 w-3" /> Ritmo Necessário
+                    </h4>
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 grid grid-cols-3 gap-4">
+                      <div className="text-center space-y-1">
+                        <span className="text-[9px] text-muted-foreground uppercase font-bold block">Por Dia</span>
+                        <span className="text-xs font-black text-primary">{mask(fmt(rem / days))}</span>
+                      </div>
+                      <div className="text-center space-y-1 border-x border-primary/10">
+                        <span className="text-[9px] text-muted-foreground uppercase font-bold block">Por Semana</span>
+                        <span className="text-xs font-black text-primary">{mask(fmt(rem / (days / 7)))}</span>
+                      </div>
+                      <div className="text-center space-y-1">
+                        <span className="text-[9px] text-muted-foreground uppercase font-bold block">Por Mês</span>
+                        <span className="text-xs font-black text-primary">{mask(fmt(rem / (days / 30)))}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Seção de Movimentações */}
+              <div className="space-y-3 pb-4">
+                <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <History className="h-3 w-3" /> Movimentações
+                </h4>
+                {historyDeposits.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-border/60 p-8 text-center">
+                    <Receipt className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
+                    <p className="text-xs text-muted-foreground max-w-[200px] mx-auto">
+                      Nenhuma movimentação registrada ainda neste cofrinho.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {historyDeposits.map((d) => {
+                      const isPositive = d.amount >= 0;
+                      const exp = d.expenseId ? expensesById[d.expenseId] : null;
+                      const SourceIcon = d.source === "recurring" ? Repeat : isPositive ? ArrowDownCircle : ArrowUpCircle;
+                      
+                      return (
+                        <div key={d.id} className="flex items-center gap-3 p-3 rounded-xl border border-border/30 bg-background/50 hover:border-primary/20 transition-colors">
+                          <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${isPositive ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+                            <SourceIcon className="h-4.5 w-4.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-bold text-foreground truncate">
+                                {exp?.description || (d.source === "manual" ? "Ajuste de saldo" : d.source === "transfer_in" ? "Depósito" : d.source === "transfer_out" ? "Resgate" : "Aporte")}
+                              </p>
+                              <p className={`text-sm font-black tabular-nums ${isPositive ? 'text-success' : 'text-destructive'}`}>
+                                {isPositive ? '+' : ''}{mask(fmt(d.amount))}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[10px] text-muted-foreground font-medium uppercase">{d.depositDate.split("-").reverse().join("/")}</span>
+                              {exp?.category && <Badge variant="secondary" className="h-3.5 px-1 text-[8px] uppercase tracking-tighter">{exp.category}</Badge>}
+                            </div>
+                          </div>
+                          {!readOnly && (
+                            <RowActions
+                              actions={[
+                                { label: "Editar", icon: <Pencil className="h-3 w-3" />, onClick: () => openEditDeposit(d) },
+                                { label: "Excluir", icon: <Trash2 className="h-3 w-3" />, destructive: true, onClick: () => setDeleteDepositId(d.id) },
+                              ]}
+                            />
                           )}
                         </div>
-                      </div>
-                      {!readOnly && (
-                        <div className="shrink-0">
-                          <RowActions
-                            actions={[
-                              { label: "Editar lançamento", icon: <Pencil className="h-3.5 w-3.5" />, onClick: () => openEditDeposit(d) },
-                              { label: "Excluir lançamento", icon: <Trash2 className="h-3.5 w-3.5" />, destructive: true, onClick: () => setDeleteDepositId(d.id) },
-                            ]}
-                          />
-                        </div>
-                      )}
-
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setHistoryTarget(null)}>Fechar</Button>
+          <DialogFooter className="pt-2 border-t border-border/30">
+            <Button variant="outline" onClick={() => setHistoryTarget(null)} className="w-full sm:w-auto">Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
