@@ -5241,12 +5241,10 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     let overdue = 0;
     let dueToday = 0;
     let onTrack = 0;
-    let onTrackTotal = 0;
     let totalReceivable = 0;
     let overdueCount = 0;
     let dueTodayCount = 0;
     let onTrackCount = 0;
-    let onTrackTotalCount = 0;
     let totalReceivableCount = 0;
     for (const l of loans) {
       if (l.status === "paid") continue;
@@ -5274,9 +5272,6 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
           onTrack += receivable;
           onTrackCount += 1;
         }
-        // "Total a Receber" considera todos os contratos em dia, independentemente do mês.
-        onTrackTotal += receivable;
-        onTrackTotalCount += 1;
       }
     }
     return {
