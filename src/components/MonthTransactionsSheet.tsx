@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Income, IncomeStatus } from "@/hooks/useIncomes";
 import { Expense, Sale } from "@/types/loan";
-import { ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertTriangle, Repeat } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertTriangle, Repeat, Check } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 import { isCreditCardExpense, listPaidInvoicesInRange, getCardInvoiceTotalsForMonth } from "@/lib/creditCardInvoiceTotals";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
@@ -25,6 +27,8 @@ interface Props {
   expenses: Expense[];
   sales?: Sale[];
   initialFilter?: string;
+  onPayIncome?: (id: string) => Promise<void> | void;
+  onPayExpense?: (id: string) => Promise<void> | void;
 }
 
 type Row = {
@@ -34,6 +38,7 @@ type Row = {
   subtitle?: string;
   amount: number;
   status: "received" | "pending" | "overdue" | "paid" | "due" | "recurring";
+  payable?: { kind: "income" | "expense"; refId: string };
 };
 
 const STATUS_LABEL: Record<Row["status"], string> = {
@@ -54,7 +59,8 @@ const STATUS_BADGE: Record<Row["status"], string> = {
   recurring: "bg-primary/15 text-primary border-primary/30",
 };
 
-export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, incomes, expenses, sales, initialFilter }: Props) {
+export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, incomes, expenses, sales, initialFilter, onPayIncome, onPayExpense }: Props) {
+  const [payingId, setPayingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>(initialFilter ?? "all");
   const [sortBy, setSortBy] = useState<"date_desc" | "date_asc" | "amount">("date_desc");
 
@@ -107,6 +113,7 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
             subtitle: i.category || i.source || undefined,
             amount: i.amount,
             status: i.status === "overdue" ? "overdue" : "pending",
+            payable: { kind: "income", refId: i.id },
           });
         }
         return out;
@@ -200,6 +207,7 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
           subtitle: e.category || undefined,
           amount: amt,
           status: isOverdue ? "overdue" : "due",
+          payable: { kind: "expense", refId: e.id },
         });
       }
       for (const inv of cardInvoicesPendingMonth) {
@@ -347,8 +355,37 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
                     {r.subtitle && <span>{r.subtitle}</span>}
                   </div>
                 </div>
-                <div className={`text-base font-bold ${isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-                  {isIncome ? "+" : "-"}{fmt(r.amount)}
+                <div className="flex flex-col items-end gap-2">
+                  <div className={`text-base font-bold ${isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                    {isIncome ? "+" : "-"}{fmt(r.amount)}
+                  </div>
+                  {pendingMode && r.payable && (
+                    <Button
+                      size="sm"
+                      variant={isIncome ? "default" : "destructive"}
+                      className="h-7 px-2 text-xs"
+                      disabled={payingId === r.id}
+                      onClick={async () => {
+                        try {
+                          setPayingId(r.id);
+                          if (r.payable!.kind === "income" && onPayIncome) {
+                            await onPayIncome(r.payable!.refId);
+                            toast.success("Receita marcada como recebida");
+                          } else if (r.payable!.kind === "expense" && onPayExpense) {
+                            await onPayExpense(r.payable!.refId);
+                            toast.success("Despesa paga");
+                          }
+                        } catch {
+                          toast.error("Falha ao registrar pagamento");
+                        } finally {
+                          setPayingId(null);
+                        }
+                      }}
+                    >
+                      <Check className="h-3 w-3 mr-1" />
+                      {isIncome ? "Receber" : "Pagar"}
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

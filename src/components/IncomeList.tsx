@@ -56,7 +56,7 @@ interface Props {
 
 export function IncomeList({ readOnly }: Props) {
   const { incomes, addIncome, updateIncome, deleteIncome, duplicateIncome, markReceived } = useIncomes();
-  const { expenses: rawExpenses } = useExpenses();
+  const { expenses: rawExpenses, payExpense } = useExpenses();
   const { sales: rawSales } = useProducts();
   const { clients } = useClients();
   const { activeMethods } = usePaymentMethods();
@@ -217,6 +217,8 @@ export function IncomeList({ readOnly }: Props) {
         expenses={expenses}
         sales={sales}
         initialFilter={sheetInitialFilter}
+        onPayIncome={async (id) => { await markReceived(id); }}
+        onPayExpense={async (id) => { await payExpense(id); }}
       />
 
       <Card no3d className="p-4">
