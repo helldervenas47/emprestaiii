@@ -86,6 +86,16 @@ export function StockManager({ readOnly = false }: Props) {
     return arr;
   }, [products, sortBy, statusFilter]);
 
+  const lastMovementByProduct = useMemo(() => {
+    const map = new Map<string, StockMovement>();
+    // movements vem ordenado desc por created_at
+    for (const m of movements) {
+      if (!m.productId) continue;
+      if (!map.has(m.productId)) map.set(m.productId, m);
+    }
+    return map;
+  }, [movements]);
+
   const activeProducts = useMemo(() => products.filter((p) => p.active !== false), [products]);
   const inactiveCount = products.length - activeProducts.length;
 
