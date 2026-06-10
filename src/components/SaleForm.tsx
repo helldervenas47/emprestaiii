@@ -265,6 +265,45 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       locadorId: form.businessType === "aluguel_veiculo" ? (form.locadorId || null) : null,
       category: form.category || null,
     });
+
+    // Itens extras (somente venda à vista). Cada um gera uma venda separada.
+    if (canAddExtra && extraItems.length > 0) {
+      for (const item of extraItems) {
+        const itemPaymentHistory = isPaid
+          ? [{
+              amount: item.total,
+              date: form.paymentDate,
+              type: "full" as const,
+              installmentNumber: 1,
+            }]
+          : undefined;
+        onAdd({
+          productId: !item.isAvulsa ? (item.productId || undefined) : undefined,
+          productName: item.description,
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.total,
+          cost: 0,
+          total: item.total,
+          customerName: form.customerName,
+          date: saleDate,
+          notes: "",
+          businessType: "venda",
+          paymentMode: "fixa",
+          installments: 1,
+          paidInstallments: isPaid ? 1 : 0,
+          downPayment: 0,
+          frequency: "Mensal",
+          installmentValue: null,
+          installmentAmounts: null,
+          installmentDates: null,
+          partialPaid: 0,
+          paymentHistory: itemPaymentHistory,
+          locadorId: null,
+          category: form.category || null,
+        });
+      }
+    }
     setShowSuccess(true);
   };
 
