@@ -28,6 +28,9 @@ export interface PiggyBank {
   annualRate: number;
   autoRate: boolean;
   cdiPercent: number;
+  goalAmount: number | null;
+  category: string | null;
+  targetDate: string | null;
   createdAt: string;
 }
 
