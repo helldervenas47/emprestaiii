@@ -310,7 +310,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
             )}
           </div>
         </div>
-        <div className="-mt-1 flex items-center justify-between gap-2">
+        <div className="-mt-2.5 flex items-center justify-between gap-2">
           <div className={`text-3xl sm:text-4xl font-bold tracking-tight ${balanceColor} min-w-0 truncate`}>
             {fmt(calc.balance, hide)}
           </div>
