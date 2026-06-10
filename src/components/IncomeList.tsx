@@ -217,6 +217,8 @@ export function IncomeList({ readOnly }: Props) {
         expenses={expenses}
         sales={sales}
         initialFilter={sheetInitialFilter}
+        onPayIncome={async (id) => { await markReceived(id); }}
+        onPayExpense={async (id) => { await payExpense(id); }}
       />
 
       <Card no3d className="p-4">
