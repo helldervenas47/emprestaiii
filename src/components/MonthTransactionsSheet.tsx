@@ -355,8 +355,37 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
                     {r.subtitle && <span>{r.subtitle}</span>}
                   </div>
                 </div>
-                <div className={`text-base font-bold ${isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-                  {isIncome ? "+" : "-"}{fmt(r.amount)}
+                <div className="flex flex-col items-end gap-2">
+                  <div className={`text-base font-bold ${isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                    {isIncome ? "+" : "-"}{fmt(r.amount)}
+                  </div>
+                  {pendingMode && r.payable && (
+                    <Button
+                      size="sm"
+                      variant={isIncome ? "default" : "destructive"}
+                      className="h-7 px-2 text-xs"
+                      disabled={payingId === r.id}
+                      onClick={async () => {
+                        try {
+                          setPayingId(r.id);
+                          if (r.payable!.kind === "income" && onPayIncome) {
+                            await onPayIncome(r.payable!.refId);
+                            toast.success("Receita marcada como recebida");
+                          } else if (r.payable!.kind === "expense" && onPayExpense) {
+                            await onPayExpense(r.payable!.refId);
+                            toast.success("Despesa paga");
+                          }
+                        } catch {
+                          toast.error("Falha ao registrar pagamento");
+                        } finally {
+                          setPayingId(null);
+                        }
+                      }}
+                    >
+                      <Check className="h-3 w-3 mr-1" />
+                      {isIncome ? "Receber" : "Pagar"}
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
