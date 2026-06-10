@@ -33,6 +33,7 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy.tsx"));
 const DailyPlanning = lazy(() => import("./pages/DailyPlanning.tsx"));
 const PainelMigracao = lazy(() => import("./pages/PainelMigracao.tsx"));
 const PiggyBankDetail = lazy(() => import("./pages/PiggyBankDetail.tsx"));
+const PiggyBanks = lazy(() => import("./pages/PiggyBanks.tsx"));
 
 
 const queryClient = new QueryClient({
@@ -98,6 +99,7 @@ const App = () => (
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/planejamento-do-dia" element={<ProtectedRoute><DailyPlanning /></ProtectedRoute>} />
                   <Route path="/painel-migracao" element={<PainelMigracao />} />
+                  <Route path="/cofrinhos" element={<ProtectedRoute><PiggyBanks /></ProtectedRoute>} />
                   <Route path="/cofrinho/:id" element={<ProtectedRoute><PiggyBankDetail /></ProtectedRoute>} />
 
                   <Route path="*" element={<NotFound />} />
