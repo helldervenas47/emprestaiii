@@ -1985,6 +1985,15 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                       </div>
                       <p className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</p>
                       <p className={`text-sm sm:text-lg font-bold ${item.color} mt-0.5`}>{item.value}</p>
+                      {item.subLabel && (
+                        <div className="mt-2 pt-2 border-t border-border/40 w-full">
+                          <div className="flex items-center justify-center gap-1">
+                            <p className="text-[10px] text-muted-foreground leading-tight">{item.subLabel}</p>
+                            {item.subTooltip && <InfoPopover text={item.subTooltip} />}
+                          </div>
+                          <p className="text-xs sm:text-sm font-semibold text-success mt-0.5">{item.subValue}</p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -2000,10 +2009,20 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                       </div>
                       <p className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</p>
                       <p className={`text-sm sm:text-lg font-bold ${item.color} mt-0.5`}>{item.value}</p>
+                      {item.subLabel && (
+                        <div className="mt-2 pt-2 border-t border-border/40 w-full">
+                          <div className="flex items-center justify-center gap-1">
+                            <p className="text-[10px] text-muted-foreground leading-tight">{item.subLabel}</p>
+                            {item.subTooltip && <InfoPopover text={item.subTooltip} />}
+                          </div>
+                          <p className="text-xs sm:text-sm font-semibold text-success mt-0.5">{item.subValue}</p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
               </div>
+
             </div>
 
             {/* Mobile: Pendente full width on top, then 3 rows of 2 */}
