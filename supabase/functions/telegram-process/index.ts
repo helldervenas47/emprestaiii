@@ -1,5 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getReportsBotId } from "../_shared/reports-bot.ts";
+import { getExternalServiceRoleKey, getExternalAdmin } from "../_shared/external-supabase.ts";
+
 
 const GATEWAY_URL = "https://api.telegram.org";
 const AI_GATEWAY = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
@@ -2465,8 +2467,8 @@ Deno.serve(async (req) => {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-  const { getExternalAdmin } = await import("../_shared/external-supabase.ts");
   const admin = getExternalAdmin();
+
 
   const { data: messages, error } = await admin
     .from("telegram_messages")
@@ -2906,7 +2908,7 @@ Deno.serve(async (req) => {
           }
         }
       } else if (/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i.test(text)) {
-        const botCode = await generateChatLinkCode(chatId, "expenses", SUPABASE_SERVICE_ROLE_KEY);
+        const botCode = await generateChatLinkCode(chatId, "expenses", getExternalServiceRoleKey());
         await admin.from("telegram_messages")
           .update({ raw_update: { ...(msg.raw_update as any), _bot_link_code: botCode, _bot_link_kind: "expenses" } })
           .eq("update_id", msg.update_id);
