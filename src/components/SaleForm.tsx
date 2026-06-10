@@ -52,7 +52,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
   const [form, setForm] = useState({
     description: "",
     productId: "",
-    quantity: "1",
+    quantity: "0",
     total: "",
     discount: "",
     installmentValue: "",
