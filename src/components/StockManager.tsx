@@ -28,7 +28,7 @@ const movementMeta: Record<StockMovementType, { label: string; icon: any; cls: s
   entrada_manual: { label: "Entrada manual", icon: PackagePlus, cls: "bg-blue-500/10 text-blue-600 border-blue-500/20", sign: "+" },
   compra: { label: "Compra", icon: ShoppingBag, cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", sign: "+" },
   venda: { label: "Venda", icon: ShoppingCart, cls: "bg-rose-500/10 text-rose-600 border-rose-500/20", sign: "-" },
-  ajuste: { label: "Ajuste", icon: Wrench, cls: "bg-amber-500/10 text-amber-600 border-amber-500/20", sign: "+" },
+  ajuste: { label: "Ajuste de Estoque", icon: Wrench, cls: "bg-amber-500/10 text-amber-600 border-amber-500/20", sign: "-" },
 };
 
 const fmtBRL = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
