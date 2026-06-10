@@ -75,10 +75,27 @@ export function StockManager({ readOnly = false }: Props) {
   const activeProducts = useMemo(() => products.filter((p) => p.active !== false), [products]);
   const inactiveCount = products.length - activeProducts.length;
 
+  const extractReason = (notes: string | null): string => {
+    if (!notes) return "";
+    const m = notes.match(/Motivo:\s*([^|]+?)(?:\s*\||$)/i);
+    return m ? m[1].trim() : "";
+  };
+
+  const adjustmentReasons = useMemo(() => {
+    const set = new Set<string>();
+    movements.forEach((m) => {
+      if (m.type !== "ajuste") return;
+      const r = extractReason(m.notes);
+      if (r) set.add(r);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [movements]);
+
   const filteredMovements = useMemo(() => movements.filter(m =>
     (filterType === "all" || m.type === filterType) &&
-    (filterProduct === "all" || m.productId === filterProduct)
-  ), [movements, filterType, filterProduct]);
+    (filterProduct === "all" || m.productId === filterProduct) &&
+    (filterReason === "all" || (m.type === "ajuste" && extractReason(m.notes) === filterReason))
+  ), [movements, filterType, filterProduct, filterReason]);
 
   return (
     <Tabs defaultValue="estoque" className="space-y-4">
