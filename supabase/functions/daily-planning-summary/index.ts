@@ -312,8 +312,8 @@ async function buildAndSend(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const SUPABASE_URL = getExternalSupabaseUrl();
+  const SUPABASE_ANON_KEY = getExternalAnonKey();
 
   const admin = getExternalAdmin();
 
@@ -332,7 +332,7 @@ Deno.serve(async (req) => {
   const token = authHeader.replace(/^Bearer\s+/i, "");
 
   if (token && req.method === "POST") {
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: `Bearer ${token}` } },
     });
     const { data: { user }, error: userErr } = await userClient.auth.getUser();
@@ -357,7 +357,7 @@ Deno.serve(async (req) => {
         manualLabel = "Planejamento do Dia";
       }
       const res = await buildAndSend(admin, user.id, manualTarget, brandName, manualLabel, { returnText });
-      return new Response(JSON.stringify({ ok: true, sent: res.sent ? 1 : 0, date: manualTarget, text: res.text }), {
+      return new Response(JSON.stringify({ ok: true, sent: res.sent ? 1 : 0, reason: res.reason, date: manualTarget, text: res.text }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -366,7 +366,7 @@ Deno.serve(async (req) => {
   // Forced via query string (also requires auth match)
   if (queryUserId) {
     if (!token) return new Response(JSON.stringify({ error: "Auth required" }), { status: 401, headers: corsHeaders });
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: `Bearer ${token}` } },
     });
     const { data: { user }, error: userErr } = await userClient.auth.getUser();
@@ -375,7 +375,7 @@ Deno.serve(async (req) => {
 
     const returnText = url.searchParams.get("return_text") === "1";
     const res = await buildAndSend(admin, queryUserId, tomorrow, brandName, "Planejamento de Amanhã", { returnText });
-    return new Response(JSON.stringify({ ok: true, sent: res.sent ? 1 : 0, text: res.text }), {
+    return new Response(JSON.stringify({ ok: true, sent: res.sent ? 1 : 0, reason: res.reason, text: res.text }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
