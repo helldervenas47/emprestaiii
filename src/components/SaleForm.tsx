@@ -45,6 +45,7 @@ interface Props {
 }
 
 export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", clients = [], registeredVehicles = [], locadores = [], products = [] }: Props) {
+  const { user, dataOwnerId } = useAuth();
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const defaultLocadorId = locadores.length === 1 ? (locadores[0].id || "") : "";
