@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 import { encodeNotesWithMerchandise } from "@/lib/saleMerchandise";
 import { ClientCombobox } from "@/components/ui/client-combobox";
 import { SaleCategoryPicker } from "@/components/SaleCategoryPicker";
+import { supabase } from "@/integrations/supabase/userClient";
+import { useAuth } from "@/hooks/useAuth";
 
 
 const businessTypeLabels: Record<BusinessType, string> = {
@@ -43,6 +45,7 @@ interface Props {
 }
 
 export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", clients = [], registeredVehicles = [], locadores = [], products = [] }: Props) {
+  const { user, dataOwnerId } = useAuth();
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const defaultLocadorId = locadores.length === 1 ? (locadores[0].id || "") : "";
@@ -240,14 +243,49 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
         }]
       : undefined;
 
+    // Itens combinados em UMA única venda (venda à vista)
+    const hasExtras = canAddExtra && extraItems.length > 0;
+    const allItems = hasExtras
+      ? [
+          { productId: form.productId, isAvulsa, description: form.description, quantity: parseInt(form.quantity) || 1, total: valorRecebido },
+          ...extraItems,
+        ]
+      : null;
+
+    const combinedDescription = hasExtras
+      ? allItems!.map((it) => `${it.quantity}x ${it.description}`).join(", ")
+      : form.description;
+    const combinedQuantity = hasExtras
+      ? allItems!.reduce((s, it) => s + it.quantity, 0)
+      : parseInt(form.quantity) || 1;
+    const combinedSubtotal = hasExtras
+      ? allItems!.reduce((s, it) => s + it.total, 0)
+      : valorRecebido;
+    const combinedTotal = combinedSubtotal + merchValorNum;
+
+    // Quando há múltiplos itens, a venda fica sem product_id (pois é composta).
+    // A baixa de estoque dos produtos cadastrados é feita manualmente abaixo.
+    const finalProductId = hasExtras
+      ? undefined
+      : (form.businessType === "venda" && !isAvulsa ? (form.productId || undefined) : undefined);
+
+    const finalPaymentHistory = isPaid
+      ? [{
+          amount: combinedTotal,
+          date: form.paymentDate,
+          type: "full" as const,
+          installmentNumber: 1,
+        }]
+      : undefined;
+
     onAdd({
-      productId: form.businessType === "venda" && !isAvulsa ? (form.productId || undefined) : undefined,
-      productName: form.description,
-      description: form.description,
-      quantity: parseInt(form.quantity) || 1,
-      unitPrice: total,
+      productId: finalProductId,
+      productName: combinedDescription,
+      description: combinedDescription,
+      quantity: combinedQuantity,
+      unitPrice: combinedTotal,
       cost: 0,
-      total,
+      total: combinedTotal,
       customerName: form.customerName,
       date: saleDate,
       notes: encodedNotes,
@@ -261,47 +299,33 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       installmentAmounts: amounts,
       installmentDates: dates,
       partialPaid: 0,
-      paymentHistory,
+      paymentHistory: hasExtras ? finalPaymentHistory : paymentHistory,
       locadorId: form.businessType === "aluguel_veiculo" ? (form.locadorId || null) : null,
       category: form.category || null,
     });
 
-    // Itens extras (somente venda à vista). Cada um gera uma venda separada.
-    if (canAddExtra && extraItems.length > 0) {
-      for (const item of extraItems) {
-        const itemPaymentHistory = isPaid
-          ? [{
-              amount: item.total,
-              date: form.paymentDate,
-              type: "full" as const,
-              installmentNumber: 1,
-            }]
-          : undefined;
-        onAdd({
-          productId: !item.isAvulsa ? (item.productId || undefined) : undefined,
-          productName: item.description,
-          description: item.description,
-          quantity: item.quantity,
-          unitPrice: item.total,
-          cost: 0,
-          total: item.total,
-          customerName: form.customerName,
-          date: saleDate,
-          notes: "",
-          businessType: "venda",
-          paymentMode: "fixa",
-          installments: 1,
-          paidInstallments: isPaid ? 1 : 0,
-          downPayment: 0,
-          frequency: "Mensal",
-          installmentValue: null,
-          installmentAmounts: null,
-          installmentDates: null,
-          partialPaid: 0,
-          paymentHistory: itemPaymentHistory,
-          locadorId: null,
-          category: form.category || null,
-        });
+    // Baixa de estoque manual dos produtos cadastrados da venda combinada
+    if (hasExtras && user && dataOwnerId) {
+      const productAggregates = new Map<string, number>();
+      for (const it of allItems!) {
+        if (!it.isAvulsa && it.productId) {
+          productAggregates.set(it.productId, (productAggregates.get(it.productId) || 0) + it.quantity);
+        }
+      }
+      for (const [pid, qty] of productAggregates) {
+        const prod = products.find((p) => p.id === pid);
+        if (!prod) continue;
+        const newStock = Math.max(0, prod.stock - qty);
+        await supabase.from("products").update({ stock: newStock }).eq("id", pid);
+        await supabase.from("stock_movements" as any).insert({
+          owner_id: dataOwnerId,
+          user_id: user.id,
+          product_id: pid,
+          product_name: prod.name,
+          movement_type: "venda",
+          quantity: -qty,
+          notes: "Venda combinada",
+        } as any);
       }
     }
     setShowSuccess(true);
