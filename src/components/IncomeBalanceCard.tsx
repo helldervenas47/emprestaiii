@@ -206,7 +206,8 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     // Receitas recorrentes são materializadas como lançamentos mensais separados;
     // por isso cada linha deve contar apenas a própria data para evitar duplicidade visual.
     const pendingOccurrencesInMonth = (i: Income): number => {
-      if (i.status !== "pending") return 0;
+      // Considera tanto pendentes quanto vencidas (overdue) — ambas estão em aberto.
+      if (i.status !== "pending" && i.status !== "overdue") return 0;
       if (
         i.recurrence === "once" ||
         i.recurrence === "weekly" ||
