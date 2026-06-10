@@ -339,7 +339,18 @@ export function StockManager({ readOnly = false }: Props) {
                         <span className="font-semibold text-sm break-words flex-1 min-w-0">{p.name}</span>
                         <span className="font-bold tabular-nums text-sm shrink-0">{p.stock} un.</span>
                       </div>
-                      <div className="mt-1 flex items-center gap-2 flex-wrap">
+                      {p.description && (
+                        <p className={`text-xs text-muted-foreground mt-1 break-words ${expanded ? "" : "line-clamp-2"}`}>
+                          {p.description}
+                        </p>
+                      )}
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                        <span className="text-emerald-600 tabular-nums font-medium">{fmtBRL(p.price)}</span>
+                        {marginPct != null && (
+                          <span className={`tabular-nums font-medium ${marginPct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                            {marginPct.toFixed(1)}%
+                          </span>
+                        )}
                         {out ? (
                           <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
                             <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />Sem estoque
@@ -348,19 +359,6 @@ export function StockManager({ readOnly = false }: Props) {
                           <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] px-1.5 py-0">Estoque baixo</Badge>
                         ) : (
                           <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Em estoque</Badge>
-                        )}
-                      </div>
-                      {p.description && (
-                        <p className={`text-xs text-muted-foreground mt-1 break-words ${expanded ? "" : "line-clamp-3"}`}>
-                          {p.description}
-                        </p>
-                      )}
-                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                        <span className="text-emerald-600 tabular-nums">{fmtBRL(p.price)}</span>
-                        {marginPct != null && (
-                          <span className={`tabular-nums ${marginPct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                            {marginPct.toFixed(1)}%
-                          </span>
                         )}
                       </div>
                     </div>
