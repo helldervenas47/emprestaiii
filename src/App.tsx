@@ -31,6 +31,8 @@ const RefundPolicy = lazy(() => import("./pages/RefundPolicy.tsx"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy.tsx"));
 const DailyPlanning = lazy(() => import("./pages/DailyPlanning.tsx"));
 const PainelMigracao = lazy(() => import("./pages/PainelMigracao.tsx"));
+const PiggyBankDetail = lazy(() => import("./pages/PiggyBankDetail.tsx"));
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -94,6 +96,8 @@ const App = () => (
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/planejamento-do-dia" element={<ProtectedRoute><DailyPlanning /></ProtectedRoute>} />
                   <Route path="/painel-migracao" element={<PainelMigracao />} />
+                  <Route path="/cofrinho/:id" element={<ProtectedRoute><PiggyBankDetail /></ProtectedRoute>} />
+
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
