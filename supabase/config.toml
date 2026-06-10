@@ -76,6 +76,4 @@ verify_jwt = false
 [functions.voice-expense-extract]
 verify_jwt = false
 
-[functions.check-db-sync]
-verify_jwt = false
 
