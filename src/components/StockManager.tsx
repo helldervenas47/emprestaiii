@@ -683,3 +683,138 @@ function PurchaseDialog({ open, onOpenChange, products, onSubmit }: {
   );
 }
 
+const DEFAULT_ADJUST_REASONS = [
+  "Perda",
+  "Avaria",
+  "Vencimento",
+  "Extravio",
+  "Consumo interno",
+  "Outro",
+];
+
+function AdjustStockDialog({ open, onOpenChange, products, onSubmit }: {
+  open: boolean; onOpenChange: (v: boolean) => void;
+  products: { id: string; name: string; stock: number }[];
+  onSubmit: (v: { productId: string; quantity: number; date: string; reason: string; notes: string }) => Promise<void>;
+}) {
+  const [productId, setProductId] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [date, setDate] = useState(todayInAppTz());
+  const [reasonPreset, setReasonPreset] = useState("Perda");
+  const [customReason, setCustomReason] = useState("");
+  const [notes, setNotes] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const product = products.find((p) => p.id === productId);
+  const qty = parseInt(quantity) || 0;
+  const stockAfter = (product?.stock ?? 0) - qty;
+  const finalReason = reasonPreset === "Outro" ? customReason.trim() : reasonPreset;
+
+  const reset = () => {
+    setProductId(""); setQuantity(""); setDate(todayInAppTz());
+    setReasonPreset("Perda"); setCustomReason(""); setNotes(""); setConfirming(false);
+  };
+
+  const handleNext = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!productId) { toast.error("Selecione o produto"); return; }
+    if (qty <= 0) { toast.error("Informe uma quantidade válida"); return; }
+    if (product && qty > product.stock) { toast.error(`Quantidade maior que o saldo (${product.stock})`); return; }
+    if (!finalReason) { toast.error("Informe o motivo do ajuste"); return; }
+    setConfirming(true);
+  };
+
+  const handleConfirm = async () => {
+    setBusy(true);
+    try {
+      await onSubmit({ productId, quantity: qty, date, reason: finalReason, notes });
+      reset();
+      onOpenChange(false);
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Ajuste de Estoque</DialogTitle>
+          <DialogDescription>
+            Baixa manual de estoque (perdas, avarias, etc.). Não afeta o financeiro.
+          </DialogDescription>
+        </DialogHeader>
+
+        {!confirming ? (
+          <form onSubmit={handleNext} className="space-y-3">
+            <div>
+              <Label className="text-xs">Produto</Label>
+              <Select value={productId} onValueChange={setProductId}>
+                <SelectTrigger><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
+                <SelectContent>
+                  {products.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name} (estoque: {p.stock})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Quantidade a baixar</Label>
+                <Input type="number" min="1" max={product?.stock ?? undefined} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Data</Label>
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Motivo do ajuste</Label>
+              <Select value={reasonPreset} onValueChange={setReasonPreset}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DEFAULT_ADJUST_REASONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {reasonPreset === "Outro" && (
+              <div>
+                <Label className="text-xs">Motivo personalizado</Label>
+                <Input value={customReason} onChange={(e) => setCustomReason(e.target.value)} placeholder="Descreva o motivo" />
+              </div>
+            )}
+            <div>
+              <Label className="text-xs">Observação</Label>
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opcional" rows={2} />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button type="submit">Revisar ajuste</Button>
+            </DialogFooter>
+          </form>
+        ) : (
+          <div className="space-y-3">
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm space-y-1">
+              <div className="flex items-center gap-2 font-semibold text-amber-700 dark:text-amber-400">
+                <AlertTriangle className="h-4 w-4" /> Confirmar baixa de estoque
+              </div>
+              <div><span className="text-muted-foreground">Produto:</span> <b>{product?.name}</b></div>
+              <div><span className="text-muted-foreground">Quantidade:</span> <b>-{qty}</b></div>
+              <div><span className="text-muted-foreground">Estoque antes:</span> {product?.stock ?? 0}</div>
+              <div><span className="text-muted-foreground">Estoque após:</span> <b>{stockAfter}</b></div>
+              <div><span className="text-muted-foreground">Data:</span> {date}</div>
+              <div><span className="text-muted-foreground">Motivo:</span> {finalReason}</div>
+              {notes && <div><span className="text-muted-foreground">Obs:</span> {notes}</div>}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setConfirming(false)} disabled={busy}>Voltar</Button>
+              <Button type="button" onClick={handleConfirm} disabled={busy}>
+                {busy ? "Registrando..." : "Confirmar ajuste"}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
