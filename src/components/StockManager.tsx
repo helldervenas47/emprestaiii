@@ -348,7 +348,7 @@ export function StockManager({ readOnly = false }: Props) {
                           {p.description}
                         </p>
                       )}
-                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                      <div className="mt-1.5 flex flex-col items-start gap-1 text-xs">
                         <span className="text-emerald-600 tabular-nums font-medium">{fmtBRL(p.price)}</span>
                         {marginPct != null && (
                           <span className={`tabular-nums font-medium ${marginPct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
