@@ -95,6 +95,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
   // Build a map of date -> due items
   const dueMap = useMemo(() => {
     const map: Record<string, DueItem[]> = {};
+    const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     loans.forEach((loan) => {
       if (loan.status === "paid") return;
@@ -106,6 +107,13 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
       const dueBase = new Date(loan.dueDate + "T00:00:00");
 
       const loanSchedules = installmentSchedules.filter(s => s.loanId === loan.id);
+
+      // Saldo remanescente após pagamentos parciais (base para cálculo de juros/multa)
+      const totalWithInterest = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+      const totalPaid = payments.filter(p => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
+      const baseRemaining = loan.remainingAmount != null && loan.remainingAmount > 0
+        ? loan.remainingAmount
+        : Math.max(0, totalWithInterest - totalPaid);
 
       for (let i = nextInstallment; i <= loan.installments; i++) {
         const schedule = loanSchedules.find(s => s.installmentNumber === i);
@@ -121,7 +129,23 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
           else d.setMonth(d.getMonth() + offsetFromNext);
           dateStr = formatLocalDate(d);
         }
-        const amount = getOpenInstallmentAmount(loan, loanSchedules, i) || (schedule ? schedule.amount : defaultInstallmentAmount);
+        let amount = getOpenInstallmentAmount(loan, loanSchedules, i) || (schedule ? schedule.amount : defaultInstallmentAmount);
+
+        // Acréscimos (juros de atraso + multa) somente na próxima parcela vencida
+        if (i === nextInstallment) {
+          const dueDateObj = new Date(dateStr + "T00:00:00");
+          const daysOverdue = Math.max(0, Math.floor((todayNorm.getTime() - dueDateObj.getTime()) / 86400000));
+          if (daysOverdue > 0) {
+            let lateInterestTotal = 0;
+            if (loan.lateInterestValue != null && loan.lateInterestValue > 0) {
+              lateInterestTotal = loan.lateInterestType === "fixed"
+                ? loan.lateInterestValue * daysOverdue
+                : baseRemaining * (loan.lateInterestValue / 100) * daysOverdue;
+            }
+            const penaltyTotal = (loan.penaltyValue != null && loan.penaltyValue > 0) ? loan.penaltyValue : 0;
+            amount = amount + lateInterestTotal + penaltyTotal;
+          }
+        }
 
         if (!map[dateStr]) map[dateStr] = [];
         map[dateStr].push({
@@ -138,7 +162,8 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
     });
 
     return map;
-  }, [loans, installmentSchedules]);
+  }, [loans, installmentSchedules, payments, today]);
+
 
   // Map of date -> sale/vehicle pending installments
   const salesDueMap = useMemo(() => {
