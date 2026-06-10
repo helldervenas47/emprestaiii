@@ -893,7 +893,7 @@ function AdjustStockDialog({ open, onOpenChange, products, onSubmit }: {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Ajuste de Estoque</DialogTitle>
           <DialogDescription>
