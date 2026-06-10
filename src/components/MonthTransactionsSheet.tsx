@@ -289,7 +289,12 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
             <SelectTrigger className="h-9"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos status</SelectItem>
-              {isIncome ? (
+              {pendingMode ? (
+                <>
+                  <SelectItem value={isIncome ? "pending" : "due"}>A vencer</SelectItem>
+                  <SelectItem value="overdue">Atrasadas</SelectItem>
+                </>
+              ) : isIncome ? (
                 <SelectItem value="received">Recebidas</SelectItem>
               ) : (
                 <>
