@@ -329,7 +329,18 @@ export function usePiggyBanks() {
     return (row as any)?.id as string;
   }, [user, dataOwnerId, reload]);
 
-  const updatePiggyBank = useCallback(async (id: string, patch: Partial<{ name: string; color: string; icon: string; annualRate: number; autoRate: boolean; cdiPercent: number; shortId: number | null }>) => {
+  const updatePiggyBank = useCallback(async (id: string, patch: Partial<{ 
+    name: string; 
+    color: string; 
+    icon: string; 
+    annualRate: number; 
+    autoRate: boolean; 
+    cdiPercent: number; 
+    shortId: number | null;
+    goalAmount: number | null;
+    category: string | null;
+    targetDate: string | null;
+  }>) => {
     const dbPatch: any = {};
     if (patch.name !== undefined) dbPatch.name = patch.name;
     if (patch.color !== undefined) dbPatch.color = patch.color;
@@ -338,6 +349,9 @@ export function usePiggyBanks() {
     if (patch.autoRate !== undefined) dbPatch.auto_rate = patch.autoRate;
     if (patch.cdiPercent !== undefined) dbPatch.cdi_percent = patch.cdiPercent;
     if (patch.shortId !== undefined) dbPatch.short_id = patch.shortId;
+    if (patch.goalAmount !== undefined) dbPatch.goal_amount = patch.goalAmount;
+    if (patch.category !== undefined) dbPatch.category = patch.category;
+    if (patch.targetDate !== undefined) dbPatch.target_date = patch.targetDate;
     const { error } = await supabase.from("piggy_banks" as any).update(dbPatch).eq("id", id);
     if (error) {
       const msg = error.message?.includes("piggy_banks_user_short_id_uniq")
