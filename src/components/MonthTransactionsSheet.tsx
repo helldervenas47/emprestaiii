@@ -62,7 +62,7 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
   const { openings } = useCreditCardOpenings();
 
   useEffect(() => {
-    if (open) setFilter(initialFilter ?? "all");
+    if (open) setFilter(initialFilter === "pending" ? "all" : (initialFilter ?? "all"));
   }, [open, initialFilter]);
 
   // Faturas de cartão pagas dentro do mês selecionado — derivadas das despesas
