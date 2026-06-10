@@ -217,8 +217,23 @@ export function IncomeList({ readOnly }: Props) {
         expenses={expenses}
         sales={sales}
         initialFilter={sheetInitialFilter}
-        onPayIncome={async (id) => { await markReceived(id); }}
-        onPayExpense={async (id) => { await payExpense(id); }}
+        onPayIncome={async (id, { date, amount }) => {
+          const target = incomes.find((i) => i.id === id);
+          if (!target) return;
+          const check = validateIncomeDate(target, incomes, date);
+          if (!check.ok) { toast.error(check.reason || "Data já utilizada por outra ocorrência."); throw new Error("invalid"); }
+          const isRecurring = !!target.parentId || target.recurrence !== "once";
+          const patch: any = {
+            status: "received",
+            amount: amount ?? target.amount,
+            actualReceivedDate: date,
+          };
+          if (!isRecurring) patch.receivedDate = date;
+          await updateIncome(id, patch);
+        }}
+        onPayExpense={async (id, { date, amount }) => {
+          await payExpense(id, false, date, amount);
+        }}
       />
 
       <Card no3d className="p-4">
