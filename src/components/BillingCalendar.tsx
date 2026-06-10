@@ -200,6 +200,13 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
           amount = isRecorrente ? base / totalInst : base;
         }
 
+        // Pagamento parcial abate somente a próxima parcela em aberto
+        if (i === sale.paidInstallments && sale.partialPaid && sale.partialPaid > 0) {
+          amount = Math.max(0, amount - sale.partialPaid);
+        }
+
+        if (amount <= 0) continue;
+
         if (!map[dateStr]) map[dateStr] = [];
         map[dateStr].push({
           kind,
@@ -212,6 +219,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
           date: dateStr,
         });
       }
+
     });
 
     return map;
