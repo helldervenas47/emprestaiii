@@ -373,7 +373,7 @@ export function PiggyBankList({ readOnly = false }: Props) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {piggyBanks.map((pb) => {
             const b = balances.get(pb.id);
-            const det = detailed.get(pb.id);
+
             const currentBalance = b?.balance ?? 0;
             const goal = pb.goalAmount ?? 0;
             const progress = goal > 0 ? Math.min(100, (currentBalance / goal) * 100) : 0;
