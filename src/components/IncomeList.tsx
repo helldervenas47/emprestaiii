@@ -428,22 +428,7 @@ export function IncomeList({ readOnly }: Props) {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-        <PiggyBanksSummaryCard readOnly={readOnly} />
-        <IncomeDashboard
-          incomes={incomes.filter(
-            (i) =>
-              i.source !== "Ajuste manual" &&
-              i.receivedDate.startsWith(monthKey) &&
-              i.status !== "received",
-          )}
-          allMonthIncomes={incomes.filter(
-            (i) => i.source !== "Ajuste manual" && i.receivedDate.startsWith(monthKey),
-          )}
-          sales={sales}
-          monthKey={monthKey}
-        />
-      </div>
+      <PiggyBanksSummaryCard readOnly={readOnly} />
       <IncomePendingCalendar
         incomes={incomes.filter((i) => i.source !== "Ajuste manual")}
         expenses={expenses}
@@ -455,6 +440,19 @@ export function IncomeList({ readOnly }: Props) {
       <FinancialHealthDashboard
         incomes={incomes}
         expenses={expenses}
+        monthKey={monthKey}
+      />
+      <IncomeDashboard
+        incomes={incomes.filter(
+          (i) =>
+            i.source !== "Ajuste manual" &&
+            i.receivedDate.startsWith(monthKey) &&
+            i.status !== "received",
+        )}
+        allMonthIncomes={incomes.filter(
+          (i) => i.source !== "Ajuste manual" && i.receivedDate.startsWith(monthKey),
+        )}
+        sales={sales}
         monthKey={monthKey}
       />
 
