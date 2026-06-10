@@ -366,97 +366,126 @@ export function PiggyBankList({ readOnly = false }: Props) {
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {piggyBanks.map((pb) => {
             const b = balances.get(pb.id);
             const det = detailed.get(pb.id);
+            const currentBalance = b?.balance ?? 0;
+            const goal = pb.goalAmount ?? 0;
+            const progress = goal > 0 ? Math.min(100, (currentBalance / goal) * 100) : 0;
+            const remaining = goal > 0 ? Math.max(0, goal - currentBalance) : 0;
+            
+            const isCompleted = goal > 0 && currentBalance >= goal;
+            const isNear = goal > 0 && !isCompleted && progress >= 80;
+
             return (
               <div
                 key={pb.id}
-                className={`rounded-xl border border-border/40 p-3 hover:border-border transition-all ${pulseId === pb.id ? "animate-scale-in ring-2 ring-primary/40" : ""}`}
-                style={{ background: `hsl(${pb.color} / 0.05)` }}
+                className={`rounded-2xl border border-border/40 p-4 hover:border-primary/30 transition-all group flex flex-col gap-3 ${pulseId === pb.id ? "animate-scale-in ring-2 ring-primary/40" : ""}`}
+                style={{ background: `hsl(${pb.color} / 0.04)` }}
               >
-                <div
-                  role={readOnly ? undefined : "button"}
-                  tabIndex={readOnly ? -1 : 0}
-                  onClick={() => { if (!readOnly) openTransfer(pb, "store"); }}
-                  onKeyDown={(e) => {
-                    if (readOnly) return;
-                    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openTransfer(pb, "store"); }
-                  }}
-                  className={`flex items-center gap-3 ${readOnly ? "" : "cursor-pointer"} focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg`}
-                  title={readOnly ? undefined : "Guardar ou resgatar dinheiro"}
-                >
-                  <div
-                    className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: `hsl(${pb.color} / 0.18)` }}
-                  >
-                    <PiggyBank className="h-4.5 w-4.5" style={{ color: `hsl(${pb.color})` }} />
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+                      style={{ backgroundColor: `hsl(${pb.color} / 0.15)` }}
+                    >
+                      <PiggyBank className="h-5 w-5" style={{ color: `hsl(${pb.color})` }} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="text-sm font-bold text-foreground truncate">{pb.name}</h4>
+                        {isCompleted && <Badge className="bg-success/15 text-success border-success/20 h-4 px-1 text-[9px] uppercase tracking-tighter">Concluída</Badge>}
+                      </div>
+                      {pb.category && (
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{pb.category}</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      {pb.shortId != null && (
-                        <span className="text-[10px] font-mono font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
-                          #{pb.shortId}
+                  {!readOnly && (
+                    <div className="shrink-0 flex items-center">
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => setHistoryTarget(pb)} title="Histórico">
+                        <History className="h-3.5 w-3.5" />
+                      </Button>
+                      <RowActions
+                        actions={[
+                          { label: "Guardar / Resgatar", icon: <ArrowDownCircle className="h-3.5 w-3.5" />, onClick: () => openTransfer(pb, "store") },
+                          { label: "Ajustar saldo", icon: <Wallet className="h-3.5 w-3.5" />, onClick: () => openAdjust(pb) },
+                          { label: "Editar", icon: <Pencil className="h-3.5 w-3.5" />, onClick: () => openEdit(pb) },
+                          { label: "Excluir", icon: <Trash2 className="h-3.5 w-3.5" />, destructive: true, onClick: () => setDeleteId(pb.id) },
+                        ]}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-end justify-between gap-2 mt-1">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-tight font-medium">Saldo atual</span>
+                    <p className={`text-xl font-black tabular-nums tracking-tight ${isCompleted ? 'text-success' : 'text-foreground'}`}>
+                      {mask(fmt(currentBalance))}
+                    </p>
+                  </div>
+                  {goal > 0 && (
+                    <div className="text-right space-y-0.5">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-tight font-medium">Objetivo: {mask(fmt(goal))}</span>
+                      <p className="text-xs font-bold text-muted-foreground tabular-nums">
+                        {Math.round(progress)}%
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {goal > 0 && (
+                  <div className="space-y-1.5">
+                    <Progress value={progress} className={`h-1.5 bg-muted/40 ${isCompleted ? '[&>div]:bg-success' : isNear ? '[&>div]:bg-warning' : ''}`} />
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-muted-foreground font-medium">Faltam {mask(fmt(remaining))}</span>
+                      {pb.targetDate && (
+                        <span className="flex items-center gap-1 text-muted-foreground italic">
+                          <Calendar className="h-2.5 w-2.5" /> {new Date(pb.targetDate + "T12:00:00").toLocaleDateString('pt-BR')}
                         </span>
                       )}
-                      <p className="text-sm font-semibold text-foreground truncate flex-1 min-w-0">{pb.name}</p>
-                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0 inline-flex items-center gap-0.5 border-primary/40 text-primary">
-                        <Zap className="h-2.5 w-2.5" />
-                        {(pb.cdiPercent ?? 100).toFixed(0)}% CDI · {pb.annualRate.toFixed(2)}% a.a.
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between gap-2 mt-0.5">
-                      <p className="text-[11px] text-muted-foreground truncate">
-                        Aportado: {mask(fmt(b?.principal ?? 0))}
-                      </p>
-                      <p className="text-sm font-bold text-foreground whitespace-nowrap shrink-0">
-                        {mask(fmt(b?.balance ?? 0))}
-                      </p>
-                    </div>
-                    <div className="flex gap-0.5 justify-end mt-1" onClick={(e) => e.stopPropagation()}>
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setHistoryTarget(pb)} title="Histórico de aportes">
-                        <History className="h-3 w-3" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-6 w-6 relative" onClick={() => setRecurrenceTarget(pb)} title="Aportes recorrentes">
-                        <Repeat className="h-3 w-3" />
-                        {recurrences.some((r) => r.piggyBankId === pb.id && r.active) && (
-                          <span className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-primary" />
-                        )}
-                      </Button>
-                      {!readOnly && (
-                        <RowActions
-                          actions={[
-                            { label: "Ajustar saldo", icon: <Wallet className="h-3.5 w-3.5" />, onClick: () => openAdjust(pb) },
-                            { label: "Editar", icon: <Pencil className="h-3.5 w-3.5" />, onClick: () => openEdit(pb) },
-                            { label: "Excluir", icon: <Trash2 className="h-3.5 w-3.5" />, destructive: true, onClick: () => setDeleteId(pb.id) },
-                          ]}
-                        />
-                      )}
-
                     </div>
                   </div>
-                </div>
+                )}
+
+                {goal > 0 && remaining > 0 && pb.targetDate && (() => {
+                  const today = new Date();
+                  const target = new Date(pb.targetDate + "T12:00:00");
+                  const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                  if (diffDays <= 0) return null;
+                  
+                  const perDay = remaining / diffDays;
+                  const perMonth = remaining / (diffDays / 30);
+                  const perWeek = remaining / (diffDays / 7);
+
+                  return (
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/30 mt-1">
+                      <div className="flex flex-col">
+                        <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-tighter">Diário</span>
+                        <span className="text-[10px] font-bold text-foreground truncate">{mask(fmt(perDay))}</span>
+                      </div>
+                      <div className="flex flex-col border-x border-border/30 px-2">
+                        <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-tighter">Semanal</span>
+                        <span className="text-[10px] font-bold text-foreground truncate">{mask(fmt(perWeek))}</span>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-tighter">Mensal</span>
+                        <span className="text-[10px] font-bold text-foreground truncate">{mask(fmt(perMonth))}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {det && (
-                  <div className="mt-2.5 pt-2.5 border-t border-border/40 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
-                    <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center gap-1 text-muted-foreground"><TrendingUp className="h-3 w-3" /> Rend. bruto</span>
-                      <span className="font-medium text-success tabular-nums">{mask(fmt(det.gross))}</span>
+                  <div className="mt-auto pt-2 space-y-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="inline-flex items-center gap-1 text-muted-foreground italic"><TrendingUp className="h-2.5 w-2.5" /> Rend. líquido total</span>
+                      <span className="font-bold text-success tabular-nums">{mask(fmt(det.net))}</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center gap-1 text-muted-foreground"><Receipt className="h-3 w-3" /> IR descontado</span>
-                      <span className="font-medium text-destructive tabular-nums">{mask(fmt(det.tax))}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center gap-1 text-muted-foreground"><Coins className="h-3 w-3" /> Rend. líquido</span>
-                      <span className="font-medium text-foreground tabular-nums">{mask(fmt(det.net))}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center gap-1 text-muted-foreground"><CalendarClock className="h-3 w-3" /> Proj. fim do mês</span>
-                      <span className="font-medium text-foreground tabular-nums">{mask(fmt(det.projectionNetEom))}</span>
-                    </div>
-                    <div className="flex items-center justify-between col-span-2">
-                      <span className="inline-flex items-center gap-1 text-muted-foreground"><Percent className="h-3 w-3" /> CDI atual</span>
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="inline-flex items-center gap-1 text-muted-foreground italic"><Zap className="h-2.5 w-2.5" /> CDI: {(pb.cdiPercent ?? 100)}%</span>
                       <span className="font-medium text-foreground tabular-nums">{det.currentRate.toFixed(2)}% a.a.</span>
                     </div>
                   </div>
