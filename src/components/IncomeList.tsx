@@ -56,7 +56,7 @@ interface Props {
 
 export function IncomeList({ readOnly }: Props) {
   const { incomes, addIncome, updateIncome, deleteIncome, duplicateIncome, markReceived } = useIncomes();
-  const { expenses: rawExpenses } = useExpenses();
+  const { expenses: rawExpenses, payExpense } = useExpenses();
   const { sales: rawSales } = useProducts();
   const { clients } = useClients();
   const { activeMethods } = usePaymentMethods();
