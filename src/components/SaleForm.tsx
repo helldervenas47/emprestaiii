@@ -556,16 +556,41 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                   </div>
                   <div>
                     <Label>{totalLabel}</Label>
-                    <Input type="number" step="0.01" min="0.01" value={form.total} onChange={(e) => {
-                      update("total", e.target.value);
-                      const totalVal = parseFloat(e.target.value) || 0;
-                      const count = parseInt(form.installments) || 1;
-                      if (form.paymentMode === "recorrente" && totalVal > 0 && count > 0) {
-                        const newInstVal = (totalVal / count).toFixed(2);
-                        update("installmentValue", newInstVal);
-                        setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: newInstVal }));
-                      }
-                    }} placeholder="0,00" required />
+                    {(() => {
+                      const mainVal = parseFloat(form.total) || 0;
+                      const extrasSum = extraItems.reduce((s, it) => s + it.total, 0);
+                      const merchVal = isVenda && merchEnabled ? (parseFloat(merchValor) || 0) : 0;
+                      const disc = isVenda ? (parseFloat(form.discount) || 0) : 0;
+                      const hasAdjustments = extrasSum > 0 || merchVal > 0 || disc > 0;
+                      const finalDisplay = Math.max(0, mainVal + extrasSum + merchVal - disc);
+                      const displayValue = hasAdjustments ? finalDisplay.toFixed(2) : form.total;
+                      return (
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          value={displayValue}
+                          readOnly={hasAdjustments}
+                          onChange={(e) => {
+                            update("total", e.target.value);
+                            const totalVal = parseFloat(e.target.value) || 0;
+                            const count = parseInt(form.installments) || 1;
+                            if (form.paymentMode === "recorrente" && totalVal > 0 && count > 0) {
+                              const newInstVal = (totalVal / count).toFixed(2);
+                              update("installmentValue", newInstVal);
+                              setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: newInstVal }));
+                            }
+                          }}
+                          placeholder="0,00"
+                          required
+                        />
+                      );
+                    })()}
+                    {(extraItems.length > 0 || (parseFloat(form.discount) || 0) > 0) && (
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Calculado automaticamente (itens + mercadoria − desconto).
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
