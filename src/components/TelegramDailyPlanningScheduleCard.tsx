@@ -52,7 +52,7 @@ export function TelegramDailyPlanningScheduleCard() {
           <div className="flex items-center gap-2 min-w-0">
             <CalendarClock className="h-4 w-4 text-primary shrink-0" />
             <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-foreground">Planejamento do dia anterior</h3>
+              <h3 className="text-sm font-semibold text-foreground">Planejamento do dia seguinte</h3>
               <p className="text-xs text-muted-foreground truncate">
                 Receba o planejamento financeiro com o que vence no dia. Até 3 horários por dia.
               </p>

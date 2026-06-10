@@ -32,7 +32,7 @@ export function TelegramBotsHub() {
       {/* 2. Inadimplência acumulada */}
       <TelegramAccumulatedDelinquencyScheduleCard />
 
-      {/* 3. Planejamento do dia anterior */}
+      {/* 3. Planejamento do dia seguinte */}
       <TelegramDailyPlanningScheduleCard />
 
       {/* 4. Receitas e Despesas (aba) */}
