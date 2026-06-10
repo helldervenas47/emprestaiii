@@ -113,6 +113,7 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
             subtitle: i.category || i.source || undefined,
             amount: i.amount,
             status: i.status === "overdue" ? "overdue" : "pending",
+            payable: { kind: "income", refId: i.id },
           });
         }
         return out;
