@@ -27,10 +27,19 @@ export function getExternalAnonKey(): string {
 
 /** Admin client (service role) apontando ao Supabase EXTERNO. */
 export function getExternalAdmin(): SupabaseClient {
-  return createClient(getExternalSupabaseUrl(), getExternalServiceRoleKey());
+  return createClient(getExternalSupabaseUrl(), getExternalServiceRoleKey(), {
+    auth: {
+      persistSession: false,
+    },
+  });
 }
 
 /** Anon client usado para validar JWTs emitidos pelo Supabase EXTERNO. */
 export function getExternalUserClient(): SupabaseClient {
-  return createClient(getExternalSupabaseUrl(), getExternalAnonKey());
+  return createClient(getExternalSupabaseUrl(), getExternalAnonKey(), {
+    auth: {
+      persistSession: false,
+    },
+  });
 }
+
