@@ -383,8 +383,10 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
             {calc.pendingInCount} pendente{calc.pendingInCount === 1 ? "" : "s"}
           </p>
         </button>
-        <div
-          className="h-full rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm animate-fade-in flex flex-col items-center text-center"
+        <button
+          type="button"
+          onClick={onOpenPendingExpenses}
+          className="h-full rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm animate-fade-in flex flex-col items-center text-center transition-all hover:scale-[1.02] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-destructive/40"
           style={{ animationDelay: '200ms', animationFillMode: 'backwards' }}
         >
           <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center mb-2">
@@ -392,8 +394,8 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
           </div>
           <p className="text-[10px] sm:text-xs text-muted-foreground">Despesas pendentes</p>
           <p className="text-sm sm:text-xl font-bold text-destructive mt-0.5">{fmt(calc.futureOut, hide)}</p>
-          <p className="text-[10px] text-muted-foreground mt-1">A pagar no mês</p>
-        </div>
+          <p className="text-[10px] text-muted-foreground mt-1">Toque para detalhes</p>
+        </button>
         <div
           className="relative h-full col-span-2 lg:col-span-1 rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm animate-fade-in flex flex-col items-center text-center"
           style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}
