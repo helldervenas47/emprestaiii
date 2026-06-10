@@ -1,10 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, PiggyBank } from "lucide-react";
+import { ChevronRight, PiggyBank } from "lucide-react";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { PiggyBankList } from "./PiggyBankList";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -14,7 +13,7 @@ interface Props {
 }
 
 export function PiggyBanksSummaryCard({ readOnly = false }: Props) {
-  const [expanded, setExpanded] = useState(false);
+  const navigate = useNavigate();
   const { piggyBanks, balances, cdiRate } = usePiggyBanks();
   const { mask } = useHideValues();
 
@@ -29,8 +28,12 @@ export function PiggyBanksSummaryCard({ readOnly = false }: Props) {
 
   return (
     <Card no3d className="animate-fade-in">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between gap-2">
+      <CardContent className="p-0">
+        <button
+          type="button"
+          onClick={() => navigate("/cofrinhos")}
+          className="w-full text-left p-4 flex items-center justify-between gap-2 hover:bg-muted/40 rounded-3xl transition-colors"
+        >
           <div className="flex items-center gap-2 min-w-0">
             <PiggyBank className="h-4 w-4 text-primary shrink-0" />
             <h3 className="text-sm font-semibold text-foreground truncate">
@@ -50,26 +53,9 @@ export function PiggyBanksSummaryCard({ readOnly = false }: Props) {
               <p className="text-[10px] text-muted-foreground uppercase leading-none">Saldo total</p>
               <p className="text-sm font-bold text-foreground tabular-nums">{mask(fmt(total))}</p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setExpanded((v) => !v)}
-              className="h-8 gap-1 text-xs"
-            >
-              {expanded ? (
-                <><ChevronUp className="h-3.5 w-3.5" /> Recolher</>
-              ) : (
-                <><ChevronDown className="h-3.5 w-3.5" /> Expandir</>
-              )}
-            </Button>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </div>
-        </div>
-
-        {expanded && (
-          <div className="mt-4">
-            <PiggyBankList readOnly={readOnly} />
-          </div>
-        )}
+        </button>
       </CardContent>
     </Card>
   );
