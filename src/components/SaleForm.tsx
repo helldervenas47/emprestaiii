@@ -52,7 +52,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
   const [form, setForm] = useState({
     description: "",
     productId: "",
-    quantity: "1",
+    quantity: "0",
     total: "",
     discount: "",
     installmentValue: "",
@@ -127,7 +127,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       ...p,
       productId: "",
       description: "",
-      quantity: "1",
+      quantity: "0",
       discount: "",
       total: "",
     }));
@@ -544,7 +544,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                       return (
                         <Input
                           type="number"
-                          min="1"
+                          min="0"
                           value={displayQty}
                           readOnly={hasExtras}
                           onChange={(e) => {
