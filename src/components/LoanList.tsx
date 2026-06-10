@@ -5242,22 +5242,26 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     let dueToday = 0;
     let onTrack = 0;
     let onTrackTotal = 0;
+    let totalReceivable = 0;
     let overdueCount = 0;
     let dueTodayCount = 0;
     let onTrackCount = 0;
     let onTrackTotalCount = 0;
+    let totalReceivableCount = 0;
     for (const l of loans) {
       if (l.status === "paid") continue;
       const cat = getLoanCategory(l, payments, installmentSchedules);
+      const base = getBaseRemainingAmount(l, payments, installmentSchedules);
+      const fees = getLoanLateFees(l, payments, installmentSchedules);
+      const renegPenalty = Number(l.renegotiationPenaltyTotal || 0);
+      const receivable = Math.max(0, base + fees.lateFees + renegPenalty);
+      totalReceivable += receivable;
+      totalReceivableCount += 1;
       if (cat === "overdue") {
         overdue += getOverdueAmount(l, installmentSchedules, today);
         overdueCount += 1;
         continue;
       }
-      const base = getBaseRemainingAmount(l, payments, installmentSchedules);
-      const fees = getLoanLateFees(l, payments, installmentSchedules);
-      const renegPenalty = Number(l.renegotiationPenaltyTotal || 0);
-      const receivable = Math.max(0, base + fees.lateFees + renegPenalty);
       if (cat === "due_today") {
         // Para parcelados, considera apenas o valor da parcela que vence hoje.
         const isParcelado = l.installments >= 2;
@@ -5277,9 +5281,9 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     }
     return {
       overdue, dueToday, onTrack,
-      total: overdue + dueToday + onTrackTotal,
+      total: totalReceivable,
       overdueCount, dueTodayCount, onTrackCount,
-      totalCount: overdueCount + dueTodayCount + onTrackTotalCount,
+      totalCount: totalReceivableCount,
     };
   }, [loans, payments, installmentSchedules]);
 
