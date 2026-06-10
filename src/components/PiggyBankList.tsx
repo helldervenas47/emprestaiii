@@ -506,6 +506,41 @@ export function PiggyBankList({ readOnly = false }: Props) {
                 />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="pb-category">Categoria (opcional)</Label>
+                <Input
+                  id="pb-category"
+                  placeholder="Ex: Viagem, Carro"
+                  value={draft.category}
+                  onChange={(e) => setDraft((p) => ({ ...p, category: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="pb-target-date">Data prevista (opcional)</Label>
+                <Input
+                  id="pb-target-date"
+                  type="date"
+                  value={draft.targetDate}
+                  onChange={(e) => setDraft((p) => ({ ...p, targetDate: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="pb-goal">Valor objetivo (opcional)</Label>
+              <div className="relative mt-1">
+                <Input
+                  id="pb-goal"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="Ex: 5000,00"
+                  value={draft.goalAmount}
+                  onChange={(e) => setDraft((p) => ({ ...p, goalAmount: e.target.value.replace(/[^\d.,]/g, "") }))}
+                  className="pl-9"
+                />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
+              </div>
+            </div>
             <p className="text-[10px] text-muted-foreground -mt-2">
               O número permite usar atalhos no bot, ex: <code>aporte {draft.shortId || "1"} 200</code>.
             </p>
