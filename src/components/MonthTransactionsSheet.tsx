@@ -272,7 +272,9 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
             {isIncome
               ? <ArrowUpRight className="h-5 w-5 text-emerald-500" />
               : <ArrowDownRight className="h-5 w-5 text-rose-500" />}
-            {isIncome ? "Entradas do mês" : "Saídas do mês"}
+            {pendingMode
+              ? (isIncome ? "Receitas pendentes do mês" : "Despesas pendentes do mês")
+              : (isIncome ? "Entradas do mês" : "Saídas do mês")}
           </SheetTitle>
           <SheetDescription>
             {filtered.length} lançamento{filtered.length === 1 ? "" : "s"} · Total{" "}
