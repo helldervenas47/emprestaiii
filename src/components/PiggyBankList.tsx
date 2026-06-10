@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PiggyBank, Plus, TrendingUp, Trash2, Pencil, Sparkles, Wallet, History, ArrowDownCircle, ArrowUpCircle, Repeat, Receipt, Percent, CalendarClock, Coins, RefreshCw, Zap, Target, Calendar, Info } from "lucide-react";
+
 import { Progress } from "@/components/ui/progress";
 import { RowActions } from "@/components/ui/row-actions";
 import { Switch } from "@/components/ui/switch";
@@ -35,8 +37,10 @@ interface Props {
 }
 
 export function PiggyBankList({ readOnly = false }: Props) {
+  const navigate = useNavigate();
   const { mask } = useHideValues();
   const { piggyBanks, deposits, recurrences, balances, detailed, cdiRate, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate, refreshCdiNow, storeMoney, withdrawMoney, setRecurrenceActive, deleteRecurrence } = usePiggyBanks();
+
 
   const [transferTarget, setTransferTarget] = useState<PiggyBankType | null>(null);
   const [transferMode, setTransferMode] = useState<"store" | "withdraw">("store");
@@ -369,7 +373,7 @@ export function PiggyBankList({ readOnly = false }: Props) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {piggyBanks.map((pb) => {
             const b = balances.get(pb.id);
-            const det = detailed.get(pb.id);
+
             const currentBalance = b?.balance ?? 0;
             const goal = pb.goalAmount ?? 0;
             const progress = goal > 0 ? Math.min(100, (currentBalance / goal) * 100) : 0;
@@ -379,10 +383,13 @@ export function PiggyBankList({ readOnly = false }: Props) {
             const isNear = goal > 0 && !isCompleted && progress >= 80;
 
             return (
-              <div
+              <button
                 key={pb.id}
-                className={`rounded-2xl border border-border/40 p-4 hover:border-primary/30 transition-all group flex flex-col gap-3 ${pulseId === pb.id ? "animate-scale-in ring-2 ring-primary/40" : ""}`}
+                type="button"
+                onClick={() => navigate(`/cofrinho/${pb.id}`)}
+                className={`text-left rounded-2xl border border-border/40 p-4 hover:border-primary/40 hover:shadow-sm transition-all group flex flex-col gap-3 focus:outline-none focus:ring-2 focus:ring-primary/40 ${pulseId === pb.id ? "animate-scale-in ring-2 ring-primary/40" : ""}`}
                 style={{ background: `hsl(${pb.color} / 0.04)` }}
+                aria-label={`Abrir ${pb.name}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
@@ -398,25 +405,10 @@ export function PiggyBankList({ readOnly = false }: Props) {
                         {isCompleted && <Badge className="bg-success/15 text-success border-success/20 h-4 px-1 text-[9px] uppercase tracking-tighter">Concluída</Badge>}
                       </div>
                       {pb.category && (
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{pb.category}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium truncate">{pb.category}</p>
                       )}
                     </div>
                   </div>
-                  {!readOnly && (
-                    <div className="shrink-0 flex items-center">
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => setHistoryTarget(pb)} title="Histórico">
-                        <History className="h-3.5 w-3.5" />
-                      </Button>
-                      <RowActions
-                        actions={[
-                          { label: "Guardar / Resgatar", icon: <ArrowDownCircle className="h-3.5 w-3.5" />, onClick: () => openTransfer(pb, "store") },
-                          { label: "Ajustar saldo", icon: <Wallet className="h-3.5 w-3.5" />, onClick: () => openAdjust(pb) },
-                          { label: "Editar", icon: <Pencil className="h-3.5 w-3.5" />, onClick: () => openEdit(pb) },
-                          { label: "Excluir", icon: <Trash2 className="h-3.5 w-3.5" />, destructive: true, onClick: () => setDeleteId(pb.id) },
-                        ]}
-                      />
-                    </div>
-                  )}
                 </div>
 
                 <div className="flex items-end justify-between gap-2 mt-1">
@@ -449,52 +441,12 @@ export function PiggyBankList({ readOnly = false }: Props) {
                     </div>
                   </div>
                 )}
-
-                {goal > 0 && remaining > 0 && pb.targetDate && (() => {
-                  const today = new Date();
-                  const target = new Date(pb.targetDate + "T12:00:00");
-                  const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                  if (diffDays <= 0) return null;
-                  
-                  const perDay = remaining / diffDays;
-                  const perMonth = remaining / (diffDays / 30);
-                  const perWeek = remaining / (diffDays / 7);
-
-                  return (
-                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/30 mt-1">
-                      <div className="flex flex-col">
-                        <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-tighter">Diário</span>
-                        <span className="text-[10px] font-bold text-foreground truncate">{mask(fmt(perDay))}</span>
-                      </div>
-                      <div className="flex flex-col border-x border-border/30 px-2">
-                        <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-tighter">Semanal</span>
-                        <span className="text-[10px] font-bold text-foreground truncate">{mask(fmt(perWeek))}</span>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-tighter">Mensal</span>
-                        <span className="text-[10px] font-bold text-foreground truncate">{mask(fmt(perMonth))}</span>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {det && (
-                  <div className="mt-auto pt-2 space-y-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="inline-flex items-center gap-1 text-muted-foreground italic"><TrendingUp className="h-2.5 w-2.5" /> Rend. líquido total</span>
-                      <span className="font-bold text-success tabular-nums">{mask(fmt(det.net))}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="inline-flex items-center gap-1 text-muted-foreground italic"><Zap className="h-2.5 w-2.5" /> CDI: {(pb.cdiPercent ?? 100)}%</span>
-                      <span className="font-medium text-foreground tabular-nums">{det.currentRate.toFixed(2)}% a.a.</span>
-                    </div>
-                  </div>
-                )}
-              </div>
+              </button>
             );
           })}
         </div>
       )}
+
 
       <p className="text-[10px] text-muted-foreground italic">
         Para depositar, cadastre uma despesa pessoal e selecione "Destinar a um cofrinho".
