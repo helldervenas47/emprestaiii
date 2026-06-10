@@ -180,6 +180,9 @@ export function usePiggyBanks() {
         annualRate: Number(r.annual_rate),
         autoRate: Boolean(r.auto_rate),
         cdiPercent: r.cdi_percent != null ? Number(r.cdi_percent) : 100,
+        goalAmount: r.goal_amount != null ? Number(r.goal_amount) : null,
+        category: r.category ?? null,
+        targetDate: r.target_date ?? null,
         createdAt: r.created_at,
       })));
     }
