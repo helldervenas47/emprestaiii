@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { PiggyBank, Plus, TrendingUp, Trash2, Pencil, Sparkles, Wallet, History, ArrowDownCircle, ArrowUpCircle, Repeat, Receipt, Percent, CalendarClock, Coins, RefreshCw, Zap } from "lucide-react";
+import { PiggyBank, Plus, TrendingUp, Trash2, Pencil, Sparkles, Wallet, History, ArrowDownCircle, ArrowUpCircle, Repeat, Receipt, Percent, CalendarClock, Coins, RefreshCw, Zap, Target, Calendar, Info } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { RowActions } from "@/components/ui/row-actions";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
