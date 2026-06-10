@@ -5321,7 +5321,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
           { id: "overdue" as Category, label: "Vencidos", value: statusSummary.overdue, count: statusSummary.overdueCount, icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", ring: "ring-destructive/40", delay: "0ms" },
           { id: "due_today" as Category, label: "Vence Hoje", value: statusSummary.dueToday, count: statusSummary.dueTodayCount, icon: Clock, color: "text-warning", bg: "bg-warning/10", ring: "ring-warning/40", delay: "80ms" },
           { id: "on_track" as Category, label: "No Prazo", value: statusSummary.onTrack, count: statusSummary.onTrackCount, icon: CheckCircle, color: "text-primary", bg: "bg-primary/10", ring: "ring-primary/40", delay: "160ms" },
-          { id: "all" as Category, label: "Total a Receber", value: statusSummary.total, count: statusSummary.totalCount, icon: DollarSign, color: "text-success", bg: "bg-success/10", ring: "ring-success/40", delay: "240ms" },
+          { id: "all" as Category, label: "Total a Receber", value: statusSummary.total, count: statusSummary.totalCount, icon: DollarSign, color: "text-blue-600", bg: "bg-blue-500/10", ring: "ring-blue-500/40", delay: "240ms" },
         ]).map((c) => {
           const Icon = c.icon;
           const isActive = selectedCategories.length === 1 && selectedCategories[0] === c.id;
