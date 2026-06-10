@@ -339,63 +339,103 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
             <div className="text-center py-12 text-muted-foreground text-sm">
               Nenhum lançamento neste filtro
             </div>
-          ) : filtered.map((r) => (
-            <div
-              key={r.id}
-              className="rounded-xl border border-border/40 bg-card/60 p-3 hover:border-border/80 transition-all"
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium truncate">{r.title}</span>
-                    <Badge variant="outline" className={`text-[10px] ${STATUS_BADGE[r.status]}`}>
-                      {(r.status === "received" || r.status === "paid") && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                      {(r.status === "pending" || r.status === "due") && <Clock className="h-3 w-3 mr-1" />}
-                      {r.status === "overdue" && <AlertTriangle className="h-3 w-3 mr-1" />}
-                      {r.status === "recurring" && <Repeat className="h-3 w-3 mr-1" />}
-                      {STATUS_LABEL[r.status]}
-                    </Badge>
+          ) : filtered.map((r) => {
+            const canExpand = pendingMode && !!r.payable;
+            const isExpanded = expandedId === r.id;
+            const today = new Date().toISOString().slice(0, 10);
+            const payDateVal = payDateMap[r.id] ?? today;
+            const payAmountVal = payAmountMap[r.id] ?? "";
+            return (
+              <div
+                key={r.id}
+                className="rounded-xl border border-border/40 bg-card/60 hover:border-border/80 transition-all overflow-hidden"
+              >
+                <button
+                  type="button"
+                  className={`w-full text-left p-3 ${canExpand ? "cursor-pointer" : "cursor-default"}`}
+                  onClick={() => { if (canExpand) setExpandedId(isExpanded ? null : r.id); }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium truncate">{r.title}</span>
+                        <Badge variant="outline" className={`text-[10px] ${STATUS_BADGE[r.status]}`}>
+                          {(r.status === "received" || r.status === "paid") && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                          {(r.status === "pending" || r.status === "due") && <Clock className="h-3 w-3 mr-1" />}
+                          {r.status === "overdue" && <AlertTriangle className="h-3 w-3 mr-1" />}
+                          {r.status === "recurring" && <Repeat className="h-3 w-3 mr-1" />}
+                          {STATUS_LABEL[r.status]}
+                        </Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3">
+                        {r.date && <span>{format(new Date(r.date + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}</span>}
+                        {r.subtitle && <span>{r.subtitle}</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className={`text-base font-bold ${isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                        {isIncome ? "+" : "-"}{fmt(r.amount)}
+                      </div>
+                      {canExpand && (
+                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                      )}
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3">
-                    {r.date && <span>{format(new Date(r.date + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}</span>}
-                    {r.subtitle && <span>{r.subtitle}</span>}
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <div className={`text-base font-bold ${isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-                    {isIncome ? "+" : "-"}{fmt(r.amount)}
-                  </div>
-                  {pendingMode && r.payable && (
-                    <Button
-                      size="sm"
-                      variant={isIncome ? "default" : "destructive"}
-                      className="h-7 px-2 text-xs"
-                      disabled={payingId === r.id}
-                      onClick={async () => {
-                        try {
-                          setPayingId(r.id);
-                          if (r.payable!.kind === "income" && onPayIncome) {
-                            await onPayIncome(r.payable!.refId);
-                            toast.success("Receita marcada como recebida");
-                          } else if (r.payable!.kind === "expense" && onPayExpense) {
-                            await onPayExpense(r.payable!.refId);
-                            toast.success("Despesa paga");
+                </button>
+                {canExpand && isExpanded && (
+                  <div className="border-t border-border/40 bg-muted/30 p-3 space-y-3 animate-fade-in">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Data do {isIncome ? "recebimento" : "pagamento"}</Label>
+                        <DatePickerField
+                          value={payDateVal}
+                          onChange={(v) => setPayDateMap((m) => ({ ...m, [r.id]: v }))}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Valor {isIncome ? "recebido" : "pago"} (opcional)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={payAmountVal}
+                          onChange={(e) => setPayAmountMap((m) => ({ ...m, [r.id]: e.target.value }))}
+                          placeholder={r.amount.toFixed(2)}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button
+                        size="sm"
+                        variant={isIncome ? "default" : "destructive"}
+                        disabled={payingId === r.id || !payDateVal}
+                        onClick={async () => {
+                          try {
+                            setPayingId(r.id);
+                            const amt = payAmountVal.trim() && Number(payAmountVal) > 0 ? Number(payAmountVal) : undefined;
+                            if (r.payable!.kind === "income" && onPayIncome) {
+                              await onPayIncome(r.payable!.refId, { date: payDateVal, amount: amt });
+                              toast.success("Receita marcada como recebida");
+                            } else if (r.payable!.kind === "expense" && onPayExpense) {
+                              await onPayExpense(r.payable!.refId, { date: payDateVal, amount: amt });
+                              toast.success("Despesa paga");
+                            }
+                            setExpandedId(null);
+                          } catch {
+                            toast.error("Falha ao registrar pagamento");
+                          } finally {
+                            setPayingId(null);
                           }
-                        } catch {
-                          toast.error("Falha ao registrar pagamento");
-                        } finally {
-                          setPayingId(null);
-                        }
-                      }}
-                    >
-                      <Check className="h-3 w-3 mr-1" />
-                      {isIncome ? "Receber" : "Pagar"}
-                    </Button>
-                  )}
-                </div>
+                        }}
+                      >
+                        <Check className="h-4 w-4 mr-1" />
+                        Confirmar {isIncome ? "recebimento" : "pagamento"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </SheetContent>
     </Sheet>
