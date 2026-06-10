@@ -338,11 +338,11 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-5">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3 mt-5 items-stretch">
         <button
           type="button"
           onClick={onOpenIncomes}
-          className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm animate-fade-in flex flex-col items-center text-center transition-all hover:scale-[1.02] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-success/40"
+          className="h-full rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm animate-fade-in flex flex-col items-center text-center transition-all hover:scale-[1.02] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-success/40"
           style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}
         >
           <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
@@ -355,7 +355,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
         <button
           type="button"
           onClick={onOpenExpenses}
-          className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm animate-fade-in flex flex-col items-center text-center transition-all hover:scale-[1.02] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-destructive/40"
+          className="h-full rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm animate-fade-in flex flex-col items-center text-center transition-all hover:scale-[1.02] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-destructive/40"
           style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}
         >
           <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center mb-2">
@@ -368,7 +368,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
         <button
           type="button"
           onClick={onOpenPendingIncomes}
-          className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm animate-fade-in flex flex-col items-center text-center transition-all hover:scale-[1.02] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-warning/40"
+          className="h-full rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm animate-fade-in flex flex-col items-center text-center transition-all hover:scale-[1.02] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-warning/40"
           style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}
         >
           <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center mb-2">
@@ -383,7 +383,18 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
           </p>
         </button>
         <div
-          className="relative rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm animate-fade-in flex flex-col items-center text-center"
+          className="h-full rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm animate-fade-in flex flex-col items-center text-center"
+          style={{ animationDelay: '200ms', animationFillMode: 'backwards' }}
+        >
+          <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center mb-2">
+            <ArrowDownRight className="h-4 w-4 text-destructive" />
+          </div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">Despesas pendentes</p>
+          <p className="text-sm sm:text-xl font-bold text-destructive mt-0.5">{fmt(calc.futureOut, hide)}</p>
+          <p className="text-[10px] text-muted-foreground mt-1">A pagar no mês</p>
+        </div>
+        <div
+          className="relative h-full col-span-2 lg:col-span-1 rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm animate-fade-in flex flex-col items-center text-center"
           style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}
         >
           <button
