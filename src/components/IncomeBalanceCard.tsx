@@ -295,18 +295,32 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
               <Wallet className="h-4 w-4" />
               <span>Saldo em Conta</span>
             </div>
-            {(onOpenStatement || statementLeftSlot) && (
-              <div className="flex items-center gap-1.5">
-                {statementLeftSlot}
-                {onOpenStatement && (
+            {(onOpenStatement || statementLeftSlot || (!readOnly && onAdjust)) && (
+              <div className="flex flex-col items-end gap-1.5">
+                <div className="flex items-center gap-1.5">
+                  {statementLeftSlot}
+                  {onOpenStatement && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 gap-1.5 whitespace-nowrap"
+                      onClick={onOpenStatement}
+                    >
+                      <Receipt className="h-3.5 w-3.5" />
+                      Extrato
+                    </Button>
+                  )}
+                </div>
+                {!readOnly && onAdjust && (
                   <Button
                     variant="outline"
-                    size="sm"
-                    className="h-8 gap-1.5 whitespace-nowrap"
-                    onClick={onOpenStatement}
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => { setTarget(calc.balance.toFixed(2)); setAdjustOpen(true); }}
+                    aria-label="Ajustar saldo"
+                    title="Ajustar saldo"
                   >
-                    <Receipt className="h-3.5 w-3.5" />
-                    Extrato
+                    <Settings2 className="h-3.5 w-3.5" />
                   </Button>
                 )}
               </div>
@@ -324,17 +338,6 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
               {trend === "down" && <TrendingDown className="h-4 w-4" />}
               {calc.prevIn > 0 ? `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}% vs mês anterior` : "Sem histórico"}
             </div>
-            {!readOnly && onAdjust && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 whitespace-nowrap"
-                onClick={() => { setTarget(calc.balance.toFixed(2)); setAdjustOpen(true); }}
-              >
-                <Settings2 className="h-3.5 w-3.5" />
-                Ajustar saldo
-              </Button>
-            )}
           </div>
         </div>
       </div>
