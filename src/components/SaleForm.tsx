@@ -70,6 +70,70 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
   const [merchValor, setMerchValor] = useState("");
   const [merchError, setMerchError] = useState<string | null>(null);
 
+  type ExtraItem = {
+    productId: string;
+    isAvulsa: boolean;
+    description: string;
+    quantity: number;
+    total: number;
+  };
+  const [extraItems, setExtraItems] = useState<ExtraItem[]>([]);
+  const canAddExtra = form.businessType === "venda" && form.paymentMode === "fixa";
+
+  const handleAddExtraItem = async () => {
+    const qty = parseInt(form.quantity) || 1;
+    const totalVal = parseFloat(form.total) || 0;
+    if (!form.productId) {
+      const { toast } = await import("sonner");
+      toast.error('Selecione um produto ou marque como "Venda avulsa" para adicionar.');
+      return;
+    }
+    if (!form.description) {
+      const { toast } = await import("sonner");
+      toast.error("Descrição do item é obrigatória.");
+      return;
+    }
+    if (totalVal <= 0) {
+      const { toast } = await import("sonner");
+      toast.error("Informe um valor maior que zero.");
+      return;
+    }
+    if (!isAvulsa) {
+      const prod = products.find((p) => p.id === form.productId);
+      if (!prod) return;
+      const alreadyQty = extraItems
+        .filter((it) => it.productId === form.productId)
+        .reduce((s, it) => s + it.quantity, 0);
+      if (qty + alreadyQty > prod.stock) {
+        const { toast } = await import("sonner");
+        toast.error(`Estoque insuficiente de "${prod.name}" (disponível: ${prod.stock - alreadyQty}).`);
+        return;
+      }
+    }
+    setExtraItems((prev) => [
+      ...prev,
+      {
+        productId: form.productId,
+        isAvulsa,
+        description: form.description,
+        quantity: qty,
+        total: totalVal,
+      },
+    ]);
+    setForm((p) => ({
+      ...p,
+      productId: "",
+      description: "",
+      quantity: "1",
+      discount: "",
+      total: "",
+    }));
+  };
+
+  const removeExtraItem = (idx: number) => {
+    setExtraItems((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const [installmentRows, setInstallmentRows] = useState<{ date: string; value: string; manualDate?: boolean; manualValue?: boolean }[]>([]);
 
   const isVehicleRental = form.businessType === "aluguel_veiculo";
@@ -201,6 +265,45 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       locadorId: form.businessType === "aluguel_veiculo" ? (form.locadorId || null) : null,
       category: form.category || null,
     });
+
+    // Itens extras (somente venda à vista). Cada um gera uma venda separada.
+    if (canAddExtra && extraItems.length > 0) {
+      for (const item of extraItems) {
+        const itemPaymentHistory = isPaid
+          ? [{
+              amount: item.total,
+              date: form.paymentDate,
+              type: "full" as const,
+              installmentNumber: 1,
+            }]
+          : undefined;
+        onAdd({
+          productId: !item.isAvulsa ? (item.productId || undefined) : undefined,
+          productName: item.description,
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.total,
+          cost: 0,
+          total: item.total,
+          customerName: form.customerName,
+          date: saleDate,
+          notes: "",
+          businessType: "venda",
+          paymentMode: "fixa",
+          installments: 1,
+          paidInstallments: isPaid ? 1 : 0,
+          downPayment: 0,
+          frequency: "Mensal",
+          installmentValue: null,
+          installmentAmounts: null,
+          installmentDates: null,
+          partialPaid: 0,
+          paymentHistory: itemPaymentHistory,
+          locadorId: null,
+          category: form.category || null,
+        });
+      }
+    }
     setShowSuccess(true);
   };
 
@@ -472,8 +575,47 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                   })()}
                 </div>
               )}
+              {canAddExtra && (
+                <div className="space-y-2">
+                  {extraItems.length > 0 && (
+                    <div className="border border-border/50 rounded-lg overflow-hidden">
+                      <div className="px-3 py-2 bg-muted/20 text-sm font-medium">
+                        Itens adicionais ({extraItems.length})
+                      </div>
+                      <div className="divide-y divide-border/30">
+                        {extraItems.map((it, idx) => (
+                          <div key={idx} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                            <div className="flex-1 min-w-0">
+                              <p className="truncate font-medium">{it.description}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {it.quantity}x · {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(it.total)}
+                                {it.isAvulsa ? " · avulsa" : ""}
+                              </p>
+                            </div>
+                            <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => removeExtraItem(idx)}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="px-3 py-2 bg-muted/20 text-xs text-muted-foreground flex justify-between">
+                        <span>Total geral da venda:</span>
+                        <span className="font-bold text-foreground">
+                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                            extraItems.reduce((s, it) => s + it.total, 0) + (parseFloat(form.total) || 0)
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <Button type="button" variant="outline" size="sm" className="w-full" onClick={handleAddExtraItem}>
+                    <Plus className="h-4 w-4 mr-2" /> Adicionar outro produto à venda
+                  </Button>
+                </div>
+              )}
               </>
             )}
+
 
             {isVehicleRental && (
               <div>
