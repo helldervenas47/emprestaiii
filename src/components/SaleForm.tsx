@@ -536,23 +536,43 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Quantidade</Label>
-                    <Input type="number" min="1" value={form.quantity} onChange={(e) => {
-                      const qStr = e.target.value;
-                      const qty = parseInt(qStr) || 1;
-                      const prod = products.find((p) => p.id === form.productId);
-                      if (prod && isVenda) {
-                        const newTotal = (prod.price * qty).toFixed(2);
-                        setForm((p) => ({ ...p, quantity: qStr, total: newTotal }));
-                        const count = parseInt(form.installments) || 1;
-                        if (form.paymentMode === "recorrente" && count > 0) {
-                          const newInstVal = (parseFloat(newTotal) / count).toFixed(2);
-                          setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: newInstVal }));
-                          setForm((p) => ({ ...p, installmentValue: newInstVal }));
-                        }
-                      } else {
-                        update("quantity", qStr);
-                      }
-                    }} required />
+                    {(() => {
+                      const mainQty = parseInt(form.quantity) || 0;
+                      const extrasQty = extraItems.reduce((s, it) => s + it.quantity, 0);
+                      const hasExtras = extrasQty > 0;
+                      const displayQty = hasExtras ? String(mainQty + extrasQty) : form.quantity;
+                      return (
+                        <Input
+                          type="number"
+                          min="1"
+                          value={displayQty}
+                          readOnly={hasExtras}
+                          onChange={(e) => {
+                            const qStr = e.target.value;
+                            const qty = parseInt(qStr) || 1;
+                            const prod = products.find((p) => p.id === form.productId);
+                            if (prod && isVenda) {
+                              const newTotal = (prod.price * qty).toFixed(2);
+                              setForm((p) => ({ ...p, quantity: qStr, total: newTotal }));
+                              const count = parseInt(form.installments) || 1;
+                              if (form.paymentMode === "recorrente" && count > 0) {
+                                const newInstVal = (parseFloat(newTotal) / count).toFixed(2);
+                                setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: newInstVal }));
+                                setForm((p) => ({ ...p, installmentValue: newInstVal }));
+                              }
+                            } else {
+                              update("quantity", qStr);
+                            }
+                          }}
+                          required
+                        />
+                      );
+                    })()}
+                    {extraItems.length > 0 && (
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Total de itens (principal + adicionais).
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label>{totalLabel}</Label>
