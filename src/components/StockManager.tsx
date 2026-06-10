@@ -475,25 +475,29 @@ export function StockManager({ readOnly = false }: Props) {
       <AdjustStockDialog
         open={adjustOpen} onOpenChange={setAdjustOpen}
         products={activeProducts.map((p) => ({ id: p.id, name: p.name, stock: p.stock || 0 }))}
-        onSubmit={async ({ productId, quantity, date, reason, notes }) => {
-          const product = products.find((p) => p.id === productId);
-          if (!product) { toast.error("Produto não encontrado"); return; }
-          const current = product.stock || 0;
-          if (quantity <= 0) { toast.error("Quantidade deve ser maior que zero"); return; }
-          if (quantity > current) { toast.error(`Ajuste maior que o saldo (${current})`); return; }
-          const composedNotes = [
-            `Motivo: ${reason}`,
-            `Data: ${date}`,
-            `Estoque antes: ${current}`,
-            `Estoque após: ${current - quantity}`,
-            notes ? `Obs: ${notes}` : null,
-          ].filter(Boolean).join(" | ");
-          await updateProduct(productId, { stock: current - quantity });
-          await recordMovement({
-            productId, productName: product.name, type: "ajuste",
-            quantity: -quantity, notes: composedNotes,
-          });
-          toast.success(`Ajuste de ${quantity} un. registrado em "${product.name}"`);
+        onSubmit={async ({ items, date, reason, notes }) => {
+          let ok = 0;
+          for (const it of items) {
+            const product = products.find((p) => p.id === it.productId);
+            if (!product) continue;
+            const current = product.stock || 0;
+            if (it.quantity <= 0 || it.quantity > current) continue;
+            const composedNotes = [
+              `Motivo: ${reason}`,
+              `Data: ${date}`,
+              `Estoque antes: ${current}`,
+              `Estoque após: ${current - it.quantity}`,
+              notes ? `Obs: ${notes}` : null,
+            ].filter(Boolean).join(" | ");
+            await updateProduct(it.productId, { stock: current - it.quantity });
+            await recordMovement({
+              productId: it.productId, productName: product.name, type: "ajuste",
+              quantity: -it.quantity, notes: composedNotes,
+            });
+            ok++;
+          }
+          if (ok > 0) toast.success(`Ajuste registrado em ${ok} item(ns)`);
+          else toast.error("Nenhum ajuste válido");
         }}
       />
 
