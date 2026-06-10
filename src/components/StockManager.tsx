@@ -306,7 +306,7 @@ export function StockManager({ readOnly = false }: Props) {
               <SelectItem value="entrada_manual">Entrada manual</SelectItem>
               <SelectItem value="compra">Compra</SelectItem>
               <SelectItem value="venda">Venda</SelectItem>
-              <SelectItem value="ajuste">Ajuste</SelectItem>
+              <SelectItem value="ajuste">Ajuste de Estoque</SelectItem>
             </SelectContent>
           </Select>
           <Select value={filterProduct} onValueChange={setFilterProduct}>
@@ -316,6 +316,15 @@ export function StockManager({ readOnly = false }: Props) {
               {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
             </SelectContent>
           </Select>
+          {adjustmentReasons.length > 0 && (
+            <Select value={filterReason} onValueChange={setFilterReason}>
+              <SelectTrigger className="w-full sm:w-56"><SelectValue placeholder="Motivo do ajuste" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os motivos</SelectItem>
+                {adjustmentReasons.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         {filteredMovements.length === 0 ? (
