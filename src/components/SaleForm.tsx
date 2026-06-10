@@ -267,7 +267,8 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     const combinedSubtotal = isComposite
       ? allItems!.reduce((s, it) => s + it.total, 0)
       : valorRecebido;
-    const combinedTotal = combinedSubtotal + merchValorNum;
+    const discountNum = parseFloat(form.discount) || 0;
+    const combinedTotal = Math.max(0, combinedSubtotal + merchValorNum - discountNum);
 
     // Quando há múltiplos itens, a venda fica sem product_id (pois é composta).
     // A baixa de estoque dos produtos cadastrados é feita manualmente abaixo.
@@ -468,9 +469,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                           }
                           const prod = products.find((p) => p.id === v);
                           const qty = parseInt(form.quantity) || 1;
-                          const disc = parseFloat(form.discount) || 0;
-                          const base = (prod?.price || 0) * qty;
-                          const newTotal = Math.max(0, base - disc).toFixed(2);
+                          const newTotal = prod ? (prod.price * qty).toFixed(2) : form.total;
                           setForm((p) => ({
                             ...p,
                             productId: v,
@@ -541,8 +540,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                     const qty = parseInt(qStr) || 1;
                     const prod = products.find((p) => p.id === form.productId);
                     if (prod && isVenda) {
-                      const disc = parseFloat(form.discount) || 0;
-                      const newTotal = Math.max(0, prod.price * qty - disc).toFixed(2);
+                      const newTotal = (prod.price * qty).toFixed(2);
                       setForm((p) => ({ ...p, quantity: qStr, total: newTotal }));
                       const count = parseInt(form.installments) || 1;
                       if (form.paymentMode === "recorrente" && count > 0) {
@@ -569,80 +567,79 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                   }} placeholder="0,00" required />
                 </div>
               </div>
-              {isVenda && form.productId && !isAvulsa && (
+              {isVenda && (
                 <div>
                   <Label>Desconto (R$)</Label>
-                  <Input type="number" step="0.01" min="0" value={form.discount} onChange={(e) => {
-                    const dStr = e.target.value;
-                    const disc = parseFloat(dStr) || 0;
-                    const prod = products.find((p) => p.id === form.productId);
-                    const qty = parseInt(form.quantity) || 1;
-                    if (prod) {
-                      const newTotal = Math.max(0, prod.price * qty - disc).toFixed(2);
-                      setForm((p) => ({ ...p, discount: dStr, total: newTotal }));
-                      const count = parseInt(form.installments) || 1;
-                      if (form.paymentMode === "recorrente" && count > 0) {
-                        const newInstVal = (parseFloat(newTotal) / count).toFixed(2);
-                        setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: newInstVal }));
-                        setForm((p) => ({ ...p, installmentValue: newInstVal }));
-                      }
-                    } else {
-                      update("discount", dStr);
-                    }
-                  }} placeholder="0,00" />
-                  {(() => {
-                    const prod = products.find((p) => p.id === form.productId);
-                    const qty = parseInt(form.quantity) || 1;
-                    if (!prod) return null;
-                    const base = prod.price * qty;
-                    const disc = parseFloat(form.discount) || 0;
-                    return (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Subtotal: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(base)}
-                        {disc > 0 ? ` − ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(disc)} desconto` : ""}
-                      </p>
-                    );
-                  })()}
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.discount}
+                    onChange={(e) => update("discount", e.target.value)}
+                    placeholder="0,00"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    O desconto é aplicado sobre o valor total da venda.
+                  </p>
+                </div>
+              )}
+              {canAddExtra && extraItems.length > 0 && (
+                <div className="space-y-2">
+                  <div className="border border-border/50 rounded-lg overflow-hidden">
+                    <div className="px-3 py-2 bg-muted/20 text-sm font-medium">
+                      Itens adicionais ({extraItems.length})
+                    </div>
+                    <div className="divide-y divide-border/30">
+                      {extraItems.map((it, idx) => (
+                        <div key={idx} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                          <div className="flex-1 min-w-0">
+                            <p className="truncate font-medium">{it.description}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {it.quantity}x · {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(it.total)}
+                              {it.isAvulsa ? " · avulsa" : ""}
+                            </p>
+                          </div>
+                          <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => removeExtraItem(idx)}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
               {canAddExtra && (
-                <div className="space-y-2">
-                  {extraItems.length > 0 && (
-                    <div className="border border-border/50 rounded-lg overflow-hidden">
-                      <div className="px-3 py-2 bg-muted/20 text-sm font-medium">
-                        Itens adicionais ({extraItems.length})
-                      </div>
-                      <div className="divide-y divide-border/30">
-                        {extraItems.map((it, idx) => (
-                          <div key={idx} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-                            <div className="flex-1 min-w-0">
-                              <p className="truncate font-medium">{it.description}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {it.quantity}x · {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(it.total)}
-                                {it.isAvulsa ? " · avulsa" : ""}
-                              </p>
-                            </div>
-                            <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => removeExtraItem(idx)}>
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="px-3 py-2 bg-muted/20 text-xs text-muted-foreground flex justify-between">
-                        <span>Total geral da venda:</span>
-                        <span className="font-bold text-foreground">
-                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-                            extraItems.reduce((s, it) => s + it.total, 0) + (parseFloat(form.total) || 0)
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  <Button type="button" variant="outline" size="sm" className="w-full" onClick={handleAddExtraItem}>
-                    <Plus className="h-4 w-4 mr-2" /> Adicionar outro produto à venda
-                  </Button>
-                </div>
+                <Button type="button" variant="outline" size="sm" className="w-full" onClick={handleAddExtraItem}>
+                  <Plus className="h-4 w-4 mr-2" /> Adicionar outro produto à venda
+                </Button>
               )}
+              {isVenda && (() => {
+                const mainVal = parseFloat(form.total) || 0;
+                const extrasSum = extraItems.reduce((s, it) => s + it.total, 0);
+                const merchVal = merchEnabled ? (parseFloat(merchValor) || 0) : 0;
+                const disc = parseFloat(form.discount) || 0;
+                const subtotal = mainVal + extrasSum + merchVal;
+                const finalTotal = Math.max(0, subtotal - disc);
+                const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+                return (
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2.5 space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Subtotal</span>
+                      <span>{fmt(subtotal)}</span>
+                    </div>
+                    {disc > 0 && (
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Desconto</span>
+                        <span>− {fmt(disc)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-sm font-bold text-foreground pt-1 border-t border-border/40">
+                      <span>Valor total da venda</span>
+                      <span>{fmt(finalTotal)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
               </>
             )}
 
