@@ -317,6 +317,10 @@ export function StockManager({ readOnly = false }: Props) {
 
           {/* Mobile: lista expansível com descrição completa e detalhes */}
           <div className="sm:hidden space-y-2">
+            <div className="flex items-center justify-between px-3 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+              <span>Descrição</span>
+              <span>Quantidade</span>
+            </div>
             {sortedProducts.map((p) => {
               const threshold = p.suggestedStock && p.suggestedStock > 0 ? p.suggestedStock : 5;
               const out = p.stock <= 0;
