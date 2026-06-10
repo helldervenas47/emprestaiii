@@ -70,6 +70,70 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
   const [merchValor, setMerchValor] = useState("");
   const [merchError, setMerchError] = useState<string | null>(null);
 
+  type ExtraItem = {
+    productId: string;
+    isAvulsa: boolean;
+    description: string;
+    quantity: number;
+    total: number;
+  };
+  const [extraItems, setExtraItems] = useState<ExtraItem[]>([]);
+  const canAddExtra = form.businessType === "venda" && form.paymentMode === "fixa";
+
+  const handleAddExtraItem = async () => {
+    const qty = parseInt(form.quantity) || 1;
+    const totalVal = parseFloat(form.total) || 0;
+    if (!form.productId) {
+      const { toast } = await import("sonner");
+      toast.error('Selecione um produto ou marque como "Venda avulsa" para adicionar.');
+      return;
+    }
+    if (!form.description) {
+      const { toast } = await import("sonner");
+      toast.error("Descrição do item é obrigatória.");
+      return;
+    }
+    if (totalVal <= 0) {
+      const { toast } = await import("sonner");
+      toast.error("Informe um valor maior que zero.");
+      return;
+    }
+    if (!isAvulsa) {
+      const prod = products.find((p) => p.id === form.productId);
+      if (!prod) return;
+      const alreadyQty = extraItems
+        .filter((it) => it.productId === form.productId)
+        .reduce((s, it) => s + it.quantity, 0);
+      if (qty + alreadyQty > prod.stock) {
+        const { toast } = await import("sonner");
+        toast.error(`Estoque insuficiente de "${prod.name}" (disponível: ${prod.stock - alreadyQty}).`);
+        return;
+      }
+    }
+    setExtraItems((prev) => [
+      ...prev,
+      {
+        productId: form.productId,
+        isAvulsa,
+        description: form.description,
+        quantity: qty,
+        total: totalVal,
+      },
+    ]);
+    setForm((p) => ({
+      ...p,
+      productId: "",
+      description: "",
+      quantity: "1",
+      discount: "",
+      total: "",
+    }));
+  };
+
+  const removeExtraItem = (idx: number) => {
+    setExtraItems((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const [installmentRows, setInstallmentRows] = useState<{ date: string; value: string; manualDate?: boolean; manualValue?: boolean }[]>([]);
 
   const isVehicleRental = form.businessType === "aluguel_veiculo";
