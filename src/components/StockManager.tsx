@@ -152,25 +152,25 @@ export function StockManager({ readOnly = false }: Props) {
           <>
           <div className="grid grid-cols-3 gap-2">
             <Card>
-              <CardContent className="p-2 sm:p-3">
-                <div className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Valor total em estoque (venda)</div>
-                <div className="text-sm sm:text-lg font-bold tabular-nums text-emerald-600 truncate">
+              <CardContent className="p-3 sm:p-4 flex flex-col items-center justify-center text-center min-h-[88px] sm:min-h-[104px]">
+                <div className="text-[11px] sm:text-xs text-muted-foreground leading-tight">Valor total em estoque (venda)</div>
+                <div className="text-base sm:text-xl font-bold tabular-nums text-emerald-600 truncate mt-1">
                   {fmtBRL(activeProducts.reduce((s, p) => s + (p.price || 0) * Math.max(0, p.stock || 0), 0))}
                 </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-2 sm:p-3">
-                <div className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Valor total em estoque (custo)</div>
-                <div className="text-sm sm:text-lg font-bold tabular-nums truncate">
+              <CardContent className="p-3 sm:p-4 flex flex-col items-center justify-center text-center min-h-[88px] sm:min-h-[104px]">
+                <div className="text-[11px] sm:text-xs text-muted-foreground leading-tight">Valor total em estoque (custo)</div>
+                <div className="text-base sm:text-xl font-bold tabular-nums truncate mt-1">
                   {fmtBRL(activeProducts.reduce((s, p) => s + (p.cost || 0) * Math.max(0, p.stock || 0), 0))}
                 </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-2 sm:p-3">
-                <div className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Unidades em estoque</div>
-                <div className="text-sm sm:text-lg font-bold tabular-nums truncate">
+              <CardContent className="p-3 sm:p-4 flex flex-col items-center justify-center text-center min-h-[88px] sm:min-h-[104px]">
+                <div className="text-[11px] sm:text-xs text-muted-foreground leading-tight">Unidades em estoque</div>
+                <div className="text-base sm:text-xl font-bold tabular-nums truncate mt-1">
                   {activeProducts.reduce((s, p) => s + Math.max(0, p.stock || 0), 0)}
                 </div>
               </CardContent>
