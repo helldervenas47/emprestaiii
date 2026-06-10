@@ -82,16 +82,15 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
       for (const i of incomes) {
         if (i.source === "Ajuste manual") continue;
         if (!i.receivedDate.startsWith(monthKey)) continue;
-        // Inclui recebidas no mês e pendentes/vencidas com data no mês.
-        const isPending = i.status === "pending" || i.status === "overdue";
-        if (i.status !== "received" && !isPending) continue;
+        // Apenas receitas efetivamente recebidas no mês.
+        if (i.status !== "received") continue;
         out.push({
           id: i.id,
           date: i.receivedDate,
           title: i.description,
           subtitle: i.category || i.source || undefined,
           amount: i.amount,
-          status: i.status === "received" ? "received" : "pending",
+          status: "received",
         });
       }
       // Vendas recebidas no mês — mesma lógica do card "Entradas mês".
