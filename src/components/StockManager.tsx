@@ -314,6 +314,128 @@ export function StockManager({ readOnly = false }: Props) {
               </tbody>
             </table>
           </div>
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile: lista expansível com descrição completa e detalhes */}
+          <div className="sm:hidden space-y-2">
+            {sortedProducts.map((p) => {
+              const threshold = p.suggestedStock && p.suggestedStock > 0 ? p.suggestedStock : 5;
+              const out = p.stock <= 0;
+              const low = p.stock > 0 && p.stock <= threshold;
+              const hasMargin = p.cost > 0 && p.price > 0;
+              const marginPct = hasMargin ? ((p.price - p.cost) / p.cost) * 100 : null;
+              const expanded = expandedIds.has(p.id);
+              const lastMov = lastMovementByProduct.get(p.id);
+              const meta = lastMov ? movementMeta[lastMov.type] : null;
+              return (
+                <div key={p.id} className="rounded-xl border border-border/40 bg-card overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => toggleExpanded(p.id)}
+                    className="w-full text-left p-3 flex items-start gap-2 active:bg-muted/40 transition-colors"
+                    aria-expanded={expanded}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-sm break-words">{p.name}</span>
+                        {out ? (
+                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                            <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />Sem estoque
+                          </Badge>
+                        ) : low ? (
+                          <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] px-1.5 py-0">Estoque baixo</Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Em estoque</Badge>
+                        )}
+                      </div>
+                      {p.description && (
+                        <p className={`text-xs text-muted-foreground mt-1 break-words ${expanded ? "" : "line-clamp-3"}`}>
+                          {p.description}
+                        </p>
+                      )}
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                        <span className="font-semibold tabular-nums">{p.stock} un.</span>
+                        <span className="text-emerald-600 tabular-nums">{fmtBRL(p.price)}</span>
+                        {marginPct != null && (
+                          <span className={`tabular-nums ${marginPct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                            {marginPct.toFixed(1)}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 mt-1 transition-transform ${expanded ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {expanded && (
+                    <div className="px-3 pb-3 pt-0 border-t border-border/40 bg-muted/20 animate-fade-in">
+                      <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs mt-3">
+                        <div>
+                          <dt className="text-muted-foreground">Estoque atual</dt>
+                          <dd className="font-semibold tabular-nums">{p.stock}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Estoque mínimo</dt>
+                          <dd className="font-semibold tabular-nums">{p.suggestedStock > 0 ? p.suggestedStock : "—"}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Preço de venda</dt>
+                          <dd className="font-semibold tabular-nums text-emerald-600">{fmtBRL(p.price)}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Custo médio</dt>
+                          <dd className="font-semibold tabular-nums">{p.cost > 0 ? fmtBRL(p.cost) : "—"}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Última compra</dt>
+                          <dd className="font-semibold tabular-nums">{p.lastPurchasePrice > 0 ? fmtBRL(p.lastPurchasePrice) : "—"}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Margem</dt>
+                          <dd className={`font-semibold tabular-nums ${marginPct == null ? "" : marginPct >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                            {marginPct == null ? "—" : `${marginPct.toFixed(1)}%`}
+                          </dd>
+                        </div>
+                        <div className="col-span-2">
+                          <dt className="text-muted-foreground">Última movimentação</dt>
+                          <dd className="font-medium">
+                            {lastMov && meta
+                              ? `${meta.label} ${meta.sign}${Math.abs(lastMov.quantity)} · ${format(new Date(lastMov.createdAt), "dd/MM/yyyy HH:mm", { locale: ptBR })}`
+                              : "—"}
+                          </dd>
+                        </div>
+                        <div className="col-span-2">
+                          <dt className="text-muted-foreground">Data de cadastro</dt>
+                          <dd className="font-medium">
+                            {p.createdAt ? format(new Date(p.createdAt), "dd/MM/yyyy", { locale: ptBR }) : "—"}
+                          </dd>
+                        </div>
+                        <div className="col-span-2">
+                          <dt className="text-muted-foreground">Status</dt>
+                          <dd className="font-medium">{p.active !== false ? "Ativo" : "Inativo"}</dd>
+                        </div>
+                      </dl>
+                      {!readOnly && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setEditingProduct(p); }}>
+                            <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); updateProduct(p.id, { active: !(p.active !== false) }); }}>
+                            {p.active !== false ? <><EyeOff className="h-3.5 w-3.5 mr-1.5" /> Inativar</> : <><Eye className="h-3.5 w-3.5 mr-1.5" /> Ativar</>}
+                          </Button>
+                          <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingProduct(p); }}>
+                            <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Excluir
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
           </>
         )}
       </TabsContent>
