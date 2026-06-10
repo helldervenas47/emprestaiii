@@ -59,6 +59,13 @@ export function StockManager({ readOnly = false }: Props) {
   const [filterProduct, setFilterProduct] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("name-asc");
   const [statusFilter, setStatusFilter] = useState<"ativos" | "inativos" | "todos">("ativos");
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const toggleExpanded = (id: string) =>
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
 
   const sortedProducts = useMemo(() => {
     const arr = products.filter((p) => {
