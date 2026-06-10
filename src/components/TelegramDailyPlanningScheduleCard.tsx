@@ -26,8 +26,15 @@ export function TelegramDailyPlanningScheduleCard() {
   const handleSendNow = async () => {
     setSendingNow(true);
     try {
-      const { error } = await supabase.functions.invoke("daily-planning-summary", { body: {} });
+      const { data, error } = await supabase.functions.invoke("daily-planning-summary", { body: {} });
       if (error) throw error;
+      if (!data?.sent) {
+        const reason = data?.reason === "no_reports_link"
+          ? "Conecte o Bot de Relatórios novamente e tente enviar."
+          : "O backend respondeu, mas o Telegram não confirmou o envio.";
+        toast.warning("Nada enviado", { description: reason });
+        return;
+      }
       toast.success("Relatório enviado para o Telegram!");
     } catch (e: any) {
       toast.error(e.message || "Erro ao enviar relatório");

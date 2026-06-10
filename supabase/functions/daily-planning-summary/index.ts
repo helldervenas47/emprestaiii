@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { getExternalAdmin, getExternalAnonKey, getExternalSupabaseUrl } from "../_shared/external-supabase.ts";
 import { dueSlotKeys } from "../_shared/schedule.ts";
 
 const GATEWAY_URL = "https://api.telegram.org";
@@ -52,10 +52,10 @@ async function buildAndSend(
   brandName: string,
   titleLabel = "Planejamento do Dia",
   opts?: { returnText?: boolean },
-): Promise<{ sent: boolean; text?: string }> {
+): Promise<{ sent: boolean; text?: string; reason?: string }> {
   // Resolve report bot chat (not required when only returning text).
   const link = await getReportsLinkForUser(admin, userId);
-  if (!link && !opts?.returnText) return { sent: false };
+  if (!link && !opts?.returnText) return { sent: false, reason: "no_reports_link" };
 
   const chatId = link ? Number(link.chat_id) : 0;
   const day = Number(date.slice(8, 10));
@@ -306,14 +306,14 @@ async function buildAndSend(
   const text = lines.join("\n");
   if (opts?.returnText) return { sent: false, text };
   const sendRes = await sendReportsMessage(admin, userId, chatId, text);
-  return { sent: sendRes.sent, text };
+  return { sent: sendRes.sent, text, reason: sendRes.reason };
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const SUPABASE_URL = getExternalSupabaseUrl();
+  const SUPABASE_ANON_KEY = getExternalAnonKey();
 
   const admin = getExternalAdmin();
 
@@ -332,7 +332,7 @@ Deno.serve(async (req) => {
   const token = authHeader.replace(/^Bearer\s+/i, "");
 
   if (token && req.method === "POST") {
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: `Bearer ${token}` } },
     });
     const { data: { user }, error: userErr } = await userClient.auth.getUser();
@@ -357,7 +357,7 @@ Deno.serve(async (req) => {
         manualLabel = "Planejamento do Dia";
       }
       const res = await buildAndSend(admin, user.id, manualTarget, brandName, manualLabel, { returnText });
-      return new Response(JSON.stringify({ ok: true, sent: res.sent ? 1 : 0, date: manualTarget, text: res.text }), {
+      return new Response(JSON.stringify({ ok: true, sent: res.sent ? 1 : 0, reason: res.reason, date: manualTarget, text: res.text }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -366,7 +366,7 @@ Deno.serve(async (req) => {
   // Forced via query string (also requires auth match)
   if (queryUserId) {
     if (!token) return new Response(JSON.stringify({ error: "Auth required" }), { status: 401, headers: corsHeaders });
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: `Bearer ${token}` } },
     });
     const { data: { user }, error: userErr } = await userClient.auth.getUser();
@@ -375,7 +375,7 @@ Deno.serve(async (req) => {
 
     const returnText = url.searchParams.get("return_text") === "1";
     const res = await buildAndSend(admin, queryUserId, tomorrow, brandName, "Planejamento de Amanhã", { returnText });
-    return new Response(JSON.stringify({ ok: true, sent: res.sent ? 1 : 0, text: res.text }), {
+    return new Response(JSON.stringify({ ok: true, sent: res.sent ? 1 : 0, reason: res.reason, text: res.text }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
