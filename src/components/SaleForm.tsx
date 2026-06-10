@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 import { encodeNotesWithMerchandise } from "@/lib/saleMerchandise";
 import { ClientCombobox } from "@/components/ui/client-combobox";
 import { SaleCategoryPicker } from "@/components/SaleCategoryPicker";
+import { supabase } from "@/integrations/supabase/userClient";
+import { useAuth } from "@/hooks/useAuth";
 
 
 const businessTypeLabels: Record<BusinessType, string> = {
