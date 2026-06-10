@@ -186,6 +186,7 @@ export function IncomeList({ readOnly }: Props) {
         onOpenIncomes={() => { setSheetInitialFilter(undefined); setSheetType("incomes"); }}
         onOpenExpenses={() => { setSheetInitialFilter(undefined); setSheetType("expenses"); }}
         onOpenPendingIncomes={() => { setSheetInitialFilter("pending"); setSheetType("incomes"); }}
+        onOpenPendingExpenses={() => { setSheetInitialFilter("pending"); setSheetType("expenses"); }}
         onOpenStatement={() => setStatementOpen(true)}
         statementLeftSlot={!readOnly ? <IncomeTelegramBotButton /> : undefined}
         onAdjust={async (delta) => {
