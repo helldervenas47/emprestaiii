@@ -11,18 +11,8 @@ import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
 import { generateTelegramLinkCode, invokeUserFunction, normalizeTelegramBotCode } from "@/lib/telegramLinkCode";
 
 
-const TONE_OPTIONS: { value: InsightTone; label: string; hint: string }[] = [
-  { value: "balanced", label: "⚖️ Equilibrado", hint: "Profissional e acolhedor" },
-  { value: "strict", label: "🎯 Rigoroso", hint: "Direto, sem rodeios" },
-  { value: "motivational", label: "🚀 Motivacional", hint: "Encorajador e positivo" },
-  { value: "technical", label: "📊 Técnico", hint: "Analítico, numérico" },
-  { value: "friendly", label: "😊 Amigável", hint: "Informal, como um amigo" },
-];
-
 export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<string, never>>(function TelegramReportsConnectCard(_, ref) {
   const { linked, loading, disconnect, refresh } = useTelegramReportsLink();
-  const { prefs, loading: prefsLoading, save } = usePersonalInsightsTelegramPrefs();
-  const { prefs: incomesExpensesPrefs, save: saveIncomesExpenses } = useIncomesExpensesTelegramPrefs();
   const [code, setCode] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [botCodeInput, setBotCodeInput] = useState("");
