@@ -496,7 +496,7 @@ export function StockManager({ readOnly = false }: Props) {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className={`font-bold tabular-nums ${meta.sign === "+" ? "text-emerald-600" : "text-rose-600"}`}>
+                      <div className="font-bold tabular-nums text-foreground">
                         {meta.sign}{Math.abs(m.quantity)}
                       </div>
                       {m.totalValue != null && (
