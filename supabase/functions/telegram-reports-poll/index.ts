@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { getExternalAdmin, getExternalServiceRoleKey } from "../_shared/external-supabase.ts";
+
 
 const MAX_RUNTIME_MS = 55_000;
 const MIN_REMAINING_MS = 5_000;
@@ -187,7 +188,7 @@ async function processBot(
           await tgSend(bot.token, chatId, "✅ *Bot de Relatórios conectado!*\n\nVocê receberá os relatórios nos horários configurados.");
         }
       } else if (codeMatch) {
-        const botCode = await generateChatLinkCode(chatId, "reports", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+        const botCode = await generateChatLinkCode(chatId, "reports", getExternalServiceRoleKey());
         await supabase.from("telegram_messages")
           .update({ raw_update: { ...u, _system_bot_id: bot.id, _bot_link_code: botCode, _bot_link_kind: "reports" } })
           .eq("bot_id", bot.id)

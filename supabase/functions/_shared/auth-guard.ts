@@ -1,7 +1,7 @@
 // Shared auth helpers for edge functions that mix cron + manual runs.
 // - validateCronSecret: checks an X-Cron-Secret header against app_internal_config.cron_secret
 // - validateUserOwner: validates a JWT and confirms get_data_owner_id(auth.uid()) === requestedOwnerId
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getExternalUserClient } from "./external-supabase.ts";
 
 export async function validateCronSecret(
   admin: any,
@@ -29,15 +29,12 @@ export async function validateUserOwner(
   const token = auth.replace(/^Bearer\s+/i, "");
   if (!token) return { ok: false, reason: "missing_token" };
 
-  const userClient = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } },
-  );
-  const { data: userRes, error } = await userClient.auth.getUser();
+  const userClient = getExternalUserClient();
+  const { data: userRes, error } = await userClient.auth.getUser(token);
   if (error || !userRes?.user) return { ok: false, reason: "invalid_token" };
 
   const userId = userRes.user.id;
+
   const { data: ownerRow } = await admin.rpc("get_data_owner_id", { _user_id: userId });
   const resolvedOwner = (ownerRow as string | null) || userId;
   if (resolvedOwner !== requestedOwnerId) {

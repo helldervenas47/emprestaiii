@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { getExternalAdmin, getExternalSupabaseUrl, getExternalAnonKey } from "../_shared/external-supabase.ts";
+
 import { dueSlotKeys } from "../_shared/schedule.ts";
 
 const GATEWAY_URL = "https://api.telegram.org";
@@ -279,9 +280,10 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: "Auth required" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      const userClient = createClient(getExternalSupabaseUrl(), getExternalAnonKey(), {
         global: { headers: { Authorization: `Bearer ${token}` } },
       });
+
       const { data: authData, error: userError } = await userClient.auth.getUser();
       if (userError || !authData.user) {
         return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });

@@ -87,9 +87,10 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
 
     const chatId = Number(message.chat_id);
     const validCodes = [
-      await generateChatLinkCode(chatId, kind, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!),
-      await generateChatLinkCode(chatId, kind, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, Date.now() - 15 * 60 * 1000),
+      await generateChatLinkCode(chatId, kind, getExternalServiceRoleKey()),
+      await generateChatLinkCode(chatId, kind, getExternalServiceRoleKey(), Date.now() - 15 * 60 * 1000),
     ];
+
     if (validCodes.some((code) => codesEquivalent(code, botCode))) {
       matched = message;
       break;

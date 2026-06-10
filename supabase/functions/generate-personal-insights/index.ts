@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getExternalAdmin, getExternalUserClient } from "../_shared/external-supabase.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -242,9 +244,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, serviceKey);
+    const supabase = getExternalAdmin();
 
     let ownerId: string | null = null;
     let force = false;
@@ -253,14 +253,10 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace("Bearer ", "");
     
-    // External Supabase logic
-    const externalUrl = "https://syyxnqzxqabeuqbuptkh.supabase.co";
-    const externalKey = Deno.env.get("SUPABASE_ANON_KEY") || serviceKey;
-    const externalSupabase = createClient(externalUrl, externalKey);
-
     if (token) {
       // Validate token against the EXTERNAL Supabase where users are actually authenticated
-      const { data: userData } = await externalSupabase.auth.getUser(token);
+      const userClient = getExternalUserClient();
+      const { data: userData } = await userClient.auth.getUser(token);
       if (userData?.user) {
         const { data: ownerRow } = await supabase
           .from("user_owner")
@@ -273,6 +269,7 @@ Deno.serve(async (req) => {
     if (!ownerId && body.user_id) {
       ownerId = body.user_id;
     }
+
     if (!ownerId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,

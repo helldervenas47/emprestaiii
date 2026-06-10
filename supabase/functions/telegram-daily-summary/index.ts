@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { getExternalAdmin, getExternalSupabaseUrl, getExternalAnonKey } from "../_shared/external-supabase.ts";
+
 import { isTimeDueToday } from "../_shared/schedule.ts";
 import { buildTextReportSVG, svgToPng, tgSendPhoto, buildCaptionFromLines } from "../_shared/renderReportImage.ts";
 import { getImageDeliveryPrefs, sendReportsMessage, sendReportsPhoto, getReportsLinkForUser } from "../_shared/reports-bot.ts";
@@ -65,9 +66,10 @@ Deno.serve(async (req) => {
     if (!token) {
       return new Response(JSON.stringify({ error: "Auth required" }), { status: 401, headers: corsHeaders });
     }
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    const userClient = createClient(getExternalSupabaseUrl(), getExternalAnonKey(), {
       global: { headers: { Authorization: `Bearer ${token}` } },
     });
+
     const { data: { user }, error: userErr } = await userClient.auth.getUser();
     if (userErr || !user) {
       return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
