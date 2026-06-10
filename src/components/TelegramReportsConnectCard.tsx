@@ -4,14 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Copy, CheckCircle2, Unlink, Sparkles, Clock, MessageSquare, BarChart3 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Send, Copy, CheckCircle2, Unlink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
-import { usePersonalInsightsTelegramPrefs, type InsightTone } from "@/hooks/usePersonalInsightsTelegramPrefs";
-import { useIncomesExpensesTelegramPrefs } from "@/hooks/useIncomesExpensesTelegramPrefs";
 import { generateTelegramLinkCode, invokeUserFunction, normalizeTelegramBotCode } from "@/lib/telegramLinkCode";
 
 
