@@ -207,6 +207,7 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
           subtitle: e.category || undefined,
           amount: amt,
           status: isOverdue ? "overdue" : "due",
+          payable: { kind: "expense", refId: e.id },
         });
       }
       for (const inv of cardInvoicesPendingMonth) {
