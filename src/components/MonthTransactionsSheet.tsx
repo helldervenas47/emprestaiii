@@ -7,9 +7,10 @@ import { Expense, Sale } from "@/types/loan";
 import { ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertTriangle, Repeat } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { isCreditCardExpense, listPaidInvoicesInRange } from "@/lib/creditCardInvoiceTotals";
+import { isCreditCardExpense, listPaidInvoicesInRange, getCardInvoiceTotalsForMonth } from "@/lib/creditCardInvoiceTotals";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
+import { isPiggyExpense } from "@/hooks/usePiggyBanks";
 
 function fmt(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -61,7 +62,7 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
   const { openings } = useCreditCardOpenings();
 
   useEffect(() => {
-    if (open) setFilter(initialFilter ?? "all");
+    if (open) setFilter(initialFilter === "pending" ? "all" : (initialFilter ?? "all"));
   }, [open, initialFilter]);
 
   // Faturas de cartão pagas dentro do mês selecionado — derivadas das despesas
@@ -76,9 +77,40 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
     return listPaidInvoicesInRange(expenses, cards, openings, fromISO, toISO);
   }, [type, monthKey, expenses, cards, openings]);
 
+  const pendingMode = initialFilter === "pending";
+
+  // Faturas de cartão pendentes no mês — usado no modo "Despesas pendentes".
+  const cardInvoicesPendingMonth = useMemo(() => {
+    if (type !== "expenses" || !pendingMode) return [] as Array<{ card: any; cycleKey: string; total: number; dueDate: string }>;
+    const [yy, mm] = monthKey.split("-").map(Number);
+    return getCardInvoiceTotalsForMonth(expenses, cards, openings, monthKey)
+      .filter((x) => !x.hasPaidOverride && !x.paid && x.total > 0)
+      .map((x) => {
+        const dueDay = Math.min(x.card.dueDay || 1, new Date(yy, mm, 0).getDate());
+        const dueDate = `${monthKey}-${String(dueDay).padStart(2, "0")}`;
+        return { card: x.card, cycleKey: monthKey, total: Math.max(0, x.total - x.paidTotal), dueDate };
+      });
+  }, [type, pendingMode, expenses, cards, openings, monthKey]);
+
   const rows = useMemo<Row[]>(() => {
     if (type === "incomes") {
       const out: Row[] = [];
+      if (pendingMode) {
+        for (const i of incomes) {
+          if (i.source === "Ajuste manual") continue;
+          if (!i.receivedDate.startsWith(monthKey)) continue;
+          if (i.status !== "pending" && i.status !== "overdue") continue;
+          out.push({
+            id: i.id,
+            date: i.receivedDate,
+            title: i.description,
+            subtitle: i.category || i.source || undefined,
+            amount: i.amount,
+            status: i.status === "overdue" ? "overdue" : "pending",
+          });
+        }
+        return out;
+      }
       for (const i of incomes) {
         if (i.source === "Ajuste manual") continue;
         if (!i.receivedDate.startsWith(monthKey)) continue;
@@ -137,6 +169,53 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
       }
       return out;
     }
+    if (pendingMode) {
+      // Despesas pessoais pendentes que ocorrem no mês (mesma lógica do card).
+      const occursInMonth = (e: Expense) => {
+        const isRec = e.type === "recorrente" && !!e.installments && e.installments > 1;
+        if (!isRec) return (e.dueDate || "").startsWith(monthKey);
+        const [curY2, curM2] = monthKey.split("-").map(Number);
+        const sel = curY2 * 12 + curM2;
+        const [dY, dM] = (e.dueDate || "0-0").split("-").map(Number);
+        const start = dY * 12 + dM;
+        const end = start + (e.installments! - 1);
+        return sel >= start && sel <= end;
+      };
+      const out: Row[] = [];
+      for (const e of expenses) {
+        if ((e.scope ?? "business") !== "personal") continue;
+        if (e.paid) continue;
+        if (isPiggyExpense(e.notes)) continue;
+        if (isCreditCardExpense(e)) continue;
+        if (!occursInMonth(e)) continue;
+        const amt = e.type === "recorrente" && e.installments && e.installments > 1
+          ? e.amount / e.installments
+          : e.amount;
+        const today = new Date().toISOString().slice(0, 10);
+        const isOverdue = (e.dueDate || "") < today;
+        out.push({
+          id: e.id,
+          date: e.dueDate || "",
+          title: e.description,
+          subtitle: e.category || undefined,
+          amount: amt,
+          status: isOverdue ? "overdue" : "due",
+        });
+      }
+      for (const inv of cardInvoicesPendingMonth) {
+        const today = new Date().toISOString().slice(0, 10);
+        const isOverdue = (inv.dueDate || "") < today;
+        out.push({
+          id: `card-invoice-pending-${inv.card.id}-${inv.cycleKey}`,
+          date: inv.dueDate,
+          title: `Fatura ${inv.card.nickname || inv.card.bank || "Cartão"}`,
+          subtitle: `Ciclo ${inv.cycleKey}`,
+          amount: inv.total,
+          status: isOverdue ? "overdue" : "due",
+        });
+      }
+      return out;
+    }
     const exp: Row[] = expenses
       .filter((e) => {
         if ((e.scope ?? "business") !== "personal") return false;
@@ -171,7 +250,7 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
       });
     }
     return exp;
-  }, [type, incomes, expenses, sales, monthKey, paidInvoices]);
+  }, [type, incomes, expenses, sales, monthKey, paidInvoices, pendingMode, cardInvoicesPendingMonth]);
 
   const filtered = useMemo(() => {
     let arr = rows;
@@ -198,7 +277,9 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
             {isIncome
               ? <ArrowUpRight className="h-5 w-5 text-emerald-500" />
               : <ArrowDownRight className="h-5 w-5 text-rose-500" />}
-            {isIncome ? "Entradas do mês" : "Saídas do mês"}
+            {pendingMode
+              ? (isIncome ? "Receitas pendentes do mês" : "Despesas pendentes do mês")
+              : (isIncome ? "Entradas do mês" : "Saídas do mês")}
           </SheetTitle>
           <SheetDescription>
             {filtered.length} lançamento{filtered.length === 1 ? "" : "s"} · Total{" "}
@@ -213,7 +294,12 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
             <SelectTrigger className="h-9"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos status</SelectItem>
-              {isIncome ? (
+              {pendingMode ? (
+                <>
+                  <SelectItem value={isIncome ? "pending" : "due"}>A vencer</SelectItem>
+                  <SelectItem value="overdue">Atrasadas</SelectItem>
+                </>
+              ) : isIncome ? (
                 <SelectItem value="received">Recebidas</SelectItem>
               ) : (
                 <>
