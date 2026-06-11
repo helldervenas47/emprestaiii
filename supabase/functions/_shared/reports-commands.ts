@@ -78,8 +78,19 @@ export function renderMenu(brand = "Relatórios"): string {
     "",
     "*Operação*",
     "/recebimentos\\_hoje — Pagamentos do dia",
+    "/cobranca\\_hoje — Lista para cobrar agora",
+    "/vencimentos\\_semana — Parcelas dos próximos 7 dias",
     "/resumo\\_diario — Movimentação do dia",
     "/resumo\\_mensal — Fechamento do mês",
+    "",
+    "*Carteira & crescimento*",
+    "/top\\_clientes — Melhores e piores pagadores",
+    "/novos\\_contratos — Contratos do mês",
+    "/projecao\\_mes — Projeção de caixa do mês",
+    "/alertas — Sinais de risco",
+    "",
+    "*Consulta*",
+    "/historico\\_cliente <nome> — Ficha de um cliente",
   ].join("\n");
 }
 
