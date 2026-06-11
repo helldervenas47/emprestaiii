@@ -15,6 +15,12 @@ function getFirstPendingDueDate(loan: Loan, schedules: InstallmentSchedule[]) {
 }
 
 export function getBaseRemainingAmount(loan: Loan, payments: Payment[], schedules: InstallmentSchedule[]) {
+  // Fonte de verdade alinhada ao card por contrato (LoanList): prioriza loan.remainingAmount
+  // quando preenchido. Cai para a soma de schedules pendentes apenas como fallback.
+  if (loan.remainingAmount != null && loan.remainingAmount > 0) {
+    return loan.remainingAmount;
+  }
+
   const unpaidSchedules = schedules.filter(
     (schedule) => schedule.loanId === loan.id && schedule.installmentNumber > loan.paidInstallments,
   );
@@ -24,10 +30,6 @@ export function getBaseRemainingAmount(loan: Loan, payments: Payment[], schedule
     return unpaidSchedulesTotal;
   }
 
-  if (loan.remainingAmount != null && loan.remainingAmount > 0) {
-    return loan.remainingAmount;
-  }
-
   const totalExpected = calculateTotalWithInterest(loan.amount, loan.interestRate);
   const totalPaid = payments
     .filter((payment) => payment.loanId === loan.id)
@@ -35,6 +37,7 @@ export function getBaseRemainingAmount(loan: Loan, payments: Payment[], schedule
 
   return Math.max(0, totalExpected - totalPaid);
 }
+
 
 export function getLoanLateFees(loan: Loan, payments: Payment[], schedules: InstallmentSchedule[]) {
   if (loan.status === "paid") {
