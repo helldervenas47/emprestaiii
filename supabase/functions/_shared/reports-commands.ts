@@ -640,8 +640,7 @@ async function novosContratos(ctx: Ctx, snap: Snapshot): Promise<string> {
   ];
   if (newLoans.length > 0) {
     lines.push("", "*Contratos:*");
-    for (const l of newLoans.slice(0, 15)) lines.push(`• ${l.borrower_name || "—"} — ${fmtBRL(num(l.amount))} (${num(l.installments) || 1}x)`);
-    if (newLoans.length > 15) lines.push(`_… e mais ${newLoans.length - 15}._`);
+    for (const l of newLoans) lines.push(`• ${l.borrower_name || "—"} — ${fmtBRL(num(l.amount))} (${num(l.installments) || 1}x)`);
   }
   return lines.join("\n");
 }
