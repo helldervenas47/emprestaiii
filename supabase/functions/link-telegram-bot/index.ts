@@ -2,8 +2,8 @@
 // Fluxos aceitos:
 // 1) /code no bot -> usuário cola o código alfanumérico no app.
 // 2) código numérico do app -> usuário enviou /start CODE ao bot.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getReportsBotId } from "../_shared/reports-bot.ts";
+import { getExternalAdmin, getExternalServiceRoleKey, getExternalUserClient } from "../_shared/external-supabase.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -140,14 +140,11 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
 
   if (kind === "reports") {
     const linkPayload = { user_id: userId, chat_id: chatId, bot_id: targetBotId };
-    if (targetBotId) {
-      const { error: delErr } = await admin
-        .from("telegram_reports_links")
-        .delete()
-        .eq("bot_id", targetBotId)
-        .or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
-      if (delErr && delErr.code !== "42P01" && delErr.code !== "PGRST205") return json({ error: delErr.message }, 500);
-    }
+    const { error: delErr } = await admin
+      .from("telegram_reports_links")
+      .delete()
+      .or(`chat_id.eq.${chatId},user_id.eq.${userId}`);
+    if (delErr && delErr.code !== "42P01" && delErr.code !== "PGRST205") return json({ error: delErr.message }, 500);
     const { error: repInsErr } = await admin.from("telegram_reports_links").insert(linkPayload);
     if (!repInsErr) {
       if (matched.legacy_id) await admin.from("telegram_bots").delete().eq("id", matched.legacy_id);
@@ -213,8 +210,6 @@ Deno.serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    const { getExternalAdmin, getExternalUserClient } = await import("../_shared/external-supabase.ts");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return json({ error: "Unauthorized" }, 401);
