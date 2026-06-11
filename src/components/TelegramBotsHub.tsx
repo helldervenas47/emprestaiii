@@ -6,6 +6,7 @@ import { TelegramAccumulatedDelinquencyScheduleCard } from "@/components/Telegra
 import { TelegramDailyPlanningScheduleCard } from "@/components/TelegramDailyPlanningScheduleCard";
 import { TelegramIncomesExpensesScheduleCard } from "@/components/TelegramIncomesExpensesScheduleCard";
 import { TelegramManagerWeeklyCard } from "@/components/TelegramManagerWeeklyCard";
+import { TelegramWeeklyVencimentosCard } from "@/components/TelegramWeeklyVencimentosCard";
 
 
 export function TelegramBotsHub() {
@@ -37,6 +38,9 @@ export function TelegramBotsHub() {
 
       {/* 4. Receitas e Despesas (aba) */}
       <TelegramIncomesExpensesScheduleCard />
+
+      {/* 5. Vencimentos da semana (segundas-feiras) */}
+      <TelegramWeeklyVencimentosCard />
 
       {/* 4. Resumo por gerente */}
       <Card no3d>

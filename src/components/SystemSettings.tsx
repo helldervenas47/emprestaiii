@@ -8,7 +8,6 @@ import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { ThemeSettingsCard } from "@/components/ThemeSettingsCard";
 import { TelegramImageDeliveryCard } from "@/components/TelegramImageDeliveryCard";
-import { TelegramWeeklyVencimentosCard } from "@/components/TelegramWeeklyVencimentosCard";
 
 const UserManagement = lazy(() => import("@/components/UserManagement").then(m => ({ default: m.UserManagement })));
 const BrandingSettings = lazy(() => import("@/components/BrandingSettings").then(m => ({ default: m.BrandingSettings })));
@@ -88,8 +87,6 @@ export function SystemSettings() {
             </Suspense>
 
             <TelegramImageDeliveryCard />
-
-            <TelegramWeeklyVencimentosCard />
           </TabsContent>
         )}
 
