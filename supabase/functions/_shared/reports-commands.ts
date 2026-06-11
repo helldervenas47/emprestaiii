@@ -48,7 +48,7 @@ export const REPORT_COMMANDS = new Set([
   "emprestimos_atrasados", "inadimplencia",
   "resumo_diario", "resumo_mensal",
   "top_clientes", "vencimentos_semana", "projecao_mes",
-  "novos_contratos", "cobranca_hoje", "historico_cliente", "alertas",
+  "novos_contratos", "historico_cliente", "alertas",
 ]);
 
 export function parseReportCommand(text: string): string | null {
@@ -78,7 +78,7 @@ export function renderMenu(brand = "Relatórios"): string {
     "",
     "*Operação*",
     "/recebimentos\\_hoje — Pagamentos do dia",
-    "/cobranca\\_hoje — Lista para cobrar agora",
+    
     "/vencimentos\\_semana — Parcelas dos próximos 7 dias",
     "/resumo\\_diario — Movimentação do dia",
     "/resumo\\_mensal — Fechamento do mês",
@@ -768,7 +768,7 @@ export async function runReportCommand(supabase: any, userId: string, command: s
     case "vencimentos_semana": return vencimentosSemana(ctx, snap);
     case "projecao_mes": return projecaoMes(ctx, snap);
     case "novos_contratos": return novosContratos(ctx, snap);
-    case "cobranca_hoje": return cobrancaHoje(ctx, snap);
+    
     case "historico_cliente": return historicoCliente(ctx, snap, arg);
     case "alertas": return alertas(ctx, snap);
     default: return renderMenu();
