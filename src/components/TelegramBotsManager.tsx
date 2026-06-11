@@ -26,6 +26,7 @@ interface ConnectedLink {
   label: string | null;
   created_at: string;
   kind: "expenses" | "reports";
+  source: "telegram_links" | "telegram_reports_links";
 }
 
 interface BotRow {
@@ -79,23 +80,41 @@ export function TelegramBotsManager() {
 
   const loadConnected = async () => {
     setLoadingConnected(true);
-    // Both expenses and reports links live in telegram_links, differentiated by bot purpose.
-    const { data } = await supabase
-      .from("telegram_links" as any)
-      .select("id, chat_id, label, created_at, bot_id, system_telegram_bots(purpose)");
-    const items: ConnectedLink[] = ((data as any[]) ?? []).map((r) => ({
+    const [{ data: legacyLinks }, { data: reportLinks, error: reportLinksError }] = await Promise.all([
+      supabase
+        .from("telegram_links" as any)
+        .select("id, chat_id, label, created_at, bot_id, system_telegram_bots(purpose)"),
+      supabase
+        .from("telegram_reports_links" as any)
+        .select("id, chat_id, label, created_at, bot_id")
+        .order("created_at", { ascending: false }),
+    ]);
+    if (reportLinksError && reportLinksError.code !== "42P01" && reportLinksError.code !== "PGRST205") {
+      toast.error("Erro ao carregar bot de relatórios", { description: reportLinksError.message });
+    }
+    const legacyItems: ConnectedLink[] = ((legacyLinks as any[]) ?? []).map((r) => ({
       id: r.id,
       chat_id: r.chat_id,
       label: r.label,
       created_at: r.created_at,
       kind: (r.system_telegram_bots?.purpose === "reports" ? "reports" : "expenses") as "reports" | "expenses",
+      source: "telegram_links",
     }));
-    setConnected(items);
+    const dedicatedReports: ConnectedLink[] = ((reportLinks as any[]) ?? []).map((r) => ({
+      id: r.id,
+      chat_id: r.chat_id,
+      label: r.label,
+      created_at: r.created_at,
+      kind: "reports",
+      source: "telegram_reports_links",
+    }));
+    setConnected([...dedicatedReports, ...legacyItems]);
     setLoadingConnected(false);
   };
 
   const disconnectLink = async (link: ConnectedLink) => {
-    const { error } = await supabase.from("telegram_links" as any).delete().eq("id", link.id);
+    const table = link.source === "telegram_reports_links" ? "telegram_reports_links" : "telegram_links";
+    const { error } = await supabase.from(table as any).delete().eq("id", link.id);
     if (error) toast.error("Erro ao desconectar", { description: error.message });
     else { toast.success("Bot desconectado"); loadConnected(); }
   };
