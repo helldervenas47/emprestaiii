@@ -343,7 +343,7 @@ async function snapshot(ctx: Ctx): Promise<Snapshot> {
     return sum + Math.round((total + lateFees + interestPaymentsReceived) * 100) / 100;
   }, 0);
   const pendingReceivable = active.reduce((sum, loan) => sum + num(loan.remaining_amount), 0);
-  const estimatedProfit = totalToReceive - totalLent;
+  const estimatedProfit = pendingReceivable - totalLent;
   const overdueLoans = loans.filter((loan) => loan.status === "overdue" && loan.due_date < ctx.today).length;
 
   return { loans, installments, payments, clients, active, totalLent, totalToReceive, pendingReceivable, estimatedProfit, overdueLoans };
