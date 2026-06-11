@@ -160,11 +160,18 @@ async function processBot(
 
       if (startMatch) {
         const code = startMatch[1];
+        // Look up by code only — the app may have stored a different bot_id
+        // (when multiple purpose=reports rows exist in system_telegram_bots).
         const { data: reportCodeRow, error: reportCodeErr } = await supabase
           .from("telegram_reports_link_codes")
-          .select("id, user_id, expires_at, bot_id").eq("code", code).eq("bot_id", bot.id).maybeSingle();
+          .select("id, user_id, expires_at, bot_id")
+          .eq("code", code)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
         if (reportCodeErr) {
-          await tgSend(bot.token, chatId, "❌ Estrutura de dupla conexão ausente. Peça ao administrador para restaurar as tabelas de relatórios.");
+          console.error(`[reports-poll] code lookup error`, reportCodeErr);
+          await tgSend(bot.token, chatId, "❌ Erro ao validar o código. Tente novamente em instantes.");
           totalProcessed++;
           continue;
         }
