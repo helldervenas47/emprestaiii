@@ -507,7 +507,7 @@ async function kpiGeral(ctx: Ctx, snap: Snapshot): Promise<string> {
   const received = monthPayments.reduce((sum, payment) => sum + num(payment.amount), 0);
   const interest = computeProfitRealized(snap.loans, snap.payments, prefix);
   const defaultRate = computeDefaultRate(ctx, snap, prefix);
-  const avgTicket = snap.active.length > 0 ? snap.totalLent / snap.active.length : 0;
+  const avgTicket = snap.active.length > 0 ? snap.pendingReceivable / snap.active.length : 0;
   const portfolioYield = snap.totalLent > 0 ? (interest / snap.totalLent) * 100 : 0;
   const collectionRate = snap.pendingReceivable + received > 0
     ? (received / (received + snap.pendingReceivable)) * 100
