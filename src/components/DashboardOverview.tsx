@@ -736,8 +736,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
     const allPaymentsForActive = payments.filter((p) => activeLoans.some((l) => l.id === p.loanId));
 
-    // Capital na rua = principal of ALL active loans
-    const capitalOnStreet = activeLoans.reduce((s, l) => s + l.amount, 0);
+    // Capital na rua = principal proporcional em aberto (proporcional às parcelas restantes)
+    const capitalOnStreet = activeLoans.reduce((s, l) => {
+      const n = l.installments > 0 ? l.installments : 1;
+      const paid = Math.min(l.paidInstallments ?? 0, n);
+      const remainingRatio = Math.max(0, (n - paid) / n);
+      return s + l.amount * remainingRatio;
+    }, 0);
 
     // Total expected from ALL loans
     const totalExpected = loans.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
@@ -1900,7 +1905,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         const interestDueInPeriod = interestReceivedInPeriod + interestPendingInPeriod;
 
         const items: Array<{ label: string; value: string; color: string; iconBg: string; iconColor: string; onClick?: () => void; tooltip?: string }> = [
-          { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", tooltip: "Soma do valor principal (sem juros) de todos os contratos ativos que ainda não foram totalmente quitados. Representa quanto do seu dinheiro está atualmente emprestado." },
+          { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", tooltip: "Principal proporcional ainda em aberto: para cada contrato ativo, valor emprestado × (parcelas restantes ÷ total de parcelas). Diminui conforme as parcelas são pagas." },
           { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", tooltip: "Soma de tudo que ainda falta receber dos contratos ativos: principal + juros de todas as parcelas em aberto." },
           { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Valor restante a receber de todos os contratos de empréstimos ativos." },
           { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Total de juros previstos a receber considerando todos os contratos ativos até o final dos seus ciclos. É o lucro projetado se todos pagarem conforme o combinado." },
