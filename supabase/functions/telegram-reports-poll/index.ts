@@ -1,5 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getExternalAdmin, getExternalServiceRoleKey } from "../_shared/external-supabase.ts";
+import { parseReportCommand, runReportCommand, renderMenu } from "../_shared/reports-commands.ts";
+
 
 
 const MAX_RUNTIME_MS = 55_000;
@@ -203,8 +205,31 @@ async function processBot(
         );
       } else if (text === "/start" || text === "/help") {
         await tgSend(bot.token, chatId,
-          "👋 Este é o *Bot de Relatórios*.\n\nEnvie /code aqui para gerar um código de vínculo e cole no app.");
+          "👋 Este é o *Bot de Relatórios*.\n\nEnvie /code aqui para gerar um código de vínculo e cole no app.\n\nApós conectar, use /relatorios para ver os comandos disponíveis.");
+      } else {
+        const cmd = parseReportCommand(text);
+        if (cmd) {
+          const { data: linkRow } = await supabase
+            .from("telegram_reports_links")
+            .select("user_id")
+            .eq("chat_id", chatId)
+            .eq("bot_id", bot.id)
+            .maybeSingle();
+          const userId = (linkRow as any)?.user_id as string | undefined;
+          if (!userId) {
+            await tgSend(bot.token, chatId, "🔒 Este chat não está vinculado.\n\nEnvie /code para gerar um código de vínculo e cole no app em *Configurações → Bots do Telegram*.");
+          } else {
+            try {
+              const message = await runReportCommand(supabase, userId, cmd);
+              await tgSend(bot.token, chatId, message);
+            } catch (e: any) {
+              console.error(`[reports-poll] runReportCommand failed cmd=${cmd}`, e);
+              await tgSend(bot.token, chatId, "❌ Falha ao gerar o relatório. Tente novamente em instantes.");
+            }
+          }
+        }
       }
+
 
       totalProcessed++;
     }

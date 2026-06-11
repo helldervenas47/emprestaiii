@@ -22,12 +22,22 @@ const EXPENSES_COMMANDS = [
   { command: 'start', description: 'Vincular conta com código' },
 ];
 
-// Comandos do bot de RELATÓRIOS (TELEGRAM_API_KEY_1)
+// Comandos do bot de RELATÓRIOS (TELEGRAM_BOT_TOKEN_REPORTS)
 const REPORTS_COMMANDS = [
+  { command: 'relatorios', description: 'Menu de relatórios disponíveis' },
+  { command: 'dashboard', description: 'Visão executiva consolidada' },
+  { command: 'kpi_geral', description: 'KPIs principais da operação' },
+  { command: 'carteira_ativa', description: 'Saldo a receber e juros previstos' },
+  { command: 'recebimentos_hoje', description: 'Pagamentos recebidos hoje' },
+  { command: 'emprestimos_atrasados', description: 'Contratos em atraso' },
+  { command: 'inadimplencia', description: 'Taxa e faixas de inadimplência' },
+  { command: 'resumo_diario', description: 'Movimentação do dia' },
+  { command: 'resumo_mensal', description: 'Fechamento do mês' },
   { command: 'code', description: 'Gerar código para vincular este bot ao app' },
   { command: 'start', description: 'Vincular bot de relatórios com código' },
   { command: 'help', description: 'Mostra ajuda' },
 ];
+
 
 async function publishCommands(
   lovableKey: string,
