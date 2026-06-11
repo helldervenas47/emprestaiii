@@ -315,7 +315,14 @@ async function snapshot(ctx: Ctx): Promise<Snapshot> {
   const [loans, clients, payments] = await Promise.all([loadLoans(ctx), loadClients(ctx), loadPayments(ctx)]);
   const installments = await loadInstallments(ctx, loans.map((loan) => loan.id));
   const active = loans.filter((loan) => loan.status !== "paid");
-  const totalLent = active.reduce((sum, loan) => sum + num(loan.amount), 0);
+  // Capital na rua = principal proporcional ao número de parcelas em aberto
+  // (espelha a lógica do card "Capital na Rua" do app).
+  const totalLent = active.reduce((sum, loan) => {
+    const n = num(loan.installments) > 0 ? num(loan.installments) : 1;
+    const paid = Math.min(num(loan.paid_installments), n);
+    const remainingRatio = Math.max(0, (n - paid) / n);
+    return sum + num(loan.amount) * remainingRatio;
+  }, 0);
   const totalToReceive = active.reduce((sum, loan) => {
     const total = totalWithInterest(loan);
     const dueDate = new Date(`${loan.due_date}T00:00:00`);
