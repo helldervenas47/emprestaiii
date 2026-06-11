@@ -70,7 +70,7 @@ export function DashboardCards({ loans, payments }: Props) {
 
   const cards = [
     { title: "Capital na Rua", value: formatCurrency(totalLent), isCurrency: true, icon: DollarSign, accentClass: "text-primary", bgClass: "bg-primary/10", glowClass: "glow-primary" },
-    { title: "Total a Receber", value: formatCurrency(totalToReceive), isCurrency: true, icon: TrendingUp, accentClass: "text-purple", bgClass: "bg-purple/10", glowClass: "glow-purple" },
+    
     { title: "Pendente de Recebimento", value: formatCurrency(pendingReceivable), isCurrency: true, icon: Clock, accentClass: "text-orange-500", bgClass: "bg-orange-500/10", glowClass: "" },
     { title: "Lucro Estimado", value: formatCurrency(estimatedProfit), isCurrency: true, icon: TrendingUp, accentClass: "text-warning", bgClass: "bg-warning/10", glowClass: "" },
     { 
