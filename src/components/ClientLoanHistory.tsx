@@ -295,8 +295,8 @@ export function ClientLoanHistory({ loans, payments }: Props) {
         }
       }
 
-      const loanPending = baseRemaining + lateFees;
-      interestPending += Math.max(0, loanPending - principal);
+      const interestRatio = expected > 0 ? 1 - principal / expected : 0;
+      interestPending += Math.max(0, baseRemaining * interestRatio + lateFees);
     });
 
     return (
