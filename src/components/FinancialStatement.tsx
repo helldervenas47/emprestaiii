@@ -184,7 +184,10 @@ export function FinancialStatement() {
           e.scope === "personal" &&
           // Despesas individuais de cartão de crédito NÃO entram no extrato —
           // são agregadas em um único lançamento por fatura paga (ver creditCardRows).
-          !isCreditCardExpense(e),
+          !isCreditCardExpense(e) &&
+          // Não exibir a despesa-pai de séries parceladas — cada parcela paga
+          // entra como uma linha-filha; o pai marcado como quitado duplicaria o valor total.
+          !(e.installments && e.installments > 1 && !e.parentExpenseId),
       )
       .map((e: Expense) => ({
         id: `e-${e.id}`,
