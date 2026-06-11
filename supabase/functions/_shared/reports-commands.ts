@@ -594,7 +594,7 @@ async function vencimentosSemana(ctx: Ctx, snap: Snapshot): Promise<string> {
   }
   for (const [day, items] of byDay) {
     lines.push("", `*${day.split("-").reverse().join("/")}*`);
-    for (const it of items) lines.push(`• ${it.borrower} — ${fmtBRL(it.amount)}${phoneByName(snap, it.borrower)}`);
+    for (const it of items) lines.push(`• ${it.borrower} — ${fmtBRL(it.amount)}`);
   }
   return lines.join("\n");
 }
