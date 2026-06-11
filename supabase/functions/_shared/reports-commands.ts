@@ -400,10 +400,8 @@ async function emprestimosAtrasados(ctx: Ctx, snap: Snapshot): Promise<string> {
       const loan = snap.loans.find((entry) => entry.id === loanId);
       return { name: loan?.borrower_name || "—", days: daysBetween(item.oldest, ctx.today), value: item.value };
     })
-    .sort((a, b) => b.days - a.days)
-    .slice(0, 15);
+    .sort((a, b) => b.days - a.days);
   for (const row of sorted) lines.push(`• *${row.name}* — ${row.days}d em atraso — ${fmtBRL(row.value)}`);
-  if (overdue.size > 15) lines.push(`_…e mais ${overdue.size - 15} contrato(s)._`);
   return lines.join("\n");
 }
 
