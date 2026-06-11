@@ -251,7 +251,9 @@ async function processBot(
             await tgSend(bot.token, chatId, "🔒 Este chat não está vinculado.\n\nEnvie /code para gerar um código de vínculo e cole no app em *Configurações → Bots do Telegram → Bot de Relatórios*.");
           } else {
             try {
-              const message = await runReportCommand(supabase, userId, cmd);
+              const { data: ownerId, error: ownerErr } = await supabase.rpc("get_data_owner_id", { _user_id: userId });
+              if (ownerErr) console.error("[reports-poll] get_data_owner_id failed", ownerErr);
+              const message = await runReportCommand(supabase, (ownerId as string) || userId, cmd);
               await tgSend(bot.token, chatId, message);
             } catch (e: any) {
               console.error(`[reports-poll] runReportCommand failed cmd=${cmd}`, e);
@@ -350,14 +352,15 @@ Deno.serve(async (req) => {
     }
   }
 
-  await supabase.from("telegram_job_logs").insert({
+  const { error: logError } = await supabase.from("telegram_job_logs").insert({
     job: "telegram-reports-poll",
     ok: errors.length === 0,
     processed: total,
     duration_ms: Date.now() - startTime,
     error: errors.length ? errors.map((e) => `${e.bot_id}: ${e.error}`).join(" | ") : null,
     details: { bots: list.length, errors },
-  }).then(() => null).catch(() => null);
+  });
+  if (logError) console.error("[reports-poll] failed to write job log", logError);
 
   return new Response(JSON.stringify({ ok: errors.length === 0, processed: total, bots: list.length, errors }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
