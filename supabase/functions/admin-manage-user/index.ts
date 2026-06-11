@@ -53,13 +53,28 @@ Deno.serve(async (req) => {
     const { action, user_id, role, display_name, username, email, password } = body;
 
     if (action === "list") {
-      const { data: users } = await adminClient.auth.admin.listUsers();
+      // Paginate through ALL auth users (default perPage is 50).
+      // Without this loop, admins only see the first page of users and
+      // cannot manage tab permissions for users beyond that page.
+      const allUsers: any[] = [];
+      let page = 1;
+      const perPage = 1000;
+      // Safety cap to avoid runaway loops
+      for (let i = 0; i < 50; i++) {
+        const { data: pageData, error: pageErr } = await adminClient.auth.admin.listUsers({ page, perPage });
+        if (pageErr) break;
+        const batch = pageData?.users ?? [];
+        allUsers.push(...batch);
+        if (batch.length < perPage) break;
+        page += 1;
+      }
+
       const { data: roles } = await adminClient.from("user_roles").select("*");
       const { data: profiles } = await adminClient.from("profiles").select("*");
       const { data: tabPerms } = await adminClient.from("user_tab_permissions").select("*");
       const { data: clientPerms } = await adminClient.from("user_client_permissions").select("*");
 
-      const enriched = users.users.map((u) => ({
+      const enriched = allUsers.map((u) => ({
         id: u.id,
         email: u.email,
         display_name: profiles?.find((p) => p.user_id === u.id)?.display_name || u.email,
