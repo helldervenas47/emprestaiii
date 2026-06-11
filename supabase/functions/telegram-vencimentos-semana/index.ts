@@ -27,6 +27,19 @@ Deno.serve(async (req) => {
       for (const r of (leg ?? []) as any[]) if (r.user_id) ids.add(r.user_id);
     }
     userIds = [...ids];
+
+    // Filter by per-user toggle. Default = enabled (true) when no row exists.
+    if (userIds.length > 0) {
+      const { data: prefs } = await admin
+        .from("telegram_weekly_vencimentos_prefs")
+        .select("user_id, enabled")
+        .in("user_id", userIds);
+      const disabled = new Set<string>();
+      for (const p of (prefs ?? []) as any[]) {
+        if (p.enabled === false) disabled.add(p.user_id);
+      }
+      userIds = userIds.filter((u) => !disabled.has(u));
+    }
   }
 
   let sent = 0;
