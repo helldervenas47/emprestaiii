@@ -47,14 +47,18 @@ export const REPORT_COMMANDS = new Set([
   "kpi_geral", "carteira_ativa", "recebimentos_hoje",
   "emprestimos_atrasados", "inadimplencia",
   "resumo_diario", "resumo_mensal",
+  "top_clientes", "vencimentos_semana", "projecao_mes",
+  "novos_contratos", "cobranca_hoje", "historico_cliente", "alertas",
 ]);
 
 export function parseReportCommand(text: string): string | null {
   const normalized = text.trim().replace(/\\_/g, "_");
-  const match = normalized.match(/^\/([a-z_]+)(?:@\w+)?\s*$/i);
+  const match = normalized.match(/^\/([a-z_]+)(?:@\w+)?(?:\s+(.+))?\s*$/i);
   if (!match) return null;
   const command = match[1].toLowerCase();
-  return REPORT_COMMANDS.has(command) ? command : null;
+  if (!REPORT_COMMANDS.has(command)) return null;
+  const arg = (match[2] || "").trim();
+  return arg ? `${command}|${arg}` : command;
 }
 
 export function renderMenu(brand = "Relatórios"): string {
