@@ -110,7 +110,7 @@ async function loadInstallments(ctx: Ctx, loanIds: string[]): Promise<any[]> {
     const chunk = loanIds.slice(i, i + 50);
     const { data, error } = await ctx.supabase
       .from("loan_installments")
-      .select("loan_id, installment_number, amount, due_date, paid, paid_at")
+      .select("loan_id, installment_number, amount, due_date")
       .in("loan_id", chunk);
     if (error) throw error;
     rows.push(...(data ?? []));
