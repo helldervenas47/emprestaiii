@@ -59,6 +59,7 @@ export function StockManager({ readOnly = false }: Props) {
   const [filterProduct, setFilterProduct] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("name-asc");
   const [statusFilter, setStatusFilter] = useState<"ativos" | "inativos" | "todos">("ativos");
+  const [search, setSearch] = useState("");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const toggleExpanded = (id: string) =>
     setExpandedIds((prev) => {
