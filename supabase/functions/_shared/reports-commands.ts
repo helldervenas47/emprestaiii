@@ -381,7 +381,6 @@ async function carteiraAtiva(_ctx: Ctx, snap: Snapshot): Promise<string> {
     "💰 *Carteira Ativa*",
     "",
     `📤 Capital na rua: *${fmtBRL(snap.totalLent)}*`,
-    `📥 Total a receber: *${fmtBRL(snap.totalToReceive)}*`,
     `⏳ Pendente de recebimento: *${fmtBRL(snap.pendingReceivable)}*`,
     `📈 Lucro estimado: *${fmtBRL(snap.estimatedProfit)}*`,
     `📑 Empréstimos ativos: *${snap.active.length}*`,
