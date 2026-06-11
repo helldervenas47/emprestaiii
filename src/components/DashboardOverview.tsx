@@ -736,8 +736,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
     const allPaymentsForActive = payments.filter((p) => activeLoans.some((l) => l.id === p.loanId));
 
-    // Capital na rua = principal of ALL active loans
-    const capitalOnStreet = activeLoans.reduce((s, l) => s + l.amount, 0);
+    // Capital na rua = principal proporcional em aberto (proporcional às parcelas restantes)
+    const capitalOnStreet = activeLoans.reduce((s, l) => {
+      const n = l.installments > 0 ? l.installments : 1;
+      const paid = Math.min(l.paidInstallments ?? 0, n);
+      const remainingRatio = Math.max(0, (n - paid) / n);
+      return s + l.amount * remainingRatio;
+    }, 0);
 
     // Total expected from ALL loans
     const totalExpected = loans.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
