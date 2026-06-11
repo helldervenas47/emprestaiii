@@ -188,13 +188,17 @@ async function processBot(
             bot_id: bot.id,
             label: bot.bot_username ? `@${bot.bot_username}` : null,
           };
-          await supabase.from("telegram_reports_links").delete()
-            .or(`chat_id.eq.${chatId},user_id.eq.${(codeRow as any).user_id}`)
-            .eq("bot_id", bot.id);
-          await supabase.from("telegram_reports_links").insert(linkPayload);
-          await supabase.from("telegram_reports_link_codes").delete()
-            .eq("user_id", (codeRow as any).user_id).eq("bot_id", bot.id);
-          await tgSend(bot.token, chatId, "✅ *Bot de Relatórios conectado!*\n\nVocê receberá os relatórios nos horários configurados.");
+          const { error: deleteLinkErr } = await supabase.from("telegram_reports_links").delete()
+            .or(`chat_id.eq.${chatId},user_id.eq.${(codeRow as any).user_id}`);
+          if (deleteLinkErr) console.error("[reports-poll] reports link cleanup failed", deleteLinkErr);
+          const { error: insertLinkErr } = await supabase.from("telegram_reports_links").insert(linkPayload);
+          if (insertLinkErr) {
+            console.error("[reports-poll] reports link insert failed", insertLinkErr);
+            await tgSend(bot.token, chatId, "❌ Erro ao conectar o bot. Gere um novo código e tente novamente.");
+          } else {
+            await supabase.from("telegram_reports_link_codes").delete().eq("id", (codeRow as any).id);
+            await tgSend(bot.token, chatId, "✅ *Bot de Relatórios conectado!*\n\nVocê receberá os relatórios nos horários configurados.");
+          }
         }
       } else if (codeMatch) {
         const botCode = await generateChatLinkCode(chatId, "reports", getExternalServiceRoleKey());
