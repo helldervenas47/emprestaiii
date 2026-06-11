@@ -68,3 +68,21 @@ export function getLoanLateFees(loan: Loan, payments: Payment[], schedules: Inst
     lateFees: lateInterestTotal + penaltyTotal,
   };
 }
+/**
+ * Fórmula única do "Total a Receber" por contrato.
+ * Usada tanto pelo card individual (LoanList row) quanto pelo card agregado
+ * "Total a Receber" do topo da aba Empréstimos.
+ *
+ * Regras:
+ *  - base = getBaseRemainingAmount (prioriza loan.remainingAmount)
+ *  - + multa/juros de atraso (getLoanLateFees)
+ *  - + multa de renegociação SOMENTE em contratos de parcela única;
+ *    em parcelados ela já está diluída nas próximas parcelas.
+ */
+export function getLoanReceivable(loan: Loan, payments: Payment[], schedules: InstallmentSchedule[]) {
+  if (loan.status === "paid") return 0;
+  const base = getBaseRemainingAmount(loan, payments, schedules);
+  const fees = getLoanLateFees(loan, payments, schedules);
+  const renegPenalty = loan.installments < 2 ? Number(loan.renegotiationPenaltyTotal || 0) : 0;
+  return Math.max(0, base + fees.lateFees + renegPenalty);
+}
