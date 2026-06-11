@@ -179,6 +179,15 @@ export function StockManager({ readOnly = false }: Props) {
               </CardContent>
             </Card>
           </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+            <Input
+              placeholder="Buscar produto..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-9"
+            />
+          </div>
           <div className="flex flex-row gap-2 sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 flex-1 sm:flex-initial">
               <Label className="text-xs text-muted-foreground hidden sm:block">Status</Label>
