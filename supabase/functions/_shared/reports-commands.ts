@@ -768,7 +768,7 @@ export async function runReportCommand(supabase: any, userId: string, command: s
     case "vencimentos_semana": return vencimentosSemana(ctx, snap);
     case "projecao_mes": return projecaoMes(ctx, snap);
     case "novos_contratos": return novosContratos(ctx, snap);
-    case "cobranca_hoje": return cobrancaHoje(ctx, snap);
+    
     case "historico_cliente": return historicoCliente(ctx, snap, arg);
     case "alertas": return alertas(ctx, snap);
     default: return renderMenu();
