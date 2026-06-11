@@ -147,7 +147,7 @@ async function loadPayments(ctx: Ctx): Promise<any[]> {
 async function loadClients(ctx: Ctx): Promise<any[]> {
   const { data, error } = await ctx.supabase
     .from("clients")
-    .select("id, name, active, created_at")
+    .select("id, name, phone, active, created_at")
     .eq("user_id", ctx.userId);
   if (error) throw error;
   return data ?? [];
