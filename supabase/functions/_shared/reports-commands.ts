@@ -593,7 +593,8 @@ async function vencimentosSemana(ctx: Ctx, snap: Snapshot): Promise<string> {
     byDay.set(e.due_date, arr);
   }
   for (const [day, items] of byDay) {
-    lines.push("", `*${day.split("-").reverse().join("/")}*`);
+    const dayTotal = items.reduce((s, e) => s + e.amount, 0);
+    lines.push("", `*${day.split("-").reverse().join("/")}* — ${fmtBRL(dayTotal)}`);
     for (const it of items) lines.push(`• ${it.borrower} — ${fmtBRL(it.amount)}`);
   }
   return lines.join("\n");
