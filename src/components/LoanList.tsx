@@ -18,7 +18,7 @@ import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { getInstallmentAmount, getOverdueAmount } from "@/lib/loanInstallmentAmount";
-import { getLoanLateFees, getBaseRemainingAmount } from "@/lib/loanLateFees";
+import { getLoanLateFees, getBaseRemainingAmount, getLoanReceivable } from "@/lib/loanLateFees";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle, CheckCircle2, Trash2, DollarSign, User, Calendar as CalendarIcon, LayoutGrid, List,
