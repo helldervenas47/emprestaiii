@@ -47,14 +47,18 @@ export const REPORT_COMMANDS = new Set([
   "kpi_geral", "carteira_ativa", "recebimentos_hoje",
   "emprestimos_atrasados", "inadimplencia",
   "resumo_diario", "resumo_mensal",
+  "top_clientes", "vencimentos_semana", "projecao_mes",
+  "novos_contratos", "cobranca_hoje", "historico_cliente", "alertas",
 ]);
 
 export function parseReportCommand(text: string): string | null {
   const normalized = text.trim().replace(/\\_/g, "_");
-  const match = normalized.match(/^\/([a-z_]+)(?:@\w+)?\s*$/i);
+  const match = normalized.match(/^\/([a-z_]+)(?:@\w+)?(?:\s+(.+))?\s*$/i);
   if (!match) return null;
   const command = match[1].toLowerCase();
-  return REPORT_COMMANDS.has(command) ? command : null;
+  if (!REPORT_COMMANDS.has(command)) return null;
+  const arg = (match[2] || "").trim();
+  return arg ? `${command}|${arg}` : command;
 }
 
 export function renderMenu(brand = "Relatórios"): string {
@@ -74,8 +78,19 @@ export function renderMenu(brand = "Relatórios"): string {
     "",
     "*Operação*",
     "/recebimentos\\_hoje — Pagamentos do dia",
+    "/cobranca\\_hoje — Lista para cobrar agora",
+    "/vencimentos\\_semana — Parcelas dos próximos 7 dias",
     "/resumo\\_diario — Movimentação do dia",
     "/resumo\\_mensal — Fechamento do mês",
+    "",
+    "*Carteira & crescimento*",
+    "/top\\_clientes — Melhores e piores pagadores",
+    "/novos\\_contratos — Contratos do mês",
+    "/projecao\\_mes — Projeção de caixa do mês",
+    "/alertas — Sinais de risco",
+    "",
+    "*Consulta*",
+    "/historico\\_cliente <nome> — Ficha de um cliente",
   ].join("\n");
 }
 
@@ -132,7 +147,7 @@ async function loadPayments(ctx: Ctx): Promise<any[]> {
 async function loadClients(ctx: Ctx): Promise<any[]> {
   const { data, error } = await ctx.supabase
     .from("clients")
-    .select("id, name, active, created_at")
+    .select("id, name, phone, active, created_at")
     .eq("user_id", ctx.userId);
   if (error) throw error;
   return data ?? [];
@@ -530,11 +545,218 @@ async function kpiGeral(ctx: Ctx, snap: Snapshot): Promise<string> {
   ].join("\n");
 }
 
+function phoneByName(snap: Snapshot, name: string): string {
+  const c = snap.clients.find((cl) => (cl.name || "").toLowerCase() === (name || "").toLowerCase());
+  return c?.phone ? ` 📞 ${c.phone}` : "";
+}
+
+async function topClientes(ctx: Ctx, snap: Snapshot): Promise<string> {
+  const overdue = getOverdueByLoan(ctx, snap);
+  const stats = new Map<string, { lent: number; paid: number; overdue: number; days: number }>();
+  for (const loan of snap.loans) {
+    const name = loan.borrower_name || "—";
+    const s = stats.get(name) ?? { lent: 0, paid: 0, overdue: 0, days: 0 };
+    s.lent += num(loan.amount);
+    s.paid += snap.payments.filter((p) => p.loan_id === loan.id).reduce((a, p) => a + num(p.amount), 0);
+    const od = overdue.get(loan.id);
+    if (od) {
+      s.overdue += od.value;
+      s.days = Math.max(s.days, daysBetween(od.oldest, ctx.today));
+    }
+    stats.set(name, s);
+  }
+  const arr = [...stats.entries()].map(([name, s]) => ({ name, ...s }));
+  const best = [...arr].filter((x) => x.overdue === 0).sort((a, b) => b.paid - a.paid).slice(0, 5);
+  const worst = [...arr].filter((x) => x.overdue > 0).sort((a, b) => b.days - a.days || b.overdue - a.overdue).slice(0, 5);
+  const lines = ["🏆 *Top Clientes*", "", "*Melhores pagadores*"];
+  if (best.length === 0) lines.push("_Sem dados._");
+  for (const b of best) lines.push(`• ${b.name} — pago ${fmtBRL(b.paid)} / emprestado ${fmtBRL(b.lent)}`);
+  lines.push("", "*Maiores devedores*");
+  if (worst.length === 0) lines.push("_Nenhum cliente em atraso. 🎉_");
+  for (const w of worst) lines.push(`• ${w.name} — ${w.days}d em atraso — ${fmtBRL(w.overdue)}`);
+  return lines.join("\n");
+}
+
+async function vencimentosSemana(ctx: Ctx, snap: Snapshot): Promise<string> {
+  const start = new Date(`${ctx.today}T00:00:00`);
+  const end = new Date(start.getTime() + 7 * 86_400_000);
+  const endStr = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, "0")}-${String(end.getDate()).padStart(2, "0")}`;
+  const entries = snap.loans.flatMap((loan) => dueEntriesForLoan(loan, snap.installments).map((e) => ({ ...e, borrower: loan.borrower_name || "—" })));
+  const upcoming = entries.filter((e) => !e.paid && e.due_date >= ctx.today && e.due_date <= endStr).sort((a, b) => a.due_date.localeCompare(b.due_date));
+  const total = upcoming.reduce((s, e) => s + e.amount, 0);
+  const lines = [`📆 *Vencimentos — próximos 7 dias*`, "", `📑 Parcelas: *${upcoming.length}* — Total: *${fmtBRL(total)}*`];
+  if (upcoming.length === 0) return [...lines, "", "_Nada a vencer no período._"].join("\n");
+  const byDay = new Map<string, typeof upcoming>();
+  for (const e of upcoming) {
+    const arr = byDay.get(e.due_date) ?? [];
+    arr.push(e);
+    byDay.set(e.due_date, arr);
+  }
+  for (const [day, items] of byDay) {
+    lines.push("", `*${day.split("-").reverse().join("/")}*`);
+    for (const it of items) lines.push(`• ${it.borrower} — ${fmtBRL(it.amount)}${phoneByName(snap, it.borrower)}`);
+  }
+  return lines.join("\n");
+}
+
+async function projecaoMes(ctx: Ctx, snap: Snapshot): Promise<string> {
+  const { start, end, prefix } = monthBounds(ctx.today);
+  const monthPayments = paymentsInRange(snap.payments, start, end);
+  const received = monthPayments.reduce((s, p) => s + num(p.amount), 0);
+  const entries = snap.loans.flatMap((loan) => dueEntriesForLoan(loan, snap.installments));
+  const monthEntries = entries.filter((e) => inMonth(e.due_date, prefix) && !e.paid);
+  const remainingMonth = monthEntries.filter((e) => e.due_date >= ctx.today).reduce((s, e) => s + e.amount, 0);
+  const overdueInMonth = monthEntries.filter((e) => e.due_date < ctx.today).reduce((s, e) => s + e.amount, 0);
+  const expected = computeExpectedReceivable(snap.loans, prefix);
+  const projected = received + remainingMonth + overdueInMonth;
+  return [
+    `📡 *Projeção de Caixa — ${prefix.split("-").reverse().join("/")}*`,
+    "",
+    `📌 Previsto no mês: *${fmtBRL(expected)}*`,
+    `💰 Já recebido: *${fmtBRL(received)}*`,
+    `📆 A vencer ainda no mês: *${fmtBRL(remainingMonth)}*`,
+    `🚨 Atrasado (mês corrente): *${fmtBRL(overdueInMonth)}*`,
+    `🎯 Projeção final: *${fmtBRL(projected)}*`,
+    `📊 Realizado vs previsto: *${(expected > 0 ? (received / expected) * 100 : 0).toFixed(1)}%*`,
+  ].join("\n");
+}
+
+async function novosContratos(ctx: Ctx, snap: Snapshot): Promise<string> {
+  const { start, end, prefix } = monthBounds(ctx.today);
+  const newLoans = snap.loans.filter((l) => l.start_date >= start && l.start_date <= end);
+  const totalLent = newLoans.reduce((s, l) => s + num(l.amount), 0);
+  const avgRate = newLoans.length > 0 ? newLoans.reduce((s, l) => s + num(l.interest_rate), 0) / newLoans.length : 0;
+  const avgTerm = newLoans.length > 0 ? newLoans.reduce((s, l) => s + (num(l.installments) || 1), 0) / newLoans.length : 0;
+  const existingNames = new Set(snap.loans.filter((l) => l.start_date < start).map((l) => l.borrower_name));
+  const newClients = new Set(newLoans.filter((l) => !existingNames.has(l.borrower_name)).map((l) => l.borrower_name));
+  const lines = [
+    `🆕 *Novos Contratos — ${prefix.split("-").reverse().join("/")}*`,
+    "",
+    `📑 Contratos: *${newLoans.length}*`,
+    `📤 Volume emprestado: *${fmtBRL(totalLent)}*`,
+    `📈 Taxa média: *${avgRate.toFixed(2)}%*`,
+    `📅 Prazo médio: *${avgTerm.toFixed(1)} parcelas*`,
+    `👥 Clientes novos: *${newClients.size}* / recorrentes: *${newLoans.length - newClients.size}*`,
+  ];
+  if (newLoans.length > 0) {
+    lines.push("", "*Contratos:*");
+    for (const l of newLoans.slice(0, 15)) lines.push(`• ${l.borrower_name || "—"} — ${fmtBRL(num(l.amount))} (${num(l.installments) || 1}x)`);
+    if (newLoans.length > 15) lines.push(`_… e mais ${newLoans.length - 15}._`);
+  }
+  return lines.join("\n");
+}
+
+async function cobrancaHoje(ctx: Ctx, snap: Snapshot): Promise<string> {
+  const overdue = getOverdueByLoan(ctx, snap);
+  const overdueRows = [...overdue.entries()].map(([loanId, item]) => {
+    const loan = snap.loans.find((l) => l.id === loanId);
+    return { name: loan?.borrower_name || "—", days: daysBetween(item.oldest, ctx.today), value: item.value };
+  }).sort((a, b) => b.days - a.days);
+  const dueToday = snap.loans.flatMap((loan) => dueEntriesForLoan(loan, snap.installments).filter((e) => e.due_date === ctx.today && !e.paid).map((e) => ({ name: loan.borrower_name || "—", value: e.amount })));
+  const totalOverdue = overdueRows.reduce((s, r) => s + r.value, 0);
+  const totalToday = dueToday.reduce((s, r) => s + r.value, 0);
+  const lines = [
+    `📞 *Cobrança de hoje* — ${ctx.today.split("-").reverse().join("/")}`,
+    "",
+    `🚨 Em atraso: *${overdueRows.length}* — ${fmtBRL(totalOverdue)}`,
+    `📆 Vencem hoje: *${dueToday.length}* — ${fmtBRL(totalToday)}`,
+  ];
+  if (overdueRows.length > 0) {
+    lines.push("", "*Em atraso (prioridade):*");
+    for (const r of overdueRows) lines.push(`• ${r.name} — ${r.days}d — ${fmtBRL(r.value)}${phoneByName(snap, r.name)}`);
+  }
+  if (dueToday.length > 0) {
+    lines.push("", "*Vencem hoje:*");
+    for (const r of dueToday) lines.push(`• ${r.name} — ${fmtBRL(r.value)}${phoneByName(snap, r.name)}`);
+  }
+  if (overdueRows.length === 0 && dueToday.length === 0) lines.push("", "_Nada para cobrar hoje. 🎉_");
+  return lines.join("\n");
+}
+
+async function historicoCliente(ctx: Ctx, snap: Snapshot, query: string): Promise<string> {
+  if (!query) return "Use: `/historico_cliente <nome do cliente>`";
+  const q = query.toLowerCase();
+  const matches = snap.loans.filter((l) => (l.borrower_name || "").toLowerCase().includes(q));
+  const names = [...new Set(matches.map((l) => l.borrower_name))];
+  if (names.length === 0) return `Nenhum cliente encontrado para *${query}*.`;
+  if (names.length > 1) return ["Vários clientes encontrados:", "", ...names.map((n) => `• ${n}`), "", "Refine o nome."].join("\n");
+  const name = names[0];
+  const loans = matches;
+  const overdue = getOverdueByLoan(ctx, snap);
+  const totalLent = loans.reduce((s, l) => s + num(l.amount), 0);
+  const totalDue = loans.reduce((s, l) => s + totalWithInterest(l), 0);
+  const paid = snap.payments.filter((p) => loans.some((l) => l.id === p.loan_id)).reduce((s, p) => s + num(p.amount), 0);
+  const overdueValue = loans.reduce((s, l) => s + (overdue.get(l.id)?.value ?? 0), 0);
+  const active = loans.filter((l) => l.status !== "paid").length;
+  const paidOff = loans.filter((l) => l.status === "paid").length;
+  const lines = [
+    `👤 *${name}*${phoneByName(snap, name)}`,
+    "",
+    `📑 Contratos: *${loans.length}* (ativos: ${active} | quitados: ${paidOff})`,
+    `📤 Total emprestado: *${fmtBRL(totalLent)}*`,
+    `📊 Total a receber (com juros): *${fmtBRL(totalDue)}*`,
+    `💰 Total pago: *${fmtBRL(paid)}*`,
+    `🚨 Valor em atraso: *${fmtBRL(overdueValue)}*`,
+    "",
+    "*Contratos:*",
+  ];
+  for (const l of loans.sort((a, b) => String(b.start_date).localeCompare(String(a.start_date)))) {
+    const od = overdue.get(l.id);
+    const tag = l.status === "paid" ? "✅ quitado" : od ? `🚨 ${daysBetween(od.oldest, ctx.today)}d atraso` : "🟢 em dia";
+    lines.push(`• ${String(l.start_date).split("-").reverse().join("/")} — ${fmtBRL(num(l.amount))} (${num(l.installments) || 1}x) — ${tag}`);
+  }
+  return lines.join("\n");
+}
+
+async function alertas(ctx: Ctx, snap: Snapshot): Promise<string> {
+  const overdue = getOverdueByLoan(ctx, snap);
+  const recentOverdue: { name: string; days: number; value: number }[] = [];
+  for (const [loanId, item] of overdue) {
+    const days = daysBetween(item.oldest, ctx.today);
+    if (days <= 7) {
+      const loan = snap.loans.find((l) => l.id === loanId);
+      recentOverdue.push({ name: loan?.borrower_name || "—", days, value: item.value });
+    }
+  }
+  const critical: { name: string; days: number; value: number }[] = [];
+  for (const [loanId, item] of overdue) {
+    const days = daysBetween(item.oldest, ctx.today);
+    if (days > 60) {
+      const loan = snap.loans.find((l) => l.id === loanId);
+      critical.push({ name: loan?.borrower_name || "—", days, value: item.value });
+    }
+  }
+  const exposureByClient = new Map<string, number>();
+  for (const l of snap.active) {
+    const n = l.borrower_name || "—";
+    exposureByClient.set(n, (exposureByClient.get(n) ?? 0) + num(l.amount));
+  }
+  const totalActive = [...exposureByClient.values()].reduce((s, v) => s + v, 0);
+  const concentration = [...exposureByClient.entries()]
+    .map(([name, value]) => ({ name, value, pct: totalActive > 0 ? (value / totalActive) * 100 : 0 }))
+    .filter((r) => r.pct >= 20)
+    .sort((a, b) => b.pct - a.pct);
+
+  const lines = ["⚠️ *Alertas de Risco*", ""];
+  lines.push(`🆕 Atrasos novos (≤7d): *${recentOverdue.length}*`);
+  for (const r of recentOverdue.slice(0, 10)) lines.push(`• ${r.name} — ${r.days}d — ${fmtBRL(r.value)}`);
+  lines.push("", `🔥 Atrasos críticos (>60d): *${critical.length}*`);
+  for (const r of critical.slice(0, 10)) lines.push(`• ${r.name} — ${r.days}d — ${fmtBRL(r.value)}`);
+  lines.push("", `📊 Concentração de carteira (≥20%): *${concentration.length}*`);
+  for (const r of concentration) lines.push(`• ${r.name} — ${r.pct.toFixed(1)}% (${fmtBRL(r.value)})`);
+  if (recentOverdue.length === 0 && critical.length === 0 && concentration.length === 0) {
+    lines.push("", "_Nenhum sinal de risco no momento. 🎉_");
+  }
+  return lines.join("\n");
+}
+
 export async function runReportCommand(supabase: any, userId: string, command: string): Promise<string> {
   if (command === "relatorios") return renderMenu();
+  const [base, ...rest] = command.split("|");
+  const arg = rest.join("|");
   const ctx: Ctx = { supabase, userId, today: todayInTZ() };
   const snap = await snapshot(ctx);
-  switch (command) {
+  switch (base) {
     case "dashboard": return dashboard(ctx, snap);
     case "kpi_geral": return kpiGeral(ctx, snap);
     case "carteira_ativa": return carteiraAtiva(ctx, snap);
@@ -543,6 +765,13 @@ export async function runReportCommand(supabase: any, userId: string, command: s
     case "inadimplencia": return inadimplencia(ctx, snap);
     case "resumo_diario": return resumoDiario(ctx, snap);
     case "resumo_mensal": return resumoMensal(ctx, snap);
+    case "top_clientes": return topClientes(ctx, snap);
+    case "vencimentos_semana": return vencimentosSemana(ctx, snap);
+    case "projecao_mes": return projecaoMes(ctx, snap);
+    case "novos_contratos": return novosContratos(ctx, snap);
+    case "cobranca_hoje": return cobrancaHoje(ctx, snap);
+    case "historico_cliente": return historicoCliente(ctx, snap, arg);
+    case "alertas": return alertas(ctx, snap);
     default: return renderMenu();
   }
 }
