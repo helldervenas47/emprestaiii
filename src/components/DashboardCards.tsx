@@ -16,7 +16,14 @@ export function DashboardCards({ loans, payments }: Props) {
   const { planTier, planLimits } = useSubscription();
   const activeLoansData = loans.filter((l) => l.status !== "paid");
 
-  const totalLent = activeLoansData.reduce((sum, l) => sum + l.amount, 0);
+  // Capital na Rua = principal proporcional ainda em aberto
+  // (principal × parcelas restantes / total de parcelas) por contrato ativo.
+  const totalLent = activeLoansData.reduce((sum, l) => {
+    const n = l.installments > 0 ? l.installments : 1;
+    const paid = Math.min(l.paidInstallments ?? 0, n);
+    const remainingRatio = Math.max(0, (n - paid) / n);
+    return sum + l.amount * remainingRatio;
+  }, 0);
 
   // Total a Receber = total do contrato + lateFees + juros recebidos (installmentNumber === 0)
   const todayNorm = new Date(); todayNorm.setHours(0, 0, 0, 0);
