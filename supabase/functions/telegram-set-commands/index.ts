@@ -37,7 +37,7 @@ const REPORTS_COMMANDS = [
   { command: 'vencimentos_semana', description: 'Parcelas dos próximos 7 dias' },
   { command: 'projecao_mes', description: 'Projeção de caixa do mês' },
   { command: 'novos_contratos', description: 'Contratos fechados no mês' },
-  { command: 'cobranca_hoje', description: 'Lista de cobranças para hoje' },
+  
   { command: 'historico_cliente', description: 'Ficha de um cliente (use: /historico_cliente nome)' },
   { command: 'alertas', description: 'Sinais de risco da carteira' },
   { command: 'code', description: 'Gerar código para vincular este bot ao app' },
