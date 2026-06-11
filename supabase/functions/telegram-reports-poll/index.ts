@@ -1,5 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getExternalAdmin, getExternalServiceRoleKey } from "../_shared/external-supabase.ts";
+import { parseReportCommand, runReportCommand, renderMenu } from "../_shared/reports-commands.ts";
+
 
 
 const MAX_RUNTIME_MS = 55_000;
