@@ -1913,131 +1913,22 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => { setInterestExpectedFilter("pending"); setShowInterestExpectedDetail(true); }, tooltip: "Diferença entre 'Juros a Receber no Mês' (vencimento) e 'Juros Recebidos no Mês' (pagamento). Clique para ver o detalhamento do que está pendente de recebimento." },
         ];
 
-        const pendingCard = items[1]; // Pendente de Recebimento
-        const otherCards = [items[0], ...items.slice(2)];
-
         return (
-          <>
-            {/* Desktop: all 7 in one row */}
-            <div className="hidden lg:grid lg:grid-cols-7 gap-2">
-              {items.map((item) => (
-                <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
-                  <CardContent className="p-3 flex flex-col items-center text-center relative">
-                    {item.tooltip && <InfoPopover text={item.tooltip} />}
-                      {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
-                    <div className={`h-6 w-6 rounded-md ${item.iconBg} flex items-center justify-center mb-1.5`}>
-                      <DollarSign className={`h-3 w-3 ${item.iconColor}`} />
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">{item.label}</p>
-                    <p className={`text-base font-bold ${item.color} mt-0.5`}>{item.value}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Tablet (sm-lg): Pendente full width on top, then 2 rows of 3 */}
-            <div className="hidden sm:grid lg:hidden gap-2">
-              <Card no3d>
-                <CardContent className="p-4 flex flex-col items-center text-center relative">
-                  {pendingCard.tooltip && <InfoPopover text={pendingCard.tooltip} />}
-                  <div className={`h-8 w-8 rounded-lg ${pendingCard.iconBg} flex items-center justify-center mb-2`}>
-                    <DollarSign className={`h-4 w-4 ${pendingCard.iconColor}`} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+            {items.map((item) => (
+              <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center relative">
+                  {item.tooltip && <InfoPopover text={item.tooltip} />}
+                  {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
+                  <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
+                    <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
                   </div>
-                  <p className="text-xs text-muted-foreground">{pendingCard.label}</p>
-                  <p className={`text-lg font-bold ${pendingCard.color} mt-0.5`}>{pendingCard.value}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</p>
+                  <p className={`text-sm sm:text-lg font-bold ${item.color} mt-0.5`}>{item.value}</p>
                 </CardContent>
               </Card>
-              <div className="grid grid-cols-3 gap-2">
-                {otherCards.slice(0, 3).map((item) => (
-                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
-                    <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center relative">
-                      {item.tooltip && <InfoPopover text={item.tooltip} />}
-                      {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
-                      <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
-                        <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
-                      </div>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</p>
-                      <p className={`text-sm sm:text-lg font-bold ${item.color} mt-0.5`}>{item.value}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {otherCards.slice(3, 6).map((item) => (
-                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
-                    <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center relative">
-                      {item.tooltip && <InfoPopover text={item.tooltip} />}
-                      {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
-                      <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
-                        <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
-                      </div>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</p>
-                      <p className={`text-sm sm:text-lg font-bold ${item.color} mt-0.5`}>{item.value}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-
-            {/* Mobile: Pendente full width on top, then 3 rows of 2 */}
-            <div className="grid sm:hidden gap-2">
-              <Card no3d>
-                <CardContent className="p-3 flex flex-col items-center text-center relative">
-                  {pendingCard.tooltip && <InfoPopover text={pendingCard.tooltip} />}
-                  <div className={`h-8 w-8 rounded-lg ${pendingCard.iconBg} flex items-center justify-center mb-2`}>
-                    <DollarSign className={`h-4 w-4 ${pendingCard.iconColor}`} />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">{pendingCard.label}</p>
-                  <p className={`text-sm font-bold ${pendingCard.color} mt-0.5`}>{pendingCard.value}</p>
-                </CardContent>
-              </Card>
-              <div className="grid grid-cols-2 gap-2">
-                {otherCards.slice(0, 2).map((item) => (
-                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
-                    <CardContent className="p-3 flex flex-col items-center text-center relative">
-                      {item.tooltip && <InfoPopover text={item.tooltip} />}
-                      {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
-                      <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
-                        <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground">{item.label}</p>
-                      <p className={`text-sm font-bold ${item.color} mt-0.5`}>{item.value}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {otherCards.slice(2, 4).map((item) => (
-                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
-                    <CardContent className="p-3 flex flex-col items-center text-center relative">
-                      {item.tooltip && <InfoPopover text={item.tooltip} />}
-                      {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
-                      <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
-                        <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground">{item.label}</p>
-                      <p className={`text-sm font-bold ${item.color} mt-0.5`}>{item.value}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {otherCards.slice(4, 6).map((item) => (
-                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
-                    <CardContent className="p-3 flex flex-col items-center text-center relative">
-                      {item.tooltip && <InfoPopover text={item.tooltip} />}
-                      {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
-                      <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
-                        <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground">{item.label}</p>
-                      <p className={`text-sm font-bold ${item.color} mt-0.5`}>{item.value}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </>
+            ))}
+          </div>
         );
       })()}
 
