@@ -5249,12 +5249,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     for (const l of loans) {
       if (l.status === "paid") continue;
       const cat = getLoanCategory(l, payments, installmentSchedules);
-      const base = getBaseRemainingAmount(l, payments, installmentSchedules);
-      const fees = getLoanLateFees(l, payments, installmentSchedules);
-      // Em parcelados, a multa de renegociação já está diluída nas próximas parcelas
-      // (mesmo critério usado no card individual de cada contrato — ver linha ~497).
-      const renegPenalty = l.installments < 2 ? Number(l.renegotiationPenaltyTotal || 0) : 0;
-      const receivable = Math.max(0, base + fees.lateFees + renegPenalty);
+      const receivable = getLoanReceivable(l, payments, installmentSchedules);
       totalReceivable += receivable;
       totalReceivableCount += 1;
       if (cat === "overdue") {
