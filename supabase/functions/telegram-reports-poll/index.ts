@@ -251,7 +251,9 @@ async function processBot(
             await tgSend(bot.token, chatId, "🔒 Este chat não está vinculado.\n\nEnvie /code para gerar um código de vínculo e cole no app em *Configurações → Bots do Telegram → Bot de Relatórios*.");
           } else {
             try {
-              const message = await runReportCommand(supabase, userId, cmd);
+              const { data: ownerId, error: ownerErr } = await supabase.rpc("get_data_owner_id", { _user_id: userId });
+              if (ownerErr) console.error("[reports-poll] get_data_owner_id failed", ownerErr);
+              const message = await runReportCommand(supabase, (ownerId as string) || userId, cmd);
               await tgSend(bot.token, chatId, message);
             } catch (e: any) {
               console.error(`[reports-poll] runReportCommand failed cmd=${cmd}`, e);
