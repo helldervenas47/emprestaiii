@@ -493,7 +493,6 @@ async function kpiGeral(ctx: Ctx, snap: Snapshot): Promise<string> {
     `👥 Clientes ativos: *${activeClients}*`,
     `📑 Empréstimos ativos: *${snap.active.length}*`,
     `📤 Capital na rua: *${fmtBRL(snap.totalLent)}*`,
-    `📥 Total a receber: *${fmtBRL(snap.totalToReceive)}*`,
     `⏳ Pendente de recebimento: *${fmtBRL(snap.pendingReceivable)}*`,
     `💎 Lucro estimado: *${fmtBRL(snap.estimatedProfit)}*`,
     `💰 Recebido no mês: *${fmtBRL(received)}*`,
