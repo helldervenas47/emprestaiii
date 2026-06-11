@@ -87,7 +87,7 @@ export function StockManager({ readOnly = false }: Props) {
       case "cost-desc": arr.sort((a, b) => (b.cost || 0) - (a.cost || 0)); break;
     }
     return arr;
-  }, [products, sortBy, statusFilter]);
+  }, [products, sortBy, statusFilter, search]);
 
   const lastMovementByProduct = useMemo(() => {
     const map = new Map<string, StockMovement>();
