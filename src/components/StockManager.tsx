@@ -69,9 +69,11 @@ export function StockManager({ readOnly = false }: Props) {
     });
 
   const sortedProducts = useMemo(() => {
+    const q = search.trim().toLowerCase();
     const arr = products.filter((p) => {
-      if (statusFilter === "ativos") return p.active !== false;
-      if (statusFilter === "inativos") return p.active === false;
+      if (statusFilter === "ativos" && p.active === false) return false;
+      if (statusFilter === "inativos" && p.active !== false) return false;
+      if (q && !p.name.toLowerCase().includes(q)) return false;
       return true;
     });
     switch (sortBy) {
