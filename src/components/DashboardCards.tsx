@@ -88,7 +88,7 @@ export function DashboardCards({ loans, payments }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {cards.map((card, i) => (
           <div key={card.title} className={`rounded-2xl p-5 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm ${card.glowClass} transition-all duration-400 ease-out hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] text-center animate-fade-in`} style={{ animationDelay: `${i * 80}ms`, animationFillMode: 'backwards' }}>
             <div className="flex items-center justify-center mb-3">
