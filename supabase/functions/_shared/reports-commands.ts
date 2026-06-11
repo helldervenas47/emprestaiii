@@ -594,7 +594,7 @@ async function vencimentosSemana(ctx: Ctx, snap: Snapshot): Promise<string> {
   }
   for (const [day, items] of byDay) {
     const dayTotal = items.reduce((s, e) => s + e.amount, 0);
-    lines.push("", `*${day.split("-").reverse().join("/")}* — ${fmtBRL(dayTotal)}`);
+    lines.push("", `*${day.split("-").reverse().join("/")}* — *${fmtBRL(dayTotal)}*`);
     for (const it of items) lines.push(`• ${it.borrower} — ${fmtBRL(it.amount)}`);
   }
   return lines.join("\n");
