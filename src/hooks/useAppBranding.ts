@@ -66,14 +66,26 @@ async function fetchBranding(): Promise<AppBranding> {
 }
 
 async function updateAndNotify(patch: Record<string, any>): Promise<void> {
-  const { data, error } = await supabase
+  // Tenta atualizar a linha singleton existente
+  const { data: updated, error: updErr } = await supabase
     .from("app_branding" as any)
     .update(patch as any)
     .eq("singleton", true)
     .select(SELECT_COLS)
+    .maybeSingle();
+  if (updErr) throw updErr;
+  if (updated) {
+    notify(mapRow(updated));
+    return;
+  }
+  // Linha singleton ainda não existe — cria com upsert
+  const { data: inserted, error: insErr } = await supabase
+    .from("app_branding" as any)
+    .upsert({ singleton: true, ...patch } as any, { onConflict: "singleton" })
+    .select(SELECT_COLS)
     .single();
-  if (error) throw error;
-  notify(mapRow(data));
+  if (insErr) throw insErr;
+  notify(mapRow(inserted));
 }
 
 export function useAppBranding() {
