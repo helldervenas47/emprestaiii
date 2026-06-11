@@ -209,15 +209,35 @@ async function processBot(
       } else {
         const cmd = parseReportCommand(text);
         if (cmd) {
-          const { data: linkRow } = await supabase
+          // Prefer dedicated reports links; fall back to legacy telegram_links
+          // (both expenses and reports bots historically shared that table).
+          let userId: string | undefined;
+          const { data: repLink } = await supabase
             .from("telegram_reports_links")
             .select("user_id")
             .eq("chat_id", chatId)
             .eq("bot_id", bot.id)
             .maybeSingle();
-          const userId = (linkRow as any)?.user_id as string | undefined;
+          userId = (repLink as any)?.user_id;
           if (!userId) {
-            await tgSend(bot.token, chatId, "🔒 Este chat não está vinculado.\n\nEnvie /code para gerar um código de vínculo e cole no app em *Configurações → Bots do Telegram*.");
+            const { data: legacy } = await supabase
+              .from("telegram_links")
+              .select("user_id")
+              .eq("chat_id", chatId)
+              .eq("bot_id", bot.id)
+              .maybeSingle();
+            userId = (legacy as any)?.user_id;
+          }
+          if (!userId) {
+            const { data: anyLegacy } = await supabase
+              .from("telegram_links")
+              .select("user_id")
+              .eq("chat_id", chatId)
+              .maybeSingle();
+            userId = (anyLegacy as any)?.user_id;
+          }
+          if (!userId) {
+            await tgSend(bot.token, chatId, "🔒 Este chat não está vinculado.\n\nEnvie /code para gerar um código de vínculo e cole no app em *Configurações → Bots do Telegram → Bot de Relatórios*.");
           } else {
             try {
               const message = await runReportCommand(supabase, userId, cmd);
