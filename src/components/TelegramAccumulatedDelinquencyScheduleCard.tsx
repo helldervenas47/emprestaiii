@@ -75,15 +75,15 @@ export function TelegramAccumulatedDelinquencyScheduleCard() {
                 </Button>
               </div>
             ))}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2">
               {canAddMore && (
-                <Button type="button" variant="outline" size="sm" onClick={() => save({ [slots.find((s) => !prefs[s])!]: "08:00" } as any)}>
-                  <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar horário
+                <Button type="button" variant="outline" size="sm" className="flex-1 min-w-0" onClick={() => save({ [slots.find((s) => !prefs[s])!]: "08:00" } as any)}>
+                  <Plus className="h-3.5 w-3.5 mr-1" /> <span className="truncate">Adicionar horário</span>
                 </Button>
               )}
-              <Button type="button" size="sm" onClick={handleSendNow} disabled={sendingNow || !linked}>
+              <Button type="button" size="sm" className="flex-1 min-w-0" onClick={handleSendNow} disabled={sendingNow || !linked}>
                 <Send className="h-3.5 w-3.5 mr-1" />
-                {sendingNow ? "Enviando..." : "Enviar agora"}
+                <span className="truncate">{sendingNow ? "Enviando..." : "Enviar agora"}</span>
               </Button>
             </div>
             {!linked && (
