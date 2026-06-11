@@ -1,7 +1,9 @@
-// Helper para acessar EXCLUSIVAMENTE o Supabase EXTERNO do usuário
-// (syyxnqzxqabeuqbuptkh). Sem fallback para o projeto da Lovable Cloud,
-// caso contrário webhooks e validações de código apontam para o banco errado.
+// Helper para acessar EXCLUSIVAMENTE o banco externo do usuário
+// (syyxnqzxqabeuqbuptkh). Quando a function roda no projeto Lovable Cloud,
+// usa EXTERNAL_*; quando roda diretamente no projeto externo, usa SUPABASE_*.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const EXTERNAL_PROJECT_REF = "syyxnqzxqabeuqbuptkh";
 
 function required(name: string): string {
   const v = Deno.env.get(name);
@@ -14,14 +16,34 @@ function required(name: string): string {
 }
 
 export function getExternalSupabaseUrl(): string {
+  const external = Deno.env.get("EXTERNAL_SUPABASE_URL");
+  if (external) return external;
+
+  const nativeUrl = Deno.env.get("SUPABASE_URL");
+  if (nativeUrl?.includes(EXTERNAL_PROJECT_REF)) return nativeUrl;
+
   return required("EXTERNAL_SUPABASE_URL");
 }
 
 export function getExternalServiceRoleKey(): string {
+  const external = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
+  if (external) return external;
+
+  const nativeUrl = Deno.env.get("SUPABASE_URL");
+  const nativeKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (nativeUrl?.includes(EXTERNAL_PROJECT_REF) && nativeKey) return nativeKey;
+
   return required("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
 }
 
 export function getExternalAnonKey(): string {
+  const external = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY");
+  if (external) return external;
+
+  const nativeUrl = Deno.env.get("SUPABASE_URL");
+  const nativeKey = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+  if (nativeUrl?.includes(EXTERNAL_PROJECT_REF) && nativeKey) return nativeKey;
+
   return required("EXTERNAL_SUPABASE_ANON_KEY");
 }
 
