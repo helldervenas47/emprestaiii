@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
+import { invokeUserFunction } from "@/lib/telegramLinkCode";
 
 // Reports links prefer telegram_reports_links so they never compete with expenses.
 async function fetchReportsBotId(): Promise<string | null> {
@@ -24,6 +25,17 @@ export function useTelegramReportsLink() {
 
   const refresh = useCallback(async () => {
     if (!user) { setLinked(null); setLoading(false); return; }
+
+    // The Telegram bot writes the link server-side. Confirm through the same
+    // authenticated function first so the UI does not depend on a stale RLS/
+    // realtime cache after Telegram already replied “conectado”.
+    const status = await invokeUserFunction("telegram-reports-link-code", { action: "status" }).catch(() => null);
+    const statusLink = (status as any)?.linked;
+    if (statusLink) {
+      setLinked({ chat_id: Number(statusLink.chat_id), bot_id: statusLink.bot_id ?? null, source: "dedicated" });
+      setLoading(false);
+      return;
+    }
 
     // If Telegram confirmed the reports bot link, trust any dedicated reports
     // link for this user. Filtering by the currently chosen active bot can show
