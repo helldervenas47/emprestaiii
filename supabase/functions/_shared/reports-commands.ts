@@ -525,7 +525,7 @@ async function kpiGeral(ctx: Ctx, snap: Snapshot): Promise<string> {
     "",
     "*Cobrança e inadimplência*",
     `📊 Taxa de inadimplência: *${defaultRate.toFixed(2)}%*`,
-    `🚨 Contratos em atraso: *${overdueCount}* (${overdueRatio.toFixed(1)}% da carteira)*`,
+    `🚨 Contratos em atraso: *${overdueCount}* (${overdueRatio.toFixed(1)}% da carteira)`,
     `✅ Eficiência de cobrança: *${collectionRate.toFixed(2)}%*`,
   ].join("\n");
 }
