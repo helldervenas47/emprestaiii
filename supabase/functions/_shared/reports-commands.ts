@@ -478,26 +478,55 @@ async function resumoMensal(ctx: Ctx, snap: Snapshot): Promise<string> {
   ].join("\n");
 }
 
+async function dashboard(ctx: Ctx, snap: Snapshot): Promise<string> {
+  const { start, end } = monthBounds(ctx.today);
+  const monthPayments = paymentsInRange(snap.payments, start, end);
+  const received = monthPayments.reduce((sum, payment) => sum + num(payment.amount), 0);
+  const activeClients = snap.clients.filter((client) => client.active !== false).length;
+  const overdueCount = getOverdueByLoan(ctx, snap).size;
+
+  return [
+    "📊 *Dashboard Executivo*",
+    "",
+    "*Visão geral*",
+    `👥 Clientes ativos: *${activeClients}*`,
+    `📑 Empréstimos ativos: *${snap.active.length}*`,
+    `🚨 Contratos em atraso: *${overdueCount}*`,
+    "",
+    "*Financeiro do mês*",
+    `📤 Capital na rua: *${fmtBRL(snap.totalLent)}*`,
+    `💰 Recebido no mês: *${fmtBRL(received)}*`,
+    `⏳ Pendente de recebimento: *${fmtBRL(snap.pendingReceivable)}*`,
+    `💎 Lucro estimado: *${fmtBRL(snap.estimatedProfit)}*`,
+  ].join("\n");
+}
+
 async function kpiGeral(ctx: Ctx, snap: Snapshot): Promise<string> {
   const { start, end, prefix } = monthBounds(ctx.today);
   const monthPayments = paymentsInRange(snap.payments, start, end);
   const received = monthPayments.reduce((sum, payment) => sum + num(payment.amount), 0);
   const interest = computeProfitRealized(snap.loans, snap.payments, prefix);
-  const activeClients = snap.clients.filter((client) => client.active !== false).length;
+  const defaultRate = computeDefaultRate(ctx, snap, prefix);
+  const avgTicket = snap.active.length > 0 ? snap.totalLent / snap.active.length : 0;
+  const portfolioYield = snap.totalLent > 0 ? (interest / snap.totalLent) * 100 : 0;
+  const collectionRate = snap.pendingReceivable + received > 0
+    ? (received / (received + snap.pendingReceivable)) * 100
+    : 0;
+  const overdueCount = getOverdueByLoan(ctx, snap).size;
+  const overdueRatio = snap.active.length > 0 ? (overdueCount / snap.active.length) * 100 : 0;
 
   return [
-    "📊 *Dashboard Executivo*",
+    "📈 *KPIs Gerais*",
     "",
-    `👥 Clientes ativos: *${activeClients}*`,
-    `📑 Empréstimos ativos: *${snap.active.length}*`,
-    `📤 Capital na rua: *${fmtBRL(snap.totalLent)}*`,
-    `⏳ Pendente de recebimento: *${fmtBRL(snap.pendingReceivable)}*`,
-    `💎 Lucro estimado: *${fmtBRL(snap.estimatedProfit)}*`,
-    `💰 Recebido no mês: *${fmtBRL(received)}*`,
-    `📈 Juros recebidos: *${fmtBRL(interest)}*`,
-    `📉 Taxa de inadimplência: *${computeDefaultRate(ctx, snap, prefix).toFixed(2)}%*`,
-    `🎯 Ticket médio: *${fmtBRL(snap.active.length > 0 ? snap.totalLent / snap.active.length : 0)}*`,
-    `💎 Rentabilidade da carteira: *${(snap.totalLent > 0 ? (interest / snap.totalLent) * 100 : 0).toFixed(2)}%*`,
+    "*Performance da carteira*",
+    `🎯 Ticket médio: *${fmtBRL(avgTicket)}*`,
+    `💎 Rentabilidade: *${portfolioYield.toFixed(2)}%*`,
+    `📈 Juros recebidos no mês: *${fmtBRL(interest)}*`,
+    "",
+    "*Cobrança e inadimplência*",
+    `📊 Taxa de inadimplência: *${defaultRate.toFixed(2)}%*`,
+    `🚨 Contratos em atraso: *${overdueCount}* (${overdueRatio.toFixed(1)}% da carteira)*`,
+    `✅ Eficiência de cobrança: *${collectionRate.toFixed(2)}%*`,
   ].join("\n");
 }
 
