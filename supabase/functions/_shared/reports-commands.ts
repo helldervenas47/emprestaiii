@@ -68,7 +68,7 @@ export function renderMenu(brand = "Relatórios"): string {
     "/kpi\\_geral — Indicadores principais",
     "",
     "*Carteira & inadimplência*",
-    "/carteira\\_ativa — Capital, total a receber e pendências",
+    "/carteira\\_ativa — Capital e pendências",
     "/emprestimos\\_atrasados — Lista de contratos em atraso",
     "/inadimplencia — Taxa e faixas de atraso",
     "",
