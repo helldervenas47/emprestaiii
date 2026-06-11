@@ -48,7 +48,7 @@ export const REPORT_COMMANDS = new Set([
   "emprestimos_atrasados", "inadimplencia",
   "resumo_diario", "resumo_mensal",
   "top_clientes", "vencimentos_semana", "projecao_mes",
-  "novos_contratos", "cobranca_hoje", "historico_cliente", "alertas",
+  "novos_contratos", "historico_cliente", "alertas",
 ]);
 
 export function parseReportCommand(text: string): string | null {
