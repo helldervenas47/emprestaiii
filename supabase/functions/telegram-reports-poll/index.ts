@@ -352,14 +352,15 @@ Deno.serve(async (req) => {
     }
   }
 
-  await supabase.from("telegram_job_logs").insert({
+  const { error: logError } = await supabase.from("telegram_job_logs").insert({
     job: "telegram-reports-poll",
     ok: errors.length === 0,
     processed: total,
     duration_ms: Date.now() - startTime,
     error: errors.length ? errors.map((e) => `${e.bot_id}: ${e.error}`).join(" | ") : null,
     details: { bots: list.length, errors },
-  }).then(() => null).catch(() => null);
+  });
+  if (logError) console.error("[reports-poll] failed to write job log", logError);
 
   return new Response(JSON.stringify({ ok: errors.length === 0, processed: total, bots: list.length, errors }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
