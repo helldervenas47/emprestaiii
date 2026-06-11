@@ -535,7 +535,7 @@ export async function runReportCommand(supabase: any, userId: string, command: s
   const ctx: Ctx = { supabase, userId, today: todayInTZ() };
   const snap = await snapshot(ctx);
   switch (command) {
-    case "dashboard":
+    case "dashboard": return dashboard(ctx, snap);
     case "kpi_geral": return kpiGeral(ctx, snap);
     case "carteira_ativa": return carteiraAtiva(ctx, snap);
     case "recebimentos_hoje": return recebimentosHoje(ctx, snap);
