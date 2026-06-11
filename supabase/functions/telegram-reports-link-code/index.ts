@@ -22,13 +22,31 @@ Deno.serve(async (req) => {
   }
 
   const admin = getExternalAdmin();
+  let body: any = {};
+  try { body = await req.json(); } catch { body = {}; }
+
+  if (body?.action === "status") {
+    const { data: linked, error: linkedErr } = await admin.from("telegram_reports_links")
+      .select("chat_id, bot_id, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (linkedErr && linkedErr.code !== "42P01" && linkedErr.code !== "PGRST205") {
+      return new Response(JSON.stringify({ error: linkedErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    return new Response(JSON.stringify({ linked: linked ? { chat_id: linked.chat_id, bot_id: linked.bot_id ?? null } : null }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const reportsBotId = await getReportsBotId(admin);
   if (!reportsBotId) {
     return new Response(JSON.stringify({ error: "Bot de relatórios não configurado." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   const { data: existing, error: existingErr } = await admin.from("telegram_reports_links")
-    .select("chat_id").eq("user_id", userId).eq("bot_id", reportsBotId).maybeSingle();
+    .select("chat_id, bot_id, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (existingErr && (existingErr.code === "42P01" || existingErr.code === "PGRST205")) {
     return new Response(JSON.stringify({
       error: "Estrutura de dupla conexão ausente. Execute a restauração das tabelas de relatórios para habilitar bot de despesas e relatórios em paralelo.",
