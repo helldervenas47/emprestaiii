@@ -701,7 +701,7 @@ async function historicoCliente(ctx: Ctx, snap: Snapshot, query: string): Promis
   ];
   for (const l of loans.sort((a, b) => String(b.start_date).localeCompare(String(a.start_date)))) {
     const od = overdue.get(l.id);
-    const tag = l.status === "paid" ? "✅ quitado" : od ? `🚨 ${daysBetween(od.oldest, ctx.today)}d atraso` : "🟢 em dia";
+    const tag = l.status === "paid" ? "✅ quitado" : od ? `🚨 ${daysBetween(od.oldest, ctx.today)}d atraso` : "⏳ em dia";
     lines.push(`• ${String(l.start_date).split("-").reverse().join("/")} — ${fmtBRL(num(l.amount))} (${num(l.installments) || 1}x) — ${tag}`);
   }
   return lines.join("\n");
