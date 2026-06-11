@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MoneyInput } from "@/components/ui/money-input";
-import { Boxes, PackagePlus, ShoppingBag, History, ShoppingCart, ArrowDown, ArrowUp, Wrench, AlertTriangle, Pencil, Plus, Trash2, MoreVertical, Eye, EyeOff, ChevronDown } from "lucide-react";
+import { Boxes, PackagePlus, ShoppingBag, History, ShoppingCart, ArrowDown, ArrowUp, Wrench, AlertTriangle, Pencil, Plus, Trash2, MoreVertical, Eye, EyeOff, ChevronDown, Search } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ProductForm } from "@/components/ProductForm";
 import type { Product } from "@/types/loan";
@@ -59,6 +59,7 @@ export function StockManager({ readOnly = false }: Props) {
   const [filterProduct, setFilterProduct] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("name-asc");
   const [statusFilter, setStatusFilter] = useState<"ativos" | "inativos" | "todos">("ativos");
+  const [search, setSearch] = useState("");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const toggleExpanded = (id: string) =>
     setExpandedIds((prev) => {
@@ -68,9 +69,11 @@ export function StockManager({ readOnly = false }: Props) {
     });
 
   const sortedProducts = useMemo(() => {
+    const q = search.trim().toLowerCase();
     const arr = products.filter((p) => {
-      if (statusFilter === "ativos") return p.active !== false;
-      if (statusFilter === "inativos") return p.active === false;
+      if (statusFilter === "ativos" && p.active === false) return false;
+      if (statusFilter === "inativos" && p.active !== false) return false;
+      if (q && !p.name.toLowerCase().includes(q)) return false;
       return true;
     });
     switch (sortBy) {
@@ -84,7 +87,7 @@ export function StockManager({ readOnly = false }: Props) {
       case "cost-desc": arr.sort((a, b) => (b.cost || 0) - (a.cost || 0)); break;
     }
     return arr;
-  }, [products, sortBy, statusFilter]);
+  }, [products, sortBy, statusFilter, search]);
 
   const lastMovementByProduct = useMemo(() => {
     const map = new Map<string, StockMovement>();
@@ -175,6 +178,15 @@ export function StockManager({ readOnly = false }: Props) {
                 </div>
               </CardContent>
             </Card>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+            <Input
+              placeholder="Buscar produto..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-9"
+            />
           </div>
           <div className="flex flex-row gap-2 sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 flex-1 sm:flex-initial">
