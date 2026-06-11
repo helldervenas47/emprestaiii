@@ -699,10 +699,13 @@ async function historicoCliente(ctx: Ctx, snap: Snapshot, query: string): Promis
     "",
     "*Contratos:*",
   ];
-  for (const l of loans.sort((a, b) => String(b.start_date).localeCompare(String(a.start_date)))) {
+  for (const l of loans.sort((a, b) => String(b.due_date).localeCompare(String(a.due_date)))) {
     const od = overdue.get(l.id);
     const tag = l.status === "paid" ? "✅ quitado" : od ? `🚨 ${daysBetween(od.oldest, ctx.today)}d atraso` : "⏳ em dia";
-    lines.push(`• ${String(l.start_date).split("-").reverse().join("/")} — ${fmtBRL(num(l.amount))} (${num(l.installments) || 1}x) — ${tag}`);
+    const tagsArr = Array.isArray(l.tags) ? l.tags.filter(Boolean) : [];
+    const tagsStr = tagsArr.length > 0 ? ` — 🏷️ ${tagsArr.join(", ")}` : "";
+    const dueStr = l.due_date ? String(l.due_date).slice(0, 10).split("-").reverse().join("/") : "—";
+    lines.push(`• venc. ${dueStr} — ${fmtBRL(num(l.amount))} (${num(l.installments) || 1}x) — ${tag}${tagsStr}`);
   }
   return lines.join("\n");
 }
