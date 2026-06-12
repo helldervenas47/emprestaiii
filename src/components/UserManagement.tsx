@@ -39,6 +39,7 @@ const ALL_TABS = APP_TABS;
 export function UserManagement() {
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"mine" | "subscribers">("mine");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
   const [permissionsUser, setPermissionsUser] = useState<ManagedUser | null>(null);
