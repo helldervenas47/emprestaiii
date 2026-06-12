@@ -44,7 +44,7 @@ export function CategoryDetailsSheet({ open, onOpenChange, categoryName, entries
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="h-[85vh] rounded-t-2xl flex flex-col p-0 sm:max-w-2xl sm:mx-auto"
+        className="h-[85vh] rounded-t-2xl flex flex-col p-0"
       >
         <SheetHeader className="px-5 pt-5 pb-4 border-b border-border">
           <SheetTitle className="text-base text-foreground">{categoryName}</SheetTitle>
