@@ -260,6 +260,7 @@ function HideValuesQuickAction() {
 
 const Index = () => {
   const { signOut, role, allowedTabs, linkedClientIds, loading, user } = useAuth();
+  const roleAllowedTabs = useMyRoleTabs(role);
   const navigate = useNavigate();
   const { subscription, isActive: hasActiveSub } = useSubscription();
   const { branding: appBranding } = useAppBranding();
