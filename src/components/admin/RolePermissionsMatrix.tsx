@@ -123,13 +123,19 @@ export function RolePermissionsMatrix() {
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs value="matrix" className="w-full">
+        <Tabs defaultValue="matrix" className="w-full">
           <TabsList>
-            <TabsTrigger value="matrix">Matriz</TabsTrigger>
+            <TabsTrigger value="matrix">Ações</TabsTrigger>
+            <TabsTrigger value="tabs">Abas visíveis</TabsTrigger>
             <TabsTrigger value="history">
               <History className="h-3.5 w-3.5 mr-1" /> Histórico
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="tabs" className="mt-4">
+            <RoleTabsMatrix />
+          </TabsContent>
+
 
           <TabsContent value="matrix" className="mt-4">
             <Tabs value={activeRole} onValueChange={setActiveRole}>
