@@ -670,7 +670,7 @@ const Index = () => {
                             ) : "Sem Plano"}
                           </Badge>
                         </div>
-                        {role && <p className="text-[10px] text-muted-foreground">{role === "admin" ? "Administrador" : role === "operador" ? "Operador" : "Visualizador"}</p>}
+                        {role && <p className="text-[10px] text-muted-foreground">{role === "admin" ? "Administrador" : role === "cliente" ? "Cliente" : "Visualizador"}</p>}
                       </div>
                     </div>
                   </div>
@@ -688,7 +688,7 @@ const Index = () => {
               <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 text-xs text-muted-foreground mr-1">
                 <User className="h-3 w-3" />
                 <span className="max-w-[120px] truncate">{user?.user_metadata?.display_name || user?.email || "—"}</span>
-                {role && <Badge variant={role === "admin" ? "default" : role === "operador" ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0">{role === "admin" ? "Admin" : role === "operador" ? "Op." : "Vis."}</Badge>}
+                {role && <Badge variant={role === "admin" ? "default" : role === "cliente" ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0">{role === "admin" ? "Admin" : role === "cliente" ? "Op." : "Vis."}</Badge>}
                 <Badge
                   variant="outline"
                   className="text-[10px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors border-primary/40 text-primary"
@@ -1361,7 +1361,7 @@ const Index = () => {
                       <div className="flex items-center gap-1.5 mt-0.5">
                         {role && (
                           <Badge variant="outline" className="text-[9px] px-1.5 py-0">
-                            {role === "admin" ? "Administrador" : role === "operador" ? "Operador" : "Visualizador"}
+                            {role === "admin" ? "Administrador" : role === "cliente" ? "Cliente" : "Visualizador"}
                           </Badge>
                         )}
                         <Badge

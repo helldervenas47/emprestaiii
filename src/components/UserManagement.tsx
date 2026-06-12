@@ -377,14 +377,14 @@ export function UserManagement() {
 
   const roleBadgeVariant = (role: string | null) => {
     if (role === "admin") return "default";
-    if (role === "operador") return "secondary";
+    if (role === "cliente") return "secondary";
     if (role === "gerente") return "secondary";
     return "outline";
   };
 
   const roleLabel = (role: string | null) => {
     if (role === "admin") return "Admin";
-    if (role === "operador") return "Operador";
+    if (role === "cliente") return "Cliente";
     if (role === "gerente") return "Gerente";
     if (role === "visualizador") return "Visualizador";
     return "Sem papel";
@@ -474,7 +474,7 @@ export function UserManagement() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="admin"><div className="flex items-center gap-2"><Shield className="h-3 w-3" /> Admin</div></SelectItem>
-                              <SelectItem value="operador">Operador</SelectItem>
+                              <SelectItem value="cliente">Cliente</SelectItem>
                               <SelectItem value="gerente">Gerente</SelectItem>
                               <SelectItem value="visualizador">Visualizador</SelectItem>
                             </SelectContent>
@@ -566,7 +566,7 @@ export function UserManagement() {
                               <Shield className="h-3 w-3" /> Admin
                             </div>
                           </SelectItem>
-                          <SelectItem value="operador">Operador</SelectItem>
+                          <SelectItem value="cliente">Cliente</SelectItem>
                           <SelectItem value="gerente">Gerente</SelectItem>
                           <SelectItem value="visualizador">Visualizador</SelectItem>
                         </SelectContent>
@@ -657,7 +657,7 @@ export function UserManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="operador">Operador</SelectItem>
+                  <SelectItem value="cliente">Cliente</SelectItem>
                   <SelectItem value="gerente">Gerente</SelectItem>
                   <SelectItem value="visualizador">Visualizador</SelectItem>
                 </SelectContent>
