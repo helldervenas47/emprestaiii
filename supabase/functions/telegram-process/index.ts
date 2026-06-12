@@ -2915,7 +2915,7 @@ Deno.serve(async (req) => {
         const userId = await getLinkedUserId(admin, chatId, messageBotId);
         const link = userId ? { user_id: userId } : null;
         if (!link) {
-          await tgSend(chatId, "🔒 Conta não vinculada. Envie /code aqui e cole o código na aba Financeiro do app.", telegramKey);
+          await tgSend(chatId, "🔒 Conta não vinculada. Abra o app, gere o comando */start* na aba Financeiro e envie aqui para vincular.", telegramKey);
         } else {
           // 🐷 Pending piggy-bank aporte interception (highest priority)
           const { data: pendingPiggy } = await admin.from("telegram_pending_piggy_aporte")
