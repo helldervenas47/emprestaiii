@@ -4484,12 +4484,7 @@ function LoanRowView({
                   />
                 );
               })()}
-              {paymentDialog?.type === "payoff" && (
-                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-                  <p className="text-xs text-muted-foreground">Total restante a receber</p>
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
-                </div>
-              )}
+              {/* Quitar Contrato — composição/simulação renderizadas na coluna esquerda */}
               {paymentDialog?.type === "installment" && (
                 <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
                   <p className="text-xs text-muted-foreground">Valor da parcela atual</p>
