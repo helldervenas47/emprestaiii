@@ -78,7 +78,7 @@ export function renderMenu(brand = "Relatórios"): string {
     "",
     "*Operação*",
     "/recebimentos\\_hoje — Pagamentos do dia",
-    
+    "/vencimentos\\_hoje — Contratos que vencem hoje",
     "/vencimentos\\_semana — Parcelas dos próximos 7 dias",
     "/resumo\\_diario — Movimentação do dia",
     "/resumo\\_mensal — Fechamento do mês",
