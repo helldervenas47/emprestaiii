@@ -30,19 +30,21 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { status: 200, headers: corsHeaders });
   }
+  const gate = await requireAdmin(req);
+  if (gate instanceof Response) return gate;
 
   try {
     const env = Deno.env.toObject();
     const SUPABASE_URL = env.SUPABASE_URL ?? "";
-    const anon_key = env.SUPABASE_ANON_KEY ?? env.SUPABASE_PUBLISHABLE_KEY ?? "";
     const service_role_key = env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
-    const secrets: Record<string, string> = {};
-    for (const [k, v] of Object.entries(env)) {
+    // Return only the NAMES of configured secrets, never the values.
+    const secret_names: string[] = [];
+    for (const [k] of Object.entries(env)) {
       if (SYSTEM_VARS.has(k)) continue;
       if (k.startsWith("XDG_")) continue;
-      if (["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SERVICE_ROLE_KEY"].includes(k)) continue;
-      secrets[k] = v;
+      if (["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_DB_URL"].includes(k)) continue;
+      secret_names.push(k);
     }
 
     // Probe edge functions
