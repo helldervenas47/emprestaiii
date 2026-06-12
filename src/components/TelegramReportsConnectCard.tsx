@@ -47,32 +47,8 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
     }
   };
 
-  const linkByBotCode = async () => {
-    const trimmed = botCodeInput.trim();
-    if (!trimmed) {
-      toast.error("Digite o código recebido no Telegram");
-      return;
-    }
-    const normalized = normalizeTelegramBotCode(trimmed);
-    if (!/^[A-Z0-9]{6,12}$/.test(normalized)) {
-      toast.error("Código inválido", { description: "Envie /code ao bot de relatórios e cole aqui o código retornado." });
-      return;
-    }
-    setLinkingByCode(true);
-    try {
-      await invokeUserFunction("telegram-reports-poll").catch(() => null);
-      const data = await invokeUserFunction("link-telegram-bot", { bot_code: normalized, kind: "reports" });
-      if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success("✅ Relatório conectado ao bot com sucesso");
-      setBotCodeInput("");
-      setCode(null);
-      await refresh();
-    } catch (e: any) {
-      toast.error("❌ Erro ao vincular", { description: e.message });
-    } finally {
-      setLinkingByCode(false);
-    }
-  };
+
+
 
   const copyCommand = () => {
     if (!code) return;
