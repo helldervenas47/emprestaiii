@@ -436,7 +436,9 @@ export function ConsolidatedBalanceCards() {
                           );
                         }
                         case "projecao30": {
-                          const inRange = (d?: string | null) => !!d && d >= todayStr && d <= horizon30;
+                          const endOfMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                          const endOfMonth = `${endOfMonthDate.getFullYear()}-${pad(endOfMonthDate.getMonth() + 1)}-${pad(endOfMonthDate.getDate())}`;
+                          const inRange = (d?: string | null) => !!d && d >= todayStr && d <= endOfMonth;
                           // Entradas previstas: parcelas de empréstimos ainda não pagas com vencimento nos próximos 30 dias.
                           const activeLoanIds = new Set(loans.filter((l) => l.status !== "paid").map((l) => l.id));
                           const loanById = new Map(loans.map((l) => [l.id, l] as const));
