@@ -1,11 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Send, BarChart3, AlertTriangle, CalendarCheck } from "lucide-react";
+import { AlertTriangle, BarChart3, CalendarCheck } from "lucide-react";
 import { TelegramReportsConnectCard } from "@/components/TelegramReportsConnectCard";
-import { TelegramBillingScheduleCard } from "@/components/TelegramBillingScheduleCard";
-import { TelegramAccumulatedDelinquencyScheduleCard } from "@/components/TelegramAccumulatedDelinquencyScheduleCard";
 import { TelegramDailyPlanningScheduleCard } from "@/components/TelegramDailyPlanningScheduleCard";
 import { TelegramIncomesExpensesScheduleCard } from "@/components/TelegramIncomesExpensesScheduleCard";
-import { TelegramManagerWeeklyCard } from "@/components/TelegramManagerWeeklyCard";
 import { TelegramWeeklyVencimentosCard } from "@/components/TelegramWeeklyVencimentosCard";
 import { ScheduledReportCard } from "@/components/ScheduledReportCard";
 
