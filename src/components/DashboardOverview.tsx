@@ -2063,18 +2063,14 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                       const daysLate = Math.max(0, Math.floor((Date.now() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
                       return (
                         <div key={l.id} className="rounded-2xl border border-destructive/20 bg-destructive/5 p-3.5 transition-colors hover:bg-destructive/10">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
-                              <p className="font-semibold text-foreground truncate">{l.borrowerName}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="inline-flex items-center rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold text-destructive">
-                                  {daysLate}d em atraso
-                                </span>
-                                <span className="text-[11px] text-muted-foreground">venc. {dueDate.toLocaleDateString("pt-BR")}</span>
-                              </div>
-                            </div>
-                            <span className="font-bold text-destructive whitespace-nowrap tabular-nums text-sm">{rawFormatCurrency(remaining)}</span>
+                          <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3">
+                            <p className="font-semibold text-foreground truncate min-w-0">{l.borrowerName}</p>
+                            <span className="inline-flex items-center justify-center rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold text-destructive tabular-nums w-12">
+                              {daysLate}d
+                            </span>
+                            <span className="font-bold text-destructive whitespace-nowrap tabular-nums text-sm text-right w-24">{rawFormatCurrency(remaining)}</span>
                           </div>
+                          <p className="text-[11px] text-muted-foreground mt-1">venc. {dueDate.toLocaleDateString("pt-BR")}</p>
                         </div>
                       );
                     })
