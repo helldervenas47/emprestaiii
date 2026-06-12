@@ -2136,22 +2136,26 @@ function LoanCardView({
               <div className="space-y-4">
 
               {paymentDialog?.type === "payoff" && (
-                <div className="w-full space-y-1">
-                  <Label htmlFor="payoff-amount" className="text-xs">Valor para quitar (R$)</Label>
-                  <Input
-                    id="payoff-amount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    inputMode="decimal"
-                    value={payoffAmount}
-                    onChange={(e) => setPayoffAmount(e.target.value)}
-                    placeholder={`Ex: ${remaining.toFixed(2)}`}
-                    autoFocus
+                <div className="w-full space-y-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="payoff-amount" className="text-xs">Valor da quitação (R$)</Label>
+                    <Input
+                      id="payoff-amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      inputMode="decimal"
+                      value={payoffAmount}
+                      onChange={(e) => setPayoffAmount(e.target.value)}
+                      placeholder={`Ex: ${remaining.toFixed(2)}`}
+                      autoFocus
+                    />
+                  </div>
+                  <PayoffSimulationCard
+                    inputAmount={payoffAmount}
+                    totalContract={remaining}
+                    formatCurrency={formatCurrency}
                   />
-                  <p className="text-[10px] text-muted-foreground">
-                    Informe o valor de quitação. O contrato será marcado como pago.
-                  </p>
                 </div>
               )}
           {paymentDialog?.type === "amortize" && (() => {
