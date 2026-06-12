@@ -764,38 +764,6 @@ export function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Tab permissions dialog */}
-      <Dialog open={!!permissionsUser} onOpenChange={(open) => !open && setPermissionsUser(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Permissões de Abas — {permissionsUser?.display_name}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Ative ou desative as abas que este usuário pode visualizar.
-            </p>
-            <div className="space-y-3">
-              {ALL_TABS.map((tab) => (
-                <div key={tab.id} className="flex items-center justify-between py-1">
-                  <Label className="text-sm font-medium">{tab.label}</Label>
-                  <Switch
-                    checked={permTabs.includes(tab.id)}
-                    onCheckedChange={() => handleToggleTab(tab.id)}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2 justify-end pt-2">
-              <Button variant="outline" onClick={() => setPermissionsUser(null)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleSavePermissions} disabled={savingPerms}>
-                {savingPerms ? "Salvando..." : "Salvar Permissões"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Client links dialog */}
       <Dialog open={!!clientLinkUser} onOpenChange={(open) => !open && setClientLinkUser(null)}>
