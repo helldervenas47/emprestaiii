@@ -211,7 +211,8 @@ export function useLoans() {
     if (isOnline()) {
       const { data, error } = await supabase
         .from("loans").select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(2000); // safety cap — paginação por página será adicionada com UI de "carregar mais"
       if (!error && data) {
         setLoans(data.map(rowToLoan));
         cacheRows("loans", data).catch(() => { /* noop */ });
@@ -231,7 +232,8 @@ export function useLoans() {
     if (isOnline()) {
       const { data, error } = await supabase
         .from("payments").select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(5000); // safety cap
       if (!error && data) {
         setPayments(data.map(rowToPayment));
         cacheRows("payments", data).catch(() => { /* noop */ });
@@ -251,7 +253,8 @@ export function useLoans() {
     if (isOnline()) {
       const { data, error } = await supabase
         .from("loan_installments").select("*")
-        .order("installment_number", { ascending: true });
+        .order("installment_number", { ascending: true })
+        .limit(10000); // safety cap
       if (!error && data) {
         setInstallmentSchedules(data.map((s: any) => ({
           id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number,

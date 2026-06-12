@@ -154,7 +154,8 @@ export function useExpenses(enabled = true) {
       const { data, error } = await supabase
         .from("expenses")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(5000); // safety cap — paginação por mês/página será adicionada na UI
       if (!error && data) {
         setExpenses(data.map(rowToExpense));
         cacheRows("expenses", data).catch(() => { /* noop */ });
