@@ -73,6 +73,7 @@ Deno.serve(async (req) => {
       const { data: profiles } = await adminClient.from("profiles").select("*");
       const { data: tabPerms } = await adminClient.from("user_tab_permissions").select("*");
       const { data: clientPerms } = await adminClient.from("user_client_permissions").select("*");
+      const { data: owners } = await adminClient.from("user_owner").select("user_id, owner_id");
 
       const enriched = allUsers.map((u) => ({
         id: u.id,
@@ -85,6 +86,7 @@ Deno.serve(async (req) => {
         is_active: !u.banned_until || new Date(u.banned_until) <= new Date(),
         allowed_tabs: tabPerms?.find((t) => t.user_id === u.id)?.allowed_tabs || null,
         linked_client_ids: clientPerms?.filter((c) => c.user_id === u.id).map((c) => c.client_id) || [],
+        owner_id: owners?.find((o) => o.user_id === u.id)?.owner_id || null,
       }));
 
       return new Response(JSON.stringify({ users: enriched }), {
