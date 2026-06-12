@@ -11,6 +11,9 @@ import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
 import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 
+const CLOUD_FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const CLOUD_ANON_KEY = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY) as string;
+
 type SlotKey = "send_time_1" | "send_time_2" | "send_time_3";
 
 interface Props {
@@ -34,8 +37,20 @@ export function ScheduledReportCard({ title, description, Icon, prefsTable, func
   const sendNow = async () => {
     setSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke(functionName, { body: {} });
-      if (error) throw error;
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error("Sessão expirada — entre novamente.");
+      const res = await fetch(`${CLOUD_FUNCTIONS_URL}/functions/v1/${functionName}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: CLOUD_ANON_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `Erro ${res.status}`);
       if (!data?.sent) {
         toast.warning("Nada enviado", {
           description: data?.reason === "no_reports_link"
