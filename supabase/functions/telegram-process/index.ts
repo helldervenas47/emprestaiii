@@ -2906,20 +2906,8 @@ Deno.serve(async (req) => {
             await tgSend(chatId, "✅ *Conta vinculada!*\n\n" + HELP_TEXT, telegramKey);
           }
         }
-      } else if (/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i.test(text)) {
-        const botCode = await generateChatLinkCode(chatId, "expenses", getExternalServiceRoleKey());
-        await admin.from("telegram_messages")
-          .update({ raw_update: { ...(msg.raw_update as any), _bot_link_code: botCode, _bot_link_kind: "expenses" } })
-          .eq("update_id", msg.update_id);
-        await tgSend(chatId,
-          `🔑 *Seu código de vínculo:*\n\n\`${botCode}\`\n\n` +
-          `1. Abra a aba *Financeiro* no app\n` +
-          `2. Toque no ícone do Telegram\n` +
-          `3. Cole este código no campo *"Código recebido do bot"*\n\n` +
-          `_Válido por 15 min._`,
-          telegramKey);
       } else if (/^\/start\b/i.test(text)) {
-        await tgSend(chatId, "👋 Para vincular sua conta pela aba Financeiro, envie /code aqui e cole o código gerado no app.", telegramKey);
+        await tgSend(chatId, "👋 Para vincular sua conta, abra o app, gere o comando */start* na aba Financeiro e envie aqui exatamente como recebeu.", telegramKey);
       } else if (/^\/help\b/i.test(text)) {
         await tgSend(chatId, HELP_TEXT, telegramKey);
       } else if (text) {
