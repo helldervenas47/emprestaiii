@@ -13,9 +13,17 @@ if (!USER_SUPABASE_URL || !USER_SUPABASE_PUBLISHABLE_KEY) {
   );
 }
 
+// Chave de storage EXCLUSIVA do projeto externo. Evita colisão caso o
+// client auto-gerado da Lovable Cloud (src/integrations/supabase/client.ts)
+// seja instanciado em paralelo por alguma dependência — sem isso ambos
+// compartilhariam a mesma chave `sb-*-auth-token` e causariam logout
+// silencioso / sessão trocada entre projetos.
+export const USER_SUPABASE_STORAGE_KEY = "sb-user-external-auth";
+
 export const supabase = createClient<Database>(USER_SUPABASE_URL, USER_SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: localStorage,
+    storageKey: USER_SUPABASE_STORAGE_KEY,
     persistSession: true,
     autoRefreshToken: true,
     // PWA-friendly OAuth: usa PKCE (sem expor token na URL) e troca o
