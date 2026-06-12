@@ -229,7 +229,7 @@ Deno.serve(async (req) => {
     console.log("[link-telegram-bot] received", { userId, requestedKind, rawCodeLen: rawCode.length, rawBodyLen: rawBodyText.length, bodyKeys: Object.keys(body ?? {}) });
     const admin = getExternalAdmin();
 
-    // Flush pending Telegram updates so the recent /code message is persisted.
+    // Flush pending Telegram updates so the recent /start message is persisted.
     await Promise.all([
       fetch(`${SUPABASE_URL}/functions/v1/telegram-poll`, {
         method: "POST",
