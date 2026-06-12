@@ -417,14 +417,18 @@ async function emprestimosAtrasados(ctx: Ctx, snap: Snapshot): Promise<string> {
       return { name: loan?.borrower_name || "—", days: daysBetween(item.oldest, ctx.today), value: item.value };
     })
     .sort((a, b) => b.days - a.days);
+
+  const nameWidth = Math.min(20, Math.max(...sorted.map((r) => r.name.length)));
+  const daysWidth = Math.max(...sorted.map((r) => `${r.days}d`.length));
+  const valueWidth = Math.max(...sorted.map((r) => fmtBRL(r.value).length));
+  const pad = (s: string, n: number) => (s.length >= n ? s.slice(0, n) : s + " ".repeat(n - s.length));
+  const padL = (s: string, n: number) => (s.length >= n ? s : " ".repeat(n - s.length) + s);
+
+  lines.push("```");
   for (const row of sorted) {
-    lines.push(
-      `• *${row.name}*`,
-      `  Dias: ${row.days}d`,
-      `  Valor: ${fmtBRL(row.value)}`,
-      ""
-    );
+    lines.push(`${pad(row.name, nameWidth)}  ${padL(`${row.days}d`, daysWidth)}  ${padL(fmtBRL(row.value), valueWidth)}`);
   }
+  lines.push("```");
   return lines.join("\n");
 }
 
