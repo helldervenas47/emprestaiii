@@ -2,7 +2,15 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/userClient";
 import type { User, Session } from "@supabase/supabase-js";
 
-export type AppRole = "admin" | "cliente" | "visualizador" | null;
+export type AppRole = "admin" | "gerente" | "cliente" | "visualizador" | null;
+
+// Prioridade: papel mais privilegiado vence quando o usuário tem múltiplos.
+const ROLE_PRIORITY: Record<string, number> = {
+  admin: 4,
+  gerente: 3,
+  cliente: 2,
+  visualizador: 1,
+};
 
 interface AuthContextType {
   user: User | null;
