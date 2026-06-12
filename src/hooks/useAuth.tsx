@@ -38,11 +38,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", userId)
-      .limit(1)
-      .maybeSingle();
+      .eq("user_id", userId);
 
-    setRole((data?.role as AppRole) ?? null);
+    const roles = (data ?? []).map((r: any) => r.role as string);
+    if (roles.length === 0) {
+      setRole(null);
+      return;
+    }
+    const best = roles.sort(
+      (a, b) => (ROLE_PRIORITY[b] ?? 0) - (ROLE_PRIORITY[a] ?? 0),
+    )[0];
+    setRole((best as AppRole) ?? null);
   };
 
   const fetchDataOwner = async (userId: string) => {
