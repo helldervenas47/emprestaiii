@@ -40,6 +40,7 @@ import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { useWhatsappBillingMessages } from "@/hooks/useWhatsappBillingMessages";
 import { buildBillingWhatsappLink } from "@/lib/whatsappBilling";
 import { WhatsappPreviewDialog } from "@/components/WhatsappPreviewDialog";
+import { PartialPaymentDialog } from "@/components/loans/PartialPaymentDialog";
 
 function WhatsappBillButton({
   loan,
