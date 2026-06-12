@@ -75,6 +75,22 @@ async function callGemini(apiKey: string, payload: unknown) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
+    // Require an authenticated Supabase user to prevent Gemini-API abuse.
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!authHeader.toLowerCase().startsWith("bearer ")) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
+    }
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+    if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+      const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: u, error: ue } = await userClient.auth.getUser();
+      if (ue || !u?.user) return jsonResponse({ error: "Unauthorized" }, 401);
+    }
+
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) {
       return jsonResponse({ error: "Configuração de IA ausente" });
@@ -83,6 +99,10 @@ Deno.serve(async (req) => {
     const { audioBase64, mimeType } = await req.json();
     if (!audioBase64 || typeof audioBase64 !== "string") {
       return jsonResponse({ error: "Áudio obrigatório" }, 400);
+    }
+    // Cap payload at ~5 MB of base64 (~3.75 MB raw audio).
+    if (audioBase64.length > 5 * 1024 * 1024) {
+      return jsonResponse({ error: "Áudio muito grande (limite ~5 MB)" }, 413);
     }
 
     // Normalizar mimeType para algo que o Gemini aceita
