@@ -1,25 +1,26 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type, apikey",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { requireAdmin, adminCors as corsHeaders } from "../_shared/require-admin.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { status: 200, headers: corsHeaders });
   }
+  const gate = await requireAdmin(req);
+  if (gate instanceof Response) return gate;
+
   try {
     const body = await req.json();
-    const { key, sql_query } = body ?? {};
-    if (!key || !sql_query) {
-      return new Response(JSON.stringify({ error: "Missing key or sql_query" }), {
+    const { sql_query } = body ?? {};
+    if (!sql_query || typeof sql_query !== "string") {
+      return new Response(JSON.stringify({ error: "Missing sql_query" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, key);
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
     const { data, error } = await supabase.rpc("exec_sql", { sql_query });
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {

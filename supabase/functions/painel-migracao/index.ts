@@ -1,10 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { requireAdmin, adminCors as corsHeaders } from "../_shared/require-admin.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type, apikey",
-  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-};
+
 
 const SYSTEM_VARS = new Set([
   "PATH", "HOME", "DENO_DIR", "HOSTNAME", "PORT", "TMPDIR", "USER",
@@ -33,19 +30,21 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { status: 200, headers: corsHeaders });
   }
+  const gate = await requireAdmin(req);
+  if (gate instanceof Response) return gate;
 
   try {
     const env = Deno.env.toObject();
     const SUPABASE_URL = env.SUPABASE_URL ?? "";
-    const anon_key = env.SUPABASE_ANON_KEY ?? env.SUPABASE_PUBLISHABLE_KEY ?? "";
     const service_role_key = env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
-    const secrets: Record<string, string> = {};
-    for (const [k, v] of Object.entries(env)) {
+    // Return only the NAMES of configured secrets, never the values.
+    const secret_names: string[] = [];
+    for (const [k] of Object.entries(env)) {
       if (SYSTEM_VARS.has(k)) continue;
       if (k.startsWith("XDG_")) continue;
-      if (["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SERVICE_ROLE_KEY"].includes(k)) continue;
-      secrets[k] = v;
+      if (["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_DB_URL"].includes(k)) continue;
+      secret_names.push(k);
     }
 
     // Probe edge functions
@@ -85,9 +84,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         project_url: SUPABASE_URL,
-        anon_key,
-        service_role_key,
-        secrets,
+        secret_names,
         edge_functions,
         edge_functions_count: edge_functions.length,
         database_tables,

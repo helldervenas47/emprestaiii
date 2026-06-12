@@ -1,12 +1,12 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getExternalAdmin } from "../_shared/external-supabase.ts";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { requireAdmin, adminCors as corsHeaders } from "../_shared/require-admin.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  const gate = await requireAdmin(req);
+  if (gate instanceof Response) return gate;
+
   const supabase = getExternalAdmin();
 
   // Auto-populate system_telegram_bots if empty
@@ -34,11 +34,8 @@ Deno.serve(async (req) => {
     }
   }
 
-  const { data: botsRaw, error: botsErr } = await supabase.from("system_telegram_bots").select("*");
-  const bots = (botsRaw ?? []).map((bot: any) => ({
-    ...bot,
-    token: bot.token ? `${String(bot.token).slice(0, 4)}…${String(bot.token).slice(-4)}` : null,
-  }));
+  const { data: botsRaw, error: botsErr } = await supabase.from("system_telegram_bots").select("id, name, purpose, active, bot_id, created_at");
+  const bots = botsRaw ?? [];
   const { data: expenseCodes, error: ucErr } = await supabase.from("telegram_link_codes").select("*").order("created_at", { ascending: false });
   const { data: expenseLinks, error: ulErr } = await supabase.from("telegram_links").select("*").order("created_at", { ascending: false }).limit(20);
   const { data: recentMessages, error: msgErr } = await supabase.from("telegram_messages")
