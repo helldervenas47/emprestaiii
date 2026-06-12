@@ -45,7 +45,7 @@ function totalWithInterest(loan: any): number {
 export const REPORT_COMMANDS = new Set([
   "relatorios", "dashboard",
   "kpi_geral", "carteira_ativa", "recebimentos_hoje",
-  "emprestimos_atrasados", "inadimplencia",
+  "emprestimos_atrasados", "vencimentos_hoje", "inadimplencia",
   "resumo_diario", "resumo_mensal",
   "top_clientes", "vencimentos_semana", "projecao_mes",
   "novos_contratos", "historico_cliente", "alertas",
