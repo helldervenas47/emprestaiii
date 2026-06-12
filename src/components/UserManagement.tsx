@@ -406,11 +406,15 @@ export function UserManagement() {
     return "Free";
   };
 
+  const mineUsers = users.filter((u) => u.owner_id && currentUser?.id && u.owner_id === currentUser.id);
+  const subscriberUsers = users.filter((u) => !u.owner_id || u.owner_id === u.id);
+  const displayedUsers = activeTab === "mine" ? mineUsers : subscriberUsers;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">
-          Usuários ({users.length})
+          Usuários ({displayedUsers.length})
         </h2>
         <Button onClick={() => setShowCreateForm(true)}>
           <UserPlus className="h-4 w-4 mr-2" />
@@ -418,11 +422,28 @@ export function UserManagement() {
         </Button>
       </div>
 
+      <div className="inline-flex rounded-md border border-border bg-muted/30 p-1 gap-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab("mine")}
+          className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${activeTab === "mine" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          Criados por mim ({mineUsers.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("subscribers")}
+          className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${activeTab === "subscribers" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          Assinantes ({subscriberUsers.length})
+        </button>
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-8">
           <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
         </div>
-      ) : users.length === 0 ? (
+      ) : displayedUsers.length === 0 ? (
         <Card no3d>
           <CardContent className="py-8 text-center text-muted-foreground">
             Nenhum usuário encontrado
@@ -431,7 +452,7 @@ export function UserManagement() {
       ) : (
         isMobile ? (
           <div className="space-y-2">
-            {users.map((user) => {
+            {displayedUsers.map((user) => {
               const isExpanded = expandedUserId === user.id;
               return (
                 <Card no3d key={user.id} className="overflow-hidden">
