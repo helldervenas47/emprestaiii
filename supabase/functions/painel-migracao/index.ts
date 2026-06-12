@@ -84,9 +84,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         project_url: SUPABASE_URL,
-        anon_key,
-        service_role_key,
-        secrets,
+        secret_names,
         edge_functions,
         edge_functions_count: edge_functions.length,
         database_tables,
