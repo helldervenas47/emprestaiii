@@ -30,6 +30,7 @@ function nowParts(tz = "America/Sao_Paulo") {
 export function buildScheduledReportHandler(opts: {
   prefsTable: string;
   command: string; // e.g. "emprestimos_atrasados" | "vencimentos_hoje"
+  trackSendTimeInLastSent?: boolean;
 }) {
   return async (req: Request): Promise<Response> => {
     if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -90,7 +91,13 @@ export function buildScheduledReportHandler(opts: {
           ] as const;
           const lastSent = ((pref as any).last_sent ?? {}) as Record<string, string>;
           const fired = dueSlotKeys(slots, nowMin, today, lastSent);
-          if (fired.length === 0) continue;
+          const firedWithMarkers = opts.trackSendTimeInLastSent
+            ? slots
+                .filter((slot) => fired.includes(slot.key))
+                .map((slot) => ({ key: slot.key, marker: `${today}@${String(slot.time).slice(0, 5)}` }))
+                .filter((slot) => lastSent[slot.key] !== slot.marker)
+            : fired.map((key) => ({ key, marker: today }));
+          if (firedWithMarkers.length === 0) continue;
 
           const link = await getReportsLinkForUser(admin, (pref as any).user_id);
           if (!link) continue;
@@ -99,7 +106,7 @@ export function buildScheduledReportHandler(opts: {
           if (!send.sent) continue;
 
           const merged = { ...lastSent };
-          for (const k of fired) merged[k] = today;
+          for (const slot of firedWithMarkers) merged[slot.key] = slot.marker;
           await admin.from(opts.prefsTable).update({ last_sent: merged }).eq("user_id", (pref as any).user_id);
           sent += 1;
         } catch (e) {

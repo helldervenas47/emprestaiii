@@ -39,10 +39,13 @@ export function useScheduledReportPrefs(table: string, defaultTime: string) {
   const save = useCallback(async (next: Partial<SchedulePrefs>) => {
     if (!user) return;
     const merged = { ...prefs, ...next };
+    const scheduleChanged = ["send_time_1", "send_time_2", "send_time_3"].some(
+      (key) => key in next && next[key as keyof SchedulePrefs] !== prefs[key as keyof SchedulePrefs],
+    );
     setPrefs(merged);
     await supabase
       .from(table as any)
-      .upsert({ user_id: user.id, ...merged } as any, { onConflict: "user_id" });
+      .upsert({ user_id: user.id, ...merged, ...(scheduleChanged ? { last_sent: {} } : {}) } as any, { onConflict: "user_id" });
   }, [user, prefs, table]);
 
   return { prefs, loading, save };
