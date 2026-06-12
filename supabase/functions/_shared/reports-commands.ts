@@ -44,7 +44,7 @@ function totalWithInterest(loan: any): number {
 
 export const REPORT_COMMANDS = new Set([
   "relatorios", "dashboard",
-  "kpi_geral", "carteira_ativa", "recebimentos_hoje",
+  "kpi_geral", "carteira_ativa",
   "emprestimos_atrasados", "vencimentos_hoje", "inadimplencia",
   "resumo_diario", "resumo_mensal",
   "top_clientes", "vencimentos_semana", "projecao_mes",
@@ -77,7 +77,6 @@ export function renderMenu(brand = "Relatórios"): string {
     "/inadimplencia — Taxa e faixas de atraso",
     "",
     "*Operação*",
-    "/recebimentos\\_hoje — Pagamentos do dia",
     "/vencimentos\\_hoje — Contratos que vencem hoje",
     "/vencimentos\\_semana — Parcelas dos próximos 7 dias",
     "/resumo\\_diario — Movimentação do dia",
@@ -803,7 +802,7 @@ export async function runReportCommand(supabase: any, userId: string, command: s
     case "dashboard": return dashboard(ctx, snap);
     case "kpi_geral": return kpiGeral(ctx, snap);
     case "carteira_ativa": return carteiraAtiva(ctx, snap);
-    case "recebimentos_hoje": return recebimentosHoje(ctx, snap);
+    
     case "emprestimos_atrasados": return emprestimosAtrasados(ctx, snap);
     case "vencimentos_hoje": return vencimentosHoje(ctx, snap);
     case "inadimplencia": return inadimplencia(ctx, snap);
