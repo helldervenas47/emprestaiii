@@ -4040,22 +4040,42 @@ function LoanRowView({
               </div>
 
               {paymentDialog?.type === "payoff" && (
-                <div className="w-full space-y-1">
-                  <Label htmlFor="payoff-amount-row" className="text-xs">Valor para quitar (R$)</Label>
-                  <Input
-                    id="payoff-amount-row"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    inputMode="decimal"
-                    value={payoffAmount}
-                    onChange={(e) => setPayoffAmount(e.target.value)}
-                    placeholder={`Ex: ${remaining.toFixed(2)}`}
-                    autoFocus
+                <div className="w-full space-y-2">
+                  {(() => {
+                    const paidPrincipal = Math.max(0, totalPaid - interestPaymentsReceived);
+                    const principalRemaining = Math.max(0, loan.amount - paidPrincipal);
+                    const interestPendingTotal = Math.max(0, baseRemaining - principalRemaining);
+                    return (
+                      <PayoffCompositionCard
+                        principalRemaining={principalRemaining}
+                        interestPending={interestPendingTotal}
+                        penaltyTotal={penaltyTotal}
+                        lateInterestTotal={lateInterestTotal}
+                        renegPenaltyPending={renegPenaltyPending}
+                        totalContract={remaining}
+                        formatCurrency={formatCurrency}
+                      />
+                    );
+                  })()}
+                  <div className="space-y-1">
+                    <Label htmlFor="payoff-amount-row" className="text-xs">Valor da quitação (R$)</Label>
+                    <Input
+                      id="payoff-amount-row"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      inputMode="decimal"
+                      value={payoffAmount}
+                      onChange={(e) => setPayoffAmount(e.target.value)}
+                      placeholder={`Ex: ${remaining.toFixed(2)}`}
+                      autoFocus
+                    />
+                  </div>
+                  <PayoffSimulationCard
+                    inputAmount={payoffAmount}
+                    totalContract={remaining}
+                    formatCurrency={formatCurrency}
                   />
-                  <p className="text-[10px] text-muted-foreground">
-                    Informe o valor de quitação. O contrato será marcado como pago.
-                  </p>
                 </div>
               )}
           {paymentDialog?.type === "amortize" && (() => {
