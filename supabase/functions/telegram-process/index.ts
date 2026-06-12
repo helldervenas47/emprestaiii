@@ -860,8 +860,7 @@ Vou interpretar e cadastrar automaticamente.
 /meus\_aportes — últimos 10 aportes nas caixinhas
 /resgatar — resgatar saldo de uma caixinha para a conta. Ex.: \`resgatar 200 da caixinha 1\` ou \`resgatar tudo do cofrinho\`
 /help — esta mensagem
-/code — gerar código para colar no app
-/start CODIGO — vincular conta`;
+/start CODIGO — vincular conta (gere o código no app)`;
 
 const fmtBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
