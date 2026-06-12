@@ -62,7 +62,8 @@ export function useIncomes(enabled = true) {
     const { data } = await supabase
       .from("incomes" as any)
       .select("*")
-      .order("received_date", { ascending: false });
+      .order("received_date", { ascending: false })
+      .limit(5000); // safety cap
     if (data) setIncomes((data as any[]).map(rowToIncome));
     setLoading(false);
   }, [user]);
