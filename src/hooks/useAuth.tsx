@@ -81,20 +81,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const syncProfile = async (user: User) => {
-    const { data: profile } = await supabase
+    // upsert evita race condition quando o mesmo usuário faz login em duas
+    // abas/dispositivos simultaneamente — sem upsert, o segundo INSERT
+    // estouraria por violação de unique(user_id).
+    const displayName =
+      user.user_metadata?.display_name ||
+      user.user_metadata?.full_name ||
+      user.email?.split("@")[0] ||
+      "Usuário";
+    const fullName =
+      user.user_metadata?.display_name ||
+      user.user_metadata?.full_name ||
+      "";
+    await supabase
       .from("profiles")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (!profile) {
-      await supabase.from("profiles").insert({
-        user_id: user.id,
-        email: user.email,
-        full_name: user.user_metadata?.display_name || user.user_metadata?.full_name || "",
-        display_name: user.user_metadata?.display_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuário",
-      });
-    }
+      .upsert(
+        {
+          user_id: user.id,
+          email: user.email,
+          full_name: fullName,
+          display_name: displayName,
+        },
+        { onConflict: "user_id", ignoreDuplicates: true },
+      );
   };
 
   const hydrateUserState = async (userId: string, currentUser?: User | null) => {

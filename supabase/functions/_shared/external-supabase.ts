@@ -3,7 +3,9 @@
 // usa EXTERNAL_*; quando roda diretamente no projeto externo, usa SUPABASE_*.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const EXTERNAL_PROJECT_REF = "syyxnqzxqabeuqbuptkh";
+// Permite sobrescrever via secret EXTERNAL_PROJECT_REF; mantém o valor
+// histórico como fallback para não quebrar deploys existentes.
+const EXTERNAL_PROJECT_REF = Deno.env.get("EXTERNAL_PROJECT_REF") ?? "syyxnqzxqabeuqbuptkh";
 
 function required(name: string): string {
   const v = Deno.env.get(name);
