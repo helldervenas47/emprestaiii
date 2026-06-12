@@ -53,9 +53,9 @@ export function TelegramBotsHub() {
         defaultTime="09:00"
       />
 
-      {/* 7. Contratos que vencem hoje (até 3 horários) */}
+      {/* 7. Vencem hoje (até 3 horários) */}
       <ScheduledReportCard
-        title="Contratos que vencem hoje"
+        title="Vencem hoje"
         description="Lista dos contratos com vencimento no dia. Até 3 horários por dia."
         Icon={CalendarCheck}
         prefsTable="telegram_due_today_loans_prefs"
