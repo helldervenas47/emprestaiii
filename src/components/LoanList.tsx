@@ -44,6 +44,7 @@ import { PartialPaymentDialog } from "@/components/loans/PartialPaymentDialog";
 import { InterestResultCard } from "@/components/loans/InterestResultCard";
 import { FullPaymentSummary } from "@/components/loans/FullPaymentSummary";
 import { PayoffCompositionCard, PayoffSimulationCard } from "@/components/loans/PayoffCards";
+import { AmortizationResultCard } from "@/components/loans/AmortizationResultCard";
 
 function WhatsappBillButton({
   loan,
@@ -2207,36 +2208,20 @@ function LoanCardView({
                   <p className="text-[11px] text-destructive">O valor não pode ser maior que o principal.</p>
                 )}
                 {validV && (
-                  <div className="rounded-md bg-muted/40 p-2.5 text-[11px] space-y-2">
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <p className="text-muted-foreground">Principal</p>
-                        <p className="line-through text-muted-foreground tabular-nums">{rawFormatCurrency(oldPrincipal)}</p>
-                        <p className="font-semibold text-primary tabular-nums">{rawFormatCurrency(newPrincipal)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Juros total</p>
-                        <p className="line-through text-muted-foreground tabular-nums">{rawFormatCurrency(oldInterest)}</p>
-                        <p className="font-semibold text-primary tabular-nums">{rawFormatCurrency(newInterest)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Restante</p>
-                        <p className="line-through text-muted-foreground tabular-nums">{rawFormatCurrency(oldRemaining)}</p>
-                        <p className="font-semibold text-primary tabular-nums">{rawFormatCurrency(newRemaining)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between border-t border-border/40 pt-2">
-                      <span className="text-muted-foreground">Juros economizados</span>
-                      <span className="font-semibold text-success tabular-nums">{rawFormatCurrency(interestSaved)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Parcela estimada</span>
-                      <span className="tabular-nums">
-                        <span className="line-through text-muted-foreground mr-2">{rawFormatCurrency(oldInstallment)}</span>
-                        <span className="font-semibold text-primary">{rawFormatCurrency(newInstallment)}</span>
-                      </span>
-                    </div>
-                  </div>
+                  <AmortizationResultCard
+                    oldPrincipal={oldPrincipal}
+                    newPrincipal={newPrincipal}
+                    oldInterest={oldInterest}
+                    newInterest={newInterest}
+                    oldRemaining={oldRemaining}
+                    newRemaining={newRemaining}
+                    oldInstallment={oldInstallment}
+                    newInstallment={newInstallment}
+                    interestSaved={interestSaved}
+                    amortizationValue={v}
+                    remainingInstallments={remainingInst}
+                    formatCurrency={rawFormatCurrency}
+                  />
                 )}
                 <p className="text-[10px] text-muted-foreground">A amortização reduz o saldo devedor e recalcula os juros e parcelas futuras proporcionalmente.</p>
               </div>
@@ -4127,36 +4112,20 @@ function LoanRowView({
                   <p className="text-[11px] text-destructive">O valor não pode ser maior que o principal.</p>
                 )}
                 {validV && (
-                  <div className="rounded-md bg-muted/40 p-2.5 text-[11px] space-y-2">
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <p className="text-muted-foreground">Principal</p>
-                        <p className="line-through text-muted-foreground tabular-nums">{rawFormatCurrency(oldPrincipal)}</p>
-                        <p className="font-semibold text-primary tabular-nums">{rawFormatCurrency(newPrincipal)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Juros total</p>
-                        <p className="line-through text-muted-foreground tabular-nums">{rawFormatCurrency(oldInterest)}</p>
-                        <p className="font-semibold text-primary tabular-nums">{rawFormatCurrency(newInterest)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Restante</p>
-                        <p className="line-through text-muted-foreground tabular-nums">{rawFormatCurrency(oldRemaining)}</p>
-                        <p className="font-semibold text-primary tabular-nums">{rawFormatCurrency(newRemaining)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between border-t border-border/40 pt-2">
-                      <span className="text-muted-foreground">Juros economizados</span>
-                      <span className="font-semibold text-success tabular-nums">{rawFormatCurrency(interestSaved)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Parcela estimada</span>
-                      <span className="tabular-nums">
-                        <span className="line-through text-muted-foreground mr-2">{rawFormatCurrency(oldInstallment)}</span>
-                        <span className="font-semibold text-primary">{rawFormatCurrency(newInstallment)}</span>
-                      </span>
-                    </div>
-                  </div>
+                  <AmortizationResultCard
+                    oldPrincipal={oldPrincipal}
+                    newPrincipal={newPrincipal}
+                    oldInterest={oldInterest}
+                    newInterest={newInterest}
+                    oldRemaining={oldRemaining}
+                    newRemaining={newRemaining}
+                    oldInstallment={oldInstallment}
+                    newInstallment={newInstallment}
+                    interestSaved={interestSaved}
+                    amortizationValue={v}
+                    remainingInstallments={remainingInst}
+                    formatCurrency={rawFormatCurrency}
+                  />
                 )}
                 <p className="text-[10px] text-muted-foreground">A amortização reduz o saldo devedor e recalcula os juros e parcelas futuras proporcionalmente.</p>
               </div>
