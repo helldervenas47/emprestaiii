@@ -56,7 +56,7 @@ export function useApprovalRequests() {
   const pendingCount = requests.filter((r) => r.status === "pending").length;
 
   const approve = useCallback(
-    async (req: ApprovalRequest, opts: { role: "admin" | "operador" | "visualizador"; allowedTabs: string[] }) => {
+    async (req: ApprovalRequest, opts: { role: "admin" | "cliente" | "visualizador"; allowedTabs: string[] }) => {
       if (!user) return { ok: false, error: "unauthorized" };
 
       // 1) Link sub-user to owner
