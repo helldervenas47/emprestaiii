@@ -83,7 +83,7 @@ function isSalePaid(s: Sale): boolean {
 }
 
 export function ConsolidatedBalanceCards() {
-  const { loans } = useLoans();
+  const { loans, installmentSchedules } = useLoans();
   const { sales, products } = useProducts(true);
   const { piggyBanks, balances: piggyBalances } = usePiggyBanks();
 
