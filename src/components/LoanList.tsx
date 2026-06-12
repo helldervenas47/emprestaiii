@@ -2397,6 +2397,21 @@ function LoanCardView({
                     {willClose && partialVal > 0 && <p className="text-[11px] text-success">Quita o ciclo. Próximo vencimento: {nextDateStr}.</p>}
                   </div>
                 )}
+                <InterestResultCard
+                  baseInterest={baseInterest}
+                  penaltyTotal={penaltyTotal}
+                  lateInterestTotal={lateInterestTotal}
+                  renegPenaltyPending={renegPenaltyPending}
+                  includeFeesNow={includeFeesNow}
+                  pending={pending}
+                  partialEnabled={interestPartialEnabled}
+                  partialVal={partialVal}
+                  willClose={willClose}
+                  dueStr={dueStr}
+                  nextDateStr={nextDateStr}
+                  principalAmount={loan.amount}
+                  formatCurrency={formatCurrency}
+                />
                 <div className="space-y-1">
                   <Label htmlFor="int-notes" className="text-xs">Observação (opcional)</Label>
                   <Textarea id="int-notes" value={interestNotes} onChange={(e) => setInterestNotes(e.target.value)} placeholder="Ex: pago via Pix" className="min-h-[60px] text-sm" />
