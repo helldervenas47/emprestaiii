@@ -23,6 +23,7 @@ import {
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ExpenseBoletoLinkButton } from "@/components/ExpenseBoletoLinkButton";
 import { EditScopeDialog } from "@/components/EditScopeDialog";
+import { CategoryDetailsSheet, CategoryEntry } from "@/components/CategoryDetailsSheet";
 import { applyExpenseScopedUpdate, isExpenseInSeries } from "@/lib/seriesEdit";
 
 const categories = [
