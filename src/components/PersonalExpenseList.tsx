@@ -1231,6 +1231,14 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         total={selectedTopCategoryTotal}
       />
 
+      <CategoryDetailsSheet
+        open={!!summaryView}
+        onOpenChange={(o) => !o && setSummaryView(null)}
+        categoryName={summaryView ? summaryViewMeta[summaryView].label : ""}
+        entries={summaryEntries}
+        total={summaryView ? summaryViewMeta[summaryView].total : 0}
+      />
+
       {/* AI-generated intelligent report */}
       <PersonalAIInsightsCard
         month={selectedMonth}
