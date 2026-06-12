@@ -311,6 +311,7 @@ grant execute on function public.has_role(uuid, public.app_role) to authenticate
 do $$
 declare
   tbl text;
+  owner_col text;
   tables text[] := array[
     'loans',
     'payments',
@@ -345,6 +346,19 @@ begin
       continue;
     end if;
 
+    -- detect owner column (user_id preferred, else owner_id)
+    select column_name into owner_col
+      from information_schema.columns
+     where table_schema='public' and table_name=tbl
+       and column_name in ('user_id','owner_id')
+     order by case column_name when 'user_id' then 1 else 2 end
+     limit 1;
+
+    if owner_col is null then
+      raise notice 'skipping % (no user_id/owner_id column)', tbl;
+      continue;
+    end if;
+
     execute format('grant select, insert, update, delete on public.%I to authenticated', tbl);
     execute format('grant all on public.%I to service_role', tbl);
     execute format('alter table public.%I enable row level security', tbl);
@@ -354,44 +368,44 @@ begin
       create policy "%s_select_owner" on public.%I
       for select to authenticated
       using (
-        user_id = auth.uid()
-        or user_id = public.get_data_owner_id(auth.uid())
+        %I = auth.uid()
+        or %I = public.get_data_owner_id(auth.uid())
       )
-    $f$, tbl, tbl);
+    $f$, tbl, tbl, owner_col, owner_col);
 
     execute format('drop policy if exists "%s_insert_owner" on public.%I', tbl, tbl);
     execute format($f$
       create policy "%s_insert_owner" on public.%I
       for insert to authenticated
       with check (
-        user_id = auth.uid()
-        or user_id = public.get_data_owner_id(auth.uid())
+        %I = auth.uid()
+        or %I = public.get_data_owner_id(auth.uid())
       )
-    $f$, tbl, tbl);
+    $f$, tbl, tbl, owner_col, owner_col);
 
     execute format('drop policy if exists "%s_update_owner" on public.%I', tbl, tbl);
     execute format($f$
       create policy "%s_update_owner" on public.%I
       for update to authenticated
       using (
-        user_id = auth.uid()
-        or user_id = public.get_data_owner_id(auth.uid())
+        %I = auth.uid()
+        or %I = public.get_data_owner_id(auth.uid())
       )
       with check (
-        user_id = auth.uid()
-        or user_id = public.get_data_owner_id(auth.uid())
+        %I = auth.uid()
+        or %I = public.get_data_owner_id(auth.uid())
       )
-    $f$, tbl, tbl);
+    $f$, tbl, tbl, owner_col, owner_col, owner_col, owner_col);
 
     execute format('drop policy if exists "%s_delete_owner" on public.%I', tbl, tbl);
     execute format($f$
       create policy "%s_delete_owner" on public.%I
       for delete to authenticated
       using (
-        user_id = auth.uid()
-        or user_id = public.get_data_owner_id(auth.uid())
+        %I = auth.uid()
+        or %I = public.get_data_owner_id(auth.uid())
       )
-    $f$, tbl, tbl);
+    $f$, tbl, tbl, owner_col, owner_col);
   end loop;
 end$$;
 
