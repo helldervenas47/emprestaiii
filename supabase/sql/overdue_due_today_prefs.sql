@@ -53,5 +53,5 @@ CREATE EXTENSION IF NOT EXISTS pg_cron;
 DO $$ BEGIN PERFORM cron.unschedule('telegram-overdue-loans-summary'); EXCEPTION WHEN others THEN NULL; END $$;
 DO $$ BEGIN PERFORM cron.unschedule('telegram-due-today-loans-summary'); EXCEPTION WHEN others THEN NULL; END $$;
 
-SELECT cron.schedule('telegram-overdue-loans-summary', '* * * * *', $$ SELECT net.http_post(url := 'https://lcjelojqxpnphupsnmuq.supabase.co/functions/v1/telegram-overdue-loans-summary', headers := '{"Content-Type":"application/json"}'::jsonb, body := '{}'::jsonb, timeout_milliseconds := 45000); $$);
-SELECT cron.schedule('telegram-due-today-loans-summary', '* * * * *', $$ SELECT net.http_post(url := 'https://lcjelojqxpnphupsnmuq.supabase.co/functions/v1/telegram-due-today-loans-summary', headers := '{"Content-Type":"application/json"}'::jsonb, body := '{}'::jsonb, timeout_milliseconds := 45000); $$);
+SELECT cron.schedule('telegram-overdue-loans-summary', '* * * * *', $$ SELECT net.http_post(url := 'https://syyxnqzxqabeuqbuptkh.supabase.co/functions/v1/telegram-overdue-loans-summary', headers := '{"Content-Type":"application/json"}'::jsonb, body := '{}'::jsonb, timeout_milliseconds := 45000); $$);
+SELECT cron.schedule('telegram-due-today-loans-summary', '* * * * *', $$ SELECT net.http_post(url := 'https://syyxnqzxqabeuqbuptkh.supabase.co/functions/v1/telegram-due-today-loans-summary', headers := '{"Content-Type":"application/json"}'::jsonb, body := '{}'::jsonb, timeout_milliseconds := 45000); $$);
