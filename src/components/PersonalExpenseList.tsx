@@ -324,17 +324,24 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
       cardInvoiceMonthTotal > 0 &&
       matches(CREDIT_CARD_INVOICE_CATEGORY)
     ) {
-      cardInvoiceTotalsMonth.forEach((inv: any, idx: number) => {
-        const val = Number(inv?.paid ?? inv?.total ?? 0);
+      cardInvoiceTotalsMonth.forEach((inv, idx: number) => {
+        const card = inv.card;
+        const val = Number(
+          inv.hasPaidOverride || inv.paid ? inv.paidTotal : inv.total,
+        );
         if (val <= 0) return;
-        const card = cards.find((c) => c.id === inv.cardId);
+        const [yy, mm] = selectedMonth.split("-").map(Number);
+        const lastDay = new Date(yy, mm, 0).getDate();
+        const day = Math.min(card.dueDay || 1, lastDay);
+        const dueISO = `${selectedMonth}-${String(day).padStart(2, "0")}`;
         list.push({
-          id: `inv-${inv.cardId || idx}`,
-          description: `Fatura ${card?.nickname || card?.bank || "Cartão"}`,
+          id: `inv-${card.id || idx}-${selectedMonth}`,
+          description: `Fatura ${card.nickname || card.bank || "Cartão"}`,
           amount: val,
-          date: inv.dueDate || `${selectedMonth}-01`,
+          date: dueISO,
           type: "despesa",
-          account: card?.nickname || card?.bank || "Cartão de crédito",
+          status: inv.paid || inv.hasPaidOverride ? "paid" : "pending",
+          account: card.nickname || card.bank || "Cartão de crédito",
         });
       });
     }
