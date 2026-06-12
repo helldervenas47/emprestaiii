@@ -232,19 +232,39 @@ export function useProducts(enabled = true) {
       if (s.productId) {
         const product = products.find((p) => p.id === s.productId);
         if (product) {
-          const newStock = Math.max(0, product.stock - s.quantity);
-          await supabase.from("products").update({ stock: newStock }).eq("id", s.productId);
-          // Movimento de estoque "venda"
-          await supabase.from("stock_movements" as any).insert({
-            owner_id: dataOwnerId,
-            user_id: user.id,
-            product_id: s.productId,
-            product_name: product.name,
-            movement_type: "venda",
-            quantity: -s.quantity,
-            total_value: s.total ?? null,
-            sale_id: data.id,
-          } as any);
+          // Decremento atômico (lock FOR UPDATE + validação server-side).
+          // Fallback dual-write se a RPC ainda não estiver publicada.
+          const { error: rpcErr } = await supabase.rpc("decrement_stock_atomic" as any, {
+            p_product_id: s.productId,
+            p_owner_id: dataOwnerId,
+            p_user_id: user.id,
+            p_quantity: s.quantity,
+            p_sale_id: data.id,
+            p_notes: null,
+            p_total_value: s.total ?? null,
+          });
+          if (rpcErr) {
+            const msg = String(rpcErr.message || "");
+            const fnMissing = /decrement_stock_atomic|function .* does not exist|PGRST202/i.test(msg);
+            if (fnMissing) {
+              const newStock = Math.max(0, product.stock - s.quantity);
+              await supabase.from("products").update({ stock: newStock }).eq("id", s.productId);
+              await supabase.from("stock_movements" as any).insert({
+                owner_id: dataOwnerId,
+                user_id: user.id,
+                product_id: s.productId,
+                product_name: product.name,
+                movement_type: "venda",
+                quantity: -s.quantity,
+                total_value: s.total ?? null,
+                sale_id: data.id,
+              } as any);
+            } else {
+              console.error("[addSale] decrement_stock_atomic failed:", rpcErr);
+              const { toast } = await import("sonner");
+              toast.error(msg || "Falha ao atualizar estoque");
+            }
+          }
         }
       }
     }

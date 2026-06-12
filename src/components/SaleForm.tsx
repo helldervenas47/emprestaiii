@@ -322,17 +322,35 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       for (const [pid, qty] of productAggregates) {
         const prod = products.find((p) => p.id === pid);
         if (!prod) continue;
-        const newStock = Math.max(0, prod.stock - qty);
-        await supabase.from("products").update({ stock: newStock }).eq("id", pid);
-        await supabase.from("stock_movements" as any).insert({
-          owner_id: dataOwnerId,
-          user_id: user.id,
-          product_id: pid,
-          product_name: prod.name,
-          movement_type: "venda",
-          quantity: -qty,
-          notes: "Venda combinada",
-        } as any);
+        // Decremento atômico (lock FOR UPDATE + validação server-side).
+        const { error: rpcErr } = await supabase.rpc("decrement_stock_atomic" as any, {
+          p_product_id: pid,
+          p_owner_id: dataOwnerId,
+          p_user_id: user.id,
+          p_quantity: qty,
+          p_sale_id: null,
+          p_notes: "Venda combinada",
+          p_total_value: null,
+        });
+        if (rpcErr) {
+          const msg = String(rpcErr.message || "");
+          const fnMissing = /decrement_stock_atomic|function .* does not exist|PGRST202/i.test(msg);
+          if (fnMissing) {
+            const newStock = Math.max(0, prod.stock - qty);
+            await supabase.from("products").update({ stock: newStock }).eq("id", pid);
+            await supabase.from("stock_movements" as any).insert({
+              owner_id: dataOwnerId,
+              user_id: user.id,
+              product_id: pid,
+              product_name: prod.name,
+              movement_type: "venda",
+              quantity: -qty,
+              notes: "Venda combinada",
+            } as any);
+          } else {
+            console.error("[SaleForm] decrement_stock_atomic failed:", rpcErr);
+          }
+        }
       }
     }
     setShowSuccess(true);
