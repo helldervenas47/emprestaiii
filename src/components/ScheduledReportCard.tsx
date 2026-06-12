@@ -37,8 +37,20 @@ export function ScheduledReportCard({ title, description, Icon, prefsTable, func
   const sendNow = async () => {
     setSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke(functionName, { body: {} });
-      if (error) throw error;
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error("Sessão expirada — entre novamente.");
+      const res = await fetch(`${CLOUD_FUNCTIONS_URL}/functions/v1/${functionName}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: CLOUD_ANON_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `Erro ${res.status}`);
       if (!data?.sent) {
         toast.warning("Nada enviado", {
           description: data?.reason === "no_reports_link"
