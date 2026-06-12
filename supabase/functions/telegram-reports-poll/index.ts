@@ -159,7 +159,6 @@ async function processBot(
       await saveIncomingMessage(supabase, u, bot);
 
       const startMatch = text.match(/^\/start(?:@\w+)?\s+(\d{6})\s*$/);
-      const codeMatch = text.match(/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i);
 
       if (startMatch) {
         const code = startMatch[1];
