@@ -55,10 +55,13 @@ const Auth = () => {
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     try {
+      // Retorna para a MESMA URL atual (mantém o PWA dentro do escopo
+      // `/` do manifest e evita reload completo para `/`). Importante
+      // para iOS/Android instalado preservar o modo standalone.
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: `${window.location.origin}/auth`,
           queryParams: { prompt: "select_account" },
         },
       });
@@ -66,7 +69,8 @@ const Auth = () => {
         toast.error("Erro ao conectar com Google");
         setGoogleLoading(false);
       }
-      // Em sucesso, o browser redireciona para o Google.
+      // Em sucesso, o browser redireciona para o Google e retorna para /auth,
+      // onde o detectSessionInUrl+PKCE faz a troca sem perder a sessão.
     } catch {
       toast.error("Erro ao conectar com Google");
       setGoogleLoading(false);

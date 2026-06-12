@@ -18,5 +18,9 @@ export const supabase = createClient<Database>(USER_SUPABASE_URL, USER_SUPABASE_
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    // PWA-friendly OAuth: usa PKCE (sem expor token na URL) e troca o
+    // ?code=... automaticamente no retorno do Google, sem reload extra.
+    detectSessionInUrl: true,
+    flowType: "pkce",
   },
 });
