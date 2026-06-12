@@ -47,7 +47,7 @@ const EXTRA_STORAGE_KEY = "balanceMaos.extraCards.v1";
 const DEFAULT_EXTRA: ExtraCardKey[] = ["composicao", "projecao30"];
 const EXTRA_CARDS_META: { key: ExtraCardKey; label: string; hint: string }[] = [
   { key: "composicao", label: "Composição do saldo", hint: "Distribuição % por carteira" },
-  { key: "projecao30", label: "Projeção em 30 dias", hint: "Saldo projetado com previstos" },
+  { key: "projecao30", label: "Projeção do mês", hint: "Saldo projetado até o fim do mês vigente" },
   { key: "savingsRate", label: "Taxa de poupança do mês", hint: "(Entradas − Saídas) / Entradas" },
   { key: "runway", label: "Fôlego financeiro", hint: "Meses cobertos pelo saldo atual" },
   { key: "topCategories", label: "Top 3 categorias do mês", hint: "Maiores categorias de despesa" },
@@ -436,7 +436,9 @@ export function ConsolidatedBalanceCards() {
                           );
                         }
                         case "projecao30": {
-                          const inRange = (d?: string | null) => !!d && d >= todayStr && d <= horizon30;
+                          const endOfMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                          const endOfMonth = `${endOfMonthDate.getFullYear()}-${pad(endOfMonthDate.getMonth() + 1)}-${pad(endOfMonthDate.getDate())}`;
+                          const inRange = (d?: string | null) => !!d && d >= todayStr && d <= endOfMonth;
                           // Entradas previstas: parcelas de empréstimos ainda não pagas com vencimento nos próximos 30 dias.
                           const activeLoanIds = new Set(loans.filter((l) => l.status !== "paid").map((l) => l.id));
                           const loanById = new Map(loans.map((l) => [l.id, l] as const));
@@ -453,7 +455,7 @@ export function ConsolidatedBalanceCards() {
                           const projected = totalEmMaos + expectedIn - expectedOut;
                           const delta = projected - totalEmMaos;
                           return (
-                            <CardBox key={key} icon={TrendingUp} title="Projeção em 30 dias">
+                            <CardBox key={key} icon={TrendingUp} title="Projeção do mês">
                               <div className="space-y-2.5">
                                 <div className="flex items-end justify-between">
                                   <div className="min-w-0">
@@ -475,7 +477,7 @@ export function ConsolidatedBalanceCards() {
                                     <p className="text-sm font-bold text-destructive tabular-nums">{formatBRL(expectedOut)}</p>
                                   </div>
                                 </div>
-                                <p className="text-[10px] text-muted-foreground">Considera parcelas de empréstimos a receber e despesas empresariais a vencer nos próximos 30 dias.</p>
+                                <p className="text-[10px] text-muted-foreground">Considera parcelas de empréstimos a receber e despesas empresariais a vencer até o final do mês vigente.</p>
                               </div>
                             </CardBox>
                           );
