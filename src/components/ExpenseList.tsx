@@ -23,6 +23,7 @@ import {
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ExpenseBoletoLinkButton } from "@/components/ExpenseBoletoLinkButton";
 import { EditScopeDialog } from "@/components/EditScopeDialog";
+import { CategoryDetailsSheet, CategoryEntry } from "@/components/CategoryDetailsSheet";
 import { applyExpenseScopedUpdate, isExpenseInSeries } from "@/lib/seriesEdit";
 
 const categories = [
@@ -323,6 +324,36 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
     { id: "paid", label: "Pagas", count: visibleMonth.filter((e) => e.paid).length },
   ];
 
+  type SummaryView = "pending" | "paid" | "overdue";
+  const [summaryView, setSummaryView] = useState<SummaryView | null>(null);
+  const summaryViewMeta: Record<SummaryView, { label: string; total: number }> = {
+    pending: { label: "Pendente", total: totalPending },
+    overdue: { label: "Atrasado", total: totalOverdue },
+    paid: { label: "Pago", total: totalPaid },
+  };
+  const summaryEntries: CategoryEntry[] = useMemo(() => {
+    if (!summaryView) return [];
+    return visibleMonth
+      .filter((e) => {
+        const overdue = isOverdue(e);
+        if (summaryView === "paid") return e.paid;
+        if (summaryView === "overdue") return overdue;
+        return !e.paid && !overdue;
+      })
+      .map((e) => {
+        const overdue = isOverdue(e);
+        return {
+          id: `exp-${e.id}`,
+          description: e.description,
+          amount: getInstallmentAmount(e),
+          date: e.paid && e.paidDate ? e.paidDate : e.dueDate,
+          type: "despesa" as const,
+          status: e.paid ? "paid" as const : overdue ? "overdue" as const : "pending" as const,
+          account: e.category,
+        };
+      });
+  }, [summaryView, visibleMonth, getInstallmentAmount]);
+
   const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
   const prevMonth = () => {
     const d = new Date(selYear, selMonthNum - 2, 1);
@@ -339,8 +370,8 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
     <div className="space-y-4">
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <button type="button" onClick={() => setFilter("pending")} className="text-left">
-          <Card no3d className={`animate-fade-in transition-all hover:-translate-y-[1px] hover:shadow-md ${filter === "pending" ? "ring-2 ring-warning/50" : ""}`} style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}>
+        <button type="button" onClick={() => setSummaryView("pending")} className="text-left">
+          <Card no3d className="animate-fade-in transition-all hover:-translate-y-[1px] hover:shadow-md" style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}>
             <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
               <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center mb-2">
                 <CircleDollarSign className="h-4 w-4 text-warning" />
@@ -350,8 +381,8 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
             </CardContent>
           </Card>
         </button>
-        <button type="button" onClick={() => setFilter("overdue")} className="text-left">
-          <Card no3d className={`animate-fade-in transition-all hover:-translate-y-[1px] hover:shadow-md ${filter === "overdue" ? "ring-2 ring-destructive/50" : ""}`} style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
+        <button type="button" onClick={() => setSummaryView("overdue")} className="text-left">
+          <Card no3d className="animate-fade-in transition-all hover:-translate-y-[1px] hover:shadow-md" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
             <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
               <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center mb-2">
                 <CircleDollarSign className="h-4 w-4 text-destructive" />
@@ -361,8 +392,8 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
             </CardContent>
           </Card>
         </button>
-        <button type="button" onClick={() => setFilter("paid")} className="text-left">
-          <Card no3d className={`animate-fade-in transition-all hover:-translate-y-[1px] hover:shadow-md ${filter === "paid" ? "ring-2 ring-success/50" : ""}`} style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
+        <button type="button" onClick={() => setSummaryView("paid")} className="text-left">
+          <Card no3d className="animate-fade-in transition-all hover:-translate-y-[1px] hover:shadow-md" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
             <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
               <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
                 <CheckCircle className="h-4 w-4 text-success" />
@@ -870,6 +901,14 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
             setPendingScopeEdit(null);
           }
         }}
+      />
+
+      <CategoryDetailsSheet
+        open={!!summaryView}
+        onOpenChange={(o) => !o && setSummaryView(null)}
+        categoryName={summaryView ? summaryViewMeta[summaryView].label : ""}
+        entries={summaryEntries}
+        total={summaryView ? summaryViewMeta[summaryView].total : 0}
       />
     </div>
   );
