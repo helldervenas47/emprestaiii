@@ -31,9 +31,6 @@ export function TelegramBotsHub() {
       {/* Receitas e Despesas (aba) */}
       <TelegramIncomesExpensesScheduleCard />
 
-      {/* Vencimentos da semana (segundas-feiras) */}
-      <TelegramWeeklyVencimentosCard />
-
       {/* Empréstimos em atraso (até 3 horários) */}
       <ScheduledReportCard
         title="Empréstimos em atraso"
@@ -53,6 +50,9 @@ export function TelegramBotsHub() {
         functionName="telegram-due-today-loans-summary"
         defaultTime="08:00"
       />
+
+      {/* Vencimentos da semana — sempre o último */}
+      <TelegramWeeklyVencimentosCard />
     </div>
   );
 }
