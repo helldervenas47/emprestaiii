@@ -37,17 +37,20 @@ async function tgSend(token: string, chatId: number, text: string) {
 async function saveIncomingMessage(supabase: any, update: any, bot: { id: string }) {
   const msg = update.message;
   if (!msg?.chat?.id) return;
-  const botHash = (BigInt(`0x${bot.id.replace(/-/g, "").slice(0, 8)}`) % 900000n) + 100000n;
-  const scopedUpdateId = String(botHash * 10_000_000_000n + BigInt(update.update_id));
+  // Use the raw Telegram update_id directly. The previous "scoped" id
+  // (botHash * 1e10 + update_id) overflowed the int4 column and the upsert
+  // failed silently, breaking history and the /code link flow.
   await supabase.from("telegram_messages").upsert({
-    update_id: scopedUpdateId,
+    update_id: update.update_id,
     chat_id: msg.chat.id,
     text: msg.text ?? msg.caption ?? null,
     raw_update: { ...update, _system_bot_id: bot.id },
     bot_id: bot.id,
     processed: true,
     processed_at: new Date().toISOString(),
-  }, { onConflict: "update_id" }).then(() => null).catch(() => null);
+  }, { onConflict: "update_id" }).then(() => null).catch((e: any) => {
+    console.error("[reports-poll] saveIncomingMessage upsert failed", e);
+  });
 }
 
 async function deleteWebhook(token: string) {

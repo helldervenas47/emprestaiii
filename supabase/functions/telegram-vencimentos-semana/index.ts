@@ -23,8 +23,26 @@ Deno.serve(async (req) => {
     const ids = new Set<string>();
     for (const r of (rep ?? []) as any[]) if (r.user_id) ids.add(r.user_id);
     if (ids.size === 0) {
-      const { data: leg } = await admin.from("telegram_links").select("user_id");
-      for (const r of (leg ?? []) as any[]) if (r.user_id) ids.add(r.user_id);
+      // Fallback to legacy telegram_links, but ONLY for users linked to the
+      // active reports bot. Otherwise we would spam users that only connected
+      // the expenses bot.
+      const { data: reportsBot } = await admin
+        .from("system_telegram_bots")
+        .select("id")
+        .eq("purpose", "reports")
+        .eq("active", true)
+        .order("bot_id", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      const reportsBotId = (reportsBot as any)?.id ?? null;
+      if (reportsBotId) {
+        const { data: leg } = await admin
+          .from("telegram_links")
+          .select("user_id")
+          .eq("bot_id", reportsBotId);
+        for (const r of (leg ?? []) as any[]) if (r.user_id) ids.add(r.user_id);
+      }
     }
     userIds = [...ids];
 
