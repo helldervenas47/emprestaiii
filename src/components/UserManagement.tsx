@@ -406,8 +406,26 @@ export function UserManagement() {
     return "Free";
   };
 
-  const mineUsers = users.filter((u) => u.owner_id && currentUser?.id && u.owner_id === currentUser.id);
-  const subscriberUsers = users.filter((u) => !u.owner_id || u.owner_id === u.id);
+  const normalizeUserText = (value: string | null | undefined) =>
+    (value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+
+  const isLegacyUserCreatedByMe = (user: ManagedUser) => {
+    const text = normalizeUserText(`${user.display_name} ${user.username || ""} ${user.email || ""}`);
+    return (
+      (text.includes("renan") && text.includes("mota")) ||
+      (text.includes("thiago") && text.includes("ferraz")) ||
+      (text.includes("helder") && text.includes("venas"))
+    );
+  };
+
+  const isCreatedByCurrentUser = (user: ManagedUser) =>
+    (user.owner_id && currentUser?.id && user.owner_id === currentUser.id) || isLegacyUserCreatedByMe(user);
+
+  const mineUsers = users.filter(isCreatedByCurrentUser);
+  const subscriberUsers = users.filter((u) => !isCreatedByCurrentUser(u) && (!u.owner_id || u.owner_id === u.id));
   const displayedUsers = activeTab === "mine" ? mineUsers : subscriberUsers;
 
   return (
