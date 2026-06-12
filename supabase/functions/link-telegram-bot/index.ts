@@ -109,7 +109,7 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
     if (!legacyRow) {
       if (hasLetters) {
         return json({
-          error: "Código não encontrado ou expirado. Envie /code novamente no bot do Telegram e cole o novo código em até 15 min.",
+          error: "Código não encontrado ou expirado. Gere um novo */start* no app e envie ao bot do Telegram em até 15 min.",
         }, 404);
       }
       return null;
