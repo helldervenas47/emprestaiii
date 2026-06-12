@@ -236,7 +236,7 @@ async function processBot(
             userId = (anyLegacy as any)?.user_id;
           }
           if (!userId) {
-            await tgSend(bot.token, chatId, "🔒 Este chat não está vinculado.\n\nEnvie /code para gerar um código de vínculo e cole no app em *Configurações → Bots do Telegram → Bot de Relatórios*.");
+            await tgSend(bot.token, chatId, "🔒 Este chat não está vinculado.\n\nAbra o app, gere o comando */start* em *Configurações → Bots do Telegram → Bot de Relatórios* e envie aqui para vincular.");
           } else {
             try {
               const { data: ownerId, error: ownerErr } = await supabase.rpc("get_data_owner_id", { _user_id: userId });
