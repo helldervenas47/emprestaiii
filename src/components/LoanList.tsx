@@ -43,6 +43,7 @@ import { WhatsappPreviewDialog } from "@/components/WhatsappPreviewDialog";
 import { PartialPaymentDialog } from "@/components/loans/PartialPaymentDialog";
 import { InterestResultCard } from "@/components/loans/InterestResultCard";
 import { FullPaymentSummary } from "@/components/loans/FullPaymentSummary";
+import { PayoffCompositionCard, PayoffSimulationCard } from "@/components/loans/PayoffCards";
 
 function WhatsappBillButton({
   loan,
