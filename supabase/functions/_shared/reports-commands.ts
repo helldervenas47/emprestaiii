@@ -424,11 +424,9 @@ async function emprestimosAtrasados(ctx: Ctx, snap: Snapshot): Promise<string> {
   const pad = (s: string, n: number) => (s.length >= n ? s.slice(0, n) : s + " ".repeat(n - s.length));
   const padL = (s: string, n: number) => (s.length >= n ? s : " ".repeat(n - s.length) + s);
 
-  lines.push("```");
   for (const row of sorted) {
-    lines.push(`${pad(row.name, nameWidth)}  ${padL(`${row.days}d`, daysWidth)}  ${padL(fmtBRL(row.value), valueWidth)}`);
+    lines.push(`\`${pad(row.name, nameWidth)}  ${padL(`${row.days}d`, daysWidth)}  ${padL(fmtBRL(row.value), valueWidth)}\``);
   }
-  lines.push("```");
   return lines.join("\n");
 }
 
