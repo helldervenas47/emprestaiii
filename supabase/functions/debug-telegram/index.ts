@@ -34,11 +34,8 @@ Deno.serve(async (req) => {
     }
   }
 
-  const { data: botsRaw, error: botsErr } = await supabase.from("system_telegram_bots").select("*");
-  const bots = (botsRaw ?? []).map((bot: any) => ({
-    ...bot,
-    token: bot.token ? `${String(bot.token).slice(0, 4)}…${String(bot.token).slice(-4)}` : null,
-  }));
+  const { data: botsRaw, error: botsErr } = await supabase.from("system_telegram_bots").select("id, name, purpose, active, bot_id, created_at");
+  const bots = botsRaw ?? [];
   const { data: expenseCodes, error: ucErr } = await supabase.from("telegram_link_codes").select("*").order("created_at", { ascending: false });
   const { data: expenseLinks, error: ulErr } = await supabase.from("telegram_links").select("*").order("created_at", { ascending: false }).limit(20);
   const { data: recentMessages, error: msgErr } = await supabase.from("telegram_messages")
