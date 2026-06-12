@@ -2548,12 +2548,7 @@ function LoanCardView({
             </div>
             <div className="flex flex-col gap-4">
               {/* Pagamento Total — sumário detalhado renderizado na coluna esquerda */}
-              {paymentDialog?.type === "payoff" && (
-                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-                  <p className="text-xs text-muted-foreground">Total restante a receber</p>
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
-                </div>
-              )}
+              {/* Quitar Contrato — composição/simulação renderizadas na coluna esquerda */}
 
               <div className="hidden md:block rounded-lg border border-border/60 bg-card/60 p-3 space-y-2">
                 <p className="text-xs font-semibold text-foreground">Resumo do empréstimo</p>
