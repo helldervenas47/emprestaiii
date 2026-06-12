@@ -500,8 +500,10 @@ const Index = () => {
     if (t.id === "settings" && role === "visualizador") return false;
     if (role === "admin") return true;
     if (!user) return false;
-    // Para todas as abas (incluindo "settings"): se houver lista de
-    // permissões definida, exigir presença explícita. Sem lista = acesso total.
+    // Permissão por papel (role_tab_permissions): se a aba não está liberada
+    // para o papel do usuário, esconde.
+    if (Array.isArray(roleAllowedTabs) && !roleAllowedTabs.includes(t.id)) return false;
+    // Permissão por usuário (user_tab_permissions): se houver lista, exigir presença.
     if (Array.isArray(allowedTabs)) return allowedTabs.includes(t.id);
     return true;
   });
