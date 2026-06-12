@@ -121,26 +121,9 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
               <Send className="h-3.5 w-3.5 mr-1" />
               {generating ? "Gerando…" : "Conectar bot de relatórios"}
             </Button>
-
-            <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
-              <Label className="text-xs font-medium">Já tenho um código do bot</Label>
-              <p className="text-[11px] text-muted-foreground">
-                Envie <code className="font-mono">/code</code> em qualquer bot do Telegram e cole aqui o código recebido.
-              </p>
-              <div className="flex items-center gap-2">
-                <Input
-                  value={botCodeInput}
-                  onChange={(e) => setBotCodeInput(e.target.value.toUpperCase())}
-                  placeholder="Ex.: ABC123"
-                  maxLength={512}
-                  className="h-9 text-sm font-mono uppercase tracking-wider"
-                  onKeyDown={(e) => { if (e.key === "Enter") linkByBotCode(); }}
-                />
-                <Button size="sm" onClick={linkByBotCode} disabled={linkingByCode || !botCodeInput.trim()}>
-                  {linkingByCode ? "Vinculando…" : "Vincular"}
-                </Button>
-              </div>
-            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Clique acima para gerar o comando <code className="font-mono">/start</code> e enviá-lo ao bot de relatórios.
+            </p>
           </div>
         )}
 
