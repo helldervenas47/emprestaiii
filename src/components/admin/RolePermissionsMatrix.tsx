@@ -25,6 +25,8 @@ import {
   useRolePermissionsAudit,
   type RolePermissionRow,
 } from "@/hooks/useRolePermissions";
+import { useRoleTabPermissions } from "@/hooks/useRoleTabPermissions";
+import { APP_TABS } from "@/lib/appTabs";
 
 type DraftMap = Record<string, Partial<Record<"can_view" | "can_create" | "can_edit" | "can_delete", boolean>>>;
 // key: `${role}|${module}`
