@@ -11,8 +11,6 @@ import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
 import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 
-const CLOUD_FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const CLOUD_ANON_KEY = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY) as string;
 
 type SlotKey = "send_time_1" | "send_time_2" | "send_time_3";
 
