@@ -339,33 +339,39 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
     <div className="space-y-4">
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <Card no3d className="animate-fade-in" style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}>
-          <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
-            <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center mb-2">
-              <CircleDollarSign className="h-4 w-4 text-warning" />
-            </div>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">Pendente</p>
-            <p className="text-sm sm:text-lg font-bold text-foreground mt-0.5">{formatCurrency(totalPending)}</p>
-          </CardContent>
-        </Card>
-        <Card no3d className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
-          <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
-            <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center mb-2">
-              <CircleDollarSign className="h-4 w-4 text-destructive" />
-            </div>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">Atrasado</p>
-            <p className="text-sm sm:text-lg font-bold text-destructive mt-0.5">{formatCurrency(totalOverdue)}</p>
-          </CardContent>
-        </Card>
-        <Card no3d className="animate-fade-in" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
-          <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
-            <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
-              <CheckCircle className="h-4 w-4 text-success" />
-            </div>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">Pago</p>
-            <p className="text-sm sm:text-lg font-bold text-success mt-0.5">{formatCurrency(totalPaid)}</p>
-          </CardContent>
-        </Card>
+        <button type="button" onClick={() => setFilter("pending")} className="text-left">
+          <Card no3d className={`animate-fade-in transition-all hover:-translate-y-[1px] hover:shadow-md ${filter === "pending" ? "ring-2 ring-warning/50" : ""}`} style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}>
+            <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
+              <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center mb-2">
+                <CircleDollarSign className="h-4 w-4 text-warning" />
+              </div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Pendente</p>
+              <p className="text-sm sm:text-lg font-bold text-foreground mt-0.5">{formatCurrency(totalPending)}</p>
+            </CardContent>
+          </Card>
+        </button>
+        <button type="button" onClick={() => setFilter("overdue")} className="text-left">
+          <Card no3d className={`animate-fade-in transition-all hover:-translate-y-[1px] hover:shadow-md ${filter === "overdue" ? "ring-2 ring-destructive/50" : ""}`} style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
+            <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
+              <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center mb-2">
+                <CircleDollarSign className="h-4 w-4 text-destructive" />
+              </div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Atrasado</p>
+              <p className="text-sm sm:text-lg font-bold text-destructive mt-0.5">{formatCurrency(totalOverdue)}</p>
+            </CardContent>
+          </Card>
+        </button>
+        <button type="button" onClick={() => setFilter("paid")} className="text-left">
+          <Card no3d className={`animate-fade-in transition-all hover:-translate-y-[1px] hover:shadow-md ${filter === "paid" ? "ring-2 ring-success/50" : ""}`} style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
+            <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
+              <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
+                <CheckCircle className="h-4 w-4 text-success" />
+              </div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Pago</p>
+              <p className="text-sm sm:text-lg font-bold text-success mt-0.5">{formatCurrency(totalPaid)}</p>
+            </CardContent>
+          </Card>
+        </button>
       </div>
 
       {/* Month filter */}
