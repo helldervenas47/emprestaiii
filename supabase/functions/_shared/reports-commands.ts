@@ -77,7 +77,6 @@ export function renderMenu(brand = "Relatórios"): string {
     "/inadimplencia — Taxa e faixas de atraso",
     "",
     "*Operação*",
-    "/recebimentos\\_hoje — Pagamentos do dia",
     "/vencimentos\\_hoje — Contratos que vencem hoje",
     "/vencimentos\\_semana — Parcelas dos próximos 7 dias",
     "/resumo\\_diario — Movimentação do dia",
