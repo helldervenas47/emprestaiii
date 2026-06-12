@@ -146,14 +146,43 @@ export function SystemHealth() {
     };
   }, []);
 
-  // Last backup (localStorage, escrito por BackupExport quando usuário exporta)
+  // Último backup: prioriza registro real no servidor (backup_history /
+  // account_settings.last_auto_backup_at) e usa localStorage como fallback
+  // para exports manuais feitos no navegador.
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("hvcred-last-backup");
-      if (raw) setLastBackupAt(new Date(raw));
-    } catch {
-      /* ignore */
-    }
+    let cancelled = false;
+    (async () => {
+      let serverDate: Date | null = null;
+      try {
+        const { data: hist } = await supabase
+          .from("backup_history")
+          .select("created_at")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (hist?.created_at) serverDate = new Date(hist.created_at as string);
+      } catch { /* ignore */ }
+      if (!serverDate) {
+        try {
+          const { data: settings } = await supabase
+            .from("account_settings")
+            .select("last_auto_backup_at")
+            .maybeSingle();
+          const v = (settings as any)?.last_auto_backup_at;
+          if (v) serverDate = new Date(v);
+        } catch { /* ignore */ }
+      }
+      let localDate: Date | null = null;
+      try {
+        const raw = localStorage.getItem("hvcred-last-backup");
+        if (raw) localDate = new Date(raw);
+      } catch { /* ignore */ }
+      const best = [serverDate, localDate]
+        .filter((d): d is Date => !!d && !isNaN(d.getTime()))
+        .sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
+      if (!cancelled) setLastBackupAt(best);
+    })();
+    return () => { cancelled = true; };
   }, [lastRefresh]);
 
   const refresh = useCallback(async () => {
