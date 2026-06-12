@@ -31,6 +31,7 @@ interface ManagedUser {
   allowed_tabs: string[] | null;
   linked_client_ids: string[];
   plan_id?: string;
+  owner_id?: string | null;
 }
 
 const ALL_TABS = APP_TABS;
