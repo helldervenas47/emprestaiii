@@ -1,6 +1,6 @@
 // Vincula o usuário autenticado a um chat do Telegram a partir de um código.
 // Fluxos aceitos:
-// 1) /code no bot -> usuário cola o código alfanumérico no app.
+// 1) /start no bot -> usuário cola o código alfanumérico no app.
 // 2) código numérico do app -> usuário enviou /start CODE ao bot.
 import { getReportsBotId } from "../_shared/reports-bot.ts";
 import { getExternalAdmin, getExternalServiceRoleKey, getExternalUserClient } from "../_shared/external-supabase.ts";

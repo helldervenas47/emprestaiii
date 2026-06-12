@@ -39,7 +39,7 @@ async function saveIncomingMessage(supabase: any, update: any, bot: { id: string
   if (!msg?.chat?.id) return;
   // Use the raw Telegram update_id directly. The previous "scoped" id
   // (botHash * 1e10 + update_id) overflowed the int4 column and the upsert
-  // failed silently, breaking history and the /code link flow.
+  // failed silently, breaking history and the /start link flow.
   await supabase.from("telegram_messages").upsert({
     update_id: update.update_id,
     chat_id: msg.chat.id,
