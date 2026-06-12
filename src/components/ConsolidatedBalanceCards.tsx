@@ -477,7 +477,7 @@ export function ConsolidatedBalanceCards() {
                                     <p className="text-sm font-bold text-destructive tabular-nums">{formatBRL(expectedOut)}</p>
                                   </div>
                                 </div>
-                                <p className="text-[10px] text-muted-foreground">Considera parcelas de empréstimos a receber e despesas empresariais a vencer nos próximos 30 dias.</p>
+                                <p className="text-[10px] text-muted-foreground">Considera parcelas de empréstimos a receber e despesas empresariais a vencer até o final do mês vigente.</p>
                               </div>
                             </CardBox>
                           );
