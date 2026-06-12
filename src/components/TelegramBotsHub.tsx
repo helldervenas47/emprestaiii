@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Send, BarChart3 } from "lucide-react";
+import { Send, BarChart3, AlertTriangle, CalendarCheck } from "lucide-react";
 import { TelegramReportsConnectCard } from "@/components/TelegramReportsConnectCard";
 import { TelegramBillingScheduleCard } from "@/components/TelegramBillingScheduleCard";
 import { TelegramAccumulatedDelinquencyScheduleCard } from "@/components/TelegramAccumulatedDelinquencyScheduleCard";
@@ -7,6 +7,7 @@ import { TelegramDailyPlanningScheduleCard } from "@/components/TelegramDailyPla
 import { TelegramIncomesExpensesScheduleCard } from "@/components/TelegramIncomesExpensesScheduleCard";
 import { TelegramManagerWeeklyCard } from "@/components/TelegramManagerWeeklyCard";
 import { TelegramWeeklyVencimentosCard } from "@/components/TelegramWeeklyVencimentosCard";
+import { ScheduledReportCard } from "@/components/ScheduledReportCard";
 
 
 export function TelegramBotsHub() {
@@ -42,7 +43,27 @@ export function TelegramBotsHub() {
       {/* 5. Vencimentos da semana (segundas-feiras) */}
       <TelegramWeeklyVencimentosCard />
 
-      {/* 4. Resumo por gerente */}
+      {/* 6. Empréstimos em atraso (até 3 horários) */}
+      <ScheduledReportCard
+        title="Empréstimos em atraso"
+        description="Lista de contratos em atraso. Até 3 horários por dia."
+        Icon={AlertTriangle}
+        prefsTable="telegram_overdue_loans_prefs"
+        functionName="telegram-overdue-loans-summary"
+        defaultTime="09:00"
+      />
+
+      {/* 7. Contratos que vencem hoje (até 3 horários) */}
+      <ScheduledReportCard
+        title="Contratos que vencem hoje"
+        description="Lista dos contratos com vencimento no dia. Até 3 horários por dia."
+        Icon={CalendarCheck}
+        prefsTable="telegram_due_today_loans_prefs"
+        functionName="telegram-due-today-loans-summary"
+        defaultTime="08:00"
+      />
+
+      {/* 8. Resumo por gerente */}
       <Card no3d>
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center gap-2">
