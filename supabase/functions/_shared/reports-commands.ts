@@ -45,7 +45,7 @@ function totalWithInterest(loan: any): number {
 export const REPORT_COMMANDS = new Set([
   "relatorios", "dashboard",
   "kpi_geral", "carteira_ativa", "recebimentos_hoje",
-  "emprestimos_atrasados", "inadimplencia",
+  "emprestimos_atrasados", "vencimentos_hoje", "inadimplencia",
   "resumo_diario", "resumo_mensal",
   "top_clientes", "vencimentos_semana", "projecao_mes",
   "novos_contratos", "historico_cliente", "alertas",
@@ -78,7 +78,7 @@ export function renderMenu(brand = "Relatórios"): string {
     "",
     "*Operação*",
     "/recebimentos\\_hoje — Pagamentos do dia",
-    
+    "/vencimentos\\_hoje — Contratos que vencem hoje",
     "/vencimentos\\_semana — Parcelas dos próximos 7 dias",
     "/resumo\\_diario — Movimentação do dia",
     "/resumo\\_mensal — Fechamento do mês",
@@ -431,6 +431,33 @@ async function emprestimosAtrasados(ctx: Ctx, snap: Snapshot): Promise<string> {
   return lines.join("\n");
 }
 
+async function vencimentosHoje(ctx: Ctx, snap: Snapshot): Promise<string> {
+  const rows = snap.loans.flatMap((loan) =>
+    dueEntriesForLoan(loan, snap.installments)
+      .filter((e) => e.due_date === ctx.today && !e.paid)
+      .map((e) => ({ name: loan.borrower_name || "—", installment: e.installment_number ?? null, value: num(e.amount) }))
+  );
+  const total = rows.reduce((s, r) => s + r.value, 0);
+  const lines = ["📆 *Contratos que vencem hoje*", "", `📑 Contratos: *${rows.length}*`, `💰 Valor previsto: *${fmtBRL(total)}*`];
+  if (rows.length === 0) return [...lines, "", "_Nenhum vencimento para hoje. 🎉_"].join("\n");
+
+  lines.push("", "*Clientes:*");
+  const sorted = rows.sort((a, b) => b.value - a.value);
+
+  const nameWidth = Math.min(14, Math.max(...sorted.map((r) => r.name.length)));
+  const parcelaWidth = Math.max(...sorted.map((r) => (r.installment ? `#${r.installment}` : "—").length));
+  const valueWidth = Math.max(...sorted.map((r) => fmtBRL(r.value).length));
+  const pad = (s: string, n: number) => (s.length >= n ? s.slice(0, n) : s + " ".repeat(n - s.length));
+  const padL = (s: string, n: number) => (s.length >= n ? s : " ".repeat(n - s.length) + s);
+
+  for (const row of sorted) {
+    const shortName = row.name.length > nameWidth ? row.name.slice(0, nameWidth) : row.name;
+    const parcela = row.installment ? `#${row.installment}` : "—";
+    lines.push(`\`${pad(shortName, nameWidth)} ${padL(parcela, parcelaWidth)} ${padL(fmtBRL(row.value), valueWidth)}\``);
+  }
+  return lines.join("\n");
+}
+
 async function inadimplencia(ctx: Ctx, snap: Snapshot): Promise<string> {
   const { prefix } = monthBounds(ctx.today);
   const overdue = getOverdueByLoan(ctx, snap);
@@ -778,6 +805,7 @@ export async function runReportCommand(supabase: any, userId: string, command: s
     case "carteira_ativa": return carteiraAtiva(ctx, snap);
     case "recebimentos_hoje": return recebimentosHoje(ctx, snap);
     case "emprestimos_atrasados": return emprestimosAtrasados(ctx, snap);
+    case "vencimentos_hoje": return vencimentosHoje(ctx, snap);
     case "inadimplencia": return inadimplencia(ctx, snap);
     case "resumo_diario": return resumoDiario(ctx, snap);
     case "resumo_mensal": return resumoMensal(ctx, snap);
