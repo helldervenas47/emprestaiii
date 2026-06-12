@@ -418,14 +418,15 @@ async function emprestimosAtrasados(ctx: Ctx, snap: Snapshot): Promise<string> {
     })
     .sort((a, b) => b.days - a.days);
 
-  const nameWidth = Math.min(20, Math.max(...sorted.map((r) => r.name.length)));
+  const nameWidth = Math.min(14, Math.max(...sorted.map((r) => r.name.length)));
   const daysWidth = Math.max(...sorted.map((r) => `${r.days}d`.length));
   const valueWidth = Math.max(...sorted.map((r) => fmtBRL(r.value).length));
   const pad = (s: string, n: number) => (s.length >= n ? s.slice(0, n) : s + " ".repeat(n - s.length));
   const padL = (s: string, n: number) => (s.length >= n ? s : " ".repeat(n - s.length) + s);
 
   for (const row of sorted) {
-    lines.push(`\`${pad(row.name, nameWidth)}  ${padL(`${row.days}d`, daysWidth)}  ${padL(fmtBRL(row.value), valueWidth)}\``);
+    const shortName = row.name.length > nameWidth ? row.name.slice(0, nameWidth) : row.name;
+    lines.push(`\`${pad(shortName, nameWidth)} ${padL(`${row.days}d`, daysWidth)} ${padL(fmtBRL(row.value), valueWidth)}\``);
   }
   return lines.join("\n");
 }
