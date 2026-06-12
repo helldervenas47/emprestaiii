@@ -1361,7 +1361,7 @@ const Index = () => {
                       <div className="flex items-center gap-1.5 mt-0.5">
                         {role && (
                           <Badge variant="outline" className="text-[9px] px-1.5 py-0">
-                            {role === "admin" ? "Administrador" : role === "cliente" ? "Cliente" : "Visualizador"}
+                            {role === "admin" ? "Administrador" : role === "gerente" ? "Gerente" : role === "cliente" ? "Cliente" : "Visualizador"}
                           </Badge>
                         )}
                         <Badge
