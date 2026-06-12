@@ -902,6 +902,14 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
           }
         }}
       />
+
+      <CategoryDetailsSheet
+        open={!!summaryView}
+        onOpenChange={(o) => !o && setSummaryView(null)}
+        categoryName={summaryView ? summaryViewMeta[summaryView].label : ""}
+        entries={summaryEntries}
+        total={summaryView ? summaryViewMeta[summaryView].total : 0}
+      />
     </div>
   );
 }
