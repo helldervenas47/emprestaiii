@@ -7,6 +7,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function localDateInTimezone(tz = "America/Sao_Paulo") {
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const parts = fmt.formatToParts(new Date());
+  const get = (t: string) => parts.find((x) => x.type === t)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -114,15 +126,24 @@ Deno.serve(async (req) => {
         : null;
       const chatId = Number((link ?? legacy)?.chat_id);
       if (!chatId) continue;
+
+      if (!forceUserId) {
+        const { data: settings } = await admin
+          .from("account_settings").select("timezone").eq("owner_id", targetUser).maybeSingle();
+        const today = localDateInTimezone((settings as any)?.timezone || "America/Sao_Paulo");
+        const { error: markErr } = await admin.from("telegram_weekly_vencimentos_prefs")
+          .upsert({ user_id: userId, last_sent_date: today }, { onConflict: "user_id" });
+        if (markErr) {
+          console.error("[telegram-vencimentos-semana] failed to mark sent", userId, markErr);
+          errors.push({ userId, reason: "failed_to_mark_sent", error: markErr.message });
+          continue;
+        }
+      }
+
       const message = await runReportCommand(admin, targetUser, "vencimentos_semana");
       const r = await sendReportsMessage(admin, userId, chatId, message);
       if (r.sent) {
         sent++;
-        if (!forceUserId) {
-          const today = new Date().toISOString().slice(0, 10);
-          await admin.from("telegram_weekly_vencimentos_prefs")
-            .upsert({ user_id: userId, last_sent_date: today }, { onConflict: "user_id" });
-        }
       } else errors.push({ userId, reason: r.reason });
     } catch (e: any) {
       console.error("[telegram-vencimentos-semana]", userId, e);
