@@ -84,6 +84,10 @@ export function SystemSettings() {
             </Card>
 
             <Suspense fallback={<SectionLoader />}>
+              <RolePermissionsMatrix />
+            </Suspense>
+
+            <Suspense fallback={<SectionLoader />}>
               <InviteAndApprovalSettings />
             </Suspense>
 
