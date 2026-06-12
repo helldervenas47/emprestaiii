@@ -305,7 +305,7 @@ Deno.serve(async (req) => {
       const link = await getReportsLinkForUser(admin, user.id);
       if (!link) {
         return new Response(
-          JSON.stringify({ ok: false, error: "no_reports_link", message: "Conecte o Bot de Relatórios (/code) antes de enviar." }),
+          JSON.stringify({ ok: false, error: "no_reports_link", message: "Conecte o Bot de Relatórios (envie /start ao bot) antes de enviar." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
