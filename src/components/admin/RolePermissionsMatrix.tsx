@@ -250,3 +250,62 @@ function RolePermissionsHistory() {
     </div>
   );
 }
+
+function RoleTabsMatrix() {
+  const { allowedFor, setAllowed, loading } = useRoleTabPermissions();
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-border">
+            <th className="text-left font-medium text-muted-foreground py-2 pr-4">Aba</th>
+            {PERMISSION_ROLES.map((r) => (
+              <th key={r.key} className="text-center font-medium text-muted-foreground py-2 px-2 w-24">
+                {r.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {APP_TABS.map((tab) => (
+            <tr key={tab.id} className="border-b border-border/60 last:border-0">
+              <td className="py-2 pr-4">
+                <div className="font-medium text-foreground">{tab.label}</div>
+                <div className="text-xs text-muted-foreground">{tab.id}</div>
+              </td>
+              {PERMISSION_ROLES.map((r) => {
+                const allowed = allowedFor(r.key).has(tab.id);
+                return (
+                  <td key={r.key} className="text-center py-2 px-2">
+                    <Switch
+                      checked={r.key === "admin" ? true : allowed}
+                      disabled={r.key === "admin"}
+                      onCheckedChange={async (v) => {
+                        try { await setAllowed(r.key, tab.id, !!v); }
+                        catch (e) { toast.error("Falha ao salvar: " + ((e as Error).message || "")); }
+                      }}
+                      aria-label={`${tab.label} - ${r.label}`}
+                    />
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="text-xs text-muted-foreground mt-3">
+        As alterações valem imediatamente para todos os usuários do papel. O papel
+        <strong> Admin</strong> sempre enxerga todas as abas.
+      </p>
+    </div>
+  );
+}
