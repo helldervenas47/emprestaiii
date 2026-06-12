@@ -11,8 +11,6 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
   const { linked, loading, disconnect, refresh } = useTelegramReportsLink();
   const [code, setCode] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [botCodeInput, setBotCodeInput] = useState("");
-  const [linkingByCode, setLinkingByCode] = useState(false);
   const syncingTelegramRef = useRef(false);
 
   useEffect(() => {
