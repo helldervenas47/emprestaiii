@@ -48,9 +48,6 @@ export function DashboardCards({ loans, payments }: Props) {
     return sum + Math.round((total + lateFees + interestPaymentsReceived) * 100) / 100;
   }, 0);
 
-  // Lucro Estimado = Total a Receber - Capital na Rua
-  const estimatedProfit = totalToReceive - totalLent;
-
   const totalInterest = loans.reduce(
     (sum, l) => sum + (calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - l.amount),
     0
@@ -61,6 +58,10 @@ export function DashboardCards({ loans, payments }: Props) {
 
   // Pendente de Recebimento = soma do remaining_amount dos empréstimos ativos
   const pendingReceivable = activeLoansData.reduce((sum, l) => sum + (l.remainingAmount ?? 0), 0);
+
+  // Lucro Estimado = Pendente de Recebimento - Capital na Rua
+  const estimatedProfit = pendingReceivable - totalLent;
+
 
   // Calculate loan limit usage (default 5 for trial users without subscription)
   const maxLoans = planLimits?.maxLoans || 5;

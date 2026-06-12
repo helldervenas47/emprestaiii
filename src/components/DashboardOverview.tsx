@@ -780,8 +780,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     // Total received globally
     const totalReceived = payments.reduce((s, p) => s + p.amount, 0);
 
-    // Lucro Estimado = Total a Receber - Capital na Rua
-    const estimatedProfit = totalToReceive - capitalOnStreet;
+    // Lucro Estimado = Pendente de Recebimento - Capital na Rua
+    const estimatedProfit = activeLoans.reduce((s, l) => s + getLoanRemainingAmount(l, payments), 0) - capitalOnStreet;
+
 
     // Juros a receber no mês: interest portion of installments due this month
     const now = new Date();
