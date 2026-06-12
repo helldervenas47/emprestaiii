@@ -439,8 +439,8 @@ async function emprestimosAtrasados(ctx: Ctx, snap: Snapshot): Promise<string> {
 
   for (const row of sorted) {
     const shortName = row.name.length > nameWidth ? row.name.slice(0, nameWidth) : row.name;
-    const marker = row.days > 20 ? "🔴 " : "   ";
-    lines.push(`${marker}\`${pad(shortName, nameWidth)} ${padL(`${row.days}d`, daysWidth)} ${padL(fmtBRL(row.value), valueWidth)}\``);
+    const marker = row.days > 20 ? " 🔴" : "";
+    lines.push(`\`${pad(shortName, nameWidth)} ${padL(`${row.days}d`, daysWidth)} ${padL(fmtBRL(row.value), valueWidth)}\`${marker}`);
   }
   return lines.join("\n");
 }
