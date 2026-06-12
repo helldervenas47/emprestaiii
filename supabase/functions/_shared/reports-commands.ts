@@ -391,7 +391,8 @@ async function recebimentosHoje(ctx: Ctx, snap: Snapshot): Promise<string> {
   return lines.join("\n");
 }
 
-async function carteiraAtiva(_ctx: Ctx, snap: Snapshot): Promise<string> {
+async function carteiraAtiva(ctx: Ctx, snap: Snapshot): Promise<string> {
+  const overdueCount = getOverdueByLoan(ctx, snap).size;
   return [
     "💰 *Carteira Ativa*",
     "",
@@ -399,7 +400,7 @@ async function carteiraAtiva(_ctx: Ctx, snap: Snapshot): Promise<string> {
     `⏳ Pendente de recebimento: *${fmtBRL(snap.pendingReceivable)}*`,
     `📈 Lucro estimado: *${fmtBRL(snap.estimatedProfit)}*`,
     `📑 Empréstimos ativos: *${snap.active.length}*`,
-    snap.overdueLoans > 0 ? `🚨 Em atraso: *${snap.overdueLoans}*` : "✅ Nenhum empréstimo em atraso no dashboard",
+    overdueCount > 0 ? `🚨 Em atraso: *${overdueCount}*` : "✅ Nenhum empréstimo em atraso",
   ].join("\n");
 }
 
