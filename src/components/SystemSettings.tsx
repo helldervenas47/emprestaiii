@@ -14,6 +14,7 @@ const BrandingSettings = lazy(() => import("@/components/BrandingSettings").then
 const InviteAndApprovalSettings = lazy(() => import("@/components/InviteAndApprovalSettings").then(m => ({ default: m.InviteAndApprovalSettings })));
 const SystemHealth = lazy(() => import("@/components/SystemHealth").then(m => ({ default: m.SystemHealth })));
 const ApiKeysManager = lazy(() => import("@/components/ApiKeysManager").then(m => ({ default: m.ApiKeysManager })));
+const RolePermissionsMatrix = lazy(() => import("@/components/admin/RolePermissionsMatrix").then(m => ({ default: m.RolePermissionsMatrix })));
 
 const SectionLoader = () => (
   <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
