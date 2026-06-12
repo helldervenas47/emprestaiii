@@ -2089,12 +2089,22 @@ function LoanCardView({
                   />
                 );
               })()}
-              {paymentDialog?.type === "payoff" && (
-                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-                  <p className="text-xs text-muted-foreground">Total restante a receber</p>
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
-                </div>
-              )}
+              {paymentDialog?.type === "payoff" && (() => {
+                const paidPrincipal = Math.max(0, totalPaid - interestPaymentsReceived);
+                const principalRemaining = Math.max(0, loan.amount - paidPrincipal);
+                const interestPendingTotal = Math.max(0, baseRemaining - principalRemaining);
+                return (
+                  <PayoffCompositionCard
+                    principalRemaining={principalRemaining}
+                    interestPending={interestPendingTotal}
+                    penaltyTotal={penaltyTotal}
+                    lateInterestTotal={lateInterestTotal}
+                    renegPenaltyPending={renegPenaltyPending}
+                    totalContract={remaining}
+                    formatCurrency={formatCurrency}
+                  />
+                );
+              })()}
                 <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
                   <div>
                     <p className="text-muted-foreground">Total emprestado</p>
