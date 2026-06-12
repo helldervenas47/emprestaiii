@@ -307,10 +307,6 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
         </CardContent>
       </Card>
 
-      {/* Zona de perigo — exclusão total */}
-      <Suspense fallback={<SectionLoader />}>
-        <WipeAllDataCard />
-      </Suspense>
 
       <ConfirmDeleteDialog
         open={confirmClear}
