@@ -46,17 +46,47 @@ Deno.serve(async (req) => {
     }
     userIds = [...ids];
 
-    // Filter by per-user toggle. Default = enabled (true) when no row exists.
+    // Filter by per-user schedule (weekday + send_time + enabled).
+    // Default schedule = Monday 08:00 when no row exists.
     if (userIds.length > 0) {
       const { data: prefs } = await admin
         .from("telegram_weekly_vencimentos_prefs")
-        .select("user_id, enabled")
+        .select("user_id, enabled, weekday, send_time, last_sent_date")
         .in("user_id", userIds);
-      const disabled = new Set<string>();
-      for (const p of (prefs ?? []) as any[]) {
-        if (p.enabled === false) disabled.add(p.user_id);
+      const prefMap = new Map<string, any>();
+      for (const p of (prefs ?? []) as any[]) prefMap.set(p.user_id, p);
+
+      const eligible: string[] = [];
+      for (const uid of userIds) {
+        const p = prefMap.get(uid) ?? {};
+        if (p.enabled === false) continue;
+        const wd = typeof p.weekday === "number" ? p.weekday : 1;
+        const st = String(p.send_time ?? "08:00").slice(0, 5);
+
+        // Resolve user timezone via account_settings (fallback America/Sao_Paulo)
+        const { data: ownerId } = await admin.rpc("get_data_owner_id", { _user_id: uid });
+        const ownerKey = (ownerId as string) || uid;
+        const { data: settings } = await admin
+          .from("account_settings").select("timezone").eq("owner_id", ownerKey).maybeSingle();
+        const tz = (settings as any)?.timezone || "America/Sao_Paulo";
+
+        const fmt = new Intl.DateTimeFormat("en-CA", {
+          timeZone: tz, weekday: "short", year: "numeric", month: "2-digit", day: "2-digit",
+          hour: "2-digit", minute: "2-digit", hour12: false,
+        });
+        const parts = fmt.formatToParts(new Date());
+        const get = (t: string) => parts.find((x) => x.type === t)?.value ?? "";
+        const map: Record<string, number> = { Sun:0, Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6 };
+        const nowWd = map[get("weekday")] ?? -1;
+        const today = `${get("year")}-${get("month")}-${get("day")}`;
+        const hhmm = `${get("hour")}:${get("minute")}`;
+
+        if (nowWd !== wd) continue;
+        if (hhmm < st) continue;            // ainda não chegou o horário
+        if (p.last_sent_date === today) continue; // já enviou hoje
+        eligible.push(uid);
       }
-      userIds = userIds.filter((u) => !disabled.has(u));
+      userIds = eligible;
     }
   }
 
@@ -86,8 +116,14 @@ Deno.serve(async (req) => {
       if (!chatId) continue;
       const message = await runReportCommand(admin, targetUser, "vencimentos_semana");
       const r = await sendReportsMessage(admin, userId, chatId, message);
-      if (r.sent) sent++;
-      else errors.push({ userId, reason: r.reason });
+      if (r.sent) {
+        sent++;
+        if (!forceUserId) {
+          const today = new Date().toISOString().slice(0, 10);
+          await admin.from("telegram_weekly_vencimentos_prefs")
+            .update({ last_sent_date: today }).eq("user_id", userId);
+        }
+      } else errors.push({ userId, reason: r.reason });
     } catch (e: any) {
       console.error("[telegram-vencimentos-semana]", userId, e);
       errors.push({ userId, error: String(e?.message ?? e) });
