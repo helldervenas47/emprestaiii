@@ -33,6 +33,7 @@ const REPORTS_COMMANDS = [
   { command: 'resumo_diario', description: 'Movimentação do dia' },
   { command: 'resumo_mensal', description: 'Fechamento do mês' },
   { command: 'top_clientes', description: 'Melhores e piores pagadores' },
+  { command: 'vencimentos_hoje', description: 'Contratos que vencem hoje' },
   { command: 'vencimentos_semana', description: 'Parcelas dos próximos 7 dias' },
   { command: 'projecao_mes', description: 'Projeção de caixa do mês' },
   { command: 'novos_contratos', description: 'Contratos fechados no mês' },
