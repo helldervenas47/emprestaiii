@@ -384,7 +384,7 @@ export function UserManagement() {
 
   const roleLabel = (role: string | null) => {
     if (role === "admin") return "Admin";
-    if (role === "cliente") return "Operador";
+    if (role === "cliente") return "Cliente";
     if (role === "gerente") return "Gerente";
     if (role === "visualizador") return "Visualizador";
     return "Sem papel";

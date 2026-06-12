@@ -34,7 +34,7 @@ export const PERMISSION_MODULES: PermissionModule[] = [
 export const PERMISSION_ROLES = [
   { key: "admin", label: "Admin" },
   { key: "gerente", label: "Gerente" },
-  { key: "cliente", label: "Operador" },
+  { key: "cliente", label: "Cliente" },
   { key: "visualizador", label: "Visualizador" },
 ] as const;
 
