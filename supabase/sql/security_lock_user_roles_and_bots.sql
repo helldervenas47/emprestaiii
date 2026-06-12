@@ -5,22 +5,14 @@ create policy "Users view own role"
   on public.user_roles for select to authenticated
   using (user_id = auth.uid());
 
--- Restrict system_telegram_bots SELECT (token column) to admins only.
-drop policy if exists "Users can view active system bots" on public.system_telegram_bots;
-drop policy if exists "Admins view system bots" on public.system_telegram_bots;
-create policy "Admins view system bots"
-  on public.system_telegram_bots for select to authenticated
-  using (
-    exists (
-      select 1 from public.user_roles
-      where user_id = auth.uid() and role = 'admin'
-    )
-  );
+-- Keep system_telegram_bots SELECT visible (the app embeds it via FK joins),
+-- but block the sensitive `token` column from `authenticated` and `anon`.
+-- The service role (used by edge functions) keeps full access.
+revoke select (token) on public.system_telegram_bots from authenticated;
+revoke select (token) on public.system_telegram_bots from anon;
+grant select (id, name, purpose, active, bot_id, bot_username, description,
+             validation_status, last_validated_at, created_at, created_by)
+  on public.system_telegram_bots to authenticated;
 
--- Token-less view for the app to read bot name/purpose/active.
-create or replace view public.system_telegram_bots_public as
-  select id, name, purpose, active, bot_id, created_at
-  from public.system_telegram_bots
-  where active = true;
-
-grant select on public.system_telegram_bots_public to authenticated;
+-- Drop the earlier helper view if it was created — no longer needed.
+drop view if exists public.system_telegram_bots_public;
