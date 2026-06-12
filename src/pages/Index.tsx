@@ -688,7 +688,7 @@ const Index = () => {
               <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 text-xs text-muted-foreground mr-1">
                 <User className="h-3 w-3" />
                 <span className="max-w-[120px] truncate">{user?.user_metadata?.display_name || user?.email || "—"}</span>
-                {role && <Badge variant={role === "admin" ? "default" : role === "cliente" ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0">{role === "admin" ? "Admin" : role === "cliente" ? "Op." : "Vis."}</Badge>}
+                {role && <Badge variant={role === "admin" ? "default" : role === "visualizador" ? "outline" : "secondary"} className="text-[10px] px-1.5 py-0">{role === "admin" ? "Admin" : role === "gerente" ? "Gerente" : role === "cliente" ? "Cliente" : "Vis."}</Badge>}
                 <Badge
                   variant="outline"
                   className="text-[10px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors border-primary/40 text-primary"
