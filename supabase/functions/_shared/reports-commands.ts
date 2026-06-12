@@ -417,7 +417,14 @@ async function emprestimosAtrasados(ctx: Ctx, snap: Snapshot): Promise<string> {
       return { name: loan?.borrower_name || "—", days: daysBetween(item.oldest, ctx.today), value: item.value };
     })
     .sort((a, b) => b.days - a.days);
-  for (const row of sorted) lines.push(`• *${row.name}* — ${row.days}d — ${fmtBRL(row.value)}`);
+  for (const row of sorted) {
+    lines.push(
+      `• *${row.name}*`,
+      `  Dias: ${row.days}d`,
+      `  Valor: ${fmtBRL(row.value)}`,
+      ""
+    );
+  }
   return lines.join("\n");
 }
 
