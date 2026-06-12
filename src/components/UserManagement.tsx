@@ -613,7 +613,7 @@ export function UserManagement() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1 justify-end">
-                        {user.role === "admin" && isAdmin ? (
+                        {isAdmin ? (
                           <Button variant="ghost" size="icon" onClick={() => openPlanSelector(user)} className="h-8 w-8" title="Definir plano">
                             <CreditCard className="h-4 w-4" />
                           </Button>
