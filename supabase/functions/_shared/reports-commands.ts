@@ -42,6 +42,18 @@ function totalWithInterest(loan: any): number {
   return Math.round(num(loan.amount) * (1 + num(loan.interest_rate) / 100));
 }
 
+function calcLateFees(loan: any, baseAmount: number, daysOverdue: number): number {
+  if (daysOverdue <= 0) return 0;
+  const lateValue = num(loan.late_interest_value);
+  const lateInterest = lateValue > 0
+    ? loan.late_interest_type === "fixed"
+      ? lateValue * daysOverdue
+      : baseAmount * (lateValue / 100) * daysOverdue
+    : 0;
+  const penalty = num(loan.penalty_value);
+  return lateInterest + (penalty > 0 ? penalty : 0);
+}
+
 export const REPORT_COMMANDS = new Set([
   "relatorios", "dashboard",
   "kpi_geral", "carteira_ativa",
