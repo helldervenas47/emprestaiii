@@ -567,11 +567,14 @@ async function topClientes(ctx: Ctx, snap: Snapshot): Promise<string> {
     stats.set(name, s);
   }
   const arr = [...stats.entries()].map(([name, s]) => ({ name, ...s }));
-  const best = [...arr].filter((x) => x.overdue === 0).sort((a, b) => b.paid - a.paid).slice(0, 5);
+  const best = [...arr].filter((x) => x.paid > 0).sort((a, b) => b.paid - a.paid).slice(0, 5);
   const worst = [...arr].filter((x) => x.overdue > 0).sort((a, b) => b.days - a.days || b.overdue - a.overdue).slice(0, 5);
   const lines = ["🏆 *Top Clientes*", "", "*Melhores pagadores*"];
   if (best.length === 0) lines.push("_Sem dados._");
-  for (const b of best) lines.push(`• ${b.name} — pago ${fmtBRL(b.paid)} / emprestado ${fmtBRL(b.lent)}`);
+  for (const b of best) {
+    const tag = b.overdue > 0 ? ` ⚠️ ${b.days}d atraso` : "";
+    lines.push(`• ${b.name} — pago ${fmtBRL(b.paid)} / emprestado ${fmtBRL(b.lent)}${tag}`);
+  }
   lines.push("", "*Maiores devedores*");
   if (worst.length === 0) lines.push("_Nenhum cliente em atraso. 🎉_");
   for (const w of worst) lines.push(`• ${w.name} — ${w.days}d em atraso — ${fmtBRL(w.overdue)}`);
