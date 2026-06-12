@@ -417,17 +417,19 @@ async function carteiraAtiva(ctx: Ctx, snap: Snapshot): Promise<string> {
 
 async function emprestimosAtrasados(ctx: Ctx, snap: Snapshot): Promise<string> {
   const overdue = getOverdueByLoan(ctx, snap);
-  const total = [...overdue.values()].reduce((sum, item) => sum + item.value, 0);
-  const lines = ["🚨 *Empréstimos em Atraso*", "", `📑 Contratos: *${overdue.size}*`, `💸 Valor em atraso: *${fmtBRL(total)}*`];
-  if (overdue.size === 0) return [...lines, "", "_Nenhum contrato em atraso. 🎉_"].join("\n");
-
-  lines.push("", "*Clientes:*");
   const sorted = [...overdue.entries()]
     .map(([loanId, item]) => {
       const loan = snap.loans.find((entry) => entry.id === loanId);
-      return { name: loan?.borrower_name || "—", days: daysBetween(item.oldest, ctx.today), value: item.value };
+      const days = daysBetween(item.oldest, ctx.today);
+      const fees = loan ? calcLateFees(loan, item.value, days) : 0;
+      return { name: loan?.borrower_name || "—", days, value: item.value + fees };
     })
     .sort((a, b) => b.days - a.days);
+  const total = sorted.reduce((sum, r) => sum + r.value, 0);
+  const lines = ["🚨 *Empréstimos em Atraso*", "", `📑 Contratos: *${overdue.size}*`, `💸 Valor em atraso (com juros/multa): *${fmtBRL(total)}*`];
+  if (overdue.size === 0) return [...lines, "", "_Nenhum contrato em atraso. 🎉_"].join("\n");
+
+  lines.push("", "*Clientes:*");
 
   const nameWidth = Math.min(14, Math.max(...sorted.map((r) => r.name.length)));
   const daysWidth = Math.max(...sorted.map((r) => `${r.days}d`.length));
