@@ -43,6 +43,7 @@ import { WhatsappPreviewDialog } from "@/components/WhatsappPreviewDialog";
 import { PartialPaymentDialog } from "@/components/loans/PartialPaymentDialog";
 import { InterestResultCard } from "@/components/loans/InterestResultCard";
 import { FullPaymentSummary } from "@/components/loans/FullPaymentSummary";
+import { PayoffCompositionCard, PayoffSimulationCard } from "@/components/loans/PayoffCards";
 
 function WhatsappBillButton({
   loan,
@@ -2088,12 +2089,22 @@ function LoanCardView({
                   />
                 );
               })()}
-              {paymentDialog?.type === "payoff" && (
-                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-                  <p className="text-xs text-muted-foreground">Total restante a receber</p>
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
-                </div>
-              )}
+              {paymentDialog?.type === "payoff" && (() => {
+                const paidPrincipal = Math.max(0, totalPaid - interestPaymentsReceived);
+                const principalRemaining = Math.max(0, loan.amount - paidPrincipal);
+                const interestPendingTotal = Math.max(0, baseRemaining - principalRemaining);
+                return (
+                  <PayoffCompositionCard
+                    principalRemaining={principalRemaining}
+                    interestPending={interestPendingTotal}
+                    penaltyTotal={penaltyTotal}
+                    lateInterestTotal={lateInterestTotal}
+                    renegPenaltyPending={renegPenaltyPending}
+                    totalContract={remaining}
+                    formatCurrency={formatCurrency}
+                  />
+                );
+              })()}
                 <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
                   <div>
                     <p className="text-muted-foreground">Total emprestado</p>
@@ -2125,22 +2136,26 @@ function LoanCardView({
               <div className="space-y-4">
 
               {paymentDialog?.type === "payoff" && (
-                <div className="w-full space-y-1">
-                  <Label htmlFor="payoff-amount" className="text-xs">Valor para quitar (R$)</Label>
-                  <Input
-                    id="payoff-amount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    inputMode="decimal"
-                    value={payoffAmount}
-                    onChange={(e) => setPayoffAmount(e.target.value)}
-                    placeholder={`Ex: ${remaining.toFixed(2)}`}
-                    autoFocus
+                <div className="w-full space-y-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="payoff-amount" className="text-xs">Valor da quitação (R$)</Label>
+                    <Input
+                      id="payoff-amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      inputMode="decimal"
+                      value={payoffAmount}
+                      onChange={(e) => setPayoffAmount(e.target.value)}
+                      placeholder={`Ex: ${remaining.toFixed(2)}`}
+                      autoFocus
+                    />
+                  </div>
+                  <PayoffSimulationCard
+                    inputAmount={payoffAmount}
+                    totalContract={remaining}
+                    formatCurrency={formatCurrency}
                   />
-                  <p className="text-[10px] text-muted-foreground">
-                    Informe o valor de quitação. O contrato será marcado como pago.
-                  </p>
                 </div>
               )}
           {paymentDialog?.type === "amortize" && (() => {
@@ -2533,12 +2548,7 @@ function LoanCardView({
             </div>
             <div className="flex flex-col gap-4">
               {/* Pagamento Total — sumário detalhado renderizado na coluna esquerda */}
-              {paymentDialog?.type === "payoff" && (
-                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-                  <p className="text-xs text-muted-foreground">Total restante a receber</p>
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
-                </div>
-              )}
+              {/* Quitar Contrato — composição/simulação renderizadas na coluna esquerda */}
 
               <div className="hidden md:block rounded-lg border border-border/60 bg-card/60 p-3 space-y-2">
                 <p className="text-xs font-semibold text-foreground">Resumo do empréstimo</p>
@@ -4030,22 +4040,42 @@ function LoanRowView({
               </div>
 
               {paymentDialog?.type === "payoff" && (
-                <div className="w-full space-y-1">
-                  <Label htmlFor="payoff-amount-row" className="text-xs">Valor para quitar (R$)</Label>
-                  <Input
-                    id="payoff-amount-row"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    inputMode="decimal"
-                    value={payoffAmount}
-                    onChange={(e) => setPayoffAmount(e.target.value)}
-                    placeholder={`Ex: ${remaining.toFixed(2)}`}
-                    autoFocus
+                <div className="w-full space-y-2">
+                  {(() => {
+                    const paidPrincipal = Math.max(0, totalPaid - interestPaymentsReceived);
+                    const principalRemaining = Math.max(0, loan.amount - paidPrincipal);
+                    const interestPendingTotal = Math.max(0, baseRemaining - principalRemaining);
+                    return (
+                      <PayoffCompositionCard
+                        principalRemaining={principalRemaining}
+                        interestPending={interestPendingTotal}
+                        penaltyTotal={penaltyTotal}
+                        lateInterestTotal={lateInterestTotal}
+                        renegPenaltyPending={renegPenaltyPending}
+                        totalContract={remaining}
+                        formatCurrency={formatCurrency}
+                      />
+                    );
+                  })()}
+                  <div className="space-y-1">
+                    <Label htmlFor="payoff-amount-row" className="text-xs">Valor da quitação (R$)</Label>
+                    <Input
+                      id="payoff-amount-row"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      inputMode="decimal"
+                      value={payoffAmount}
+                      onChange={(e) => setPayoffAmount(e.target.value)}
+                      placeholder={`Ex: ${remaining.toFixed(2)}`}
+                      autoFocus
+                    />
+                  </div>
+                  <PayoffSimulationCard
+                    inputAmount={payoffAmount}
+                    totalContract={remaining}
+                    formatCurrency={formatCurrency}
                   />
-                  <p className="text-[10px] text-muted-foreground">
-                    Informe o valor de quitação. O contrato será marcado como pago.
-                  </p>
                 </div>
               )}
           {paymentDialog?.type === "amortize" && (() => {
@@ -4454,12 +4484,7 @@ function LoanRowView({
                   />
                 );
               })()}
-              {paymentDialog?.type === "payoff" && (
-                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-                  <p className="text-xs text-muted-foreground">Total restante a receber</p>
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
-                </div>
-              )}
+              {/* Quitar Contrato — composição/simulação renderizadas na coluna esquerda */}
               {paymentDialog?.type === "installment" && (
                 <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
                   <p className="text-xs text-muted-foreground">Valor da parcela atual</p>
