@@ -41,6 +41,7 @@ import { useWhatsappBillingMessages } from "@/hooks/useWhatsappBillingMessages";
 import { buildBillingWhatsappLink } from "@/lib/whatsappBilling";
 import { WhatsappPreviewDialog } from "@/components/WhatsappPreviewDialog";
 import { PartialPaymentDialog } from "@/components/loans/PartialPaymentDialog";
+import { InterestResultCard } from "@/components/loans/InterestResultCard";
 
 function WhatsappBillButton({
   loan,
@@ -2396,6 +2397,21 @@ function LoanCardView({
                     {willClose && partialVal > 0 && <p className="text-[11px] text-success">Quita o ciclo. Próximo vencimento: {nextDateStr}.</p>}
                   </div>
                 )}
+                <InterestResultCard
+                  baseInterest={baseInterest}
+                  penaltyTotal={penaltyTotal}
+                  lateInterestTotal={lateInterestTotal}
+                  renegPenaltyPending={renegPenaltyPending}
+                  includeFeesNow={includeFeesNow}
+                  pending={pending}
+                  partialEnabled={interestPartialEnabled}
+                  partialVal={partialVal}
+                  willClose={willClose}
+                  dueStr={dueStr}
+                  nextDateStr={nextDateStr}
+                  principalAmount={loan.amount}
+                  formatCurrency={formatCurrency}
+                />
                 <div className="space-y-1">
                   <Label htmlFor="int-notes" className="text-xs">Observação (opcional)</Label>
                   <Textarea id="int-notes" value={interestNotes} onChange={(e) => setInterestNotes(e.target.value)} placeholder="Ex: pago via Pix" className="min-h-[60px] text-sm" />
@@ -4293,6 +4309,21 @@ function LoanRowView({
                     </div>
                   )}
                 </div>
+                <InterestResultCard
+                  baseInterest={baseInterest}
+                  penaltyTotal={penaltyTotal}
+                  lateInterestTotal={lateInterestTotal}
+                  renegPenaltyPending={renegPenaltyPending}
+                  includeFeesNow={includeFeesNow}
+                  pending={pending}
+                  partialEnabled={interestPartialEnabled}
+                  partialVal={partialVal}
+                  willClose={willClose}
+                  dueStr={dueStr}
+                  nextDateStr={nextDateStr}
+                  principalAmount={loan.amount}
+                  formatCurrency={formatCurrency}
+                />
                 <div className="space-y-1">
                   <Label htmlFor="int-notes-row" className="text-xs">Observação (opcional)</Label>
                   <Textarea id="int-notes-row" value={interestNotes} onChange={(e) => setInterestNotes(e.target.value)} placeholder="Ex: pago via Pix" className="min-h-[60px] text-sm" />
