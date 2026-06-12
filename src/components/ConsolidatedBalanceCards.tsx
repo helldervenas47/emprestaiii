@@ -437,8 +437,19 @@ export function ConsolidatedBalanceCards() {
                         }
                         case "projecao30": {
                           const inRange = (d?: string | null) => !!d && d >= todayStr && d <= horizon30;
-                          const expectedIn = incomes.filter((i: any) => i.status !== "received" && inRange(i.receivedDate)).reduce((s: number, i: any) => s + (Number(i.amount) || 0), 0);
-                          const expectedOut = expenses.filter((e: any) => !e.paid && (e.scope ?? "business") === "personal" && inRange(e.dueDate)).reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
+                          // Entradas previstas: parcelas de empréstimos ainda não pagas com vencimento nos próximos 30 dias.
+                          const activeLoanIds = new Set(loans.filter((l) => l.status !== "paid").map((l) => l.id));
+                          const loanById = new Map(loans.map((l) => [l.id, l] as const));
+                          const expectedIn = installmentSchedules
+                            .filter((s: any) => {
+                              const loan = loanById.get(s.loanId);
+                              if (!loan || !activeLoanIds.has(s.loanId)) return false;
+                              if (s.installmentNumber <= (loan.paidInstallments || 0)) return false;
+                              return inRange(s.dueDate);
+                            })
+                            .reduce((sum: number, s: any) => sum + (Number(s.amount) || 0), 0);
+                          // Saídas previstas: despesas EMPRESARIAIS a vencer nos próximos 30 dias.
+                          const expectedOut = expenses.filter((e: any) => !e.paid && (e.scope ?? "business") === "business" && inRange(e.dueDate)).reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
                           const projected = totalEmMaos + expectedIn - expectedOut;
                           const delta = projected - totalEmMaos;
                           return (
@@ -464,7 +475,7 @@ export function ConsolidatedBalanceCards() {
                                     <p className="text-sm font-bold text-destructive tabular-nums">{formatBRL(expectedOut)}</p>
                                   </div>
                                 </div>
-                                <p className="text-[10px] text-muted-foreground">Considera receitas pendentes e despesas pessoais a vencer nos próximos 30 dias.</p>
+                                <p className="text-[10px] text-muted-foreground">Considera parcelas de empréstimos a receber e despesas empresariais a vencer nos próximos 30 dias.</p>
                               </div>
                             </CardBox>
                           );
