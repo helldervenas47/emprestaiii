@@ -42,6 +42,7 @@ import { buildBillingWhatsappLink } from "@/lib/whatsappBilling";
 import { WhatsappPreviewDialog } from "@/components/WhatsappPreviewDialog";
 import { PartialPaymentDialog } from "@/components/loans/PartialPaymentDialog";
 import { InterestResultCard } from "@/components/loans/InterestResultCard";
+import { FullPaymentSummary } from "@/components/loans/FullPaymentSummary";
 
 function WhatsappBillButton({
   loan,
@@ -2070,12 +2071,23 @@ function LoanCardView({
                 </div>
               </div>
 
-              {paymentDialog?.type === "full" && (
-                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-                  <p className="text-xs text-muted-foreground">Total restante a receber</p>
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
-                </div>
-              )}
+              {paymentDialog?.type === "full" && (() => {
+                const paidPrincipal = Math.max(0, totalPaid - interestPaymentsReceived);
+                const principalRemaining = Math.max(0, loan.amount - paidPrincipal);
+                const interestPendingTotal = Math.max(0, baseRemaining - principalRemaining);
+                return (
+                  <FullPaymentSummary
+                    principalRemaining={principalRemaining}
+                    interestPending={interestPendingTotal}
+                    penaltyTotal={penaltyTotal}
+                    lateInterestTotal={lateInterestTotal}
+                    renegPenaltyPending={renegPenaltyPending}
+                    totalFinal={remaining}
+                    pendingInstallments={Math.max(0, loan.installments - loan.paidInstallments)}
+                    formatCurrency={formatCurrency}
+                  />
+                );
+              })()}
               {paymentDialog?.type === "payoff" && (
                 <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
                   <p className="text-xs text-muted-foreground">Total restante a receber</p>
@@ -2520,12 +2532,7 @@ function LoanCardView({
           })()}
             </div>
             <div className="flex flex-col gap-4">
-              {paymentDialog?.type === "full" && (
-                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-                  <p className="text-xs text-muted-foreground">Total restante a receber</p>
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
-                </div>
-              )}
+              {/* Pagamento Total — sumário detalhado renderizado na coluna esquerda */}
               {paymentDialog?.type === "payoff" && (
                 <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
                   <p className="text-xs text-muted-foreground">Total restante a receber</p>
@@ -4430,12 +4437,23 @@ function LoanRowView({
           })()}
             </div>
             <div className="flex flex-col gap-4">
-              {paymentDialog?.type === "full" && (
-                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-                  <p className="text-xs text-muted-foreground">Total restante a receber</p>
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
-                </div>
-              )}
+              {paymentDialog?.type === "full" && (() => {
+                const paidPrincipal = Math.max(0, totalPaid - interestPaymentsReceived);
+                const principalRemaining = Math.max(0, loan.amount - paidPrincipal);
+                const interestPendingTotal = Math.max(0, baseRemaining - principalRemaining);
+                return (
+                  <FullPaymentSummary
+                    principalRemaining={principalRemaining}
+                    interestPending={interestPendingTotal}
+                    penaltyTotal={penaltyTotal}
+                    lateInterestTotal={lateInterestTotal}
+                    renegPenaltyPending={renegPenaltyPending}
+                    totalFinal={remaining}
+                    pendingInstallments={Math.max(0, loan.installments - loan.paidInstallments)}
+                    formatCurrency={formatCurrency}
+                  />
+                );
+              })()}
               {paymentDialog?.type === "payoff" && (
                 <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
                   <p className="text-xs text-muted-foreground">Total restante a receber</p>
