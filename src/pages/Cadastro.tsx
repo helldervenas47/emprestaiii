@@ -52,7 +52,9 @@ const Cadastro = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin,
+          // Volta para /cadastro (mesma rota SPA, dentro do escopo do
+          // manifest) para preservar o modo standalone do PWA.
+          redirectTo: `${window.location.origin}/cadastro`,
           queryParams: { prompt: "select_account" },
         },
       });
