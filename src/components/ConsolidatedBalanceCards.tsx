@@ -455,7 +455,7 @@ export function ConsolidatedBalanceCards() {
                           const projected = totalEmMaos + expectedIn - expectedOut;
                           const delta = projected - totalEmMaos;
                           return (
-                            <CardBox key={key} icon={TrendingUp} title="Projeção em 30 dias">
+                            <CardBox key={key} icon={TrendingUp} title="Projeção do mês">
                               <div className="space-y-2.5">
                                 <div className="flex items-end justify-between">
                                   <div className="min-w-0">
