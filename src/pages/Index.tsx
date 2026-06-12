@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useIsMobile, useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
+import { useMyRoleTabs } from "@/hooks/useRoleTabPermissions";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext";
@@ -260,6 +261,7 @@ function HideValuesQuickAction() {
 
 const Index = () => {
   const { signOut, role, allowedTabs, linkedClientIds, loading, user } = useAuth();
+  const roleAllowedTabs = useMyRoleTabs(role);
   const navigate = useNavigate();
   const { subscription, isActive: hasActiveSub } = useSubscription();
   const { branding: appBranding } = useAppBranding();
@@ -498,8 +500,10 @@ const Index = () => {
     if (t.id === "settings" && role === "visualizador") return false;
     if (role === "admin") return true;
     if (!user) return false;
-    // Para todas as abas (incluindo "settings"): se houver lista de
-    // permissões definida, exigir presença explícita. Sem lista = acesso total.
+    // Permissão por papel (role_tab_permissions): se a aba não está liberada
+    // para o papel do usuário, esconde.
+    if (Array.isArray(roleAllowedTabs) && !roleAllowedTabs.includes(t.id)) return false;
+    // Permissão por usuário (user_tab_permissions): se houver lista, exigir presença.
     if (Array.isArray(allowedTabs)) return allowedTabs.includes(t.id);
     return true;
   });
