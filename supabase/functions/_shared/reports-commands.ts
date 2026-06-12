@@ -572,8 +572,7 @@ async function topClientes(ctx: Ctx, snap: Snapshot): Promise<string> {
   const lines = ["🏆 *Top Clientes*", "", "*Melhores pagadores*"];
   if (best.length === 0) lines.push("_Sem dados._");
   for (const b of best) {
-    const tag = b.overdue > 0 ? ` ⚠️ ${b.days}d atraso` : "";
-    lines.push(`• ${b.name} — pago ${fmtBRL(b.paid)} / emprestado ${fmtBRL(b.lent)}${tag}`);
+    lines.push(`• ${b.name} — pago ${fmtBRL(b.paid)} / emprestado ${fmtBRL(b.lent)}`);
   }
   lines.push("", "*Maiores devedores*");
   if (worst.length === 0) lines.push("_Nenhum cliente em atraso. 🎉_");
