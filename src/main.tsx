@@ -2,8 +2,33 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { bootstrapAppTheme } from "./hooks/useAppTheme";
+import { USER_SUPABASE_STORAGE_KEY, USER_SUPABASE_URL } from "./integrations/supabase/userClient";
 
 bootstrapAppTheme();
+
+// Migração única: copia a sessão da storageKey padrão (derivada da URL do
+// projeto externo) para a nova chave dedicada, preservando logins existentes
+// após a unificação dos clients. Idempotente: roda no máximo uma vez por device.
+(() => {
+  try {
+    const MIGRATED_FLAG = "sb-user-storagekey-migrated-v1";
+    if (localStorage.getItem(MIGRATED_FLAG)) return;
+    if (localStorage.getItem(USER_SUPABASE_STORAGE_KEY)) {
+      localStorage.setItem(MIGRATED_FLAG, "1");
+      return;
+    }
+    // Chave default do supabase-js: `sb-<project-ref>-auth-token`
+    const ref = new URL(USER_SUPABASE_URL).host.split(".")[0];
+    const legacyKey = `sb-${ref}-auth-token`;
+    const legacy = localStorage.getItem(legacyKey);
+    if (legacy) {
+      localStorage.setItem(USER_SUPABASE_STORAGE_KEY, legacy);
+    }
+    localStorage.setItem(MIGRATED_FLAG, "1");
+  } catch {
+    /* noop */
+  }
+})();
 
 // Guard: never register service workers in preview/iframe contexts
 const isInIframe = (() => {
