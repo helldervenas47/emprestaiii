@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
         if (!forceUserId) {
           const today = new Date().toISOString().slice(0, 10);
           await admin.from("telegram_weekly_vencimentos_prefs")
-            .update({ last_sent_date: today }).eq("user_id", userId);
+            .upsert({ user_id: userId, last_sent_date: today }, { onConflict: "user_id" });
         }
       } else errors.push({ userId, reason: r.reason });
     } catch (e: any) {
