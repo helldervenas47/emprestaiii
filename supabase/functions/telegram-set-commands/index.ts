@@ -27,7 +27,7 @@ const REPORTS_COMMANDS = [
   { command: 'dashboard', description: 'Visão executiva consolidada' },
   { command: 'kpi_geral', description: 'KPIs principais da operação' },
   { command: 'carteira_ativa', description: 'Saldo a receber e juros previstos' },
-  { command: 'recebimentos_hoje', description: 'Pagamentos recebidos hoje' },
+  
   { command: 'emprestimos_atrasados', description: 'Contratos em atraso' },
   { command: 'inadimplencia', description: 'Taxa e faixas de inadimplência' },
   { command: 'resumo_diario', description: 'Movimentação do dia' },
