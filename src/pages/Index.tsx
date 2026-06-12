@@ -670,7 +670,7 @@ const Index = () => {
                             ) : "Sem Plano"}
                           </Badge>
                         </div>
-                        {role && <p className="text-[10px] text-muted-foreground">{role === "admin" ? "Administrador" : role === "cliente" ? "Cliente" : "Visualizador"}</p>}
+                        {role && <p className="text-[10px] text-muted-foreground">{role === "admin" ? "Administrador" : role === "gerente" ? "Gerente" : role === "cliente" ? "Cliente" : "Visualizador"}</p>}
                       </div>
                     </div>
                   </div>
