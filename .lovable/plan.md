@@ -1,81 +1,67 @@
-## Objetivo
-Sempre que o usuário editar um lançamento pertencente a uma série recorrente/parcelada (receitas ou despesas — business, pessoal e veículo), abrir uma confirmação antes de salvar perguntando o escopo: **Apenas esta parcela**, **Esta e as próximas**, **Todas (inclusive pagas)**. Cartão de crédito fica de fora (conforme decidido).
+# Permissões granulares por papel
 
-## Modelo de dados (resumo)
+Hoje os papéis existem (`admin`, `gerente`, `operador`, `visualizador`) mas não há matriz de permissões editável — o acesso fica espalhado em verificações ad-hoc por `role`. Esta entrega cria uma matriz "papel × módulo × ação" persistida no banco, editável pelo admin, aplicada automaticamente a todos os usuários do papel e auditada.
 
-- **Receitas (`incomes`)**: cada ocorrência é uma linha. `parent_id` aponta para a raiz da série. Edição por escopo = filtrar `id == root || parent_id == root` aplicando filtros adicionais por data/status.
-- **Despesas (`expenses`)**:
-  - `type=recorrente` com `installments>1`: UMA linha "pai" representa todas as parcelas em aberto (`amount = total`); cada parcela paga vira uma linha filha com `parent_expense_id`. Não há linhas futuras separadas.
-  - `type=fixa`: linha única.
+## Modelo de dados (migration)
 
-Por isso o significado de cada opção difere entre os dois modelos — detalhado abaixo.
+```text
+role_permissions
+├── id uuid PK
+├── role text                     -- admin | gerente | operador | visualizador
+├── module text                   -- "loans", "clients", "expenses", "incomes", "reports", ...
+├── can_view bool default false
+├── can_create bool default false
+├── can_edit bool default false
+├── can_delete bool default false
+├── updated_at timestamptz
+└── unique (role, module)
 
-## Componente novo: `EditScopeDialog`
-
-`src/components/EditScopeDialog.tsx`. Modal simples (radio group) com:
-- Apenas esta parcela
-- Esta e as próximas
-- Todas as parcelas
-
-Retorna `"single" | "forward" | "all"` via callback. Reutilizado por todos os fluxos.
-
-## Helpers novos
-
-`src/lib/seriesEdit.ts`:
-- `isIncomeSeries(income, allIncomes)` — verifica se há mais de uma ocorrência ligada por `parentId/root`.
-- `isExpenseSeries(expense)` — `type==='recorrente' && installments>1`.
-- `applyIncomeScopedUpdate(target, allIncomes, patch, scope, updateFn)` — aplica `patch` a um conjunto de receitas conforme escopo (`forward` = `receivedDate >= target.receivedDate` e `status !== 'received'`; `all` = todas as da série inclusive recebidas).
-- `applyExpenseScopedUpdate(target, allExpenses, patch, scope, updateFn, splitFn)`:
-  - `single`: divide a parcela atual da série (insere uma `fixa` standalone com o `patch` aplicado e `dueDate = target.dueDate`; no pai, `installments -= 1`, `amount -= valorParcela`, `dueDate += 1 mês`).
-  - `forward`: aplica `patch` ao próprio pai. Se `patch.amount` mudou, recalcula `amount = novoValorParcela × parcelasRestantes` e mantém parcelas já pagas (filhas) intactas.
-  - `all`: aplica `patch` ao pai (com mesmo recálculo de total para `amount`) **e** a todos os filhos (parent_expense_id = pai.id), inclusive os pagos — sobrescrevendo `amount` por parcela, `category`, `description`, `paymentMethodId`, etc.
-
-Esses helpers centralizam toda a lógica e cuidam dos efeitos colaterais óbvios (atualizar cache local + Supabase). Reutilizam `updateIncome` / `updateExpense` já existentes.
-
-## Pontos de integração
-
-Para cada chamada existente de `updateExpense` / `updateIncome` em fluxos de edição (não de pagamento), envolver com:
-
-```
-const isSeries = isExpenseSeries(exp) // ou income
-if (!isSeries) return updateExpense(id, patch)
-setScopeDialog({ target: exp, patch })   // abre EditScopeDialog
-// no onConfirm: applyExpenseScopedUpdate(...)
+role_permissions_audit
+├── id uuid PK
+├── role text
+├── module text
+├── before jsonb                  -- {view,create,edit,delete}
+├── after jsonb
+├── changed_by uuid               -- auth.uid()
+└── changed_at timestamptz default now()
 ```
 
-Arquivos afetados:
+RLS: leitura para `authenticated`; escrita só para `has_role(auth.uid(),'admin')`. Trigger `BEFORE UPDATE` registra diff em `role_permissions_audit`. Seed inicial: `admin` = todas as ações em todos os módulos; demais papéis com o set atual já em uso (view-only para `visualizador`, etc).
 
-- `src/components/ExpenseList.tsx` (edit no parent — linhas ~643, fluxo de ajustar `paidDate`).
-- `src/components/ExpenseEditDialog.tsx` (form completo de edição).
-- `src/components/PersonalExpenseList.tsx` (edição inline — linhas ~1288/1338).
-- `src/components/IncomeList.tsx` (edit em linha 472 e ajuste de data 632; `markReceived` permanece sem escopo).
-- `src/components/IncomeForm.tsx` se usado para edição de receita existente.
-- Veículo: usa o mesmo `ExpenseList`/`ExpenseEditDialog`, sem mudanças extras.
+Função SECURITY DEFINER:
+`public.has_permission(_user uuid, _module text, _action text) returns bool` — lê o papel do usuário em `user_roles` e consulta `role_permissions`. É essa função que substitui os `role = 'admin'` espalhados nas policies.
 
-Edições relativas a pagamento (`pay/unpay`, `markReceived`, `paidDate` específica de uma parcela já paga) **não** disparam o diálogo — são intrinsecamente "apenas esta parcela".
+## Backend / RLS
 
-## Casos de borda
+- Reescrever policies das tabelas sensíveis (`loans`, `clients`, `expenses`, `incomes`, `payments`, `payrolls`, etc.) para usar `has_permission(auth.uid(), '<module>', '<action>')` no lugar de checagens hard-coded por role. Como `has_permission` lê uma tabela única e indexada por (role, module), trocar a permissão no admin reflete imediatamente para todos os usuários do papel — sem precisar tocar em cada conta.
+- Manter `has_role` para casos puramente administrativos (gestão de planos, billing).
 
-- Recorrentes de receita que ainda **não foram expandidas** (sem filhos materializados): tratar como série única (`single` é o único escopo aplicável); o diálogo não aparece. O backfill do `useIncomes` já materializa em seguida.
-- Edição que mexe em `dueDate/receivedDate` com escopo "forward/all": desloca proporcionalmente as datas futuras mantendo o intervalo de recorrência? **Não** — aplica a nova data como base e mantém o passo original calculado a partir dela. Para evitar colisões, valida via `validateIncomeDate` antes de salvar (rejeita com toast se gerar duplicidade).
-- Parcela atualmente em foco que está **paga** numa série de receitas: "forward" inclui apenas pendentes/atrasadas posteriores; "all" inclui todas.
+## Frontend
 
-## Testes
+Novo módulo **Administração → Papéis & Permissões**:
 
-Adicionar `src/lib/__tests__/seriesEdit.test.ts` cobrindo:
-- Income series: forward filtra recebidos; all inclui tudo.
-- Expense series single: split correto (parent: -1 parcela, +1 mês, -valor; nova fixa criada).
-- Expense series forward: amount do pai recalculado preservando pagos.
-- Expense series all: filhos atualizados em batch.
+- Tela `src/components/admin/RolePermissionsMatrix.tsx`
+  - Tabs por papel (Admin, Gerente, Operador, Visualizador).
+  - Tabela "Módulo × Ver / Criar / Editar / Excluir" com switches.
+  - Botão **Salvar alterações** → upsert em `role_permissions` (uma chamada por linha alterada). Toast de sucesso e refresh do cache.
+  - Aba **Histórico**: lista `role_permissions_audit` com papel, módulo, antes/depois, usuário e data.
+- Hook `src/hooks/useRolePermissions.ts`
+  - `usePermissions()` retorna `{ can(module, action) }` baseado no papel do usuário logado, com cache via React Query e realtime em `role_permissions`.
+- Aplicar `can(...)` nos pontos de UI que hoje escondem botões por role (criar empréstimo, editar despesa, excluir cliente, etc.). Botões desabilitados/ocultos quando `can=false`.
 
-## Fora do escopo
+## Auditoria
 
-- Parcelas virtuais de cartão de crédito (mantém edição direta no parent, como hoje).
-- Pagamentos em si (`payExpense`/`markReceived`).
-- Receitas com `recurrence==='once'` e despesas `fixa` (sem série — fluxo atual).
+- Trigger SQL já cobre quem/quando/o-que mudou.
+- UI de histórico paginada (50 por vez), filtro por papel e período.
 
-## Resumo executivo (não técnico)
-- Adiciono um **diálogo de escopo** que aparece sempre antes de salvar a edição de qualquer lançamento que faça parte de uma série recorrente/parcelada (receitas e despesas, inclusive pessoal e veículo).
-- O usuário escolhe se a alteração vale só para a parcela atual, daqui pra frente, ou para tudo (inclusive parcelas já pagas).
-- Cartão de crédito continua se comportando como hoje (não entra agora).
-- Pagamentos e marcações como recebido não disparam o diálogo, porque já são naturalmente "apenas esta parcela".
+## Módulos cobertos (lista inicial)
+
+`loans`, `clients`, `payments`, `expenses`, `incomes`, `payrolls`, `reports`, `products`, `sales`, `credit_cards`, `users_admin`, `settings`. Lista mantida em `src/lib/permissionModules.ts` para facilitar adicionar novos.
+
+## Passos de execução
+
+1. Migration: tabelas + RLS + trigger de auditoria + seed + função `has_permission`.
+2. Reescrever policies das tabelas-alvo para usar `has_permission`.
+3. Hook + matriz na UI de Administração.
+4. Substituir checagens por role no frontend pelos `can(...)`.
+5. Smoke test: alterar permissão de "gerente → expenses → can_delete=false" e validar que usuários gerente perdem o botão e o DELETE é rejeitado pela policy.
