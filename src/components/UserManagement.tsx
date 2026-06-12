@@ -54,7 +54,8 @@ export function UserManagement() {
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const isMobile = useIsMobileOrTablet();
   const [saving, setSaving] = useState(false);
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, role: currentRole } = useAuth();
+  const isAdmin = currentRole === "admin";
   const { startViewing } = useViewAsUser();
 
   const handleViewAs = async (target: ManagedUser) => {
