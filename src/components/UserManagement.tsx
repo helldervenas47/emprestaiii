@@ -297,13 +297,20 @@ export function UserManagement() {
 
   const openPlanSelector = async (user: ManagedUser) => {
     setPlanUser(user);
-    // Fetch current subscription
-    const { data: sub } = await supabase
+    // Pre-select the user's current plan. Prefer the value already loaded
+    // (plan_id), then fall back to a fresh query covering both environments.
+    if (user.plan_id) {
+      setPlanProductId(user.plan_id);
+      return;
+    }
+    const { data: subs } = await supabase
       .from("subscriptions")
-      .select("product_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    setPlanProductId(sub?.product_id || "free_plan");
+      .select("product_id, environment")
+      .eq("user_id", user.id);
+    const active =
+      subs?.find((s: any) => s.product_id && s.product_id !== "free_plan") ||
+      subs?.[0];
+    setPlanProductId(active?.product_id || "free_plan");
   };
 
   const handleSavePlan = async () => {
