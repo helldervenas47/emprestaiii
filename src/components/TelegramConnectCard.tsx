@@ -31,8 +31,6 @@ export function TelegramConnectCard() {
   const [sendingNow, setSendingNow] = useState(false);
   const [sendingWeekly, setSendingWeekly] = useState(false);
   const [sendingMonthly, setSendingMonthly] = useState(false);
-  const [botCodeInput, setBotCodeInput] = useState("");
-  const [linkingByCode, setLinkingByCode] = useState(false);
   const syncingTelegramRef = useRef(false);
   const botUsername = (typeof window !== "undefined" && localStorage.getItem(BOT_USERNAME_KEY)) || "";
   const { pref: summaryPref, update: updateSummary } = useTelegramSummaryPref();
