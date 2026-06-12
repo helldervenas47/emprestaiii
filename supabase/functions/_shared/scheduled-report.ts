@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getExternalAdmin, getExternalSupabaseUrl, getExternalAnonKey } from "./external-supabase.ts";
-import { dueSlotKeys } from "./schedule.ts";
+import { dueSlotKeys, isTimeDueToday } from "./schedule.ts";
 import { runReportCommand } from "./reports-commands.ts";
 import { sendReportsMessage, getReportsLinkForUser } from "./reports-bot.ts";
 
@@ -90,7 +90,9 @@ export function buildScheduledReportHandler(opts: {
             { key: "send_time_3", time: (pref as any).send_time_3 },
           ] as const;
           const lastSent = ((pref as any).last_sent ?? {}) as Record<string, string>;
-          const fired = dueSlotKeys(slots, nowMin, today, lastSent);
+          const fired = opts.trackSendTimeInLastSent
+            ? slots.filter((slot) => isTimeDueToday(slot.time, nowMin)).map((slot) => slot.key)
+            : dueSlotKeys(slots, nowMin, today, lastSent);
           const firedWithMarkers = opts.trackSendTimeInLastSent
             ? slots
                 .filter((slot) => fired.includes(slot.key))
