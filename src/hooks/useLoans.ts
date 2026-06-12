@@ -588,24 +588,52 @@ export function useLoans() {
       await removeCachedRow("payments", tempPaymentId);
     };
 
-    const { error: paymentError } = await supabase.from("payments").insert(paymentPayload as any);
-    if (paymentError) {
-      console.error("[addPayment] insert payment failed:", paymentError);
-      await revertOptimisticState();
-      throw new Error(paymentError.message);
-    }
+    // Atomic insert payment + update loan (single transaction, FOR UPDATE lock
+    // on the loan row + optimistic concurrency check on paid_installments).
+    // Falls back to the legacy dual-write if the RPC is not yet deployed.
+    const { error: atomicError } = await supabase.rpc("register_loan_payment_atomic" as any, {
+      p_loan_id: loanId,
+      p_user_id: dataOwnerId,
+      p_payment_id: tempPaymentId,
+      p_amount: installmentAmount,
+      p_payment_date: dateStr,
+      p_installment_number: newPaid,
+      p_payment_method_id: paymentMethodId ?? null,
+      p_metadata: splitMetadata ?? null,
+      p_expected_paid_installments: loan.paidInstallments,
+      p_new_paid_installments: newPaid,
+      p_new_status: newStatus,
+      p_new_remaining_amount: newRemaining,
+      p_new_due_date: nextDueDate,
+    });
 
-    const { data: updatedLoan, error: loanError } = await supabase
-      .from("loans")
-      .update(loanUpdate)
-      .eq("id", loanId)
-      .select("id")
-      .maybeSingle();
-    if (loanError || !updatedLoan) {
-      console.error("[addPayment] update loan failed:", loanError ?? new Error("Nenhum empréstimo foi atualizado"));
-      await supabase.from("payments").delete().eq("id", tempPaymentId);
-      await revertOptimisticState();
-      throw new Error(loanError?.message ?? "Falha ao atualizar o empréstimo");
+    if (atomicError) {
+      const msg = String(atomicError.message || "");
+      const fnMissing = /register_loan_payment_atomic|function .* does not exist|PGRST202/i.test(msg);
+      if (!fnMissing) {
+        console.error("[addPayment] atomic RPC failed:", atomicError);
+        await revertOptimisticState();
+        throw new Error(msg || "Falha ao registrar pagamento");
+      }
+      console.warn("[addPayment] register_loan_payment_atomic indisponível, usando fallback dual-write:", msg);
+      const { error: paymentError } = await supabase.from("payments").insert(paymentPayload as any);
+      if (paymentError) {
+        console.error("[addPayment] insert payment failed:", paymentError);
+        await revertOptimisticState();
+        throw new Error(paymentError.message);
+      }
+      const { data: updatedLoan, error: loanError } = await supabase
+        .from("loans")
+        .update(loanUpdate)
+        .eq("id", loanId)
+        .select("id")
+        .maybeSingle();
+      if (loanError || !updatedLoan) {
+        console.error("[addPayment] update loan failed:", loanError ?? new Error("Nenhum empréstimo foi atualizado"));
+        await supabase.from("payments").delete().eq("id", tempPaymentId);
+        await revertOptimisticState();
+        throw new Error(loanError?.message ?? "Falha ao atualizar o empréstimo");
+      }
     }
 
     try {
