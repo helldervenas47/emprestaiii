@@ -37,9 +37,9 @@ CREATE POLICY "role_permissions admin write"
   ON public.role_permissions FOR ALL
   TO authenticated
   USING (EXISTS (SELECT 1 FROM public.user_roles ur
-                  WHERE ur.user_id = auth.uid() AND ur.role = 'admin'))
+                  WHERE ur.user_id = auth.uid() AND ur.role::text = 'admin'))
   WITH CHECK (EXISTS (SELECT 1 FROM public.user_roles ur
-                  WHERE ur.user_id = auth.uid() AND ur.role = 'admin'));
+                  WHERE ur.user_id = auth.uid() AND ur.role::text = 'admin'));
 
 -- 2) Auditoria ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.role_permissions_audit (
@@ -62,7 +62,7 @@ CREATE POLICY "audit admin read"
   ON public.role_permissions_audit FOR SELECT
   TO authenticated
   USING (EXISTS (SELECT 1 FROM public.user_roles ur
-                  WHERE ur.user_id = auth.uid() AND ur.role = 'admin'));
+                  WHERE ur.user_id = auth.uid() AND ur.role::text = 'admin'));
 
 CREATE OR REPLACE FUNCTION public.log_role_permissions_change()
 RETURNS trigger
@@ -115,7 +115,7 @@ AS $$
   SELECT EXISTS (
     SELECT 1
       FROM public.user_roles ur
-      JOIN public.role_permissions rp ON rp.role = ur.role
+      JOIN public.role_permissions rp ON rp.role = ur.role::text
      WHERE ur.user_id = _user
        AND rp.module = _module
        AND CASE _action
@@ -129,7 +129,7 @@ AS $$
   OR EXISTS (
     -- admin é sempre permitido, mesmo que linha não exista
     SELECT 1 FROM public.user_roles
-     WHERE user_id = _user AND role = 'admin'
+     WHERE user_id = _user AND role::text = 'admin'
   );
 $$;
 
