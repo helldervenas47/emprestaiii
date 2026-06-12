@@ -902,7 +902,7 @@ export function useLoans() {
           user_id: dataOwnerId,
           loan_id: loanId,
           manager_id: loan.managerId,
-          payment_id: insertedPayment.id,
+          payment_id: tempPaymentId,
           commission_type: "full",
           base_amount: loan.amount,
           rate,
