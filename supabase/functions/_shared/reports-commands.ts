@@ -805,6 +805,7 @@ export async function runReportCommand(supabase: any, userId: string, command: s
     case "carteira_ativa": return carteiraAtiva(ctx, snap);
     case "recebimentos_hoje": return recebimentosHoje(ctx, snap);
     case "emprestimos_atrasados": return emprestimosAtrasados(ctx, snap);
+    case "vencimentos_hoje": return vencimentosHoje(ctx, snap);
     case "inadimplencia": return inadimplencia(ctx, snap);
     case "resumo_diario": return resumoDiario(ctx, snap);
     case "resumo_mensal": return resumoMensal(ctx, snap);
