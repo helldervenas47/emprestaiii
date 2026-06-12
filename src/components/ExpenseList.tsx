@@ -324,6 +324,36 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
     { id: "paid", label: "Pagas", count: visibleMonth.filter((e) => e.paid).length },
   ];
 
+  type SummaryView = "pending" | "paid" | "overdue";
+  const [summaryView, setSummaryView] = useState<SummaryView | null>(null);
+  const summaryViewMeta: Record<SummaryView, { label: string; total: number }> = {
+    pending: { label: "Pendente", total: totalPending },
+    overdue: { label: "Atrasado", total: totalOverdue },
+    paid: { label: "Pago", total: totalPaid },
+  };
+  const summaryEntries: CategoryEntry[] = useMemo(() => {
+    if (!summaryView) return [];
+    return visibleMonth
+      .filter((e) => {
+        const overdue = isOverdue(e);
+        if (summaryView === "paid") return e.paid;
+        if (summaryView === "overdue") return overdue;
+        return !e.paid && !overdue;
+      })
+      .map((e) => {
+        const overdue = isOverdue(e);
+        return {
+          id: `exp-${e.id}`,
+          description: e.description,
+          amount: getInstallmentAmount(e),
+          date: e.paid && e.paidDate ? e.paidDate : e.dueDate,
+          type: "despesa" as const,
+          status: e.paid ? "paid" as const : overdue ? "overdue" as const : "pending" as const,
+          account: e.category,
+        };
+      });
+  }, [summaryView, visibleMonth, getInstallmentAmount]);
+
   const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
   const prevMonth = () => {
     const d = new Date(selYear, selMonthNum - 2, 1);
