@@ -49,9 +49,8 @@ export const loansRepository = {
   },
 
   async insert(payload: Record<string, any>): Promise<LoanRow> {
-    const { data, error } = await supabase
-      .from("loans")
-      .insert(payload as any)
+    const { data, error } = await (supabase.from("loans") as any)
+      .insert(payload)
       .select()
       .single();
     if (error) throw error;
@@ -59,7 +58,7 @@ export const loansRepository = {
   },
 
   async update(id: string, patch: Record<string, any>): Promise<void> {
-    const { error } = await supabase.from("loans").update(patch).eq("id", id);
+    const { error } = await (supabase.from("loans") as any).update(patch).eq("id", id);
     if (error) throw error;
   },
 
