@@ -17,7 +17,6 @@ const EXPENSES_COMMANDS = [
   { command: 'aporte', description: 'Fazer aporte em uma caixinha (cofrinho)' },
   { command: 'meus_aportes', description: 'Últimos 10 aportes nas caixinhas' },
   { command: 'resgatar', description: 'Resgatar saldo da caixinha para a conta' },
-  { command: 'code', description: 'Gerar código para vincular este bot ao app' },
   { command: 'help', description: 'Mostra ajuda' },
   { command: 'start', description: 'Vincular conta com código' },
 ];
@@ -40,7 +39,6 @@ const REPORTS_COMMANDS = [
   
   { command: 'historico_cliente', description: 'Ficha de um cliente (use: /historico_cliente nome)' },
   { command: 'alertas', description: 'Sinais de risco da carteira' },
-  { command: 'code', description: 'Gerar código para vincular este bot ao app' },
   { command: 'start', description: 'Vincular bot de relatórios com código' },
   { command: 'help', description: 'Mostra ajuda' },
 ];
