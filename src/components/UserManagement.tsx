@@ -548,7 +548,7 @@ export function UserManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                  {users.map((user) => (
+                  {displayedUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
