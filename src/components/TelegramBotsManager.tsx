@@ -270,8 +270,8 @@ export function TelegramBotsManager() {
             </h3>
             <p className="text-xs text-muted-foreground mt-1">
               {isAdmin
-                ? "Bots compartilhados por todo o sistema. Cada conta vincula seu chat individualmente via /code."
-                : "Use o comando /code no bot do Telegram para vincular sua conta. Os bots são gerenciados pelos administradores."}
+                ? "Bots compartilhados por todo o sistema. Cada conta vincula seu chat individualmente enviando /start ao bot."
+                : "Envie /start no bot do Telegram para vincular sua conta. Os bots são gerenciados pelos administradores."}
             </p>
           </div>
           {isAdmin && (
@@ -281,7 +281,7 @@ export function TelegramBotsManager() {
           )}
         </div>
 
-        {/* Bots já conectados via /code no app */}
+        {/* Bots já conectados via /start no app */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <Link2 className="h-3.5 w-3.5 text-primary" />
@@ -293,7 +293,7 @@ export function TelegramBotsManager() {
             <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
           ) : connected.length === 0 ? (
             <p className="text-xs text-muted-foreground py-2">
-              Nenhum bot vinculado via código ainda. Use o comando <code className="font-mono px-1 py-0.5 rounded bg-muted">/code</code> em um bot e cole no app.
+              Nenhum bot vinculado ainda. Gere o comando <code className="font-mono px-1 py-0.5 rounded bg-muted">/start</code> no app e envie ao bot do Telegram.
             </p>
           ) : (
             <ul className="space-y-1.5">

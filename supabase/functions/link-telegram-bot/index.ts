@@ -1,6 +1,6 @@
 // Vincula o usuário autenticado a um chat do Telegram a partir de um código.
 // Fluxos aceitos:
-// 1) /code no bot -> usuário cola o código alfanumérico no app.
+// 1) /start no bot -> usuário cola o código alfanumérico no app.
 // 2) código numérico do app -> usuário enviou /start CODE ao bot.
 import { getReportsBotId } from "../_shared/reports-bot.ts";
 import { getExternalAdmin, getExternalServiceRoleKey, getExternalUserClient } from "../_shared/external-supabase.ts";
@@ -109,7 +109,7 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
     if (!legacyRow) {
       if (hasLetters) {
         return json({
-          error: "Código não encontrado ou expirado. Envie /code novamente no bot do Telegram e cole o novo código em até 15 min.",
+          error: "Código não encontrado ou expirado. Gere um novo */start* no app e envie ao bot do Telegram em até 15 min.",
         }, 404);
       }
       return null;
@@ -229,7 +229,7 @@ Deno.serve(async (req) => {
     console.log("[link-telegram-bot] received", { userId, requestedKind, rawCodeLen: rawCode.length, rawBodyLen: rawBodyText.length, bodyKeys: Object.keys(body ?? {}) });
     const admin = getExternalAdmin();
 
-    // Flush pending Telegram updates so the recent /code message is persisted.
+    // Flush pending Telegram updates so the recent /start message is persisted.
     await Promise.all([
       fetch(`${SUPABASE_URL}/functions/v1/telegram-poll`, {
         method: "POST",
@@ -258,12 +258,12 @@ Deno.serve(async (req) => {
         const isAlphanumeric = /[A-Z]/.test(rawCode.toUpperCase());
         return json({
           error: isAlphanumeric
-            ? `Código alfanumérico não encontrado ou expirado. Envie /code novamente no bot do Telegram. (recebido: "${rawCode.slice(0, 32)}")`
+            ? `Código não encontrado ou expirado. Gere um novo */start* no app e envie ao bot. (recebido: "${rawCode.slice(0, 32)}")`
             : `Código numérico inválido. No app, gere um novo código e envie /start CÓDIGO ao bot. (recebido: "${rawCode.slice(0, 32)}")`,
         }, 404);
       }
       return json({
-        error: `Código inválido. Gere um código no app ou envie /code no bot do Telegram. (debug: body vazio recebido — bodyLen=${rawBodyText.length}, keys=[${Object.keys(body ?? {}).join(",")}])`,
+        error: `Código inválido. Gere um código no app e envie /start CÓDIGO ao bot do Telegram. (debug: body vazio recebido — bodyLen=${rawBodyText.length}, keys=[${Object.keys(body ?? {}).join(",")}])`,
       }, 400);
     }
 

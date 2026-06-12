@@ -860,8 +860,7 @@ Vou interpretar e cadastrar automaticamente.
 /meus\_aportes — últimos 10 aportes nas caixinhas
 /resgatar — resgatar saldo de uma caixinha para a conta. Ex.: \`resgatar 200 da caixinha 1\` ou \`resgatar tudo do cofrinho\`
 /help — esta mensagem
-/code — gerar código para colar no app
-/start CODIGO — vincular conta`;
+/start CODIGO — vincular conta (gere o código no app)`;
 
 const fmtBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
@@ -2907,20 +2906,8 @@ Deno.serve(async (req) => {
             await tgSend(chatId, "✅ *Conta vinculada!*\n\n" + HELP_TEXT, telegramKey);
           }
         }
-      } else if (/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i.test(text)) {
-        const botCode = await generateChatLinkCode(chatId, "expenses", getExternalServiceRoleKey());
-        await admin.from("telegram_messages")
-          .update({ raw_update: { ...(msg.raw_update as any), _bot_link_code: botCode, _bot_link_kind: "expenses" } })
-          .eq("update_id", msg.update_id);
-        await tgSend(chatId,
-          `🔑 *Seu código de vínculo:*\n\n\`${botCode}\`\n\n` +
-          `1. Abra a aba *Financeiro* no app\n` +
-          `2. Toque no ícone do Telegram\n` +
-          `3. Cole este código no campo *"Código recebido do bot"*\n\n` +
-          `_Válido por 15 min._`,
-          telegramKey);
       } else if (/^\/start\b/i.test(text)) {
-        await tgSend(chatId, "👋 Para vincular sua conta pela aba Financeiro, envie /code aqui e cole o código gerado no app.", telegramKey);
+        await tgSend(chatId, "👋 Para vincular sua conta, abra o app, gere o comando */start* na aba Financeiro e envie aqui exatamente como recebeu.", telegramKey);
       } else if (/^\/help\b/i.test(text)) {
         await tgSend(chatId, HELP_TEXT, telegramKey);
       } else if (text) {
@@ -2928,7 +2915,7 @@ Deno.serve(async (req) => {
         const userId = await getLinkedUserId(admin, chatId, messageBotId);
         const link = userId ? { user_id: userId } : null;
         if (!link) {
-          await tgSend(chatId, "🔒 Conta não vinculada. Envie /code aqui e cole o código na aba Financeiro do app.", telegramKey);
+          await tgSend(chatId, "🔒 Conta não vinculada. Abra o app, gere o comando */start* na aba Financeiro e envie aqui para vincular.", telegramKey);
         } else {
           // 🐷 Pending piggy-bank aporte interception (highest priority)
           const { data: pendingPiggy } = await admin.from("telegram_pending_piggy_aporte")

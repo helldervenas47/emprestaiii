@@ -39,7 +39,7 @@ async function saveIncomingMessage(supabase: any, update: any, bot: { id: string
   if (!msg?.chat?.id) return;
   // Use the raw Telegram update_id directly. The previous "scoped" id
   // (botHash * 1e10 + update_id) overflowed the int4 column and the upsert
-  // failed silently, breaking history and the /code link flow.
+  // failed silently, breaking history and the /start link flow.
   await supabase.from("telegram_messages").upsert({
     update_id: update.update_id,
     chat_id: msg.chat.id,
@@ -159,7 +159,6 @@ async function processBot(
       await saveIncomingMessage(supabase, u, bot);
 
       const startMatch = text.match(/^\/start(?:@\w+)?\s+(\d{6})\s*$/);
-      const codeMatch = text.match(/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i);
 
       if (startMatch) {
         const code = startMatch[1];
@@ -203,23 +202,9 @@ async function processBot(
             await tgSend(bot.token, chatId, "✅ *Bot de Relatórios conectado!*\n\nVocê receberá os relatórios nos horários configurados.");
           }
         }
-      } else if (codeMatch) {
-        const botCode = await generateChatLinkCode(chatId, "reports", getExternalServiceRoleKey());
-        await supabase.from("telegram_messages")
-          .update({ raw_update: { ...u, _system_bot_id: bot.id, _bot_link_code: botCode, _bot_link_kind: "reports" } })
-          .eq("bot_id", bot.id)
-          .eq("raw_update->>update_id", String(u.update_id))
-          .then(() => null).catch(() => null);
-        await tgSend(
-          bot.token, chatId,
-          `🔑 *Seu código de vínculo:*\n\n\`${botCode}\`\n\n` +
-            `1. Abra o app\n2. Vá em *Configurações → Bots do Telegram*\n` +
-            `3. Cole este código no campo *"Tenho um código"*\n\n` +
-            `_Válido por 15 min._`,
-        );
       } else if (text === "/start" || text === "/help") {
         await tgSend(bot.token, chatId,
-          "👋 Este é o *Bot de Relatórios*.\n\nEnvie /code aqui para gerar um código de vínculo e cole no app.\n\nApós conectar, use /relatorios para ver os comandos disponíveis.");
+          "👋 Este é o *Bot de Relatórios*.\n\nAbra o app, gere o comando */start* em *Configurações → Bots do Telegram → Bot de Relatórios* e envie aqui para vincular.\n\nApós conectar, use /relatorios para ver os comandos disponíveis.");
       } else {
         const cmd = parseReportCommand(text);
         if (cmd) {
@@ -251,7 +236,7 @@ async function processBot(
             userId = (anyLegacy as any)?.user_id;
           }
           if (!userId) {
-            await tgSend(bot.token, chatId, "🔒 Este chat não está vinculado.\n\nEnvie /code para gerar um código de vínculo e cole no app em *Configurações → Bots do Telegram → Bot de Relatórios*.");
+            await tgSend(bot.token, chatId, "🔒 Este chat não está vinculado.\n\nAbra o app, gere o comando */start* em *Configurações → Bots do Telegram → Bot de Relatórios* e envie aqui para vincular.");
           } else {
             try {
               const { data: ownerId, error: ownerErr } = await supabase.rpc("get_data_owner_id", { _user_id: userId });

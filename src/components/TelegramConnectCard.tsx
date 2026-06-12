@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Copy, CheckCircle2, Unlink, Clock, Zap, CalendarDays, CalendarRange } from "lucide-react";
-import { generateTelegramLinkCode, invokeUserFunction, normalizeTelegramBotCode } from "@/lib/telegramLinkCode";
+import { generateTelegramLinkCode, invokeUserFunction } from "@/lib/telegramLinkCode";
 import { fetchExpensesBotId, fetchReportsBotId } from "@/lib/telegramReportsBot";
 
 const TelegramIcon = ({ className }: { className?: string }) => (
@@ -31,8 +31,6 @@ export function TelegramConnectCard() {
   const [sendingNow, setSendingNow] = useState(false);
   const [sendingWeekly, setSendingWeekly] = useState(false);
   const [sendingMonthly, setSendingMonthly] = useState(false);
-  const [botCodeInput, setBotCodeInput] = useState("");
-  const [linkingByCode, setLinkingByCode] = useState(false);
   const syncingTelegramRef = useRef(false);
   const botUsername = (typeof window !== "undefined" && localStorage.getItem(BOT_USERNAME_KEY)) || "";
   const { pref: summaryPref, update: updateSummary } = useTelegramSummaryPref();
@@ -121,29 +119,8 @@ export function TelegramConnectCard() {
     toast.success("Telegram desvinculado");
   };
 
-  const linkByBotCode = async () => {
-    const trimmed = botCodeInput.trim();
-    if (!trimmed) {
-      toast.error("Digite o código recebido no Telegram");
-      return;
-    }
-    const normalized = normalizeTelegramBotCode(trimmed);
-    setLinkingByCode(true);
-    try {
-      // (telegram-poll removido — evitar 409 por getUpdates concorrentes)
-      await invokeUserFunction("telegram-process").catch(() => null);
-      const data = await invokeUserFunction("link-telegram-bot", { bot_code: normalized, kind: "expenses" });
-      if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success("✅ Relatório conectado ao bot com sucesso");
-      setBotCodeInput("");
-      setCode(null);
-      await refresh();
-    } catch (e: any) {
-      toast.error("❌ Erro ao vincular", { description: e.message });
-    } finally {
-      setLinkingByCode(false);
-    }
-  };
+
+
 
   const sendSummaryNow = async () => {
     setSendingNow(true);
@@ -437,26 +414,9 @@ export function TelegramConnectCard() {
               <TelegramIcon className="h-3.5 w-3.5 mr-1" />
               {generating ? "Gerando…" : "Conectar Telegram"}
             </Button>
-
-            <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
-              <Label className="text-xs font-medium">Já tenho um código do bot</Label>
-              <p className="text-[11px] text-muted-foreground">
-                Envie <code className="font-mono">/code</code> no bot do Telegram e cole aqui o código recebido.
-              </p>
-              <div className="flex items-center gap-2">
-                <Input
-                  value={botCodeInput}
-                  onChange={(e) => setBotCodeInput(e.target.value.toUpperCase())}
-                  placeholder="Ex.: ABC123"
-                  maxLength={512}
-                  className="h-9 text-sm font-mono uppercase tracking-wider"
-                  onKeyDown={(e) => { if (e.key === "Enter") linkByBotCode(); }}
-                />
-                <Button size="sm" onClick={linkByBotCode} disabled={linkingByCode || !botCodeInput.trim()}>
-                  {linkingByCode ? "Vinculando…" : "Vincular"}
-                </Button>
-              </div>
-            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Clique acima para gerar o comando <code className="font-mono">/start</code> e enviá-lo ao bot do Telegram.
+            </p>
           </div>
         )}
       </CardContent>

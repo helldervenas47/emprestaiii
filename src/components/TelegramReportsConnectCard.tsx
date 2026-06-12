@@ -1,22 +1,16 @@
 import { forwardRef, useEffect, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Send, Copy, CheckCircle2, Unlink } from "lucide-react";
-import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
-import { generateTelegramLinkCode, invokeUserFunction, normalizeTelegramBotCode } from "@/lib/telegramLinkCode";
+import { generateTelegramLinkCode, invokeUserFunction } from "@/lib/telegramLinkCode";
 
 
 export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<string, never>>(function TelegramReportsConnectCard(_, ref) {
   const { linked, loading, disconnect, refresh } = useTelegramReportsLink();
   const [code, setCode] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [botCodeInput, setBotCodeInput] = useState("");
-  const [linkingByCode, setLinkingByCode] = useState(false);
   const syncingTelegramRef = useRef(false);
 
   useEffect(() => {
@@ -53,32 +47,8 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
     }
   };
 
-  const linkByBotCode = async () => {
-    const trimmed = botCodeInput.trim();
-    if (!trimmed) {
-      toast.error("Digite o código recebido no Telegram");
-      return;
-    }
-    const normalized = normalizeTelegramBotCode(trimmed);
-    if (!/^[A-Z0-9]{6,12}$/.test(normalized)) {
-      toast.error("Código inválido", { description: "Envie /code ao bot de relatórios e cole aqui o código retornado." });
-      return;
-    }
-    setLinkingByCode(true);
-    try {
-      await invokeUserFunction("telegram-reports-poll").catch(() => null);
-      const data = await invokeUserFunction("link-telegram-bot", { bot_code: normalized, kind: "reports" });
-      if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success("✅ Relatório conectado ao bot com sucesso");
-      setBotCodeInput("");
-      setCode(null);
-      await refresh();
-    } catch (e: any) {
-      toast.error("❌ Erro ao vincular", { description: e.message });
-    } finally {
-      setLinkingByCode(false);
-    }
-  };
+
+
 
   const copyCommand = () => {
     if (!code) return;
@@ -151,26 +121,9 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
               <Send className="h-3.5 w-3.5 mr-1" />
               {generating ? "Gerando…" : "Conectar bot de relatórios"}
             </Button>
-
-            <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
-              <Label className="text-xs font-medium">Já tenho um código do bot</Label>
-              <p className="text-[11px] text-muted-foreground">
-                Envie <code className="font-mono">/code</code> em qualquer bot do Telegram e cole aqui o código recebido.
-              </p>
-              <div className="flex items-center gap-2">
-                <Input
-                  value={botCodeInput}
-                  onChange={(e) => setBotCodeInput(e.target.value.toUpperCase())}
-                  placeholder="Ex.: ABC123"
-                  maxLength={512}
-                  className="h-9 text-sm font-mono uppercase tracking-wider"
-                  onKeyDown={(e) => { if (e.key === "Enter") linkByBotCode(); }}
-                />
-                <Button size="sm" onClick={linkByBotCode} disabled={linkingByCode || !botCodeInput.trim()}>
-                  {linkingByCode ? "Vinculando…" : "Vincular"}
-                </Button>
-              </div>
-            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Clique acima para gerar o comando <code className="font-mono">/start</code> e enviá-lo ao bot de relatórios.
+            </p>
           </div>
         )}
 

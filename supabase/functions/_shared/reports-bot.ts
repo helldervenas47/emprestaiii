@@ -139,7 +139,7 @@ export async function tgDirectSend(
 }
 
 /**
- * Resolves the reports bot that the given chat was linked through (via /code).
+ * Resolves the reports bot that the given chat was linked through (via /start).
  * Only telegram_reports_links is considered here; reports must never fall back
  * to the expenses link, even if both links share the same chat_id.
  */
@@ -193,7 +193,7 @@ export async function getBotForChat(
 
 /**
  * Combined helper: routes the message through the SAME bot the user linked
- * with /code (resolved via chat_id). Falls back to the default global reports
+ * with /start (resolved via chat_id). Falls back to the default global reports
  * bot only if the link has no bot_id (legacy rows).
  */
 export async function sendReportsMessage(
@@ -216,7 +216,7 @@ export async function sendReportsMessage(
   if (!bot) {
     console.warn(
       "[reports-bot] No bot resolved for chat and no GLOBAL reports bot configured. " +
-        "Ask the user to /code again, or an admin to register a bot.",
+        "Ask the user to /start again, or an admin to register a bot.",
     );
     return { sent: false, reason: "no_reports_bot_configured" };
   }
@@ -274,7 +274,7 @@ export async function tgDirectSendPhoto(
 
 /**
  * Combined helper: sends a PNG photo + caption via the same bot the user linked
- * with /code (resolved via chat_id). Falls back to the GLOBAL reports bot when
+ * with /start (resolved via chat_id). Falls back to the GLOBAL reports bot when
  * the link has no bot_id.
  */
 export async function sendReportsPhoto(
