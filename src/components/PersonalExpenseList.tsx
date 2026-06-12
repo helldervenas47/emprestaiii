@@ -487,22 +487,74 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     setPaidAmountInput("");
   };
 
-  const focusExpenses = (next: Filter) => {
-    setFilter(next);
-    setExpensesExpanded(true);
-    requestAnimationFrame(() => {
-      document
-        .getElementById("despesas-content")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+  type SummaryView = "all" | "paid" | "pending" | "overdue";
+  const [summaryView, setSummaryView] = useState<SummaryView | null>(null);
+
+  const summaryViewMeta: Record<SummaryView, { label: string; total: number }> = {
+    all: { label: "Gasto do mês", total: totalPaid + totalPending },
+    paid: { label: "Pagas", total: totalActuallyPaid },
+    pending: { label: "A pagar", total: totalPending },
+    overdue: { label: "Atrasado", total: totalOverdue },
   };
+
+  const summaryEntries: CategoryEntry[] = useMemo(() => {
+    if (!summaryView) return [];
+    const list: CategoryEntry[] = [];
+    listVisibleMonth.forEach((e) => {
+      const overdue = isOverdue(e);
+      if (summaryView === "paid" && !e.paid) return;
+      if (summaryView === "pending" && (e.paid || overdue)) return;
+      if (summaryView === "overdue" && !overdue) return;
+      const v = getInstallmentAmount(e);
+      if (v <= 0) return;
+      list.push({
+        id: `exp-${e.id}`,
+        description: e.description,
+        amount: v,
+        date: e.paid && e.paidDate ? e.paidDate : e.dueDate,
+        type: "despesa",
+        status: e.paid ? "paid" : overdue ? "overdue" : "pending",
+        account: paymentMethodName(e.paymentMethodId),
+      });
+    });
+    cardInvoiceTotalsMonth.forEach((inv, idx) => {
+      const card = inv.card;
+      const isPaid = inv.paid || inv.hasPaidOverride;
+      const pendingVal = Math.max(0, inv.total - inv.paidTotal);
+      let val = 0;
+      if (summaryView === "all") val = isPaid ? inv.paidTotal : inv.total;
+      else if (summaryView === "paid") val = isPaid ? inv.paidTotal : 0;
+      else if (summaryView === "pending") val = isPaid ? 0 : pendingVal;
+      if (val <= 0) return;
+      const [yy, mm] = selectedMonth.split("-").map(Number);
+      const lastDay = new Date(yy, mm, 0).getDate();
+      const day = Math.min(card.dueDay || 1, lastDay);
+      list.push({
+        id: `inv-${card.id || idx}-${selectedMonth}-${summaryView}`,
+        description: `Fatura ${card.nickname || card.bank || "Cartão"}`,
+        amount: val,
+        date: `${selectedMonth}-${String(day).padStart(2, "0")}`,
+        type: "despesa",
+        status: isPaid ? "paid" : "pending",
+        account: card.nickname || card.bank || "Cartão de crédito",
+      });
+    });
+    return list;
+  }, [
+    summaryView,
+    listVisibleMonth,
+    getInstallmentAmount,
+    cardInvoiceTotalsMonth,
+    selectedMonth,
+    paymentMethodsList,
+  ]);
 
   return (
     <div className="space-y-4 w-full max-w-full overflow-x-hidden">
       {/* Summary cards */}
       <div className="space-y-2 md:space-y-0 md:grid md:grid-cols-5 md:gap-3">
         {/* Featured: Gasto do mês — destaque no topo no mobile, mesmo design dos demais */}
-        <Card no3d onClick={() => focusExpenses("all")} className="cursor-pointer hover:bg-muted/40 transition-colors">
+        <Card no3d onClick={() => setSummaryView("all")} className="cursor-pointer hover:bg-muted/40 transition-colors">
           <CardContent className="p-3 md:p-4 flex flex-col items-center text-center">
             <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
               <CheckCircle className="h-4 w-4 text-success" />
@@ -514,7 +566,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
 
         {/* Outros cards: 2 colunas no mobile, fluem no grid pai no desktop */}
         <div className="grid grid-cols-2 gap-2 md:contents">
-          <Card no3d onClick={() => focusExpenses("paid")} className="cursor-pointer hover:bg-muted/40 transition-colors">
+          <Card no3d onClick={() => setSummaryView("paid")} className="cursor-pointer hover:bg-muted/40 transition-colors">
             <CardContent className="p-3 md:p-4 flex flex-col items-center text-center">
               <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
                 <CheckCircle className="h-4 w-4 text-success" />
@@ -523,7 +575,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
               <p className="text-sm md:text-lg font-bold text-success mt-0.5">{formatCurrency(totalActuallyPaid)}</p>
             </CardContent>
           </Card>
-          <Card no3d onClick={() => focusExpenses("pending")} className="cursor-pointer hover:bg-muted/40 transition-colors">
+          <Card no3d onClick={() => setSummaryView("pending")} className="cursor-pointer hover:bg-muted/40 transition-colors">
             <CardContent className="p-3 md:p-4 flex flex-col items-center text-center">
               <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center mb-2">
                 <CircleDollarSign className="h-4 w-4 text-warning" />
@@ -532,7 +584,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
               <p className="text-sm md:text-lg font-bold text-foreground mt-0.5">{formatCurrency(totalPending)}</p>
             </CardContent>
           </Card>
-          <Card no3d onClick={() => focusExpenses("overdue")} className="cursor-pointer hover:bg-muted/40 transition-colors">
+          <Card no3d onClick={() => setSummaryView("overdue")} className="cursor-pointer hover:bg-muted/40 transition-colors">
             <CardContent className="p-3 md:p-4 flex flex-col items-center text-center">
               <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center mb-2">
                 <CircleDollarSign className="h-4 w-4 text-destructive" />
@@ -1177,6 +1229,14 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         categoryName={selectedTopCategory || ""}
         entries={topCategoryEntries}
         total={selectedTopCategoryTotal}
+      />
+
+      <CategoryDetailsSheet
+        open={!!summaryView}
+        onOpenChange={(o) => !o && setSummaryView(null)}
+        categoryName={summaryView ? summaryViewMeta[summaryView].label : ""}
+        entries={summaryEntries}
+        total={summaryView ? summaryViewMeta[summaryView].total : 0}
       />
 
       {/* AI-generated intelligent report */}
