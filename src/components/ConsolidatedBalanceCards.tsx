@@ -47,7 +47,7 @@ const EXTRA_STORAGE_KEY = "balanceMaos.extraCards.v1";
 const DEFAULT_EXTRA: ExtraCardKey[] = ["composicao", "projecao30"];
 const EXTRA_CARDS_META: { key: ExtraCardKey; label: string; hint: string }[] = [
   { key: "composicao", label: "Composição do saldo", hint: "Distribuição % por carteira" },
-  { key: "projecao30", label: "Projeção em 30 dias", hint: "Saldo projetado com previstos" },
+  { key: "projecao30", label: "Projeção do mês", hint: "Saldo projetado até o fim do mês vigente" },
   { key: "savingsRate", label: "Taxa de poupança do mês", hint: "(Entradas − Saídas) / Entradas" },
   { key: "runway", label: "Fôlego financeiro", hint: "Meses cobertos pelo saldo atual" },
   { key: "topCategories", label: "Top 3 categorias do mês", hint: "Maiores categorias de despesa" },
