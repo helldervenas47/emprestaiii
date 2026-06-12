@@ -2532,12 +2532,7 @@ function LoanCardView({
           })()}
             </div>
             <div className="flex flex-col gap-4">
-              {paymentDialog?.type === "full" && (
-                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-                  <p className="text-xs text-muted-foreground">Total restante a receber</p>
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
-                </div>
-              )}
+              {/* Pagamento Total — sumário detalhado renderizado na coluna esquerda */}
               {paymentDialog?.type === "payoff" && (
                 <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
                   <p className="text-xs text-muted-foreground">Total restante a receber</p>
