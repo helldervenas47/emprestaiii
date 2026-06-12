@@ -78,12 +78,40 @@ export async function setBalance(value: number) {
 }
 
 export async function adjustBalance(delta: number, wallet: Wallet = "account") {
-  const cur = await getBalances();
-  if (wallet === "cash") {
-    await setBalances({ account: cur.account, cash: cur.cash + delta });
-  } else {
-    await setBalances({ account: cur.account + delta, cash: cur.cash });
+  if (!delta) return;
+  const ownerId = await getDataOwnerId();
+  if (!ownerId) return;
+  const p_account_delta = wallet === "cash" ? 0 : delta;
+  const p_cash_delta = wallet === "cash" ? delta : 0;
+
+  // Atomic server-side adjustment (locks the row FOR UPDATE).
+  // Falls back to legacy read-modify-write if the RPC is not yet deployed.
+  const { data, error } = await supabase.rpc("adjust_balance_atomic" as any, {
+    p_user_id: ownerId,
+    p_account_delta,
+    p_cash_delta,
+  });
+
+  if (error) {
+    console.warn("[balance] adjust_balance_atomic indisponível, usando fallback:", error.message);
+    const cur = await getBalances();
+    if (wallet === "cash") {
+      await setBalances({ account: cur.account, cash: cur.cash + delta });
+    } else {
+      await setBalances({ account: cur.account + delta, cash: cur.cash });
+    }
+    return;
   }
+
+  const row: any = Array.isArray(data) ? data[0] : data;
+  const account = Number(row?.account_amount ?? 0);
+  const cash = Number(row?.cash_amount ?? 0);
+  const total = Number(row?.amount ?? account + cash);
+  try {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("balance:changed", { detail: { account, cash, total } }));
+    }
+  } catch { /* noop */ }
 }
 
 /**
