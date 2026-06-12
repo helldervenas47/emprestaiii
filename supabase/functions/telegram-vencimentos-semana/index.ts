@@ -116,8 +116,14 @@ Deno.serve(async (req) => {
       if (!chatId) continue;
       const message = await runReportCommand(admin, targetUser, "vencimentos_semana");
       const r = await sendReportsMessage(admin, userId, chatId, message);
-      if (r.sent) sent++;
-      else errors.push({ userId, reason: r.reason });
+      if (r.sent) {
+        sent++;
+        if (!forceUserId) {
+          const today = new Date().toISOString().slice(0, 10);
+          await admin.from("telegram_weekly_vencimentos_prefs")
+            .update({ last_sent_date: today }).eq("user_id", userId);
+        }
+      } else errors.push({ userId, reason: r.reason });
     } catch (e: any) {
       console.error("[telegram-vencimentos-semana]", userId, e);
       errors.push({ userId, error: String(e?.message ?? e) });
