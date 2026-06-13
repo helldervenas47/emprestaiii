@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/userClient";
+import { supabase as userSupabase } from "@/integrations/supabase/userClient";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,17 @@ import { useAppBranding } from "@/hooks/useAppBranding";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
 import { resolvePersonalIcon } from "@/lib/personalExpenseCategories";
+
+async function invokeSeed<T = unknown>(body: Record<string, unknown>) {
+  // Edge function is deployed on Lovable Cloud, but JWT belongs to the external project.
+  // Pass the external session token explicitly so the function can validate it.
+  const { data: sess } = await userSupabase.auth.getSession();
+  const token = sess.session?.access_token;
+  return cloudSupabase.functions.invoke<T>("seed-new-user", {
+    body,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+}
 
 interface PreviewCat { name: string; icon: string; color: string }
 interface PreviewResponse {
@@ -38,22 +50,23 @@ export default function Welcome() {
   const [excludedExp, setExcludedExp] = useState<Set<string>>(new Set());
   const [excludedInc, setExcludedInc] = useState<Set<string>>(new Set());
 
+  const [previewTried, setPreviewTried] = useState(false);
+
   // Load preview when reaching step 2
   useEffect(() => {
-    if (step !== 2 || preview || loadingPreview) return;
+    if (step !== 2 || preview || loadingPreview || previewTried) return;
     (async () => {
       setLoadingPreview(true);
-      const { data, error } = await supabase.functions.invoke<PreviewResponse>("seed-new-user", {
-        body: { mode: "preview" },
-      });
+      const { data, error } = await invokeSeed<PreviewResponse>({ mode: "preview" });
       setLoadingPreview(false);
+      setPreviewTried(true);
       if (error || !data?.ok) {
         toast.error("Não consegui carregar as categorias sugeridas.");
         return;
       }
       setPreview(data);
     })();
-  }, [step, preview, loadingPreview]);
+  }, [step, preview, loadingPreview, previewTried]);
 
   const toggleExp = (name: string) => {
     setExcludedExp((s) => {
@@ -86,14 +99,12 @@ export default function Welcome() {
       return;
     }
     setSubmitting(true);
-    const { data, error } = await supabase.functions.invoke("seed-new-user", {
-      body: {
-        mode: "apply",
-        displayName: displayName.trim(),
-        businessName: businessName.trim() || undefined,
-        selectedExpenseNames: selectedExpense.map((c) => c.name),
-        selectedIncomeNames: selectedIncome.map((c) => c.name),
-      },
+    const { data, error } = await invokeSeed({
+      mode: "apply",
+      displayName: displayName.trim(),
+      businessName: businessName.trim() || undefined,
+      selectedExpenseNames: selectedExpense.map((c) => c.name),
+      selectedIncomeNames: selectedIncome.map((c) => c.name),
     });
     setSubmitting(false);
     if (error || !(data as any)?.ok) {
