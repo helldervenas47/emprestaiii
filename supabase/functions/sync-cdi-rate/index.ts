@@ -43,8 +43,8 @@ Deno.serve(async (req) => {
   const HARDCODED_DATE = new Date().toISOString().slice(0, 10);
 
   const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    Deno.env.get("EXTERNAL_SUPABASE_URL")!,
+    Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
   try {

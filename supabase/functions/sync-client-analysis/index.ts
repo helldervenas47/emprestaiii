@@ -64,11 +64,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseUrl = Deno.env.get("EXTERNAL_SUPABASE_URL");
     if (!supabaseUrl) throw new Error("SUPABASE_URL is not configured");
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    const anonKey = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY");
     if (!anonKey) throw new Error("SUPABASE_ANON_KEY is not configured");
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const serviceRoleKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
     if (!serviceRoleKey) throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured");
 
     const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
@@ -226,9 +226,9 @@ Deno.serve(async (req) => {
       const parsed = BodySchema.safeParse(await req.clone().json());
 
       if (authHeader?.startsWith("Bearer ") && parsed.success) {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL");
-        const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-        const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        const supabaseUrl = Deno.env.get("EXTERNAL_SUPABASE_URL");
+        const anonKey = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY");
+        const serviceRoleKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
 
         if (supabaseUrl && anonKey && serviceRoleKey) {
           const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });

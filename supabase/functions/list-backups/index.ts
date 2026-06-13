@@ -9,8 +9,8 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-  const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const SUPABASE_URL = Deno.env.get("EXTERNAL_SUPABASE_URL")!;
+  const ANON = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY")!;
   const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
 
   const client = createClient(SUPABASE_URL, ANON, { global: { headers: { Authorization: `Bearer ${token}` } } });
