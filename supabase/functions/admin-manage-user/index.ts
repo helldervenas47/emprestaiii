@@ -26,10 +26,6 @@ Deno.serve(async (req) => {
     // sessions with 401 because they belong to a different auth project.
     const supabaseUrl =
       Deno.env.get("EXTERNAL_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL")!;
-    const anonKey =
-      Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY") ??
-      Deno.env.get("SUPABASE_ANON_KEY") ??
-      Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
     const serviceRoleKey =
       Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ??
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
