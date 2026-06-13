@@ -19,27 +19,34 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use the standard Supabase env vars auto-injected by every edge runtime,
-    // so the function works regardless of which project it's deployed to.
-    const supabaseUrl =
-      Deno.env.get("SUPABASE_URL") ?? Deno.env.get("EXTERNAL_SUPABASE_URL")!;
-    const serviceRoleKey =
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
-      Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
+    const token = authHeader.replace("Bearer ", "");
 
+    // The app authenticates users against the external project, so validate the
+    // incoming JWT there first. Using the Cloud env vars here rejects valid app
+    // sessions with 401 because they belong to a different auth project.
+    const supabaseUrl =
+      Deno.env.get("EXTERNAL_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL")!;
+    const anonKey =
+      Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY") ??
+      Deno.env.get("SUPABASE_ANON_KEY") ??
+      Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+    const serviceRoleKey =
+      Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ??
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-
-    const token = authHeader.replace("Bearer ", "");
-    // Cryptographically verify the JWT against Supabase's auth server
-    const { data: userData, error: userErr } = await adminClient.auth.getUser(token);
-    if (userErr || !userData?.user?.id) {
+    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims?.sub) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const callerId = userData.user.id;
+    const callerId = claimsData.claims.sub;
 
     const { data: roleData } = await adminClient
       .from("user_roles")
