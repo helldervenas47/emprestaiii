@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/userClient";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { useClients } from "@/hooks/useClients";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,7 +64,7 @@ export function UserManagement() {
     if (!session?.access_token) {
       return { data: { error: "Sessão expirada. Faça login novamente." }, error: null };
     }
-    return supabase.functions.invoke("admin-manage-user", {
+    return cloudSupabase.functions.invoke("admin-manage-user", {
       body,
       headers: { Authorization: `Bearer ${session.access_token}` },
     });
