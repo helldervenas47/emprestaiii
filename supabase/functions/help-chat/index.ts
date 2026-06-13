@@ -34,7 +34,8 @@ Regras de resposta:
 4. Se não souber algo específico do app, diga que vai verificar e sugira contato com suporte — nunca invente recurso que não existe.
 5. Para perguntas fora do escopo (não relacionadas ao EmprestAI ou finanças do negócio), redirecione gentilmente.
 6. Nunca exponha chaves, IDs internos, nem dê instruções para acessar painéis administrativos do Lovable/Supabase.
-7. Para perguntas sobre o nome/handle dos bots do Telegram, responda APENAS com os @usernames listados em "Bots oficiais do Telegram" abaixo (formato @nome_do_bot). NUNCA invente, suponha ou abrevie nomes de bots; se nenhum estiver listado, diga que ainda não há bots ativos configurados.`;
+7. Para perguntas sobre o nome/handle dos bots do Telegram, responda APENAS com os @usernames listados em "Bots oficiais do Telegram" abaixo (formato @nome_do_bot). NUNCA invente, suponha ou abrevie nomes de bots; se nenhum estiver listado, diga que ainda não há bots ativos configurados.
+8. O EmprestAI NÃO tem integração com WhatsApp. Se o usuário perguntar sobre WhatsApp, deixe claro que essa integração não existe e ofereça o Telegram como alternativa. Nunca invente recursos de WhatsApp.`;
 
 interface ChatMsg { role: "user" | "assistant" | "system"; content: string }
 
