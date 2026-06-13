@@ -33,9 +33,36 @@ Regras de resposta:
 3. Quando útil, cite o caminho/menu exato (ex: "vá em Configurações → Usuários").
 4. Se não souber algo específico do app, diga que vai verificar e sugira contato com suporte — nunca invente recurso que não existe.
 5. Para perguntas fora do escopo (não relacionadas ao EmprestAI ou finanças do negócio), redirecione gentilmente.
-6. Nunca exponha chaves, IDs internos, nem dê instruções para acessar painéis administrativos do Lovable/Supabase.`;
+6. Nunca exponha chaves, IDs internos, nem dê instruções para acessar painéis administrativos do Lovable/Supabase.
+7. Para perguntas sobre o nome/handle dos bots do Telegram, responda APENAS com os @usernames listados em "Bots oficiais do Telegram" abaixo (formato @nome_do_bot). NUNCA invente, suponha ou abrevie nomes de bots; se nenhum estiver listado, diga que ainda não há bots ativos configurados.`;
 
 interface ChatMsg { role: "user" | "assistant" | "system"; content: string }
+
+async function fetchBotsContext(): Promise<string> {
+  try {
+    const url = Deno.env.get("SUPABASE_URL");
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !key) return "";
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
+    const supa = createClient(url, key);
+    const { data } = await supa
+      .from("system_telegram_bots")
+      .select("bot_username, purpose, label, is_active")
+      .eq("is_active", true);
+    if (!data || data.length === 0) return "";
+    const lines = data
+      .map((b: any) => {
+        const handle = b.bot_username ? `@${String(b.bot_username).replace(/^@/, "")}` : "(sem username)";
+        const purpose = b.purpose ? ` — ${b.purpose}` : "";
+        const label = b.label ? ` (${b.label})` : "";
+        return `- ${handle}${label}${purpose}`;
+      })
+      .join("\n");
+    return `\n\nBots oficiais do Telegram (use EXATAMENTE estes @usernames ao responder; nunca invente outros):\n${lines}`;
+  } catch {
+    return "";
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -59,6 +86,9 @@ Deno.serve(async (req) => {
 
     // Limita histórico para 12 últimas mensagens
     const trimmed = messages.slice(-12);
+    const botsContext = await fetchBotsContext();
+    const systemContent = SYSTEM_PROMPT + botsContext;
+
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -69,7 +99,8 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...trimmed],
+        messages: [{ role: "system", content: systemContent }, ...trimmed],
+
       }),
     });
 
