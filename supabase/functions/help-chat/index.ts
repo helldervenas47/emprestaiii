@@ -97,7 +97,7 @@ async function ensureKnowledgeTable(supa: any) {
 // --- Contexto: bots do Telegram -----------------------------------------
 async function fetchBotsContext(): Promise<string> {
   try {
-    const supa = await getCloudClient();
+    const supa = await getExternalClient();
     if (!supa) return "";
     const { data } = await supa
       .from("system_telegram_bots")
