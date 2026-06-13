@@ -215,7 +215,8 @@ const Auth = () => {
           <button type="button" onClick={() => setIsForgot(true)} className="text-sm text-primary hover:underline">
             Esqueceu a senha?
           </button>
-          <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold" disabled={loading}>
+          <TurnstileWidget key={captchaKey} onToken={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
+          <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold" disabled={loading || !captchaToken}>
             {loading ? "Aguarde..." : "Entrar"}
           </Button>
         </form>
