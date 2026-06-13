@@ -145,13 +145,11 @@ export default function Welcome() {
           return;
         }
       }
-      // Also save display/business name on profile
-      const patch: Record<string, unknown> = {
-        display_name: displayName.trim(),
-        full_name: displayName.trim(),
-      };
-      if (businessName.trim()) patch.business_name = businessName.trim();
-      await userSupabase.from("profiles").update(patch).eq("user_id", user.id);
+      // Also save display name on profile
+      await userSupabase
+        .from("profiles")
+        .update({ display_name: displayName.trim(), full_name: displayName.trim() })
+        .eq("user_id", user.id);
     }
 
     setSubmitting(false);
