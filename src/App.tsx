@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { useAuth, AuthProvider } from "@/hooks/useAuth";
 import { useUserApproval } from "@/hooks/useUserApproval";
+import { useNeedsOnboarding } from "@/hooks/useNeedsOnboarding";
 import { PendingApprovalScreen } from "./components/PendingApprovalScreen";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import { BrandTitleSync } from "./components/BrandTitleSync";
