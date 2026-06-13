@@ -8,6 +8,7 @@ import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { toast } from "sonner";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
 
 const Auth = () => {
   const [isForgot, setIsForgot] = useState(false);
@@ -17,6 +18,8 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaKey, setCaptchaKey] = useState(0);
   const { branding } = useAppBranding();
   const brandName = branding.brand_name;
   const authInputClass = "h-12 rounded-xl border-input bg-background/60 focus-visible:ring-inset focus-visible:ring-offset-0 focus-visible:shadow-none";
@@ -79,31 +82,40 @@ const Auth = () => {
 
   const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
+  const resetCaptcha = () => {
+    setCaptchaToken(null);
+    setCaptchaKey((k) => k + 1);
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    let emailToUse = loginId;
-    if (!isEmail(loginId)) {
-      const { data, error } = await supabase.functions.invoke("login-with-username", {
-        body: { username: loginId, password },
-      });
-      let serverError: string | undefined = data?.error;
-      if (error && (error as any).context instanceof Response) {
-        try {
-          const body = await (error as any).context.clone().json();
-          serverError = body?.error ?? serverError;
-        } catch { /* noop */ }
-      }
-      if (error || data?.error) {
-        setLoading(false);
-        toast.error(serverError || "Email/usuário ou senha incorretos");
-        return;
-      }
-      emailToUse = data.email;
+    if (!captchaToken) {
+      toast.error("Complete a verificação de segurança");
+      return;
     }
+    setLoading(true);
+    // Sempre passa pela edge function (valida captcha + senha + rate limit)
+    const { data, error: fnError } = await supabase.functions.invoke("login-with-username", {
+      body: { username: loginId, password, captchaToken },
+    });
+    let serverError: string | undefined = data?.error;
+    if (fnError && (fnError as any).context instanceof Response) {
+      try {
+        const body = await (fnError as any).context.clone().json();
+        serverError = body?.error ?? serverError;
+      } catch { /* noop */ }
+    }
+    if (fnError || data?.error || !data?.email) {
+      setLoading(false);
+      resetCaptcha();
+      toast.error(serverError || "Email/usuário ou senha incorretos");
+      return;
+    }
+    const emailToUse = data.email;
     const { error } = await supabase.auth.signInWithPassword({ email: emailToUse, password });
     setLoading(false);
     if (error) {
+      resetCaptcha();
       if (error.message === "Invalid login credentials") {
         toast.error("Email/usuário ou senha incorretos");
       } else if (error.message.toLowerCase().includes("banned") || error.message.toLowerCase().includes("ban")) {
