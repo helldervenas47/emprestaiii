@@ -508,14 +508,7 @@ const Index = () => {
     return true;
   });
 
-  const isAjudaAllowed = (() => {
-    if (loading) return false;
-    if (role === "admin") return true;
-    if (!user) return false;
-    if (Array.isArray(roleAllowedTabs) && !roleAllowedTabs.includes("ajuda")) return false;
-    if (Array.isArray(allowedTabs)) return allowedTabs.includes("ajuda");
-    return true;
-  })();
+  const isAjudaAllowed = !loading && !!user;
 
   const canAccessTab = (id: Tab) => visibleTabs.some((t) => t.id === id);
   // Tab existe na configuração geral mas o usuário não tem permissão →
