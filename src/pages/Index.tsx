@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from "react";
 import { Plus, Users, LayoutDashboard, FolderOpen, Folders, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity, Send, MessageCircle, Wallet, Barcode, UserPlus, HelpCircle } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
@@ -765,9 +765,8 @@ const Index = () => {
           <div className="max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-8">
             <nav className="flex gap-0.5 -mb-px overflow-x-auto scrollbar-hide pb-0">
               {visibleTabs.map((t) => (
-                <>
+                <React.Fragment key={t.id}>
                   <button
-                    key={t.id}
                     onClick={() => setTab(t.id)}
                     className={`flex items-center gap-1.5 px-2.5 sm:px-4 py-2 sm:py-2.5 text-[10px] sm:text-xs font-medium border-b-2 transition-all whitespace-nowrap uppercase tracking-wide ${
                       tab === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
@@ -777,14 +776,13 @@ const Index = () => {
                   </button>
                   {t.id === "settings" && (
                     <button
-                      key="help-nav"
                       onClick={() => navigate("/ajuda")}
                       className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 sm:py-2.5 text-[10px] sm:text-xs font-medium border-b-2 transition-all whitespace-nowrap uppercase tracking-wide border-transparent text-muted-foreground hover:text-foreground"
                     >
                       <HelpCircle className="h-3.5 w-3.5" /><span className="hidden xs:inline">Ajuda</span>
                     </button>
                   )}
-                </>
+                </React.Fragment>
               ))}
             </nav>
           </div>
