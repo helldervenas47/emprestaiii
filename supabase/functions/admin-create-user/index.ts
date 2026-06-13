@@ -97,11 +97,19 @@ Deno.serve(async (req) => {
         .eq("user_id", newUserId);
     }
 
-    // Assign role
-    await adminClient.from("user_roles").insert({
-      user_id: newUserId,
-      role,
-    });
+    // Assign role (upsert to be resilient to handle_new_user defaults)
+    const desiredRole = role || "cliente";
+    const { error: roleErr } = await adminClient
+      .from("user_roles")
+      .upsert({ user_id: newUserId, role: desiredRole }, { onConflict: "user_id,role" });
+    if (roleErr) {
+      console.error("[admin-create-user] role insert failed", roleErr);
+      return new Response(
+        JSON.stringify({ error: `Usuário criado, mas falhou ao atribuir papel: ${roleErr.message}` }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
 
     // Link sub-user to the admin who created them
     await adminClient.from("user_owner").insert({
