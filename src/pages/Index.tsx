@@ -1443,7 +1443,18 @@ const Index = () => {
                             </button>
                           );
                         })}
+                      {isAjudaAllowed && (
+                        <button
+                          type="button"
+                          onClick={() => { setMoreOpen(false); navigate("/ajuda"); }}
+                          className="flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all touch-manipulation border-border/40 bg-card/50 text-foreground hover:border-primary/30 hover:bg-muted/40"
+                        >
+                          <HelpCircle className="h-5 w-5" />
+                          <span className="text-[11px] font-medium text-center leading-tight">Ajuda</span>
+                        </button>
+                      )}
                     </div>
+
                   </div>
                 )}
 
