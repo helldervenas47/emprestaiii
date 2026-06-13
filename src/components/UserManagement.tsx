@@ -78,7 +78,7 @@ export function UserManagement() {
     password: "",
     username: "",
     display_name: "",
-    role: "visualizador" as string,
+    role: "cliente" as string,
   });
   const [editData, setEditData] = useState({
     email: "",
@@ -152,7 +152,7 @@ export function UserManagement() {
     } else {
       toast.success("Usuário criado com sucesso!");
       setShowCreateForm(false);
-      setFormData({ email: "", password: "", username: "", display_name: "", role: "visualizador" });
+      setFormData({ email: "", password: "", username: "", display_name: "", role: "cliente" });
       fetchUsers();
     }
     setCreating(false);

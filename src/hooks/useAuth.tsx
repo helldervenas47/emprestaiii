@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
 export type AppRole = "admin" | "gerente" | "cliente" | "visualizador" | null;
@@ -35,12 +36,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [linkedClientIds, setLinkedClientIds] = useState<string[] | null>(null);
 
   const fetchRole = async (userId: string) => {
-    const { data } = await supabase
+    let { data } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
 
-    const roles = (data ?? []).map((r: any) => r.role as string);
+    let roles = (data ?? []).map((r: any) => r.role as string);
+    if (roles.length === 0) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (token) {
+        await cloudSupabase.functions.invoke("ensure-user-role", {
+          body: { role: "cliente" },
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const retry = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId);
+        data = retry.data;
+        roles = (data ?? []).map((r: any) => r.role as string);
+      }
+    }
     if (roles.length === 0) {
       setRole(null);
       return;

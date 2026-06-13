@@ -92,12 +92,12 @@ const Cadastro = () => {
         })
         .catch(() => {});
     } else {
-      // Auto-link as sub-user with default viewer role
+      // Auto-link as sub-user with default cliente role
       await (supabase as any).from("user_owner").upsert(
         { user_id: userId, owner_id: inviteState.owner_id },
         { onConflict: "user_id" },
       );
-      await supabase.from("user_roles").insert({ user_id: userId, role: "visualizador" as any });
+      await supabase.from("user_roles").insert({ user_id: userId, role: "cliente" as any });
     }
 
     // Increment code usage (best-effort, non-blocking)
