@@ -155,11 +155,11 @@ const Pricing = () => {
             Automatize cobranças, acompanhe pagamentos e maximize seus lucros.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button size="lg" onClick={() => navigate("/auth")} className="text-base px-8">
+            <Button size="lg" onClick={scrollToPlans} className="text-base px-8">
               Começar agora <ArrowRight className="h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" onClick={scrollToPlans} className="text-base px-8">
-              Ver planos
+            <Button size="lg" variant="outline" onClick={() => navigate("/auth")} className="text-base px-8">
+              Já tenho conta
             </Button>
           </div>
           <button
