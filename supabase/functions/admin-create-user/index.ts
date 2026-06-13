@@ -97,11 +97,12 @@ Deno.serve(async (req) => {
         .eq("user_id", newUserId);
     }
 
-    // Assign role (upsert to be resilient to handle_new_user defaults)
+    // Assign role (delete existing rows first to avoid any unique conflict)
     const desiredRole = role || "cliente";
+    await adminClient.from("user_roles").delete().eq("user_id", newUserId);
     const { error: roleErr } = await adminClient
       .from("user_roles")
-      .upsert({ user_id: newUserId, role: desiredRole }, { onConflict: "user_id,role" });
+      .insert({ user_id: newUserId, role: desiredRole });
     if (roleErr) {
       console.error("[admin-create-user] role insert failed", roleErr);
       return new Response(
@@ -109,6 +110,7 @@ Deno.serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
 
 
     // Link sub-user to the admin who created them
