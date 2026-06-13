@@ -156,7 +156,8 @@ export default function Welcome() {
     // Mark onboarded locally so guard does not bounce back
     try { localStorage.setItem(`emprestai-onboarded-${user.id}`, "1"); } catch { /* noop */ }
     toast.success("Tudo pronto! Bem-vindo ao " + brandName + " 🎉");
-    navigate("/", { replace: true });
+    // Full reload so the onboarding hook re-evaluates and ProtectedRoute lets us in.
+    window.location.replace("/");
   };
 
   const progress = (step / STEPS) * 100;
