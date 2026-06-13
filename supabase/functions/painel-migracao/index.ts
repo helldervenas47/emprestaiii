@@ -35,8 +35,8 @@ Deno.serve(async (req) => {
 
   try {
     const env = Deno.env.toObject();
-    const SUPABASE_URL = env.SUPABASE_URL ?? "";
-    const service_role_key = env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    const SUPABASE_URL = env.EXTERNAL_SUPABASE_URL ?? "";
+    const service_role_key = env.EXTERNAL_SUPABASE_SERVICE_ROLE_KEY ?? "";
 
     // Return only the NAMES of configured secrets, never the values.
     const secret_names: string[] = [];

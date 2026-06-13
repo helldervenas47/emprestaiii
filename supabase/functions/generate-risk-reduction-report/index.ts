@@ -72,8 +72,8 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Unauthorized" }, 401);
     }
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const SUPABASE_URL = Deno.env.get("EXTERNAL_SUPABASE_URL")!;
+    const SUPABASE_ANON_KEY = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY")!;
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
 
     const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
