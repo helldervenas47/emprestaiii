@@ -50,22 +50,23 @@ export default function Welcome() {
   const [excludedExp, setExcludedExp] = useState<Set<string>>(new Set());
   const [excludedInc, setExcludedInc] = useState<Set<string>>(new Set());
 
+  const [previewTried, setPreviewTried] = useState(false);
+
   // Load preview when reaching step 2
   useEffect(() => {
-    if (step !== 2 || preview || loadingPreview) return;
+    if (step !== 2 || preview || loadingPreview || previewTried) return;
     (async () => {
       setLoadingPreview(true);
-      const { data, error } = await supabase.functions.invoke<PreviewResponse>("seed-new-user", {
-        body: { mode: "preview" },
-      });
+      const { data, error } = await invokeSeed<PreviewResponse>({ mode: "preview" });
       setLoadingPreview(false);
+      setPreviewTried(true);
       if (error || !data?.ok) {
         toast.error("Não consegui carregar as categorias sugeridas.");
         return;
       }
       setPreview(data);
     })();
-  }, [step, preview, loadingPreview]);
+  }, [step, preview, loadingPreview, previewTried]);
 
   const toggleExp = (name: string) => {
     setExcludedExp((s) => {
