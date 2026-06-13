@@ -508,6 +508,15 @@ const Index = () => {
     return true;
   });
 
+  const isAjudaAllowed = (() => {
+    if (loading) return false;
+    if (role === "admin") return true;
+    if (!user) return false;
+    if (Array.isArray(roleAllowedTabs) && !roleAllowedTabs.includes("ajuda")) return false;
+    if (Array.isArray(allowedTabs)) return allowedTabs.includes("ajuda");
+    return true;
+  })();
+
   const canAccessTab = (id: Tab) => visibleTabs.some((t) => t.id === id);
   // Tab existe na configuração geral mas o usuário não tem permissão →
   // exibimos página de "acesso negado" em vez de redirecionar silenciosamente.
@@ -655,7 +664,7 @@ const Index = () => {
                             <t.icon className="h-4 w-4" />
                             <span>{t.label}</span>
                           </button>
-                          {t.id === "settings" && (
+                          {t.id === "settings" && isAjudaAllowed && (
                             <button
                               onClick={() => { setSidebarOpen(false); navigate("/ajuda"); }}
                               className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -774,7 +783,7 @@ const Index = () => {
                   >
                     <t.icon className="h-3.5 w-3.5" /><span className="hidden xs:inline">{t.label}</span>
                   </button>
-                  {t.id === "settings" && (
+                  {t.id === "settings" && isAjudaAllowed && (
                     <button
                       onClick={() => navigate("/ajuda")}
                       className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 sm:py-2.5 text-[10px] sm:text-xs font-medium border-b-2 transition-all whitespace-nowrap uppercase tracking-wide border-transparent text-muted-foreground hover:text-foreground"

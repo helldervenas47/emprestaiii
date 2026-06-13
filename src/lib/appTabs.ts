@@ -21,6 +21,7 @@ export const APP_TABS = [
   { id: "overdue", label: "Relatório" },
   { id: "settings", label: "Configurações" },
   { id: "system", label: "Sistema" },
+  { id: "ajuda", label: "Ajuda" },
 ] as const;
 
 export type AppTabId = (typeof APP_TABS)[number]["id"];
