@@ -37,6 +37,32 @@ Regras de resposta:
 
 interface ChatMsg { role: "user" | "assistant" | "system"; content: string }
 
+async function fetchBotsContext(): Promise<string> {
+  try {
+    const url = Deno.env.get("SUPABASE_URL");
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !key) return "";
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
+    const supa = createClient(url, key);
+    const { data } = await supa
+      .from("system_telegram_bots")
+      .select("bot_username, purpose, label, is_active")
+      .eq("is_active", true);
+    if (!data || data.length === 0) return "";
+    const lines = data
+      .map((b: any) => {
+        const handle = b.bot_username ? `@${String(b.bot_username).replace(/^@/, "")}` : "(sem username)";
+        const purpose = b.purpose ? ` — ${b.purpose}` : "";
+        const label = b.label ? ` (${b.label})` : "";
+        return `- ${handle}${label}${purpose}`;
+      })
+      .join("\n");
+    return `\n\nBots oficiais do Telegram (use EXATAMENTE estes @usernames ao responder; nunca invente outros):\n${lines}`;
+  } catch {
+    return "";
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -59,6 +85,9 @@ Deno.serve(async (req) => {
 
     // Limita histórico para 12 últimas mensagens
     const trimmed = messages.slice(-12);
+    const botsContext = await fetchBotsContext();
+    const systemContent = SYSTEM_PROMPT + botsContext;
+
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
