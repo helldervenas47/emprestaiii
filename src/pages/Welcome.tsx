@@ -99,14 +99,12 @@ export default function Welcome() {
       return;
     }
     setSubmitting(true);
-    const { data, error } = await supabase.functions.invoke("seed-new-user", {
-      body: {
-        mode: "apply",
-        displayName: displayName.trim(),
-        businessName: businessName.trim() || undefined,
-        selectedExpenseNames: selectedExpense.map((c) => c.name),
-        selectedIncomeNames: selectedIncome.map((c) => c.name),
-      },
+    const { data, error } = await invokeSeed({
+      mode: "apply",
+      displayName: displayName.trim(),
+      businessName: businessName.trim() || undefined,
+      selectedExpenseNames: selectedExpense.map((c) => c.name),
+      selectedIncomeNames: selectedIncome.map((c) => c.name),
     });
     setSubmitting(false);
     if (error || !(data as any)?.ok) {
