@@ -34,12 +34,12 @@ Deno.serve(async (req) => {
       Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ??
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: userData, error: userErr } = await userClient.auth.getUser(token);
+    // Validate the caller JWT against the same external auth project used by the
+    // admin client. Using a separate anon client can falsely reject valid app
+    // sessions when the function is invoked from the Cloud client.
+    const { data: userData, error: userErr } = await adminClient.auth.getUser(token);
     if (userErr || !userData?.user?.id) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
