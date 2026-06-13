@@ -28,6 +28,17 @@ export function useNeedsOnboarding(): { loading: boolean; needs: boolean } {
       }
     } catch { /* noop */ }
 
+    // Usuários já existentes (conta criada há mais de 5 minutos) não passam pela tela de boas-vindas.
+    const createdAt = user.created_at ? new Date(user.created_at).getTime() : 0;
+    const isRecentlyCreated = createdAt > 0 && (Date.now() - createdAt) < 5 * 60 * 1000;
+    if (!isRecentlyCreated) {
+      try { localStorage.setItem(LS_KEY(user.id), "1"); } catch { /* noop */ }
+      setNeeds(false);
+      setLoading(false);
+      return;
+    }
+
+
     (async () => {
       const { count, error } = await supabase
         .from("personal_expense_categories")
