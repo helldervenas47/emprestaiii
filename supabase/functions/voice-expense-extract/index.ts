@@ -82,6 +82,7 @@ Deno.serve(async (req) => {
     }
     const SUPABASE_URL = Deno.env.get("EXTERNAL_SUPABASE_URL");
     const SUPABASE_ANON_KEY = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY") ?? Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY");
+    let userId: string | null = null;
     if (SUPABASE_URL && SUPABASE_ANON_KEY) {
       const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
       const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -89,6 +90,14 @@ Deno.serve(async (req) => {
       });
       const { data: u, error: ue } = await userClient.auth.getUser();
       if (ue || !u?.user) return jsonResponse({ error: "Unauthorized" }, 401);
+      userId = u.user.id;
+    }
+
+    // Rate limit: 30 req/min por usuário
+    if (userId) {
+      const { checkRateLimit, rateLimitResponse } = await import("../_shared/rate-limit.ts");
+      const ok = await checkRateLimit({ bucket: "voice-expense", key: userId, max: 30, windowSecs: 60 });
+      if (!ok) return rateLimitResponse(corsHeaders);
     }
 
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");

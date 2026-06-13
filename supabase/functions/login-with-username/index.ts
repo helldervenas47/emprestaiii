@@ -27,6 +27,14 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Rate limit: 10 tentativas/min por IP
+    {
+      const { checkRateLimit, rateLimitResponse, getClientIp } = await import("../_shared/rate-limit.ts");
+      const ip = getClientIp(req);
+      const ok = await checkRateLimit({ bucket: "login", key: ip, max: 10, windowSecs: 60 });
+      if (!ok) return rateLimitResponse(corsHeaders);
+    }
+
     const supabaseUrl = Deno.env.get("EXTERNAL_SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY")!;
