@@ -140,10 +140,22 @@ const Cadastro = () => {
       return;
     }
 
-    // Apply invite (approval or direct link)
+    // Apply invite (approval or direct link) OR assign default owner role for self-signups
     if (data.user) {
-      await applyInviteAfterSignup(data.user.id);
+      if (inviteCode && inviteState.valid) {
+        await applyInviteAfterSignup(data.user.id);
+      } else {
+        // Self-service signup: this user owns their own EmprestAI account.
+        // Default role = 'admin' (owner of their own tenant data).
+        await (supabase as any)
+          .from("user_roles")
+          .upsert(
+            { user_id: data.user.id, role: "admin" },
+            { onConflict: "user_id,role", ignoreDuplicates: true },
+          );
+      }
     }
+
 
     setLoading(false);
     if (inviteCode && inviteState.require_approval) {
