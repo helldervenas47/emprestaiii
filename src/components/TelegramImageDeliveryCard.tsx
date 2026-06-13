@@ -146,8 +146,11 @@ export function TelegramImageDeliveryCard() {
     setUsersLoading(true);
     setUsersError(null);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
       const { data, error } = await supabase.functions.invoke("admin-manage-user", {
         body: { action: "list" },
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error || (data as any)?.error) {
         throw new Error((data as any)?.error || error?.message || "Erro ao carregar usuários");
