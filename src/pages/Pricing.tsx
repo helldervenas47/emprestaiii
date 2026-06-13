@@ -304,7 +304,7 @@ const Pricing = () => {
         <p className="text-muted-foreground max-w-lg mx-auto mb-8">
           Crie sua conta gratuitamente e comece a gerenciar seus empréstimos com mais controle e menos dor de cabeça.
         </p>
-        <Button size="lg" onClick={() => navigate("/auth")} className="text-base px-8">
+        <Button size="lg" onClick={scrollToPlans} className="text-base px-8">
           Criar conta grátis <ArrowRight className="h-4 w-4" />
         </Button>
       </section>
