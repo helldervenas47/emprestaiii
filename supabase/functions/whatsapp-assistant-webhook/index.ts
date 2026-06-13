@@ -213,6 +213,13 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Rate limit: 60 mensagens/min por telefone
+    {
+      const { checkRateLimit, rateLimitResponse } = await import("../_shared/rate-limit.ts");
+      const ok = await checkRateLimit({ bucket: "wa-webhook", key: msg.phone, max: 60, windowSecs: 60 });
+      if (!ok) return rateLimitResponse(corsHeaders);
+    }
+
     // Find owner authorized for this phone
     const candidates = [msg.phone];
     if (!msg.phone.startsWith("55")) candidates.push("55" + msg.phone);
