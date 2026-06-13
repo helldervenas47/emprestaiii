@@ -39,14 +39,14 @@ Deno.serve(async (req) => {
     });
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims?.sub) {
+    const { data: userData, error: userErr } = await userClient.auth.getUser(token);
+    if (userErr || !userData?.user?.id) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const callerId = claimsData.claims.sub;
+    const callerId = userData.user.id;
 
     const { data: roleData } = await adminClient
       .from("user_roles")
