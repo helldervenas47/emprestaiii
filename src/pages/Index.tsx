@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from "react";
-import { Plus, Users, LayoutDashboard, FolderOpen, Folders, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity, Send, MessageCircle, Wallet, Barcode, UserPlus } from "lucide-react";
+import { Plus, Users, LayoutDashboard, FolderOpen, Folders, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity, Send, MessageCircle, Wallet, Barcode, UserPlus, HelpCircle } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -645,16 +645,28 @@ const Index = () => {
                     </div>
                     <nav className="flex-1 overflow-y-auto py-2">
                       {visibleTabs.map((t) => (
-                        <button
-                          key={t.id}
-                          onClick={() => { setTab(t.id); setSidebarOpen(false); }}
-                          className={`flex items-center gap-3 w-full px-4 py-3 text-sm font-medium transition-colors ${
-                            tab === t.id ? "bg-primary/10 text-primary border-l-2 border-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                          }`}
-                        >
-                          <t.icon className="h-4 w-4" />
-                          <span>{t.label}</span>
-                        </button>
+                        <>
+                          <button
+                            key={t.id}
+                            onClick={() => { setTab(t.id); setSidebarOpen(false); }}
+                            className={`flex items-center gap-3 w-full px-4 py-3 text-sm font-medium transition-colors ${
+                              tab === t.id ? "bg-primary/10 text-primary border-l-2 border-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                            }`}
+                          >
+                            <t.icon className="h-4 w-4" />
+                            <span>{t.label}</span>
+                          </button>
+                          {t.id === "settings" && (
+                            <button
+                              key="help-nav"
+                              onClick={() => { setSidebarOpen(false); navigate("/ajuda"); }}
+                              className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                            >
+                              <HelpCircle className="h-4 w-4" />
+                              <span>Ajuda</span>
+                            </button>
+                          )}
+                        </>
                       ))}
                     </nav>
                     <div className="p-3 border-t border-border/30 flex items-center gap-2">
@@ -755,15 +767,26 @@ const Index = () => {
           <div className="max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-8">
             <nav className="flex gap-0.5 -mb-px overflow-x-auto scrollbar-hide pb-0">
               {visibleTabs.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={`flex items-center gap-1.5 px-2.5 sm:px-4 py-2 sm:py-2.5 text-[10px] sm:text-xs font-medium border-b-2 transition-all whitespace-nowrap uppercase tracking-wide ${
-                    tab === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <t.icon className="h-3.5 w-3.5" /><span className="hidden xs:inline">{t.label}</span>
-                </button>
+                <>
+                  <button
+                    key={t.id}
+                    onClick={() => setTab(t.id)}
+                    className={`flex items-center gap-1.5 px-2.5 sm:px-4 py-2 sm:py-2.5 text-[10px] sm:text-xs font-medium border-b-2 transition-all whitespace-nowrap uppercase tracking-wide ${
+                      tab === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <t.icon className="h-3.5 w-3.5" /><span className="hidden xs:inline">{t.label}</span>
+                  </button>
+                  {t.id === "settings" && (
+                    <button
+                      key="help-nav"
+                      onClick={() => navigate("/ajuda")}
+                      className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 sm:py-2.5 text-[10px] sm:text-xs font-medium border-b-2 transition-all whitespace-nowrap uppercase tracking-wide border-transparent text-muted-foreground hover:text-foreground"
+                    >
+                      <HelpCircle className="h-3.5 w-3.5" /><span className="hidden xs:inline">Ajuda</span>
+                    </button>
+                  )}
+                </>
               ))}
             </nav>
           </div>
