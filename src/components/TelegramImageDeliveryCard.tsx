@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Image as ImageIcon, ChevronDown, Activity, RefreshCw, Loader2, AlertTriangle, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/userClient";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 
 const STORAGE_KEY = "telegram_image_delivery_prefs_v1";
 
@@ -148,7 +149,7 @@ export function TelegramImageDeliveryCard() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
-      const { data, error } = await supabase.functions.invoke("admin-manage-user", {
+      const { data, error } = await cloudSupabase.functions.invoke("admin-manage-user", {
         body: { action: "list" },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
