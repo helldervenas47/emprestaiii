@@ -1,7 +1,25 @@
 import { useEffect, useRef } from "react";
 
 // Site Key público (Cloudflare Turnstile)
-export const TURNSTILE_SITE_KEY = "0x4AAAAAADjsm1zbv6Za2tDq";
+// Em preview/iframe/dev usamos a chave de teste oficial do Cloudflare
+// (sempre passa) porque o hostname de preview e o iframe quebram o widget real.
+const REAL_SITE_KEY = "0x4AAAAAADjsm1zbv6Za2tDq";
+const TEST_SITE_KEY = "1x00000000000000000000AA";
+
+const isPreviewEnv = (() => {
+  if (typeof window === "undefined") return false;
+  let inIframe = false;
+  try { inIframe = window.self !== window.top; } catch { inIframe = true; }
+  const host = window.location.hostname;
+  const isPreviewHost =
+    host.includes("id-preview--") ||
+    host.includes("lovableproject.com") ||
+    host === "localhost" ||
+    host === "127.0.0.1";
+  return inIframe || isPreviewHost;
+})();
+
+export const TURNSTILE_SITE_KEY = isPreviewEnv ? TEST_SITE_KEY : REAL_SITE_KEY;
 
 declare global {
   interface Window {
