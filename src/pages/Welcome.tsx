@@ -12,7 +12,7 @@ import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
-import { resolvePersonalIcon } from "@/lib/personalExpenseCategories";
+import { resolvePersonalIcon, personalCategories, getIconName } from "@/lib/personalExpenseCategories";
 
 async function invokeSeed<T = unknown>(body: Record<string, unknown>) {
   // Edge function is deployed on Lovable Cloud, but JWT belongs to the external project.
@@ -33,6 +33,13 @@ interface PreviewResponse {
   note?: string;
 }
 
+// Local fallback list — always available, even if the edge function fails.
+const LOCAL_EXPENSE: PreviewCat[] = personalCategories.map((c) => ({
+  name: c.name,
+  icon: getIconName(c.icon),
+  color: c.color,
+}));
+
 const STEPS = 3;
 
 export default function Welcome() {
@@ -52,7 +59,9 @@ export default function Welcome() {
 
   const [previewTried, setPreviewTried] = useState(false);
 
-  // Load preview when reaching step 2
+  // Load preview when reaching step 2. Try the edge function first (owner's
+  // real categories); if it fails or returns nothing, fall back to the local
+  // default list so the user always sees options.
   useEffect(() => {
     if (step !== 2 || preview || loadingPreview || previewTried) return;
     (async () => {
@@ -60,11 +69,12 @@ export default function Welcome() {
       const { data, error } = await invokeSeed<PreviewResponse>({ mode: "preview" });
       setLoadingPreview(false);
       setPreviewTried(true);
-      if (error || !data?.ok) {
-        toast.error("Não consegui carregar as categorias sugeridas.");
-        return;
+      const hasRemote = !error && data?.ok && (data.expense?.length || data.income?.length);
+      if (hasRemote) {
+        setPreview(data!);
+      } else {
+        setPreview({ ok: true, expense: LOCAL_EXPENSE, income: [] });
       }
-      setPreview(data);
     })();
   }, [step, preview, loadingPreview, previewTried]);
 
