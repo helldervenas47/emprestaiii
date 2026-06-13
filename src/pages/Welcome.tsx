@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/userClient";
+import { supabase as userSupabase } from "@/integrations/supabase/userClient";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,17 @@ import { useAppBranding } from "@/hooks/useAppBranding";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
 import { resolvePersonalIcon } from "@/lib/personalExpenseCategories";
+
+async function invokeSeed<T = unknown>(body: Record<string, unknown>) {
+  // Edge function is deployed on Lovable Cloud, but JWT belongs to the external project.
+  // Pass the external session token explicitly so the function can validate it.
+  const { data: sess } = await userSupabase.auth.getSession();
+  const token = sess.session?.access_token;
+  return cloudSupabase.functions.invoke<T>("seed-new-user", {
+    body,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+}
 
 interface PreviewCat { name: string; icon: string; color: string }
 interface PreviewResponse {
