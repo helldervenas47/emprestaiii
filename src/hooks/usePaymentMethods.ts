@@ -39,10 +39,26 @@ export function usePaymentMethods(enabled = true) {
       .order("sort_order", { ascending: true })
       .order("name", { ascending: true });
     if (!error && data) {
-      setMethods((data as any[]).map(rowToMethod));
+      let rows = data as any[];
+      // Seed defaults for new users (only when this user owns the data)
+      if (rows.length === 0 && dataOwnerId && dataOwnerId === user.id) {
+        const defaults = [
+          { name: "Pix", kind: "account", active: true, sort_order: 1 },
+          { name: "Dinheiro", kind: "cash", active: true, sort_order: 2 },
+          { name: "Transferência", kind: "account", active: false, sort_order: 3 },
+          { name: "Cartão", kind: "account", active: false, sort_order: 4 },
+          { name: "Boleto", kind: "account", active: false, sort_order: 5 },
+        ].map((m) => ({ ...m, user_id: dataOwnerId, icon: null }));
+        const { data: inserted, error: insErr } = await supabase
+          .from("payment_methods" as any)
+          .insert(defaults as any)
+          .select("*");
+        if (!insErr && inserted) rows = inserted as any[];
+      }
+      setMethods(rows.map(rowToMethod));
     }
     setLoading(false);
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   useEffect(() => {
     if (enabled) fetchMethods();
