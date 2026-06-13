@@ -26,20 +26,16 @@ Deno.serve(async (req) => {
     // sessions with 401 because they belong to a different auth project.
     const supabaseUrl =
       Deno.env.get("EXTERNAL_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL")!;
-    const anonKey =
-      Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY") ??
-      Deno.env.get("SUPABASE_ANON_KEY") ??
-      Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
     const serviceRoleKey =
       Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ??
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: userData, error: userErr } = await userClient.auth.getUser(token);
+    // Validate the caller JWT against the same external auth project used by the
+    // admin client. Using a separate anon client can falsely reject valid app
+    // sessions when the function is invoked from the Cloud client.
+    const { data: userData, error: userErr } = await adminClient.auth.getUser(token);
     if (userErr || !userData?.user?.id) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
@@ -288,7 +284,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    const message = error instanceof Error ? error.message : "Erro interno";
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
