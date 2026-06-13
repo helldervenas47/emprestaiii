@@ -1,67 +1,68 @@
-# Permissões granulares por papel
+## Objetivo
 
-Hoje os papéis existem (`admin`, `gerente`, `operador`, `visualizador`) mas não há matriz de permissões editável — o acesso fica espalhado em verificações ad-hoc por `role`. Esta entrega cria uma matriz "papel × módulo × ação" persistida no banco, editável pelo admin, aplicada automaticamente a todos os usuários do papel e auditada.
+Quando um novo usuário criar conta (`/cadastro`), ele passa por um wizard de 3 passos e cai no dashboard já com as **mesmas categorias e configurações que você (owner principal) já tem hoje**, prontas pra usar.
 
-## Modelo de dados (migration)
+## Fluxo
 
 ```text
-role_permissions
-├── id uuid PK
-├── role text                     -- admin | gerente | operador | visualizador
-├── module text                   -- "loans", "clients", "expenses", "incomes", "reports", ...
-├── can_view bool default false
-├── can_create bool default false
-├── can_edit bool default false
-├── can_delete bool default false
-├── updated_at timestamptz
-└── unique (role, module)
-
-role_permissions_audit
-├── id uuid PK
-├── role text
-├── module text
-├── before jsonb                  -- {view,create,edit,delete}
-├── after jsonb
-├── changed_by uuid               -- auth.uid()
-└── changed_at timestamptz default now()
+/cadastro (signup)
+   │
+   ▼
+/bem-vindo  ← novo (wizard 3 passos, rota protegida só p/ quem não completou)
+   │  Passo 1: Nome do negócio / nome de exibição
+   │  Passo 2: Pré-visualização das categorias que serão criadas
+   │           (pode desmarcar as que não quiser)
+   │  Passo 3: Confirmar e entrar
+   ▼
+/ (dashboard)  ← com categorias, métodos de pagamento e prefs já seeded
 ```
 
-RLS: leitura para `authenticated`; escrita só para `has_role(auth.uid(),'admin')`. Trigger `BEFORE UPDATE` registra diff em `role_permissions_audit`. Seed inicial: `admin` = todas as ações em todos os módulos; demais papéis com o set atual já em uso (view-only para `visualizador`, etc).
+## O que será copiado do owner principal
 
-Função SECURITY DEFINER:
-`public.has_permission(_user uuid, _module text, _action text) returns bool` — lê o papel do usuário em `user_roles` e consulta `role_permissions`. É essa função que substitui os `role = 'admin'` espalhados nas policies.
+Edge function `seed-new-user` (service role) lê do **owner principal** (seu user_id como template) e replica para o novo user_id:
 
-## Backend / RLS
+- `personal_expense_categories` — todas as categorias customizadas que você criou
+- `income_categories` — categorias de receita
+- `payment_methods` (se a tabela existir) — métodos de pagamento padrão
+- `account_settings` — só os defaults visuais/comportamentais (não copia dados sensíveis)
 
-- Reescrever policies das tabelas sensíveis (`loans`, `clients`, `expenses`, `incomes`, `payments`, `payrolls`, etc.) para usar `has_permission(auth.uid(), '<module>', '<action>')` no lugar de checagens hard-coded por role. Como `has_permission` lê uma tabela única e indexada por (role, module), trocar a permissão no admin reflete imediatamente para todos os usuários do papel — sem precisar tocar em cada conta.
-- Manter `has_role` para casos puramente administrativos (gestão de planos, billing).
+NÃO copia: clientes, empréstimos, despesas, saldos, integrações Telegram/WhatsApp.
 
-## Frontend
+## Passos de implementação
 
-Novo módulo **Administração → Papéis & Permissões**:
+1. **Marcar quem é o "owner template"**
+   - Adicionar coluna `is_seed_template boolean default false` em `profiles`
+   - Você marca seu próprio profile como `true` (via SQL único)
 
-- Tela `src/components/admin/RolePermissionsMatrix.tsx`
-  - Tabs por papel (Admin, Gerente, Operador, Visualizador).
-  - Tabela "Módulo × Ver / Criar / Editar / Excluir" com switches.
-  - Botão **Salvar alterações** → upsert em `role_permissions` (uma chamada por linha alterada). Toast de sucesso e refresh do cache.
-  - Aba **Histórico**: lista `role_permissions_audit` com papel, módulo, antes/depois, usuário e data.
-- Hook `src/hooks/useRolePermissions.ts`
-  - `usePermissions()` retorna `{ can(module, action) }` baseado no papel do usuário logado, com cache via React Query e realtime em `role_permissions`.
-- Aplicar `can(...)` nos pontos de UI que hoje escondem botões por role (criar empréstimo, editar despesa, excluir cliente, etc.). Botões desabilitados/ocultos quando `can=false`.
+2. **Edge function `seed-new-user`**
+   - Recebe `user_id` (do JWT), valida que usuário existe
+   - Busca categorias/configs do `is_seed_template = true`
+   - Insere cópias com `user_id` do novo usuário
+   - Idempotente (não duplica se já rodou)
+   - Marca `profiles.onboarded = true` no fim
 
-## Auditoria
+3. **Adicionar `onboarded boolean default false` em `profiles`**
 
-- Trigger SQL já cobre quem/quando/o-que mudou.
-- UI de histórico paginada (50 por vez), filtro por papel e período.
+4. **Página `/bem-vindo` (wizard 3 passos)**
+   - Componente `OnboardingWizard.tsx` com 3 etapas e barra de progresso
+   - Passo 1: input nome do negócio + nome de exibição (grava em `profiles`)
+   - Passo 2: preview das categorias (chama edge function `preview-seed-categories` que retorna a lista pra exibir; checkboxes pra desmarcar)
+   - Passo 3: botão "Concluir" chama `seed-new-user` com a seleção final
 
-## Módulos cobertos (lista inicial)
+5. **Guard de rota no `App.tsx`**
+   - `ProtectedRoute` lê `profile.onboarded`. Se `false` e rota ≠ `/bem-vindo`, redireciona pra `/bem-vindo`.
 
-`loans`, `clients`, `payments`, `expenses`, `incomes`, `payrolls`, `reports`, `products`, `sales`, `credit_cards`, `users_admin`, `settings`. Lista mantida em `src/lib/permissionModules.ts` para facilitar adicionar novos.
+6. **Testar no preview** — criar conta de teste e verificar o fluxo end-to-end.
 
-## Passos de execução
+## Detalhes técnicos
 
-1. Migration: tabelas + RLS + trigger de auditoria + seed + função `has_permission`.
-2. Reescrever policies das tabelas-alvo para usar `has_permission`.
-3. Hook + matriz na UI de Administração.
-4. Substituir checagens por role no frontend pelos `can(...)`.
-5. Smoke test: alterar permissão de "gerente → expenses → can_delete=false" e validar que usuários gerente perdem o botão e o DELETE é rejeitado pela policy.
+- **Schema**: 1 migration adicionando 2 colunas em `profiles` (`is_seed_template`, `onboarded`).
+- **Edge functions**: 2 novas (`seed-new-user`, `preview-seed-categories`), ambas com `verify_jwt = false` validando JWT em código (padrão do projeto).
+- **Frontend**: nova rota `/bem-vindo` + componente `OnboardingWizard.tsx` + alteração em `ProtectedRoute`.
+- **Sem alterações** em Paddle, emails, ou trigger no `auth.users`.
+
+## Fora do escopo (deixar pra próxima rodada)
+
+- Emails brandeados (você ainda não tem domínio próprio — emails padrão Lovable continuam funcionando)
+- Integração Paddle real (preview já mostra banner "modo teste")
+- Vídeo/tutorial dentro do wizard

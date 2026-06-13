@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { useAuth, AuthProvider } from "@/hooks/useAuth";
 import { useUserApproval } from "@/hooks/useUserApproval";
+import { useNeedsOnboarding } from "@/hooks/useNeedsOnboarding";
 import { PendingApprovalScreen } from "./components/PendingApprovalScreen";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import { BrandTitleSync } from "./components/BrandTitleSync";
@@ -34,6 +35,7 @@ const DailyPlanning = lazy(() => import("./pages/DailyPlanning.tsx"));
 const PainelMigracao = lazy(() => import("./pages/PainelMigracao.tsx"));
 const PiggyBankDetail = lazy(() => import("./pages/PiggyBankDetail.tsx"));
 const PiggyBanks = lazy(() => import("./pages/PiggyBanks.tsx"));
+const Welcome = lazy(() => import("./pages/Welcome.tsx"));
 
 
 const queryClient = new QueryClient({
@@ -53,15 +55,21 @@ const PageLoader = () => (
   </div>
 );
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children, skipOnboardingCheck = false }: { children: React.ReactNode; skipOnboardingCheck?: boolean }) {
   const { user, loading } = useAuth();
   const { status, loading: approvalLoading } = useUserApproval();
+  const { needs: needsOnboarding, loading: onboardingLoading } = useNeedsOnboarding();
   if (loading || approvalLoading) return <PageLoader />;
   if (!user) return <Navigate to="/auth" replace />;
   if (status === "pending") return <PendingApprovalScreen />;
   if (status === "rejected") return <PendingApprovalScreen rejected />;
+  if (!skipOnboardingCheck) {
+    if (onboardingLoading) return <PageLoader />;
+    if (needsOnboarding) return <Navigate to="/bem-vindo" replace />;
+  }
   return <>{children}</>;
 }
+
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -100,6 +108,7 @@ const App = () => (
                   <Route path="/planejamento-do-dia" element={<ProtectedRoute><DailyPlanning /></ProtectedRoute>} />
                   <Route path="/painel-migracao" element={<PainelMigracao />} />
                   <Route path="/cofrinhos" element={<ProtectedRoute><PiggyBanks /></ProtectedRoute>} />
+                  <Route path="/bem-vindo" element={<ProtectedRoute skipOnboardingCheck><Welcome /></ProtectedRoute>} />
                   <Route path="/cofrinho/:id" element={<ProtectedRoute><PiggyBankDetail /></ProtectedRoute>} />
 
                   <Route path="*" element={<NotFound />} />
