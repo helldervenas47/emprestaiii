@@ -146,11 +146,12 @@ const Cadastro = () => {
         await applyInviteAfterSignup(data.user.id);
       } else {
         // Self-service signup: novo usuário começa com papel padrão 'cliente'.
+        // A unique constraint da tabela é em user_id (não user_id,role).
         await (supabase as any)
           .from("user_roles")
           .upsert(
             { user_id: data.user.id, role: "cliente" },
-            { onConflict: "user_id,role", ignoreDuplicates: true },
+            { onConflict: "user_id", ignoreDuplicates: false },
           );
       }
     }
