@@ -645,9 +645,8 @@ const Index = () => {
                     </div>
                     <nav className="flex-1 overflow-y-auto py-2">
                       {visibleTabs.map((t) => (
-                        <>
+                        <React.Fragment key={t.id}>
                           <button
-                            key={t.id}
                             onClick={() => { setTab(t.id); setSidebarOpen(false); }}
                             className={`flex items-center gap-3 w-full px-4 py-3 text-sm font-medium transition-colors ${
                               tab === t.id ? "bg-primary/10 text-primary border-l-2 border-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -658,7 +657,6 @@ const Index = () => {
                           </button>
                           {t.id === "settings" && (
                             <button
-                              key="help-nav"
                               onClick={() => { setSidebarOpen(false); navigate("/ajuda"); }}
                               className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50"
                             >
@@ -666,7 +664,7 @@ const Index = () => {
                               <span>Ajuda</span>
                             </button>
                           )}
-                        </>
+                        </React.Fragment>
                       ))}
                     </nav>
                     <div className="p-3 border-t border-border/30 flex items-center gap-2">
