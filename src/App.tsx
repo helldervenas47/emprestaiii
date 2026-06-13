@@ -55,15 +55,21 @@ const PageLoader = () => (
   </div>
 );
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children, skipOnboardingCheck = false }: { children: React.ReactNode; skipOnboardingCheck?: boolean }) {
   const { user, loading } = useAuth();
   const { status, loading: approvalLoading } = useUserApproval();
+  const { needs: needsOnboarding, loading: onboardingLoading } = useNeedsOnboarding();
   if (loading || approvalLoading) return <PageLoader />;
   if (!user) return <Navigate to="/auth" replace />;
   if (status === "pending") return <PendingApprovalScreen />;
   if (status === "rejected") return <PendingApprovalScreen rejected />;
+  if (!skipOnboardingCheck) {
+    if (onboardingLoading) return <PageLoader />;
+    if (needsOnboarding) return <Navigate to="/bem-vindo" replace />;
+  }
   return <>{children}</>;
 }
+
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
