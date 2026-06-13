@@ -58,6 +58,17 @@ export function UserManagement() {
   const isAdmin = currentRole === "admin";
   const { startViewing } = useViewAsUser();
 
+  const invokeAdminManageUser = async (body: Record<string, unknown>) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      return { data: { error: "Sessão expirada. Faça login novamente." }, error: null };
+    }
+    return supabase.functions.invoke("admin-manage-user", {
+      body,
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+  };
+
   const handleViewAs = async (target: ManagedUser) => {
     if (target.id === currentUser?.id) {
       toast.info("Você já está logado nesta conta");
@@ -95,9 +106,7 @@ export function UserManagement() {
       return;
     }
 
-    const { data, error } = await supabase.functions.invoke("admin-manage-user", {
-      body: { action: "list" },
-    });
+    const { data, error } = await invokeAdminManageUser({ action: "list" });
 
     if (error || data?.error) {
       const errMsg = data?.error || "Erro ao carregar usuários";
@@ -159,9 +168,7 @@ export function UserManagement() {
   };
 
   const handleUpdateRole = async (userId: string, role: string) => {
-    const { data, error } = await supabase.functions.invoke("admin-manage-user", {
-      body: { action: "update_role", user_id: userId, role },
-    });
+    const { data, error } = await invokeAdminManageUser({ action: "update_role", user_id: userId, role });
     if (error || data?.error) {
       toast.error(data?.error || "Erro ao atualizar papel");
     } else {
@@ -195,9 +202,7 @@ export function UserManagement() {
   const handleSaveClientLinks = async () => {
     if (!clientLinkUser) return;
     setSavingClientLinks(true);
-    const { data, error } = await supabase.functions.invoke("admin-manage-user", {
-      body: { action: "update_client_links", user_id: clientLinkUser.id, client_ids: selectedClientIds },
-    });
+    const { data, error } = await invokeAdminManageUser({ action: "update_client_links", user_id: clientLinkUser.id, client_ids: selectedClientIds });
     if (error || data?.error) {
       toast.error(data?.error || "Erro ao salvar vínculos");
     } else {
@@ -224,9 +229,7 @@ export function UserManagement() {
     if (!permissionsUser) return;
     setSavingPerms(true);
     const cleaned = sanitizeAllowedTabs(permTabs);
-    const { data, error } = await supabase.functions.invoke("admin-manage-user", {
-      body: { action: "update_permissions", user_id: permissionsUser.id, allowed_tabs: cleaned },
-    });
+    const { data, error } = await invokeAdminManageUser({ action: "update_permissions", user_id: permissionsUser.id, allowed_tabs: cleaned });
     if (error || data?.error) {
       toast.error(data?.error || "Erro ao salvar permissões");
     } else {
@@ -250,7 +253,7 @@ export function UserManagement() {
     if (editData.email !== editingUser.email) body.email = editData.email;
     if (editData.password) body.password = editData.password;
 
-    const { data, error } = await supabase.functions.invoke("admin-manage-user", { body });
+    const { data, error } = await invokeAdminManageUser(body);
     if (error || data?.error) {
       toast.error(data?.error || "Erro ao atualizar usuário");
     } else {
@@ -264,9 +267,7 @@ export function UserManagement() {
   const handleDelete = async (userId: string, name: string) => {
     if (!confirm(`Tem certeza que deseja excluir o usuário "${name}"?`)) return;
 
-    const { data, error } = await supabase.functions.invoke("admin-manage-user", {
-      body: { action: "delete", user_id: userId },
-    });
+    const { data, error } = await invokeAdminManageUser({ action: "delete", user_id: userId });
 
     if (error || data?.error) {
       toast.error(data?.error || "Erro ao excluir usuário");
@@ -277,9 +278,7 @@ export function UserManagement() {
   };
 
   const handleToggleActive = async (userId: string, active: boolean) => {
-    const { data, error } = await supabase.functions.invoke("admin-manage-user", {
-      body: { action: "toggle_active", user_id: userId, active },
-    });
+    const { data, error } = await invokeAdminManageUser({ action: "toggle_active", user_id: userId, active });
     if (error || data?.error) {
       toast.error(data?.error || "Erro ao alterar status");
     } else {
