@@ -19,10 +19,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("EXTERNAL_SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl =
+      Deno.env.get("SUPABASE_URL") ?? Deno.env.get("EXTERNAL_SUPABASE_URL")!;
+    const serviceRoleKey =
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
+      Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
 
     // Get caller from token
     const token = authHeader.replace("Bearer ", "");
@@ -93,11 +97,21 @@ Deno.serve(async (req) => {
         .eq("user_id", newUserId);
     }
 
-    // Assign role
-    await adminClient.from("user_roles").insert({
-      user_id: newUserId,
-      role,
-    });
+    // Assign role (delete existing rows first to avoid any unique conflict)
+    const desiredRole = role || "cliente";
+    await adminClient.from("user_roles").delete().eq("user_id", newUserId);
+    const { error: roleErr } = await adminClient
+      .from("user_roles")
+      .insert({ user_id: newUserId, role: desiredRole });
+    if (roleErr) {
+      console.error("[admin-create-user] role insert failed", roleErr);
+      return new Response(
+        JSON.stringify({ error: `Usuário criado, mas falhou ao atribuir papel: ${roleErr.message}` }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+
 
     // Link sub-user to the admin who created them
     await adminClient.from("user_owner").insert({
