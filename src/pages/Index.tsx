@@ -664,7 +664,7 @@ const Index = () => {
                             <t.icon className="h-4 w-4" />
                             <span>{t.label}</span>
                           </button>
-                          {t.id === "settings" && (
+                          {t.id === "settings" && isAjudaAllowed && (
                             <button
                               onClick={() => { setSidebarOpen(false); navigate("/ajuda"); }}
                               className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50"
