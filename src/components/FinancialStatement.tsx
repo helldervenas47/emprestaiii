@@ -232,7 +232,7 @@ export function FinancialStatement() {
     // Para vendas antigas com paid_installments/partial_paid sem entrada no histórico,
     // adiciona uma linha agregada com a diferença para que o extrato bata com o saldo.
     const saleRows: Row[] = [];
-    sales.forEach((s: Sale) => {
+    sales.filter((s: Sale) => s.businessType !== "aluguel_veiculo").forEach((s: Sale) => {
       const desc = s.description || s.productName || "Venda";
       const account = s.customerName || "—";
       const history = s.paymentHistory || [];
