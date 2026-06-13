@@ -145,16 +145,16 @@ const Cadastro = () => {
       if (inviteCode && inviteState.valid) {
         await applyInviteAfterSignup(data.user.id);
       } else {
-        // Self-service signup: this user owns their own EmprestAI account.
-        // Default role = 'admin' (owner of their own tenant data).
+        // Self-service signup: novo usuário começa com papel padrão 'cliente'.
         await (supabase as any)
           .from("user_roles")
           .upsert(
-            { user_id: data.user.id, role: "admin" },
+            { user_id: data.user.id, role: "cliente" },
             { onConflict: "user_id,role", ignoreDuplicates: true },
           );
       }
     }
+
 
 
     setLoading(false);
