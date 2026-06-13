@@ -21,6 +21,21 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      // Banco principal do app é o Supabase EXTERNO (userClient).
+      // Importar o client da Lovable Cloud (`@/integrations/supabase/client`)
+      // graveria dados no banco ocioso. Use sempre o userClient.
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/integrations/supabase/client",
+              message:
+                "Use @/integrations/supabase/userClient. O banco principal do app é o Supabase externo; o client da Lovable Cloud está ocioso.",
+            },
+          ],
+        },
+      ],
     },
   },
 );
