@@ -19,10 +19,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("EXTERNAL_SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
+    // Use the standard Supabase env vars auto-injected by every edge runtime,
+    // so the function works regardless of which project it's deployed to.
+    const supabaseUrl =
+      Deno.env.get("SUPABASE_URL") ?? Deno.env.get("EXTERNAL_SUPABASE_URL")!;
+    const serviceRoleKey =
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
+      Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
 
     const token = authHeader.replace("Bearer ", "");
     // Cryptographically verify the JWT against Supabase's auth server
