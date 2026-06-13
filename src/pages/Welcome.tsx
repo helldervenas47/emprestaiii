@@ -12,7 +12,7 @@ import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
-import { resolvePersonalIcon } from "@/lib/personalExpenseCategories";
+import { resolvePersonalIcon, personalCategories, getIconName } from "@/lib/personalExpenseCategories";
 
 async function invokeSeed<T = unknown>(body: Record<string, unknown>) {
   // Edge function is deployed on Lovable Cloud, but JWT belongs to the external project.
@@ -33,6 +33,13 @@ interface PreviewResponse {
   note?: string;
 }
 
+// Local fallback list — always available, even if the edge function fails.
+const LOCAL_EXPENSE: PreviewCat[] = personalCategories.map((c) => ({
+  name: c.name,
+  icon: getIconName(c.icon),
+  color: c.color,
+}));
+
 const STEPS = 3;
 
 export default function Welcome() {
@@ -52,7 +59,9 @@ export default function Welcome() {
 
   const [previewTried, setPreviewTried] = useState(false);
 
-  // Load preview when reaching step 2
+  // Load preview when reaching step 2. Try the edge function first (owner's
+  // real categories); if it fails or returns nothing, fall back to the local
+  // default list so the user always sees options.
   useEffect(() => {
     if (step !== 2 || preview || loadingPreview || previewTried) return;
     (async () => {
@@ -60,11 +69,12 @@ export default function Welcome() {
       const { data, error } = await invokeSeed<PreviewResponse>({ mode: "preview" });
       setLoadingPreview(false);
       setPreviewTried(true);
-      if (error || !data?.ok) {
-        toast.error("Não consegui carregar as categorias sugeridas.");
-        return;
+      const hasRemote = !error && data?.ok && (data.expense?.length || data.income?.length);
+      if (hasRemote) {
+        setPreview(data!);
+      } else {
+        setPreview({ ok: true, expense: LOCAL_EXPENSE, income: [] });
       }
-      setPreview(data);
     })();
   }, [step, preview, loadingPreview, previewTried]);
 
@@ -98,21 +108,53 @@ export default function Welcome() {
       setStep(1);
       return;
     }
+    if (!user?.id) {
+      toast.error("Sessão expirada. Faça login novamente.");
+      return;
+    }
     setSubmitting(true);
-    const { data, error } = await invokeSeed({
+
+    // 1) Try the edge function (copies owner's real categories if available).
+    const { data, error } = await invokeSeed<{ ok: boolean; insertedExpenseCategories?: number }>({
       mode: "apply",
       displayName: displayName.trim(),
       businessName: businessName.trim() || undefined,
       selectedExpenseNames: selectedExpense.map((c) => c.name),
       selectedIncomeNames: selectedIncome.map((c) => c.name),
     });
-    setSubmitting(false);
-    if (error || !(data as any)?.ok) {
-      toast.error("Não foi possível concluir agora. Tente novamente.");
-      return;
+    const seededFromOwner = !error && data?.ok && (data.insertedExpenseCategories ?? 0) > 0;
+
+    // 2) Fallback: insert the locally-selected categories directly (idempotent).
+    if (!seededFromOwner && selectedExpense.length > 0) {
+      const { data: existing } = await userSupabase
+        .from("personal_expense_categories")
+        .select("name")
+        .eq("user_id", user.id);
+      const have = new Set(((existing ?? []) as Array<{ name: string }>)
+        .map((r) => r.name.trim().toLowerCase()));
+      const rows = selectedExpense
+        .filter((c) => !have.has(c.name.trim().toLowerCase()))
+        .map((c) => ({ user_id: user.id, name: c.name, icon: c.icon, color: c.color }));
+      if (rows.length > 0) {
+        const { error: insErr } = await userSupabase
+          .from("personal_expense_categories")
+          .insert(rows);
+        if (insErr) {
+          setSubmitting(false);
+          toast.error("Não foi possível salvar as categorias. Tente novamente.");
+          return;
+        }
+      }
+      // Also save display name on profile
+      await userSupabase
+        .from("profiles")
+        .update({ display_name: displayName.trim(), full_name: displayName.trim() })
+        .eq("user_id", user.id);
     }
+
+    setSubmitting(false);
     // Mark onboarded locally so guard does not bounce back
-    try { localStorage.setItem(`emprestai-onboarded-${user?.id ?? ""}`, "1"); } catch { /* noop */ }
+    try { localStorage.setItem(`emprestai-onboarded-${user.id}`, "1"); } catch { /* noop */ }
     toast.success("Tudo pronto! Bem-vindo ao " + brandName + " 🎉");
     navigate("/", { replace: true });
   };
