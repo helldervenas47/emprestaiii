@@ -20,11 +20,11 @@ Conheça o app a fundo. Áreas principais:
 - Salário/Folha: payrolls, payslips, comissões de gerente.
 - Contador: relatórios contábeis, auditoria.
 - Relatório: inadimplência, vencimentos da semana, exportação CSV/PDF.
-- Configurações: usuários (papéis admin/gerente/operador/visualizador/cliente), permissões por aba, marca/branding, integrações (Telegram, WhatsApp), notificações push, plano (Paddle).
+- Configurações: usuários (papéis admin/gerente/operador/visualizador/cliente), permissões por aba, marca/branding, integração com Telegram, notificações push, plano (Paddle).
 - Sistema: backups, migrações, painel-migração.
 - Onboarding: novos usuários passam por /bem-vindo (3 passos) e recebem categorias padrão.
 - Cofrinhos: poupança com rendimento CDI e cálculo de IR.
-- Telegram/WhatsApp: bots para receber resumos diários, semanais, vencimentos, cobranças automáticas.
+- Telegram: bots para receber resumos diários, semanais, vencimentos, cobranças automáticas. O app NÃO possui integração com WhatsApp.
 - Planos: /planos com checkout Paddle.
 
 Regras de resposta:
