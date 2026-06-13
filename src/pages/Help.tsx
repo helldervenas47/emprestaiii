@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase as cloudSupabase } from "@/integrations/supabase/client";
-import { supabase as userSupabase } from "@/integrations/supabase/userClient";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AppLogo } from "@/components/AppLogo";
@@ -10,6 +8,9 @@ import { ArrowLeft, Loader2, Send, Sparkles, User as UserIcon } from "lucide-rea
 import { toast } from "sonner";
 
 interface Msg { role: "user" | "assistant"; content: string }
+
+const HELP_CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/help-chat`;
+const HELP_CHAT_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 const SUGGESTIONS = [
   "Como cadastrar um empréstimo parcelado?",
@@ -46,25 +47,28 @@ export default function Help() {
     setSending(true);
 
     try {
-      const { data: sess } = await userSupabase.auth.getSession();
-      const token = sess.session?.access_token;
-      const { data, error } = await cloudSupabase.functions.invoke<{ reply?: string; error?: string }>(
-        "help-chat",
-        {
-          body: { messages: next.map(({ role, content }) => ({ role, content })) },
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      const response = await fetch(HELP_CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: HELP_CHAT_KEY,
+          Authorization: `Bearer ${HELP_CHAT_KEY}`,
         },
-      );
-      if (error || data?.error || !data?.reply) {
-        const msg = data?.error || error?.message || "Não consegui responder agora.";
+        body: JSON.stringify({ messages: next.map(({ role, content }) => ({ role, content })) }),
+      });
+
+      const data = (await response.json().catch(() => null)) as { reply?: string; error?: string } | null;
+      if (!response.ok || data?.error || !data?.reply) {
+        const msg = data?.error || `Falha ao chamar o assistente (${response.status}).`;
         toast.error(msg);
         setMessages((prev) => [...prev, { role: "assistant", content: `⚠️ ${msg}` }]);
       } else {
-        setMessages((prev) => [...prev, { role: "assistant", content: data.reply! }]);
+        setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
       }
     } catch (e) {
-      toast.error("Erro de rede.");
-      setMessages((prev) => [...prev, { role: "assistant", content: "⚠️ Erro de rede." }]);
+      const msg = e instanceof Error ? e.message : "Erro de rede.";
+      toast.error(msg);
+      setMessages((prev) => [...prev, { role: "assistant", content: `⚠️ ${msg}` }]);
     } finally {
       setSending(false);
     }

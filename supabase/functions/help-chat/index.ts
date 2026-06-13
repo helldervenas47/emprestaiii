@@ -3,7 +3,7 @@
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-api-version",
 };
 
 const SYSTEM_PROMPT = `Você é o "Assistente EmprestAI" — um especialista no aplicativo EmprestAI, criado para ajudar agiotas, lojistas e pequenos empreendedores a gerenciarem empréstimos, vendas, despesas pessoais e do negócio, veículos, boletos, folha de pagamento e relatórios.
@@ -63,7 +63,8 @@ Deno.serve(async (req) => {
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Lovable-API-Key": LOVABLE_API_KEY,
+        "X-Lovable-AIG-SDK": "edge-function-fetch",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
