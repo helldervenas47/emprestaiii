@@ -1540,12 +1540,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
     return acc;
   }, {} as Record<string, number>);
 
-  const getNextDueDate = (s: Sale): Date => {
-    const isRecorrente = s.paymentMode === "recorrente" && s.installments > 1;
-    const baseDate = new Date(s.date + "T00:00:00");
-    const nextInstIdx = s.paidInstallments;
-    return isRecorrente ? addByFrequency(baseDate, s.frequency || "Mensal", nextInstIdx) : baseDate;
-  };
+  const getNextDueDate = getNextDueDateHelper;
 
   const filtered = sales.filter((s) => {
     const q = search.toLowerCase();
@@ -1564,9 +1559,10 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
     if (categoryFilter === "all") return getSaleCategory(s) !== "paid";
     return getSaleCategory(s) === categoryFilter;
   }).sort((a, b) => {
-    // Sempre ordena por data de vencimento (mais antiga primeiro)
+    // Sempre ordena por data de vencimento (mais antiga primeiro), respeitando datas customizadas por parcela
     return getNextDueDate(a).getTime() - getNextDueDate(b).getTime();
   });
+
 
   const total = filtered.reduce((acc, s) => acc + s.total, 0);
 
