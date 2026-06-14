@@ -926,7 +926,15 @@ export function useLoans() {
 
       if (!existingFull || existingFull.length === 0) {
         const rate = loan.managerCommissionRate ?? 10;
-        const amount = (loan.amount * rate) / 100;
+        const totalCommission = (loan.amount * rate) / 100;
+        // Em contratos parcelados, cada parcela já paga gerou comissão derivada
+        // (perInstallment) no gráfico. Ao quitar, só registramos a comissão das
+        // parcelas QUE FALTAVAM — senão somariam em dobro com as derivadas.
+        const remaining = Math.max(0, loan.installments - loan.paidInstallments);
+        const perInstallment = totalCommission / Math.max(1, loan.installments);
+        const amount = loan.installments <= 1
+          ? totalCommission
+          : Math.max(0, Math.round(perInstallment * remaining * 100) / 100);
         await supabase.from("manager_commissions").insert({
           user_id: dataOwnerId,
           loan_id: loanId,
@@ -939,6 +947,7 @@ export function useLoans() {
           generated_at: dateStr,
         } as any);
       }
+
     }
 
     await fetchPayments();
