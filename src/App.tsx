@@ -36,7 +36,7 @@ const PainelMigracao = lazy(() => import("./pages/PainelMigracao.tsx"));
 const PiggyBankDetail = lazy(() => import("./pages/PiggyBankDetail.tsx"));
 const PiggyBanks = lazy(() => import("./pages/PiggyBanks.tsx"));
 const Welcome = lazy(() => import("./pages/Welcome.tsx"));
-const Help = lazy(() => import("./pages/Help.tsx"));
+
 
 
 const queryClient = new QueryClient({
@@ -110,7 +110,7 @@ const App = () => (
                   <Route path="/painel-migracao" element={<PainelMigracao />} />
                   <Route path="/cofrinhos" element={<ProtectedRoute><PiggyBanks /></ProtectedRoute>} />
                   <Route path="/bem-vindo" element={<ProtectedRoute skipOnboardingCheck><Welcome /></ProtectedRoute>} />
-                  <Route path="/ajuda" element={<ProtectedRoute skipOnboardingCheck><Help /></ProtectedRoute>} />
+                  <Route path="/ajuda" element={<Navigate to="/?tab=help" replace />} />
                   <Route path="/cofrinho/:id" element={<ProtectedRoute><PiggyBankDetail /></ProtectedRoute>} />
 
                   <Route path="*" element={<NotFound />} />

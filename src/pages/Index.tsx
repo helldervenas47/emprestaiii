@@ -17,6 +17,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useNavigate } from "react-router-dom";
 
 // Lazy load heavy components
+const HelpChat = lazy(() => import("@/components/HelpChat"));
 const DashboardCards = lazy(() => import("@/components/DashboardCards").then(m => ({ default: m.DashboardCards })));
 const LoanForm = lazy(() => import("@/components/LoanForm").then(m => ({ default: m.LoanForm })));
 const LoanSimulator = lazy(() => import("@/components/LoanSimulator").then(m => ({ default: m.LoanSimulator })));
@@ -98,7 +99,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "boletos" | "salary" | "accountant" | "calendar" | "settings" | "system";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "boletos" | "salary" | "accountant" | "calendar" | "settings" | "system" | "help";
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
@@ -122,6 +123,7 @@ const tabConfig = [
   { id: "overdue" as Tab, label: "Relatório", icon: Folders },
   { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
   { id: "system" as Tab, label: "Sistema", icon: Sliders },
+  { id: "help" as Tab, label: "Ajuda", icon: HelpCircle },
   
 ];
 
@@ -238,6 +240,14 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Administração: gerenciamento de usuários, aprovações e links de convite.",
       "Conta e Assinatura: visualize e altere o plano contratado.",
       "Personalização: identidade visual e temas do sistema.",
+    ],
+  },
+  help: {
+    title: "Ajuda",
+    items: [
+      "Chat com o assistente de IA do app.",
+      "Tire dúvidas sobre qualquer recurso: cadastros, cofrinhos, relatórios, integrações.",
+      "As respostas são geradas em tempo real e cobrem todas as funcionalidades.",
     ],
   },
 };
@@ -493,6 +503,8 @@ const Index = () => {
 
   const visibleTabs = tabConfig.filter((t) => {
     if (loading) return false;
+    // "Ajuda" é sempre visível para qualquer usuário logado.
+    if (t.id === "help") return !!user;
     // Tabs marcadas como adminOnly são exclusivas para administradores
     if ((t as any).adminOnly && role !== "admin") return false;
     // Visualizador: aba de Configurações é ocultada por completo (apenas leitura
@@ -657,15 +669,6 @@ const Index = () => {
                             <t.icon className="h-4 w-4" />
                             <span>{t.label}</span>
                           </button>
-                          {t.id === "settings" && isAjudaAllowed && (
-                            <button
-                              onClick={() => { setSidebarOpen(false); navigate("/ajuda"); }}
-                              className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                            >
-                              <HelpCircle className="h-4 w-4" />
-                              <span>Ajuda</span>
-                            </button>
-                          )}
                         </React.Fragment>
                       ))}
                     </nav>
@@ -776,14 +779,6 @@ const Index = () => {
                   >
                     <t.icon className="h-3.5 w-3.5" /><span className="hidden xs:inline">{t.label}</span>
                   </button>
-                  {t.id === "settings" && isAjudaAllowed && (
-                    <button
-                      onClick={() => navigate("/ajuda")}
-                      className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 sm:py-2.5 text-[10px] sm:text-xs font-medium border-b-2 transition-all whitespace-nowrap uppercase tracking-wide border-transparent text-muted-foreground hover:text-foreground"
-                    >
-                      <HelpCircle className="h-3.5 w-3.5" /><span className="hidden xs:inline">Ajuda</span>
-                    </button>
-                  )}
                 </React.Fragment>
               ))}
             </nav>
@@ -1199,6 +1194,9 @@ const Index = () => {
         {tab === "system" && canAccessTab("system") && (
           <SystemSettings />
         )}
+        {tab === "help" && canAccessTab("help") && (
+          <HelpChat />
+        )}
         </>)}
         </Suspense>
       </main>
@@ -1436,16 +1434,6 @@ const Index = () => {
                             </button>
                           );
                         })}
-                      {isAjudaAllowed && (
-                        <button
-                          type="button"
-                          onClick={() => { setMoreOpen(false); navigate("/ajuda"); }}
-                          className="flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all touch-manipulation border-border/40 bg-card/50 text-foreground hover:border-primary/30 hover:bg-muted/40"
-                        >
-                          <HelpCircle className="h-5 w-5" />
-                          <span className="text-[11px] font-medium text-center leading-tight">Ajuda</span>
-                        </button>
-                      )}
                     </div>
 
                   </div>
