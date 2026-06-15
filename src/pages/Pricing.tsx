@@ -22,17 +22,27 @@ import logoIcon from "@/assets/logo-icon.png";
 interface Plan {
   id: string;
   name: string;
+  description: string | null;
   price: number;
+  price_semestral: number | null;
+  price_anual: number | null;
+  discount_semestral: number | null;
+  discount_anual: number | null;
+  badge: string | null;
+  promo_text: string | null;
+  highlight_color: string | null;
   highlight: boolean;
+  recommended: boolean;
   features: string[];
   sort_order: number;
 }
 
-const PLAN_PRICE_MAP: Record<string, string> = {
-  "Básico": "basico_monthly",
-  "Profissional": "profissional_monthly",
-  "Empresarial": "empresarial_monthly",
-};
+type Cycle = "monthly" | "semestral" | "annual";
+const CYCLE_MONTHS: Record<Cycle, number> = { monthly: 1, semestral: 6, annual: 12 };
+const CYCLE_LABEL: Record<Cycle, string> = { monthly: "Mensal", semestral: "Semestral", annual: "Anual" };
+
+const formatBRL = (v: number) =>
+  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const benefits = [
   {
