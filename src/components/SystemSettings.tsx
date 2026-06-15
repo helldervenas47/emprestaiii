@@ -101,6 +101,14 @@ export function SystemSettings() {
           </TabsContent>
         )}
 
+        {isAdmin && (
+          <TabsContent value="plans" className="space-y-4 mt-4">
+            <Suspense fallback={<SectionLoader />}>
+              <PlanManagement />
+            </Suspense>
+          </TabsContent>
+        )}
+
         <TabsContent value="billing" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
