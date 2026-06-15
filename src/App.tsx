@@ -110,7 +110,7 @@ const App = () => (
                   <Route path="/painel-migracao" element={<PainelMigracao />} />
                   <Route path="/cofrinhos" element={<ProtectedRoute><PiggyBanks /></ProtectedRoute>} />
                   <Route path="/bem-vindo" element={<ProtectedRoute skipOnboardingCheck><Welcome /></ProtectedRoute>} />
-                  <Route path="/ajuda" element={<ProtectedRoute skipOnboardingCheck><Help /></ProtectedRoute>} />
+                  <Route path="/ajuda" element={<Navigate to="/?tab=help" replace />} />
                   <Route path="/cofrinho/:id" element={<ProtectedRoute><PiggyBankDetail /></ProtectedRoute>} />
 
                   <Route path="*" element={<NotFound />} />
