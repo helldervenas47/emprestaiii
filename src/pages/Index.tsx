@@ -123,7 +123,7 @@ const tabConfig = [
   { id: "overdue" as Tab, label: "Relatório", icon: Folders },
   { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
   { id: "system" as Tab, label: "Sistema", icon: Sliders },
-  { id: "help" as Tab, label: "Ajuda", icon: HelpCircle },
+  { id: "help" as Tab, label: "Assistente EmprestAI", icon: HelpCircle },
   
 ];
 
