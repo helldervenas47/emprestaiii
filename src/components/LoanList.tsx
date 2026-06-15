@@ -176,7 +176,8 @@ function rawFormatCurrency(value: number): string {
 
 function getNextDate(base: Date, frequency: string, periods: number): Date {
   const d = new Date(base);
-  if (frequency === "Semanal") d.setDate(d.getDate() + 7 * periods);
+  if (frequency === "Diário") d.setDate(d.getDate() + periods);
+  else if (frequency === "Semanal") d.setDate(d.getDate() + 7 * periods);
   else if (frequency === "Quinzenal") d.setDate(d.getDate() + 15 * periods);
   else d.setMonth(d.getMonth() + periods);
   return d;
@@ -910,6 +911,7 @@ function LoanCardView({
               <Select value={form.interestType} onValueChange={(v) => updateField("interestType", v)}>
                 <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="Diário">Diário</SelectItem>
                   <SelectItem value="Semanal">Semanal</SelectItem>
                   <SelectItem value="Quinzenal">Quinzenal</SelectItem>
                   <SelectItem value="Mensal">Mensal</SelectItem>
@@ -1579,7 +1581,8 @@ function LoanCardView({
             // ciclos até ficar > hoje (ignora renegociações no due_date).
             const today = new Date().toISOString().split("T")[0];
             const advance = (d: Date) => {
-              if (freq === "Semanal") d.setDate(d.getDate() + 7);
+              if (freq === "Diário") d.setDate(d.getDate() + 1);
+              else if (freq === "Semanal") d.setDate(d.getDate() + 7);
               else if (freq === "Quinzenal") d.setDate(d.getDate() + 15);
               else {
                 const anchorDay = Number(originalDueIso.split("-")[2]);
@@ -1622,7 +1625,7 @@ function LoanCardView({
                   <p className="text-[10px] text-muted-foreground mt-1">
                     {freq === "Mensal"
                       ? `Cálculo: próximo dia ${originalDueIso.split("-")[2]} (âncora original) após hoje. Renegociações no vencimento são ignoradas.`
-                      : `Cálculo: próximo ciclo de ${freq === "Semanal" ? "7" : "15"} dias a partir da âncora, após hoje.`}
+                      : `Cálculo: próximo ciclo de ${freq === "Diário" ? "1" : freq === "Semanal" ? "7" : "15"} dia(s) a partir da âncora, após hoje.`}
                   </p>
                 </div>
                 <div className="col-span-2 pt-2">
@@ -1653,7 +1656,8 @@ function LoanCardView({
               };
               const addPeriod = (iso: string, anchorIso: string, freq: string) => {
                 const d = new Date(iso + "T00:00:00");
-                if (freq === "Semanal") d.setDate(d.getDate() + 7);
+                if (freq === "Diário") d.setDate(d.getDate() + 1);
+                else if (freq === "Semanal") d.setDate(d.getDate() + 7);
                 else if (freq === "Quinzenal") d.setDate(d.getDate() + 15);
                 else {
                   const anchorDay = Number(anchorIso.split("-")[2]);
@@ -2340,7 +2344,8 @@ function LoanCardView({
             const anchorRef = rawAnchor > loan.dueDate ? loan.dueDate : rawAnchor;
             const freq = loan.interestType || "Mensal";
             const advance = (d: Date) => {
-              if (freq === "Semanal") d.setDate(d.getDate() + 7);
+              if (freq === "Diário") d.setDate(d.getDate() + 1);
+              else if (freq === "Semanal") d.setDate(d.getDate() + 7);
               else if (freq === "Quinzenal") d.setDate(d.getDate() + 15);
               else {
                 const anchorDay = Number(anchorRef.split("-")[2]);
@@ -3285,6 +3290,7 @@ function LoanRowView({
                   <Select value={form.interestType} onValueChange={(v) => updateField("interestType", v)}>
                     <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="Diário">Diário</SelectItem>
                       <SelectItem value="Semanal">Semanal</SelectItem>
                       <SelectItem value="Quinzenal">Quinzenal</SelectItem>
                       <SelectItem value="Mensal">Mensal</SelectItem>

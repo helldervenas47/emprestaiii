@@ -44,7 +44,8 @@ interface Props {
 
 function getNextDate(base: Date, frequency: string, periods: number): Date {
   const d = new Date(base);
-  if (frequency === "Semanal") d.setDate(d.getDate() + 7 * periods);
+  if (frequency === "Diário") d.setDate(d.getDate() + periods);
+  else if (frequency === "Semanal") d.setDate(d.getDate() + 7 * periods);
   else if (frequency === "Quinzenal") d.setDate(d.getDate() + 15 * periods);
   else d.setMonth(d.getMonth() + periods);
   return d;
@@ -443,6 +444,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                 <Select value={form.interestType} onValueChange={(v) => update("interestType", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="Diário">Diário</SelectItem>
                     <SelectItem value="Semanal">Semanal</SelectItem>
                     <SelectItem value="Quinzenal">Quinzenal</SelectItem>
                     <SelectItem value="Mensal">Mensal</SelectItem>
