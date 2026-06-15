@@ -240,6 +240,14 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Personalização: identidade visual e temas do sistema.",
     ],
   },
+  help: {
+    title: "Ajuda",
+    items: [
+      "Chat com o assistente de IA do app.",
+      "Tire dúvidas sobre qualquer recurso: cadastros, cofrinhos, relatórios, integrações.",
+      "As respostas são geradas em tempo real e cobrem todas as funcionalidades.",
+    ],
+  },
 };
 function HideValuesToggle() {
   const { hidden, toggle } = useHideValues();
