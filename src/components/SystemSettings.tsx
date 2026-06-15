@@ -50,6 +50,11 @@ export function SystemSettings() {
               <ShieldCheck className="h-3.5 w-3.5" /> Administração
             </TabsTrigger>
           )}
+          {isAdmin && (
+            <TabsTrigger value="plans" className="flex items-center gap-1.5 flex-1 min-w-[120px]">
+              <Package className="h-3.5 w-3.5" /> Planos
+            </TabsTrigger>
+          )}
           <TabsTrigger value="billing" className="flex items-center gap-1.5 flex-1 min-w-[120px]">
             <Wallet className="h-3.5 w-3.5" /> Conta
           </TabsTrigger>
