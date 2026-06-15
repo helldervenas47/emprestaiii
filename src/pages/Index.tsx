@@ -779,14 +779,6 @@ const Index = () => {
                   >
                     <t.icon className="h-3.5 w-3.5" /><span className="hidden xs:inline">{t.label}</span>
                   </button>
-                  {t.id === "settings" && isAjudaAllowed && (
-                    <button
-                      onClick={() => navigate("/ajuda")}
-                      className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 sm:py-2.5 text-[10px] sm:text-xs font-medium border-b-2 transition-all whitespace-nowrap uppercase tracking-wide border-transparent text-muted-foreground hover:text-foreground"
-                    >
-                      <HelpCircle className="h-3.5 w-3.5" /><span className="hidden xs:inline">Ajuda</span>
-                    </button>
-                  )}
                 </React.Fragment>
               ))}
             </nav>
