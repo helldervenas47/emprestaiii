@@ -43,7 +43,7 @@ export function PiggyBankList({ readOnly = false }: Props) {
   const navigate = useNavigate();
   const { mask } = useHideValues();
   const { piggyBanks, deposits, recurrences, balances, detailed, cdiRate, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate, refreshCdiNow, storeMoney, withdrawMoney, setRecurrenceActive, deleteRecurrence } = usePiggyBanks();
-  const { categories: personalCategories } = usePersonalExpenseCategories();
+  
 
 
   const [transferTarget, setTransferTarget] = useState<PiggyBankType | null>(null);
