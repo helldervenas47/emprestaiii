@@ -36,7 +36,7 @@ const PainelMigracao = lazy(() => import("./pages/PainelMigracao.tsx"));
 const PiggyBankDetail = lazy(() => import("./pages/PiggyBankDetail.tsx"));
 const PiggyBanks = lazy(() => import("./pages/PiggyBanks.tsx"));
 const Welcome = lazy(() => import("./pages/Welcome.tsx"));
-const Help = lazy(() => import("./pages/Help.tsx"));
+
 
 
 const queryClient = new QueryClient({
