@@ -123,7 +123,7 @@ const tabConfig = [
   { id: "overdue" as Tab, label: "Relatório", icon: Folders },
   { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
   { id: "system" as Tab, label: "Sistema", icon: Sliders },
-  { id: "help" as Tab, label: "Assistente EmprestAI", icon: Sparkles },
+  { id: "help" as Tab, label: "Assistente IA", icon: Sparkles },
   
 ];
 
@@ -243,7 +243,7 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
     ],
   },
   help: {
-    title: "Assistente EmprestAI",
+    title: "Assistente IA",
     items: [
       "Chat com o assistente de IA do app.",
       "Tire dúvidas sobre qualquer recurso: cadastros, cofrinhos, relatórios, integrações.",
