@@ -342,7 +342,7 @@ Deno.serve(async (req) => {
       const returnText = body?.return_text === true;
       // Manual send: respect user pref, default to tomorrow
       let manualTarget = (body?.date as string) || tomorrow;
-      let manualLabel = "Planejamento de Amanhã";
+      let manualLabel = "Planejamento do Dia";
       if (!body?.date) {
         const { data: pref } = await admin
           .from("daily_planning_telegram_prefs")
@@ -374,7 +374,7 @@ Deno.serve(async (req) => {
     if (user.id !== queryUserId) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
 
     const returnText = url.searchParams.get("return_text") === "1";
-    const res = await buildAndSend(admin, queryUserId, tomorrow, brandName, "Planejamento de Amanhã", { returnText });
+    const res = await buildAndSend(admin, queryUserId, tomorrow, brandName, "Planejamento do Dia", { returnText });
     return new Response(JSON.stringify({ ok: true, sent: res.sent ? 1 : 0, reason: res.reason, text: res.text }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -405,7 +405,7 @@ Deno.serve(async (req) => {
 
       const isToday = (pref as any).send_target === "today";
       const targetDate = isToday ? today : tomorrow;
-      const label = isToday ? "Planejamento do Dia" : "Planejamento de Amanhã";
+      const label = isToday ? "Planejamento do Dia" : "Planejamento do Dia";
       const res = await buildAndSend(admin, (pref as any).user_id, targetDate, brandName, label);
       if (res.sent) {
         const newLast = { ...lastSent };
