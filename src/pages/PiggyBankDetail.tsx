@@ -17,7 +17,7 @@ import { RowActions } from "@/components/ui/row-actions";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { usePiggyBanks, type PiggyBank as PiggyBankType, type PiggyBankDeposit } from "@/hooks/usePiggyBanks";
 import { useUnifiedAccountBalance } from "@/hooks/useUnifiedAccountBalance";
-import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
+import { PIGGY_BANK_CATEGORIES } from "@/lib/piggyBankCategories";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
@@ -40,7 +40,7 @@ export default function PiggyBankDetail() {
     updateDeposit, deleteDeposit, setPiggyRate,
     storeMoney, withdrawMoney,
   } = usePiggyBanks();
-  const { categories: personalCategories } = usePersonalExpenseCategories();
+  
   const accountBalance = useUnifiedAccountBalance();
 
   const pb = useMemo(() => piggyBanks.find((p) => p.id === id) ?? null, [piggyBanks, id]);
@@ -528,10 +528,10 @@ export default function PiggyBankDetail() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Sem categoria</SelectItem>
-                    {personalCategories.map((c) => (
-                      <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                    {PIGGY_BANK_CATEGORIES.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
                     ))}
-                    {draft.category && !personalCategories.some((c) => c.name === draft.category) && (
+                    {draft.category && !PIGGY_BANK_CATEGORIES.includes(draft.category as typeof PIGGY_BANK_CATEGORIES[number]) && (
                       <SelectItem value={draft.category}>{draft.category}</SelectItem>
                     )}
                   </SelectContent>
