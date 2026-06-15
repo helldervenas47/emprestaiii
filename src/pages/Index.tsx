@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from "react";
-import { Plus, Users, LayoutDashboard, FolderOpen, Folders, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity, Send, MessageCircle, Wallet, Barcode, UserPlus, HelpCircle } from "lucide-react";
+import { Plus, Users, LayoutDashboard, FolderOpen, Folders, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity, Send, MessageCircle, Wallet, Barcode, UserPlus, Sparkles } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -123,7 +123,7 @@ const tabConfig = [
   { id: "overdue" as Tab, label: "Relatório", icon: Folders },
   { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
   { id: "system" as Tab, label: "Sistema", icon: Sliders },
-  { id: "help" as Tab, label: "Assistente EmprestAI", icon: HelpCircle },
+  { id: "help" as Tab, label: "Assistente EmprestAI", icon: Sparkles },
   
 ];
 
