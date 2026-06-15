@@ -243,7 +243,7 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
     ],
   },
   help: {
-    title: "Ajuda",
+    title: "Assistente EmprestAI",
     items: [
       "Chat com o assistente de IA do app.",
       "Tire dúvidas sobre qualquer recurso: cadastros, cofrinhos, relatórios, integrações.",
