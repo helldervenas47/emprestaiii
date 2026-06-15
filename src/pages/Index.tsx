@@ -503,6 +503,8 @@ const Index = () => {
 
   const visibleTabs = tabConfig.filter((t) => {
     if (loading) return false;
+    // "Ajuda" é sempre visível para qualquer usuário logado.
+    if (t.id === "help") return !!user;
     // Tabs marcadas como adminOnly são exclusivas para administradores
     if ((t as any).adminOnly && role !== "admin") return false;
     // Visualizador: aba de Configurações é ocultada por completo (apenas leitura
