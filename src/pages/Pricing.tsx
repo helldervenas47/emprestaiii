@@ -283,7 +283,17 @@ const Pricing = () => {
           {loading ? (
             <div className="text-center py-12 text-muted-foreground">Carregando planos...</div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div
+              className={`grid gap-6 mx-auto justify-center items-stretch ${
+                plans.length === 1
+                  ? "grid-cols-1 max-w-md"
+                  : plans.length === 2
+                  ? "grid-cols-1 sm:grid-cols-2 max-w-3xl"
+                  : plans.length === 3
+                  ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-5xl"
+                  : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 max-w-7xl"
+              }`}
+            >
               {plans.map((plan) => {
                 const isLoading = checkoutLoading && checkoutPlan === plan.name;
                 const months = CYCLE_MONTHS[cycle];
