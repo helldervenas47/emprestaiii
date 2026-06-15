@@ -263,6 +263,91 @@ async function saveKnowledge(question: string, answer: string, userId: string | 
   }
 }
 
+// --- Manifesto de validação (rotas, abas e botões REAIS) ----------------
+const ALLOWED_ROUTES = new Set<string>([
+  "/", "/auth", "/cadastro", "/planos", "/termos", "/reembolso", "/privacidade",
+  "/reset-password", "/planejamento-do-dia", "/painel-migracao",
+  "/cofrinhos", "/cofrinho", "/bem-vindo", "/ajuda",
+]);
+
+const ALLOWED_TABS = new Set<string>([
+  "Dashboard", "Empréstimos", "Vendas", "Veículos", "Calendário",
+  "Cadastro", "Receitas e Despesas", "Boletos", "Salário", "Contador",
+  "Relatório", "Configurações", "Sistema", "Ajuda", "Assistente EmprestAI",
+]);
+
+const ALLOWED_BUTTONS = [
+  "novo emprestimo", "novo cliente", "nova venda", "novo produto",
+  "novo veiculo", "nova receita", "nova despesa", "nova categoria",
+  "novo cofrinho", "depositar", "sacar", "registrar pagamento",
+  "renegociar", "gerar contrato", "simular", "exportar", "importar",
+  "salvar", "cancelar", "editar", "excluir", "adicionar",
+  "novo bot", "vincular telegram", "gerar codigo", "instalar app",
+  "ler linha digitavel", "pagar pix", "novo holerite", "nova folha",
+];
+
+function stripAccents(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+function validateReply(reply: string): { ok: boolean; issues: string[] } {
+  const issues: string[] = [];
+
+  // Rotas citadas (padrão /algo). Ignora http(s)://.
+  const routeRegex = /(?<![:\w/])\/[a-z][a-z0-9-]*(?:\/[a-z0-9:-]+)?/gi;
+  for (const raw of reply.match(routeRegex) || []) {
+    const base = "/" + raw.slice(1).split("/")[0].toLowerCase();
+    if (!ALLOWED_ROUTES.has(base)) issues.push(`Rota "${raw}" não existe no app.`);
+  }
+
+  // Abas: aba **X** ou aba "X".
+  const tabRegex = /aba\s+(?:\*\*|")([^*"\n]{2,40})(?:\*\*|")/gi;
+  let m: RegExpExecArray | null;
+  while ((m = tabRegex.exec(reply)) !== null) {
+    const name = m[1].trim().replace(/[:.,;]$/, "");
+    const ok = Array.from(ALLOWED_TABS).some((t) => stripAccents(t) === stripAccents(name));
+    if (!ok) issues.push(`Aba "${name}" não existe.`);
+  }
+
+  // Botões em **negrito** que pareçam rótulo de ação.
+  const boldRegex = /\*\*([^*\n]{2,40})\*\*/g;
+  while ((m = boldRegex.exec(reply)) !== null) {
+    const raw = m[1].trim().replace(/[:.,;!?]$/, "");
+    const norm = stripAccents(raw);
+    if (Array.from(ALLOWED_TABS).some((t) => stripAccents(t) === norm)) continue;
+    if (norm.startsWith("/")) continue;
+    const looksLikeButton = /^(novo|nova|adicionar|criar|salvar|editar|excluir|gerar|registrar|vincular|instalar|depositar|sacar|renegociar|simular|exportar|importar|pagar|ler)\b/.test(norm);
+    if (!looksLikeButton) continue;
+    const known = ALLOWED_BUTTONS.some((b) => norm === b || norm.startsWith(b) || b.startsWith(norm));
+    if (!known) issues.push(`Botão "${raw}" não consta na lista oficial.`);
+  }
+
+  return { ok: issues.length === 0, issues };
+}
+
+async function callAI(
+  systemContent: string,
+  history: ChatMsg[],
+  apiKey: string,
+): Promise<{ ok: true; reply: string } | { ok: false; status: number; text: string }> {
+  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Lovable-API-Key": apiKey,
+      "X-Lovable-AIG-SDK": "edge-function-fetch",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [{ role: "system", content: systemContent }, ...history],
+    }),
+  });
+  if (!resp.ok) return { ok: false, status: resp.status, text: await resp.text() };
+  const data = await resp.json();
+  const reply = data?.choices?.[0]?.message?.content?.trim() || "Não consegui gerar resposta.";
+  return { ok: true, reply };
+}
+
 // --- Handler -------------------------------------------------------------
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -284,11 +369,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Pergunta atual = última mensagem do usuário
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
     const currentQuestion = lastUser?.content?.trim() || "";
 
-    // Identifica o user_id (best-effort, sem bloquear se falhar)
     let userId: string | null = null;
     try {
       const authHeader = req.headers.get("Authorization") || "";
@@ -307,47 +390,69 @@ Deno.serve(async (req) => {
       fetchBotsContext(),
       currentQuestion ? fetchKnowledgeContext(currentQuestion) : Promise.resolve(""),
     ]);
-    const systemContent = SYSTEM_PROMPT + botsContext + knowledgeContext;
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Lovable-API-Key": LOVABLE_API_KEY,
-        "X-Lovable-AIG-SDK": "edge-function-fetch",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [{ role: "system", content: systemContent }, ...trimmed],
-      }),
-    });
+    const manifestNote = `\n\n==============================
+MANIFESTO OFICIAL (use APENAS estes nomes/rotas)
+==============================
+Rotas válidas: ${Array.from(ALLOWED_ROUTES).join(", ")}.
+Abas válidas: ${Array.from(ALLOWED_TABS).join(", ")}.
+Botões conhecidos: ${ALLOWED_BUTTONS.join(", ")}.
+Se a ação que o usuário quer NÃO puder ser explicada com esses elementos, diga honestamente que a função não existe ou peça que ele confirme com o suporte. NUNCA invente rota, aba ou botão fora desta lista.`;
 
-    if (!resp.ok) {
-      const txt = await resp.text();
-      const status = resp.status === 429 || resp.status === 402 ? resp.status : 500;
+    const systemContent = SYSTEM_PROMPT + manifestNote + botsContext + knowledgeContext;
+
+    let attempt = await callAI(systemContent, trimmed, LOVABLE_API_KEY);
+    if (!attempt.ok) {
+      const status = attempt.status === 429 || attempt.status === 402 ? attempt.status : 500;
       const msg =
-        resp.status === 429
+        attempt.status === 429
           ? "Muitas requisições — aguarde alguns segundos e tente de novo."
-          : resp.status === 402
+          : attempt.status === 402
           ? "Créditos de IA esgotados. Adicione créditos no workspace."
-          : `Erro IA: ${txt.slice(0, 200)}`;
+          : `Erro IA: ${attempt.text.slice(0, 200)}`;
       return new Response(JSON.stringify({ error: msg }), {
         status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const data = await resp.json();
-    const reply = data?.choices?.[0]?.message?.content?.trim() || "Não consegui gerar resposta.";
+    let reply = attempt.reply;
+    let validation = validateReply(reply);
 
-    // Salva no conhecimento (não bloqueia a resposta).
-    if (currentQuestion) {
+    // Auto-correção: 1 nova tentativa com lista de problemas detectados.
+    if (!validation.ok) {
+      console.warn("[help-chat] resposta inválida, corrigindo:", validation.issues);
+      const correctionHistory: ChatMsg[] = [
+        ...trimmed,
+        { role: "assistant", content: reply },
+        {
+          role: "user",
+          content:
+            `Sua resposta acima contém referências que NÃO existem no app:\n` +
+            validation.issues.map((i) => `- ${i}`).join("\n") +
+            `\n\nReescreva a resposta usando APENAS rotas, abas e botões do MANIFESTO OFICIAL. ` +
+            `Se a ação não puder ser executada com esses elementos, diga honestamente que essa função não existe no app. Envie só a resposta corrigida.`,
+        },
+      ];
+      const fix = await callAI(systemContent, correctionHistory, LOVABLE_API_KEY);
+      if (fix.ok) {
+        const fixValidation = validateReply(fix.reply);
+        if (fixValidation.ok || fixValidation.issues.length < validation.issues.length) {
+          reply = fix.reply;
+          validation = fixValidation;
+        }
+      }
+    }
+
+    // Só salva no conhecimento se passou na validação.
+    if (currentQuestion && validation.ok) {
       saveKnowledge(currentQuestion, reply, userId).catch(() => {});
     }
 
-    return new Response(JSON.stringify({ reply }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ reply, validation: { ok: validation.ok, issues: validation.issues } }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), {
       status: 500,
