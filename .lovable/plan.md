@@ -1,68 +1,91 @@
-## Objetivo
+# Subaba "Planos" em Sistemas
 
-Quando um novo usuário criar conta (`/cadastro`), ele passa por um wizard de 3 passos e cai no dashboard já com as **mesmas categorias e configurações que você (owner principal) já tem hoje**, prontas pra usar.
+## Escopo
 
-## Fluxo
+Nova subaba **Planos** dentro de `SystemSettings.tsx`, posicionada logo após **Administração** (somente admin). Gerencia a tabela `plans` já existente, estendida com novos campos, e a tela `/planos` (Pricing) passa a refletir tudo automaticamente.
 
-```text
-/cadastro (signup)
-   │
-   ▼
-/bem-vindo  ← novo (wizard 3 passos, rota protegida só p/ quem não completou)
-   │  Passo 1: Nome do negócio / nome de exibição
-   │  Passo 2: Pré-visualização das categorias que serão criadas
-   │           (pode desmarcar as que não quiser)
-   │  Passo 3: Confirmar e entrar
-   ▼
-/ (dashboard)  ← com categorias, métodos de pagamento e prefs já seeded
+## 1. Banco de dados (migration)
+
+Estender a tabela `public.plans` (já existe com `id, name, price, highlight, active, features, sort_order, allowed_tabs, max_users, max_loans`). Adicionar:
+
+- `description text`
+- `price_semestral numeric` (valor total cobrado no semestre — pode ser calculado ou manual)
+- `price_anual numeric` (valor total do ano)
+- `discount_semestral numeric default 0` (% — CHECK 0..100)
+- `discount_anual numeric default 0` (% — CHECK 0..100)
+- `badge text` (ex.: "Mais Popular", "Melhor Custo-Benefício", "Mais Vendido", null)
+- `promo_text text` (texto livre, ex.: "2 meses grátis")
+- `highlight_color text` (hex/HSL para borda/destaque)
+- `recommended boolean default false` (Plano Recomendado — destaque visual extra)
+
+RLS: a tabela já tem policy de leitura pública. Adicionar policies de INSERT/UPDATE/DELETE restritas a `has_role(auth.uid(),'admin')`. Manter GRANTs (`SELECT` para `anon`/`authenticated`, `ALL` para `service_role`).
+
+## 2. Componente novo `PlanManagement.tsx`
+
+Em `src/components/admin/PlanManagement.tsx`:
+
+- Lista de planos (cards/tabela) com botões Editar, Ativar/Desativar, Excluir, "Definir como recomendado".
+- Botão "Novo plano" abre `Dialog` com formulário (react-hook-form + zod):
+  - Nome, Descrição, Ordem, Status (Switch Ativo)
+  - **Valor mensal** (MoneyInput)
+  - **Desconto semestral (%)** e **Desconto anual (%)** — sliders/inputs 0–100
+  - **Valor semestral** e **Valor anual** — auto-calculados a partir do mensal e desconto (`mensal * meses * (1 - desc/100)`), mas editáveis manualmente (campo "sobrescrever").
+  - Selo (`Select`: nenhum, Mais Popular, Melhor Custo-Benefício, Mais Vendido, custom)
+  - Texto promocional
+  - Cor de destaque (color picker)
+  - Switch "Plano recomendado" (ao marcar, desmarca os outros)
+  - Switch "Destaque (highlight)"
+- Painel de preview ao lado mostrando como o card aparecerá na tela `/planos`, incluindo: valor original riscado, valor com desconto, "Economize R$ X (Y%)", badge e borda colorida.
+- Validações: desconto 0–100, preço ≥ 0, nome obrigatório.
+
+Hook `usePlans.ts` para CRUD via supabase client (`from('plans')`).
+
+## 3. Integração com `SystemSettings.tsx`
+
+- Importar lazy `PlanManagement`.
+- Adicionar `<TabsTrigger value="plans">` com ícone `Package`/`Tag`, logo após o trigger `admin`, condicionado a `isAdmin`.
+- Adicionar `<TabsContent value="plans">` chamando `<PlanManagement />`.
+
+## 4. Tela `/planos` (Pricing.tsx)
+
+- Estender query para selecionar novos campos.
+- Adicionar **toggle de ciclo** (Mensal | Semestral | Anual) acima do grid.
+- Renderização dinâmica por plano:
+  - Calcular `displayPrice = ciclo === 'mensal' ? price : (override || price*meses*(1-desc/100))`.
+  - Mostrar valor "por mês equivalente" (`displayPrice / meses`).
+  - Se há desconto: mostrar valor original riscado + economia em R$ e %.
+  - Renderizar `badge` (substitui o atual "Mais popular" fixo).
+  - Aplicar `highlight_color` na borda quando `recommended`.
+  - Mostrar `promo_text` abaixo do preço.
+- Ordenação por `sort_order`.
+
+## 5. Regras de cálculo (helper `src/lib/planPricing.ts`)
+
+```ts
+calcCyclePrice(monthly, months, discountPct, override?)
+calcSavings(monthly, cyclePrice, months) → { saved: R$, percent: % }
 ```
-
-## O que será copiado do owner principal
-
-Edge function `seed-new-user` (service role) lê do **owner principal** (seu user_id como template) e replica para o novo user_id:
-
-- `personal_expense_categories` — todas as categorias customizadas que você criou
-- `income_categories` — categorias de receita
-- `payment_methods` (se a tabela existir) — métodos de pagamento padrão
-- `account_settings` — só os defaults visuais/comportamentais (não copia dados sensíveis)
-
-NÃO copia: clientes, empréstimos, despesas, saldos, integrações Telegram/WhatsApp.
-
-## Passos de implementação
-
-1. **Marcar quem é o "owner template"**
-   - Adicionar coluna `is_seed_template boolean default false` em `profiles`
-   - Você marca seu próprio profile como `true` (via SQL único)
-
-2. **Edge function `seed-new-user`**
-   - Recebe `user_id` (do JWT), valida que usuário existe
-   - Busca categorias/configs do `is_seed_template = true`
-   - Insere cópias com `user_id` do novo usuário
-   - Idempotente (não duplica se já rodou)
-   - Marca `profiles.onboarded = true` no fim
-
-3. **Adicionar `onboarded boolean default false` em `profiles`**
-
-4. **Página `/bem-vindo` (wizard 3 passos)**
-   - Componente `OnboardingWizard.tsx` com 3 etapas e barra de progresso
-   - Passo 1: input nome do negócio + nome de exibição (grava em `profiles`)
-   - Passo 2: preview das categorias (chama edge function `preview-seed-categories` que retorna a lista pra exibir; checkboxes pra desmarcar)
-   - Passo 3: botão "Concluir" chama `seed-new-user` com a seleção final
-
-5. **Guard de rota no `App.tsx`**
-   - `ProtectedRoute` lê `profile.onboarded`. Se `false` e rota ≠ `/bem-vindo`, redireciona pra `/bem-vindo`.
-
-6. **Testar no preview** — criar conta de teste e verificar o fluxo end-to-end.
 
 ## Detalhes técnicos
 
-- **Schema**: 1 migration adicionando 2 colunas em `profiles` (`is_seed_template`, `onboarded`).
-- **Edge functions**: 2 novas (`seed-new-user`, `preview-seed-categories`), ambas com `verify_jwt = false` validando JWT em código (padrão do projeto).
-- **Frontend**: nova rota `/bem-vindo` + componente `OnboardingWizard.tsx` + alteração em `ProtectedRoute`.
-- **Sem alterações** em Paddle, emails, ou trigger no `auth.users`.
+- Tipos do Supabase serão auto-regenerados após a migration.
+- Usar `Money` formatter já existente em `src/lib/utils.ts` / `MoneyInput`.
+- Cache: `Pricing` faz fetch direto; após edição, admin pode recarregar — sem realtime por enquanto.
+- Acesso à subaba: bloqueado se `role !== 'admin'`.
 
-## Fora do escopo (deixar pra próxima rodada)
+## Arquivos criados/alterados
 
-- Emails brandeados (você ainda não tem domínio próprio — emails padrão Lovable continuam funcionando)
-- Integração Paddle real (preview já mostra banner "modo teste")
-- Vídeo/tutorial dentro do wizard
+```text
+db migration                               (nova)
+src/components/admin/PlanManagement.tsx    (novo)
+src/hooks/usePlans.ts                      (novo)
+src/lib/planPricing.ts                     (novo)
+src/components/SystemSettings.tsx          (editado)
+src/pages/Pricing.tsx                      (editado)
+```
+
+## Fora do escopo
+
+- Integração com gateway de pagamento por ciclo (Asaas/Stripe) — os novos preços ficam disponíveis no banco, mas a criação de assinaturas semestral/anual no gateway é um próximo passo.
+- Histórico de versões de preço.
+- A/B testing de planos.

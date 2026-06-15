@@ -2,7 +2,7 @@ import { lazy, Suspense, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { CreditCard, Users as UsersIcon, Image as ImageIcon, Loader2, ShieldCheck, Palette, Wallet, Activity, KeyRound } from "lucide-react";
+import { CreditCard, Users as UsersIcon, Image as ImageIcon, Loader2, ShieldCheck, Palette, Wallet, Activity, KeyRound, Package } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -15,6 +15,7 @@ const InviteAndApprovalSettings = lazy(() => import("@/components/InviteAndAppro
 const SystemHealth = lazy(() => import("@/components/SystemHealth").then(m => ({ default: m.SystemHealth })));
 const ApiKeysManager = lazy(() => import("@/components/ApiKeysManager").then(m => ({ default: m.ApiKeysManager })));
 const RolePermissionsMatrix = lazy(() => import("@/components/admin/RolePermissionsMatrix").then(m => ({ default: m.RolePermissionsMatrix })));
+const PlanManagement = lazy(() => import("@/components/admin/PlanManagement").then(m => ({ default: m.PlanManagement })));
 
 const SectionLoader = () => (
   <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
@@ -47,6 +48,11 @@ export function SystemSettings() {
           {isAdmin && (
             <TabsTrigger value="admin" className="flex items-center gap-1.5 flex-1 min-w-[120px]">
               <ShieldCheck className="h-3.5 w-3.5" /> Administração
+            </TabsTrigger>
+          )}
+          {isAdmin && (
+            <TabsTrigger value="plans" className="flex items-center gap-1.5 flex-1 min-w-[120px]">
+              <Package className="h-3.5 w-3.5" /> Planos
             </TabsTrigger>
           )}
           <TabsTrigger value="billing" className="flex items-center gap-1.5 flex-1 min-w-[120px]">
@@ -92,6 +98,14 @@ export function SystemSettings() {
             </Suspense>
 
             <TelegramImageDeliveryCard />
+          </TabsContent>
+        )}
+
+        {isAdmin && (
+          <TabsContent value="plans" className="space-y-4 mt-4">
+            <Suspense fallback={<SectionLoader />}>
+              <PlanManagement />
+            </Suspense>
           </TabsContent>
         )}
 
