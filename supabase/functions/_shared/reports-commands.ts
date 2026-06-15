@@ -635,22 +635,14 @@ async function vencimentosSemana(ctx: Ctx, snap: Snapshot): Promise<string> {
   const end = new Date(start.getTime() + 7 * 86_400_000);
   const endStr = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, "0")}-${String(end.getDate()).padStart(2, "0")}`;
   const entries = snap.loans.flatMap((loan) => dueEntriesForLoan(loan, snap.installments).map((e) => ({ ...e, borrower: loan.borrower_name || "—" })));
-  const upcoming = entries.filter((e) => !e.paid && e.due_date >= ctx.today && e.due_date <= endStr).sort((a, b) => a.due_date.localeCompare(b.due_date));
+  const upcoming = entries
+    .filter((e) => !e.paid && e.due_date >= ctx.today && e.due_date <= endStr)
+    .sort((a, b) => b.amount - a.amount || a.due_date.localeCompare(b.due_date) || a.borrower.localeCompare(b.borrower));
   const total = upcoming.reduce((s, e) => s + e.amount, 0);
   const lines = [`📆 *Vencimentos — próximos 7 dias*`, "", `📑 Parcelas: *${upcoming.length}* — Total: *${fmtBRL(total)}*`];
   if (upcoming.length === 0) return [...lines, "", "_Nada a vencer no período._"].join("\n");
-  const byDay = new Map<string, typeof upcoming>();
-  for (const e of upcoming) {
-    const arr = byDay.get(e.due_date) ?? [];
-    arr.push(e);
-    byDay.set(e.due_date, arr);
-  }
-  for (const [day, items] of byDay) {
-    const dayTotal = items.reduce((s, e) => s + e.amount, 0);
-    const sortedItems = [...items].sort((a, b) => b.amount - a.amount);
-    lines.push("", `*${day.split("-").reverse().join("/")}* — *${fmtBRL(dayTotal)}*`);
-    for (const it of sortedItems) lines.push(`• ${it.borrower} — ${fmtBRL(it.amount)}`);
-  }
+  lines.push("", "*Parcelas por valor (maior → menor):*");
+  for (const it of upcoming) lines.push(`• ${it.borrower} — ${fmtBRL(it.amount)} — venc. ${it.due_date.split("-").reverse().join("/")}`);
   return lines.join("\n");
 }
 
