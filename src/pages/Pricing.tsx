@@ -263,32 +263,89 @@ const Pricing = () => {
           <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-14">
             Comece hoje mesmo. Sem contratos, cancele quando quiser.
           </p>
+          {/* Cycle toggle */}
+          <div className="flex justify-center mb-10">
+            <div className="inline-flex rounded-full border border-border/40 bg-card p-1">
+              {(["monthly", "semestral", "annual"] as Cycle[]).map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setCycle(c)}
+                  className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                    cycle === c ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {CYCLE_LABEL[c]}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {loading ? (
             <div className="text-center py-12 text-muted-foreground">Carregando planos...</div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {plans.map((plan) => {
                 const isLoading = checkoutLoading && checkoutPlan === plan.name;
+                const months = CYCLE_MONTHS[cycle];
+                const discount = cycle === "semestral" ? (plan.discount_semestral ?? 0)
+                  : cycle === "annual" ? (plan.discount_anual ?? 0) : 0;
+                const override = cycle === "semestral" ? plan.price_semestral
+                  : cycle === "annual" ? plan.price_anual : null;
+                const totalPrice = override && override > 0
+                  ? override
+                  : plan.price * months * (1 - discount / 100);
+                const originalTotal = plan.price * months;
+                const saved = Math.max(originalTotal - totalPrice, 0);
+                const equivMonthly = totalPrice / months;
+                const isFeatured = plan.recommended || plan.highlight;
+                const accent = plan.highlight_color;
+                const badgeText = plan.badge || (plan.highlight ? "Mais popular" : null);
+
                 return (
                   <Card
                     key={plan.id}
                     no3d
-                    className={`flex flex-col ${
-                      plan.highlight
-                        ? "border-primary/50 shadow-[0_0_30px_-8px_hsl(var(--primary)/0.3)] relative"
-                        : ""
+                    className={`flex flex-col relative ${
+                      isFeatured ? "shadow-[0_0_30px_-8px_hsl(var(--primary)/0.3)]" : ""
                     }`}
+                    style={isFeatured && accent
+                      ? { borderColor: accent, boxShadow: `0 0 30px -8px ${accent}` }
+                      : undefined}
                   >
-                    {plan.highlight && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-semibold gradient-primary text-primary-foreground">
-                        Mais popular
+                    {badgeText && (
+                      <div
+                        className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-semibold text-primary-foreground"
+                        style={accent ? { background: accent } : undefined}
+                      >
+                        {badgeText}
                       </div>
                     )}
                     <CardHeader className="text-center pb-2">
                       <CardTitle className="text-xl">{plan.name}</CardTitle>
+                      {plan.description && (
+                        <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>
+                      )}
                       <div className="mt-4">
-                        <span className="text-4xl font-bold text-foreground">R$ {plan.price}</span>
-                        <span className="text-muted-foreground">/mês</span>
+                        {months > 1 && saved > 0 && (
+                          <div className="text-xs text-muted-foreground line-through">
+                            {formatBRL(originalTotal)}
+                          </div>
+                        )}
+                        <span className="text-4xl font-bold text-foreground">{formatBRL(totalPrice)}</span>
+                        <span className="text-muted-foreground text-sm">/{CYCLE_LABEL[cycle].toLowerCase()}</span>
+                        {months > 1 && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            equivale a {formatBRL(equivMonthly)}/mês
+                          </div>
+                        )}
+                        {saved > 0 && (
+                          <div className="text-xs font-semibold mt-1" style={accent ? { color: accent } : { color: "hsl(var(--primary))" }}>
+                            Economize {formatBRL(saved)} ({((saved / originalTotal) * 100).toFixed(0)}%)
+                          </div>
+                        )}
+                        {plan.promo_text && (
+                          <div className="text-xs font-medium mt-1 text-foreground">{plan.promo_text}</div>
+                        )}
                       </div>
                     </CardHeader>
                     <CardContent className="flex flex-col flex-1">
