@@ -519,7 +519,23 @@ export default function PiggyBankDetail() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label htmlFor="ed-cat">Categoria</Label>
-                <Input id="ed-cat" value={draft.category} onChange={(e) => setDraft((p) => ({ ...p, category: e.target.value }))} />
+                <Select
+                  value={draft.category || "__none__"}
+                  onValueChange={(v) => setDraft((p) => ({ ...p, category: v === "__none__" ? "" : v }))}
+                >
+                  <SelectTrigger id="ed-cat">
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sem categoria</SelectItem>
+                    {personalCategories.map((c) => (
+                      <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                    ))}
+                    {draft.category && !personalCategories.some((c) => c.name === draft.category) && (
+                      <SelectItem value={draft.category}>{draft.category}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="ed-date">Data prevista</Label>
