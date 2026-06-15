@@ -40,6 +40,7 @@ export default function PiggyBankDetail() {
     updateDeposit, deleteDeposit, setPiggyRate,
     storeMoney, withdrawMoney,
   } = usePiggyBanks();
+  const { categories: personalCategories } = usePersonalExpenseCategories();
   const accountBalance = useUnifiedAccountBalance();
 
   const pb = useMemo(() => piggyBanks.find((p) => p.id === id) ?? null, [piggyBanks, id]);
