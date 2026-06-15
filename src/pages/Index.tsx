@@ -1194,6 +1194,9 @@ const Index = () => {
         {tab === "system" && canAccessTab("system") && (
           <SystemSettings />
         )}
+        {tab === "help" && canAccessTab("help") && (
+          <HelpChat />
+        )}
         </>)}
         </Suspense>
       </main>
