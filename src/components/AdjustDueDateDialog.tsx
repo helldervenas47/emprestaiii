@@ -11,7 +11,8 @@ import { calculateInstallment } from "@/hooks/useLoans";
 
 function getNextDate(base: Date, frequency: string, periods: number): Date {
   const d = new Date(base);
-  if (frequency === "Semanal") d.setDate(d.getDate() + 7 * periods);
+  if (frequency === "Diário") d.setDate(d.getDate() + periods);
+  else if (frequency === "Semanal") d.setDate(d.getDate() + 7 * periods);
   else if (frequency === "Quinzenal") d.setDate(d.getDate() + 15 * periods);
   else d.setMonth(d.getMonth() + periods);
   return d;

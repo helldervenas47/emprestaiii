@@ -124,7 +124,8 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
           const offsetFromNext = i - nextInstallment;
           const freq = loan.interestType || "Mensal";
           const d = new Date(dueBase.getFullYear(), dueBase.getMonth(), dueBase.getDate());
-          if (freq === "Semanal") d.setDate(d.getDate() + offsetFromNext * 7);
+          if (freq === "Diário") d.setDate(d.getDate() + offsetFromNext);
+          else if (freq === "Semanal") d.setDate(d.getDate() + offsetFromNext * 7);
           else if (freq === "Quinzenal") d.setDate(d.getDate() + offsetFromNext * 15);
           else d.setMonth(d.getMonth() + offsetFromNext);
           dateStr = formatLocalDate(d);

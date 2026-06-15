@@ -1077,7 +1077,8 @@ export function useLoans() {
     const anchorRef = rawAnchor > loan.dueDate ? loan.dueDate : rawAnchor;
     const freq = loan.interestType || "Mensal";
     const advance = (d: Date) => {
-      if (freq === "Semanal") d.setDate(d.getDate() + 7);
+      if (freq === "Diário") d.setDate(d.getDate() + 1);
+      else if (freq === "Semanal") d.setDate(d.getDate() + 7);
       else if (freq === "Quinzenal") d.setDate(d.getDate() + 15);
       else {
         const anchorDay = Number(anchorRef.split("-")[2]);
@@ -2110,7 +2111,8 @@ export function calculateInstallment(principal: number, rate: number, months: nu
 
 export function computeNextDueDate(currentDueDate: string, frequency: string, paidCount: number): string {
   const base = new Date(currentDueDate + "T00:00:00");
-  if (frequency === "Semanal") base.setDate(base.getDate() + 7 * paidCount);
+  if (frequency === "Diário") base.setDate(base.getDate() + paidCount);
+  else if (frequency === "Semanal") base.setDate(base.getDate() + 7 * paidCount);
   else if (frequency === "Quinzenal") base.setDate(base.getDate() + 15 * paidCount);
   else base.setMonth(base.getMonth() + paidCount);
   return base.toISOString().split("T")[0];
