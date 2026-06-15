@@ -2,7 +2,7 @@ import { lazy, Suspense, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { CreditCard, Users as UsersIcon, Image as ImageIcon, Loader2, ShieldCheck, Palette, Wallet, Activity, KeyRound } from "lucide-react";
+import { CreditCard, Users as UsersIcon, Image as ImageIcon, Loader2, ShieldCheck, Palette, Wallet, Activity, KeyRound, Package } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
