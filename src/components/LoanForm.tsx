@@ -322,170 +322,67 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              <div className="space-y-4">
-
-            <div>
-              <Label>Cliente</Label>
-              {activeClients.length === 0 ? (
-                <p className="text-sm text-destructive mt-1">Nenhum cliente ativo cadastrado. Cadastre um cliente primeiro.</p>
-              ) : (
-                <Select value={form.borrowerName} onValueChange={(v) => update("borrowerName", v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeClients.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}{c.isManager ? " 👔" : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-
-            {selectedClient && (
-              <div className={`rounded-lg border p-3 space-y-2 ${exceedsLimit ? "border-warning bg-warning/10" : "border-border bg-muted/20"}`}>
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <Wallet className={`h-4 w-4 ${exceedsLimit ? "text-warning" : "text-primary"}`} />
-                    <p className="text-sm font-medium">Limite de crédito do cliente</p>
-                  </div>
-                  <Badge variant="outline" className="text-[10px]">
-                    {selectedClientLimit?.mode === "manual" ? "Manual" : "Auto"}
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-xs">
-                  <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
-                    <p className="text-muted-foreground">Total</p>
-                    <p className="font-semibold">{formatBRL(selectedClientLimit?.currentLimit ?? 0)}</p>
-                  </div>
-                  <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
-                    <p className="text-muted-foreground">Em uso</p>
-                    <p className="font-semibold">{formatBRL(selectedClientUsed)}</p>
-                  </div>
-                  <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
-                    <p className="text-muted-foreground">Disponível</p>
-                    <p className={`font-semibold ${selectedClientAvailable < 0 ? "text-destructive" : "text-success"}`}>{formatBRL(selectedClientAvailable)}</p>
-                  </div>
-                </div>
-                {exceedsLimit && (
-                  <div className="flex items-start gap-2 text-xs text-warning">
-                    <AlertTriangleIcon className="h-4 w-4 shrink-0 mt-0.5" />
-                    <p>
-                      Atenção: este empréstimo de {formatBRL(requestedAmount)} ultrapassa o limite disponível
-                      de {formatBRL(selectedClientAvailable)}. Você ainda pode prosseguir.
-                    </p>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Cliente — full width */}
+              <div className="md:col-span-2">
+                <Label>Cliente</Label>
+                {activeClients.length === 0 ? (
+                  <p className="text-sm text-destructive mt-1">Nenhum cliente ativo cadastrado. Cadastre um cliente primeiro.</p>
+                ) : (
+                  <Select value={form.borrowerName} onValueChange={(v) => update("borrowerName", v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeClients.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}{c.isManager ? " 👔" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
               </div>
-            )}
 
-            {/* Sale toggle */}
-            <div className="border border-border rounded-lg p-3 bg-muted/20">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isSale"
-                  checked={isSale}
-                  onChange={(e) => setIsSale(e.target.checked)}
-                  className="h-4 w-4 rounded border-border accent-primary"
-                />
-                <Label htmlFor="isSale" className="font-medium cursor-pointer text-sm">
-                  Contrato de venda
-                </Label>
-              </div>
-            </div>
-
-            {/* Manager section */}
-            <div className="border border-border rounded-lg p-3 space-y-3 bg-muted/20">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="hasManager"
-                  checked={hasManager}
-                  onChange={(e) => toggleHasManager(e.target.checked)}
-                  className="h-4 w-4 rounded border-border accent-primary"
-                />
-                <Label htmlFor="hasManager" className="font-medium cursor-pointer text-sm">
-                  Empréstimo com gerente
-                </Label>
-              </div>
-              {hasManager && (
-                <div className="space-y-3 pt-1 border-t border-border/50">
-                  <div>
-                    <Label className="text-xs">Gerente</Label>
-                    {managerClients.length === 0 ? (
-                      <p className="text-xs text-warning mt-1">Nenhum cliente marcado como gerente.</p>
-                    ) : (
-                      <Select value={managerId} onValueChange={setManagerId}>
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {managerClients.map((m) => (
-                            <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label className="text-xs">Comissão (%)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        inputMode="decimal"
-                        value={commissionRate}
-                        onChange={(e) => {
-                          setCommissionLastEdited("rate");
-                          setCommissionRate(e.target.value);
-                        }}
-                        className={cn(
-                          "h-9 text-sm",
-                          commissionLastEdited === "rate" && "ring-2 ring-primary/40 border-primary/50",
-                        )}
-                      />
+              {/* Limite de crédito — full width */}
+              {selectedClient && (
+                <div className={`md:col-span-2 rounded-lg border p-3 space-y-2 ${exceedsLimit ? "border-warning bg-warning/10" : "border-border bg-muted/20"}`}>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Wallet className={`h-4 w-4 ${exceedsLimit ? "text-warning" : "text-primary"}`} />
+                      <p className="text-sm font-medium">Limite de crédito do cliente</p>
                     </div>
-                    <div>
-                      <Label className="text-xs">Valor da comissão (R$)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        inputMode="decimal"
-                        value={commissionAmount}
-                        onChange={(e) => {
-                          setCommissionLastEdited("amount");
-                          setCommissionAmount(e.target.value);
-                        }}
-                        placeholder="0,00"
-                        className={cn(
-                          "h-9 text-sm",
-                          commissionLastEdited === "amount" && "ring-2 ring-primary/40 border-primary/50",
-                        )}
-                      />
+                    <Badge variant="outline" className="text-[10px]">
+                      {selectedClientLimit?.mode === "manual" ? "Manual" : "Auto"}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
+                      <p className="text-muted-foreground">Total</p>
+                      <p className="font-semibold">{formatBRL(selectedClientLimit?.currentLimit ?? 0)}</p>
+                    </div>
+                    <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
+                      <p className="text-muted-foreground">Em uso</p>
+                      <p className="font-semibold">{formatBRL(selectedClientUsed)}</p>
+                    </div>
+                    <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
+                      <p className="text-muted-foreground">Disponível</p>
+                      <p className={`font-semibold ${selectedClientAvailable < 0 ? "text-destructive" : "text-success"}`}>{formatBRL(selectedClientAvailable)}</p>
                     </div>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Base: valor do empréstimo {amount > 0 ? `(${formatCurrency(amount)})` : ""}. Os campos são sincronizados em tempo real.
-                  </p>
-                  {commissionExceedsLoan && (
-                    <p className="text-[11px] text-destructive">
-                      A comissão não pode ser maior que o valor do empréstimo.
-                    </p>
+                  {exceedsLimit && (
+                    <div className="flex items-start gap-2 text-xs text-warning">
+                      <AlertTriangleIcon className="h-4 w-4 shrink-0 mt-0.5" />
+                      <p>
+                        Atenção: este empréstimo de {formatBRL(requestedAmount)} ultrapassa o limite disponível
+                        de {formatBRL(selectedClientAvailable)}. Você ainda pode prosseguir.
+                      </p>
+                    </div>
                   )}
                 </div>
               )}
-              </div>
-            </div>
-            <div className="space-y-4">
 
-                <div className="grid grid-cols-2 gap-4">
-
+              {/* Valor (R$) */}
               <div>
                 <Label htmlFor="amount">Valor (R$)</Label>
                 <Input
@@ -494,6 +391,8 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                   placeholder="1000.00" required
                 />
               </div>
+
+              {/* Juros (%) */}
               <div>
                 <Label htmlFor="interestRate">Juros (%)</Label>
                 <Input
@@ -507,9 +406,8 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                   </p>
                 )}
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
+              {/* Valor do Juros (R$) */}
               <div>
                 <Label htmlFor="interestOverride">Valor do Juros (R$)</Label>
                 <Input
@@ -523,6 +421,8 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">Total de juros do contrato</p>
               </div>
+
+              {/* Valor a Pagar (R$) */}
               <div>
                 <Label htmlFor="monthlyOverride">Valor a Pagar (R$)</Label>
                 <Input
@@ -536,9 +436,8 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">Valor de cada parcela</p>
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
+              {/* Tipo de Contrato */}
               <div>
                 <Label>Tipo de Contrato</Label>
                 <Select value={form.interestType} onValueChange={(v) => update("interestType", v)}>
@@ -550,6 +449,8 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Parcelas */}
               <div>
                 <Label htmlFor="installments">Parcelas</Label>
                 <Input
@@ -558,9 +459,8 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                   placeholder="12" required
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
+              {/* Data Início */}
               <div>
                 <Label htmlFor="startDate">Data Início</Label>
                 <DatePickerField
@@ -569,6 +469,8 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                   onChange={(v) => update("startDate", v)}
                 />
               </div>
+
+              {/* Data 1ª Parcela */}
               <div>
                 <Label>Data 1ª Parcela</Label>
                 <Popover>
@@ -592,222 +494,324 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                   </PopoverContent>
                 </Popover>
               </div>
-            </div>
 
-            {/* Editable installment rows */}
-            {installments >= 2 && (
-              <div className="rounded-lg border border-border/50 overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setShowSchedule(!showSchedule)}
-                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
-                >
-                  {showSchedule ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  Parcelas ({installments}x)
-                  <Badge variant="outline" className="ml-auto text-xs">
-                    {form.interestType}
-                  </Badge>
-                </button>
-                {showSchedule && (
-                  <div className="divide-y divide-border/30 max-h-64 overflow-y-auto">
-                    {installmentRows.map((row, idx) => (
-                      <div key={idx} className="flex items-center gap-2 px-3 py-2.5">
-                        <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-muted/40 text-muted-foreground">
-                          {idx + 1}ª
-                        </span>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-8 text-xs flex-1 justify-start">
-                              <CalendarIcon className="h-3.5 w-3.5 mr-1.5 text-primary" />
-                              {format(row.date, "dd/MM/yyyy")}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={row.date}
-                             onSelect={(d) => {
-                                if (d) {
-                                  setInstallmentRows((prev) => {
-                                    const rows = [...prev];
-                                    rows[idx] = { ...rows[idx], date: d };
-                                    // Cascade subsequent dates from this one
-                                    for (let i = idx + 1; i < rows.length; i++) {
-                                      rows[i] = { ...rows[i], date: getNextDate(d, form.interestType, i - idx) };
-                                    }
-                                    // If first row changed, also update firstDueDate
-                                    if (idx === 0) setFirstDueDate(d);
-                                    return rows;
-                                  });
-                                }
-                              }}
-                              initialFocus
-                              className={cn("p-3 pointer-events-auto")}
-                            />
-                          </PopoverContent>
-                        </Popover>
+              {/* Contrato de venda — full width */}
+              <div className="border border-border rounded-lg p-3 bg-muted/20 md:col-span-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isSale"
+                    checked={isSale}
+                    onChange={(e) => setIsSale(e.target.checked)}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <Label htmlFor="isSale" className="font-medium cursor-pointer text-sm">
+                    Contrato de venda
+                  </Label>
+                </div>
+              </div>
+
+              {/* Empréstimo com gerente — full width */}
+              <div className="border border-border rounded-lg p-3 space-y-3 bg-muted/20 md:col-span-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="hasManager"
+                    checked={hasManager}
+                    onChange={(e) => toggleHasManager(e.target.checked)}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <Label htmlFor="hasManager" className="font-medium cursor-pointer text-sm">
+                    Empréstimo com gerente
+                  </Label>
+                </div>
+                {hasManager && (
+                  <div className="space-y-3 pt-1 border-t border-border/50">
+                    <div>
+                      <Label className="text-xs">Gerente</Label>
+                      {managerClients.length === 0 ? (
+                        <p className="text-xs text-warning mt-1">Nenhum cliente marcado como gerente.</p>
+                      ) : (
+                        <Select value={managerId} onValueChange={setManagerId}>
+                          <SelectTrigger className="h-9 text-sm">
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {managerClients.map((m) => (
+                              <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Comissão (%)</Label>
                         <Input
                           type="number"
                           step="0.01"
                           min="0"
-                          value={row.value}
+                          inputMode="decimal"
+                          value={commissionRate}
                           onChange={(e) => {
-                            setInstallmentRows((prev) => {
-                              const rows = [...prev];
-                              const newVal = e.target.value;
-                              rows[idx] = { ...rows[idx], value: newVal };
-                              // Auto-adjust: first installment redistributes across others
-                              if (idx === 0 && rows.length > 1) {
-                                const firstVal = parseFloat(newVal) || 0;
-                                const remaining = Math.max(0, totalAmount - firstVal);
-                                const otherCount = rows.length - 1;
-                                const otherVal = (remaining / otherCount).toFixed(2);
-                                for (let i = 1; i < rows.length; i++) {
-                                  rows[i] = { ...rows[i], value: otherVal };
-                                }
-                              }
-                              return rows;
-                            });
+                            setCommissionLastEdited("rate");
+                            setCommissionRate(e.target.value);
                           }}
-                          className="h-8 w-24 text-xs text-right"
+                          className={cn(
+                            "h-9 text-sm",
+                            commissionLastEdited === "rate" && "ring-2 ring-primary/40 border-primary/50",
+                          )}
                         />
                       </div>
-                    ))}
-                    <div className="px-3 py-2 bg-muted/20">
-                      <p className="text-xs text-muted-foreground">
-                        Total: <span className="font-bold text-foreground">{formatCurrency(installmentRows.reduce((s, r) => s + (parseFloat(r.value) || 0), 0))}</span>
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div>
-              <Label>Etiquetas</Label>
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {tags.map((tag, i) => (
-                  <Badge key={i} variant="secondary" className="gap-1 text-xs">
-                    {tag}
-                    <button type="button" onClick={() => setTags(tags.filter((_, j) => j !== i))} className="ml-0.5 hover:text-destructive">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && tagInput.trim()) {
-                      e.preventDefault();
-                      if (!tags.includes(tagInput.trim())) setTags([...tags, tagInput.trim()]);
-                      setTagInput("");
-                    }
-                  }}
-                  placeholder="Digite e pressione Enter"
-                  className="h-9 text-sm"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-9 shrink-0"
-                  onClick={() => {
-                    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-                      setTags([...tags, tagInput.trim()]);
-                      setTagInput("");
-                    }
-                  }}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </Button>
-                {existingTags.filter(t => !tags.includes(t)).length > 0 && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button type="button" variant="outline" size="sm" className="h-9 shrink-0">
-                        <ChevronDown className="h-3.5 w-3.5" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-2" align="end">
-                      <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
-                        {existingTags
-                          .filter(t => !tags.includes(t))
-                          .sort((a, b) => a.localeCompare(b, "pt-BR"))
-                          .map((tag) => (
-                            <button
-                              key={tag}
-                              type="button"
-                              className="text-left text-sm px-3 py-1.5 rounded-md hover:bg-muted transition-colors"
-                              onClick={() => setTags([...tags, tag])}
-                            >
-                              {tag}
-                            </button>
-                          ))}
+                      <div>
+                        <Label className="text-xs">Valor da comissão (R$)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          inputMode="decimal"
+                          value={commissionAmount}
+                          onChange={(e) => {
+                            setCommissionLastEdited("amount");
+                            setCommissionAmount(e.target.value);
+                          }}
+                          placeholder="0,00"
+                          className={cn(
+                            "h-9 text-sm",
+                            commissionLastEdited === "amount" && "ring-2 ring-primary/40 border-primary/50",
+                          )}
+                        />
                       </div>
-                    </PopoverContent>
-                  </Popover>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Base: valor do empréstimo {amount > 0 ? `(${formatCurrency(amount)})` : ""}. Os campos são sincronizados em tempo real.
+                    </p>
+                    {commissionExceedsLoan && (
+                      <p className="text-[11px] text-destructive">
+                        A comissão não pode ser maior que o valor do empréstimo.
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
-            </div>
 
-            <LoanPaymentSplitEditor
-              total={amount}
-              state={{ ...splitState, method1Id: splitState.enabled ? splitState.method1Id : paymentMethodId }}
-              onChange={(next) => {
-                setShowFormError(false);
-                setPaymentMethodId(next.method1Id);
-                setSplitState(next);
-              }}
-              showError={showFormError}
-            />
-
-            <div>
-              <Label htmlFor="notes">Observações</Label>
-              <Textarea
-                id="notes" value={form.notes} onChange={(e) => update("notes", e.target.value)}
-                placeholder="Notas sobre o empréstimo..." rows={2}
-              />
-            </div>
-
-            {amount > 0 && installments > 0 && (
-              <div className="rounded-lg bg-muted p-4 space-y-3">
-                <p className="text-sm font-medium text-foreground">Simulação (editável)</p>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Parcela (R$)</Label>
-                    <Input
-                      type="number" step="0.01"
-                      value={monthlyTouched ? monthlyOverride : calcMonthly.toFixed(2)}
-                      onChange={(e) => handleMonthlyChange(e.target.value)}
-                      className="h-8 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Total a Receber (R$)</Label>
-                    <p className="h-8 flex items-center text-sm font-bold text-primary">
-                      {formatCurrency(totalAmount)}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Juros Total (R$)</Label>
-                    <Input
-                      type="number" step="0.01"
-                      value={interestOverride !== "" ? interestOverride : calcInterest.toFixed(2)}
-                      onChange={(e) => handleInterestChange(e.target.value)}
-                      className="h-8 text-sm"
-                    />
-                  </div>
+              {/* Etiquetas — full width */}
+              <div className="md:col-span-2">
+                <Label>Etiquetas</Label>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {tags.map((tag, i) => (
+                    <Badge key={i} variant="secondary" className="gap-1 text-xs">
+                      {tag}
+                      <button type="button" onClick={() => setTags(tags.filter((_, j) => j !== i))} className="ml-0.5 hover:text-destructive">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && tagInput.trim()) {
+                        e.preventDefault();
+                        if (!tags.includes(tagInput.trim())) setTags([...tags, tagInput.trim()]);
+                        setTagInput("");
+                      }
+                    }}
+                    placeholder="Digite e pressione Enter"
+                    className="h-9 text-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 shrink-0"
+                    onClick={() => {
+                      if (tagInput.trim() && !tags.includes(tagInput.trim())) {
+                        setTags([...tags, tagInput.trim()]);
+                        setTagInput("");
+                      }
+                    }}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                  {existingTags.filter(t => !tags.includes(t)).length > 0 && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" size="sm" className="h-9 shrink-0">
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-56 p-2" align="end">
+                        <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
+                          {existingTags
+                            .filter(t => !tags.includes(t))
+                            .sort((a, b) => a.localeCompare(b, "pt-BR"))
+                            .map((tag) => (
+                              <button
+                                key={tag}
+                                type="button"
+                                className="text-left text-sm px-3 py-1.5 rounded-md hover:bg-muted transition-colors"
+                                onClick={() => setTags([...tags, tag])}
+                              >
+                                {tag}
+                              </button>
+                            ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </div>
               </div>
-            )}
 
+              {/* Forma de pagamento / split — full width */}
+              <div className="md:col-span-2">
+                <LoanPaymentSplitEditor
+                  total={amount}
+                  state={{ ...splitState, method1Id: splitState.enabled ? splitState.method1Id : paymentMethodId }}
+                  onChange={(next) => {
+                    setShowFormError(false);
+                    setPaymentMethodId(next.method1Id);
+                    setSplitState(next);
+                  }}
+                  showError={showFormError}
+                />
               </div>
+
+              {/* Observações — full width */}
+              <div className="md:col-span-2">
+                <Label htmlFor="notes">Observações</Label>
+                <Textarea
+                  id="notes" value={form.notes} onChange={(e) => update("notes", e.target.value)}
+                  placeholder="Notas sobre o empréstimo..." rows={2}
+                />
+              </div>
+
+              {/* Simulação (editável) — full width */}
+              {amount > 0 && installments > 0 && (
+                <div className="rounded-lg bg-muted p-4 space-y-3 md:col-span-2">
+                  <p className="text-sm font-medium text-foreground">Simulação (editável)</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Parcela (R$)</Label>
+                      <Input
+                        type="number" step="0.01"
+                        value={monthlyTouched ? monthlyOverride : calcMonthly.toFixed(2)}
+                        onChange={(e) => handleMonthlyChange(e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Total a Receber (R$)</Label>
+                      <p className="h-8 flex items-center text-sm font-bold text-primary">
+                        {formatCurrency(totalAmount)}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Juros Total (R$)</Label>
+                      <Input
+                        type="number" step="0.01"
+                        value={interestOverride !== "" ? interestOverride : calcInterest.toFixed(2)}
+                        onChange={(e) => handleInterestChange(e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Parcelas editáveis — full width */}
+              {installments >= 2 && (
+                <div className="rounded-lg border border-border/50 overflow-hidden md:col-span-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowSchedule(!showSchedule)}
+                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+                  >
+                    {showSchedule ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    Parcelas ({installments}x)
+                    <Badge variant="outline" className="ml-auto text-xs">
+                      {form.interestType}
+                    </Badge>
+                  </button>
+                  {showSchedule && (
+                    <div className="divide-y divide-border/30 max-h-64 overflow-y-auto">
+                      {installmentRows.map((row, idx) => (
+                        <div key={idx} className="flex items-center gap-2 px-3 py-2.5">
+                          <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-muted/40 text-muted-foreground">
+                            {idx + 1}ª
+                          </span>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-8 text-xs flex-1 justify-start">
+                                <CalendarIcon className="h-3.5 w-3.5 mr-1.5 text-primary" />
+                                {format(row.date, "dd/MM/yyyy")}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={row.date}
+                                onSelect={(d) => {
+                                  if (d) {
+                                    setInstallmentRows((prev) => {
+                                      const rows = [...prev];
+                                      rows[idx] = { ...rows[idx], date: d };
+                                      // Cascade subsequent dates from this one
+                                      for (let i = idx + 1; i < rows.length; i++) {
+                                        rows[i] = { ...rows[i], date: getNextDate(d, form.interestType, i - idx) };
+                                      }
+                                      // If first row changed, also update firstDueDate
+                                      if (idx === 0) setFirstDueDate(d);
+                                      return rows;
+                                    });
+                                  }
+                                }}
+                                initialFocus
+                                className={cn("p-3 pointer-events-auto")}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={row.value}
+                            onChange={(e) => {
+                              setInstallmentRows((prev) => {
+                                const rows = [...prev];
+                                const newVal = e.target.value;
+                                rows[idx] = { ...rows[idx], value: newVal };
+                                // Auto-adjust: first installment redistributes across others
+                                if (idx === 0 && rows.length > 1) {
+                                  const firstVal = parseFloat(newVal) || 0;
+                                  const remaining = Math.max(0, totalAmount - firstVal);
+                                  const otherCount = rows.length - 1;
+                                  const otherVal = (remaining / otherCount).toFixed(2);
+                                  for (let i = 1; i < rows.length; i++) {
+                                    rows[i] = { ...rows[i], value: otherVal };
+                                  }
+                                }
+                                return rows;
+                              });
+                            }}
+                            className="h-8 w-24 text-xs text-right"
+                          />
+                        </div>
+                      ))}
+                      <div className="px-3 py-2 bg-muted/20">
+                        <p className="text-xs text-muted-foreground">
+                          Total: <span className="font-bold text-foreground">{formatCurrency(installmentRows.reduce((s, r) => s + (parseFloat(r.value) || 0), 0))}</span>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="relative w-full h-11">
-
               {submitting ? (
                 <div className="flex items-center justify-center h-11">
                   <div className="h-8 w-8 rounded-full border-[3px] border-primary border-t-transparent animate-spin" />
