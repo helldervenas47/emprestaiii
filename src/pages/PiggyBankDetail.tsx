@@ -529,10 +529,10 @@ export default function PiggyBankDetail() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Sem categoria</SelectItem>
-                    {personalCategories.map((c) => (
-                      <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                    {PIGGY_BANK_CATEGORIES.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
                     ))}
-                    {draft.category && !personalCategories.some((c) => c.name === draft.category) && (
+                    {draft.category && !PIGGY_BANK_CATEGORIES.includes(draft.category as typeof PIGGY_BANK_CATEGORIES[number]) && (
                       <SelectItem value={draft.category}>{draft.category}</SelectItem>
                     )}
                   </SelectContent>
