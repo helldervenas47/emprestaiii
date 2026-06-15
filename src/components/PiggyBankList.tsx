@@ -21,7 +21,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { usePiggyBanks, type PiggyBank as PiggyBankType, type PiggyBankDeposit } from "@/hooks/usePiggyBanks";
 import { useUnifiedAccountBalance } from "@/hooks/useUnifiedAccountBalance";
-import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
+
 import { PIGGY_BANK_CATEGORIES } from "@/lib/piggyBankCategories";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/userClient";
