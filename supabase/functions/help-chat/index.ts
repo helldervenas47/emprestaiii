@@ -97,13 +97,16 @@ async function ensureKnowledgeTable(supa: any) {
 // --- Contexto: bots do Telegram -----------------------------------------
 async function fetchBotsContext(): Promise<string> {
   try {
-    const supa = await getExternalClient();
-    if (!supa) return "";
-    const { data } = await supa
+    const supa = await getCloudClient();
+    if (!supa) return "\n\nBots oficiais do Telegram: (nenhum bot configurado no momento — não invente @usernames).";
+    const { data, error } = await supa
       .from("system_telegram_bots")
       .select("bot_username, purpose, label, is_active")
       .eq("is_active", true);
-    if (!data || data.length === 0) return "";
+    if (error) console.warn("[help-chat] fetchBotsContext erro:", error);
+    if (!data || data.length === 0) {
+      return "\n\nBots oficiais do Telegram: (nenhum bot ativo no momento — NÃO invente @usernames, diga que ainda não há bots configurados).";
+    }
     const lines = data
       .map((b: any) => {
         const handle = b.bot_username ? `@${String(b.bot_username).replace(/^@/, "")}` : "(sem username)";
