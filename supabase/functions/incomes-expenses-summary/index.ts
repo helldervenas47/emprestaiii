@@ -286,7 +286,7 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch (_) {}
     const returnText = body?.return_text === true;
     let manualTarget = (body?.date as string) || tomorrow;
-    let manualLabel = "Receitas e Despesas — Amanhã";
+    let manualLabel = "Receitas e Despesas";
     if (!body?.date) {
       const { data: pref } = await admin
         .from("incomes_expenses_telegram_prefs")
@@ -295,10 +295,10 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if ((pref as any)?.send_target === "today") {
         manualTarget = today;
-        manualLabel = "Receitas e Despesas — Hoje";
+        manualLabel = "Receitas e Despesas";
       }
     } else if (body.date === today) {
-      manualLabel = "Receitas e Despesas — Hoje";
+      manualLabel = "Receitas e Despesas";
     }
     // Checa link antes para devolver erro claro ao front
     if (!returnText) {
@@ -343,7 +343,7 @@ Deno.serve(async (req) => {
 
       const isToday = (pref as any).send_target === "today";
       const targetDate = isToday ? today : tomorrow;
-      const label = isToday ? "Receitas e Despesas — Hoje" : "Receitas e Despesas — Amanhã";
+      const label = isToday ? "Receitas e Despesas" : "Receitas e Despesas";
       const res = await buildAndSend(admin, (pref as any).user_id, targetDate, brandName, label);
       if (res.sent) {
         const newLast = { ...lastSent };
