@@ -17,6 +17,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useNavigate } from "react-router-dom";
 
 // Lazy load heavy components
+const HelpChat = lazy(() => import("@/components/HelpChat"));
 const DashboardCards = lazy(() => import("@/components/DashboardCards").then(m => ({ default: m.DashboardCards })));
 const LoanForm = lazy(() => import("@/components/LoanForm").then(m => ({ default: m.LoanForm })));
 const LoanSimulator = lazy(() => import("@/components/LoanSimulator").then(m => ({ default: m.LoanSimulator })));
