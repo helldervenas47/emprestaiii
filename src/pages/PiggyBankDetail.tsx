@@ -17,6 +17,8 @@ import { RowActions } from "@/components/ui/row-actions";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { usePiggyBanks, type PiggyBank as PiggyBankType, type PiggyBankDeposit } from "@/hooks/usePiggyBanks";
 import { useUnifiedAccountBalance } from "@/hooks/useUnifiedAccountBalance";
+import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 
@@ -38,6 +40,7 @@ export default function PiggyBankDetail() {
     updateDeposit, deleteDeposit, setPiggyRate,
     storeMoney, withdrawMoney,
   } = usePiggyBanks();
+  const { categories: personalCategories } = usePersonalExpenseCategories();
   const accountBalance = useUnifiedAccountBalance();
 
   const pb = useMemo(() => piggyBanks.find((p) => p.id === id) ?? null, [piggyBanks, id]);
@@ -516,7 +519,23 @@ export default function PiggyBankDetail() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label htmlFor="ed-cat">Categoria</Label>
-                <Input id="ed-cat" value={draft.category} onChange={(e) => setDraft((p) => ({ ...p, category: e.target.value }))} />
+                <Select
+                  value={draft.category || "__none__"}
+                  onValueChange={(v) => setDraft((p) => ({ ...p, category: v === "__none__" ? "" : v }))}
+                >
+                  <SelectTrigger id="ed-cat">
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sem categoria</SelectItem>
+                    {personalCategories.map((c) => (
+                      <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                    ))}
+                    {draft.category && !personalCategories.some((c) => c.name === draft.category) && (
+                      <SelectItem value={draft.category}>{draft.category}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="ed-date">Data prevista</Label>

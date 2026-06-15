@@ -21,6 +21,8 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { usePiggyBanks, type PiggyBank as PiggyBankType, type PiggyBankDeposit } from "@/hooks/usePiggyBanks";
 import { useUnifiedAccountBalance } from "@/hooks/useUnifiedAccountBalance";
+import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/userClient";
 import { toast } from "sonner";
 
@@ -40,6 +42,7 @@ export function PiggyBankList({ readOnly = false }: Props) {
   const navigate = useNavigate();
   const { mask } = useHideValues();
   const { piggyBanks, deposits, recurrences, balances, detailed, cdiRate, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate, refreshCdiNow, storeMoney, withdrawMoney, setRecurrenceActive, deleteRecurrence } = usePiggyBanks();
+  const { categories: personalCategories } = usePersonalExpenseCategories();
 
 
   const [transferTarget, setTransferTarget] = useState<PiggyBankType | null>(null);
@@ -491,12 +494,23 @@ export function PiggyBankList({ readOnly = false }: Props) {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label htmlFor="pb-category">Categoria (opcional)</Label>
-                <Input
-                  id="pb-category"
-                  placeholder="Ex: Viagem, Carro"
-                  value={draft.category}
-                  onChange={(e) => setDraft((p) => ({ ...p, category: e.target.value }))}
-                />
+                <Select
+                  value={draft.category || "__none__"}
+                  onValueChange={(v) => setDraft((p) => ({ ...p, category: v === "__none__" ? "" : v }))}
+                >
+                  <SelectTrigger id="pb-category">
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sem categoria</SelectItem>
+                    {personalCategories.map((c) => (
+                      <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                    ))}
+                    {draft.category && !personalCategories.some((c) => c.name === draft.category) && (
+                      <SelectItem value={draft.category}>{draft.category}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="pb-target-date">Data prevista (opcional)</Label>
