@@ -102,17 +102,36 @@ const Pricing = () => {
   const navigate = useNavigate();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cycle, setCycle] = useState<Cycle>("monthly");
   const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
   const [checkoutPlan, setCheckoutPlan] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase
+    (supabase as any)
       .from("plans")
       .select("*")
       .eq("active", true)
       .order("sort_order")
-      .then(({ data }) => {
-        if (data) setPlans(data);
+      .then(({ data }: { data: any[] | null }) => {
+        if (data) {
+          setPlans(data.map((p) => ({
+            id: p.id,
+            name: p.name,
+            description: p.description ?? null,
+            price: Number(p.price) || 0,
+            price_semestral: p.price_semestral != null ? Number(p.price_semestral) : null,
+            price_anual: p.price_anual != null ? Number(p.price_anual) : null,
+            discount_semestral: p.discount_semestral != null ? Number(p.discount_semestral) : 0,
+            discount_anual: p.discount_anual != null ? Number(p.discount_anual) : 0,
+            badge: p.badge ?? null,
+            promo_text: p.promo_text ?? null,
+            highlight_color: p.highlight_color ?? null,
+            highlight: !!p.highlight,
+            recommended: !!p.recommended,
+            features: p.features ?? [],
+            sort_order: p.sort_order ?? 0,
+          })));
+        }
         setLoading(false);
       });
   }, []);
