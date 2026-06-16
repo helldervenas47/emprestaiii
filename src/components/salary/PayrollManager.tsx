@@ -17,6 +17,7 @@ import { useAppBranding } from "@/hooks/useAppBranding";
 import { generatePayslipPdf } from "@/lib/payslipPdf";
 import type { Payroll } from "@/types/salary";
 import { todayInAppTz } from "@/lib/timezone";
+import { ExtraEarningDialog } from "./ExtraEarningDialog";
 
 const BRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
