@@ -39,7 +39,10 @@ export function PayrollManager({ readOnly }: Props) {
   }, [monthOffset]);
 
   const monthRows = useMemo(() => {
-    return payrolls.filter((p) => p.competence === competence);
+    return payrolls
+      .filter((p) => p.competence === competence)
+      .slice()
+      .sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""));
   }, [payrolls, competence]);
 
   const totals = useMemo(() => {
