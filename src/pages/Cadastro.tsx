@@ -19,6 +19,8 @@ const Cadastro = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [cpfCnpj, setCpfCnpj] = useState("");
   const [phone, setPhone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -153,6 +155,22 @@ const Cadastro = () => {
       toast.error("A senha deve ter pelo menos 6 caracteres");
       return;
     }
+    const normalizedUsername = username.trim().toLowerCase();
+    if (!/^[a-z0-9_.]{3,30}$/.test(normalizedUsername)) {
+      toast.error("Usuário deve ter 3-30 caracteres (letras, números, _ ou .)");
+      return;
+    }
+    // Verify uniqueness
+    const { data: existingUser } = await (supabase as any)
+      .from("profiles")
+      .select("user_id")
+      .ilike("username", normalizedUsername)
+      .maybeSingle();
+    if (existingUser) {
+      setUsernameError("Esse usuário já está em uso");
+      toast.error("Esse usuário já está em uso");
+      return;
+    }
     const cpfDigits = cpfCnpj.replace(/\D/g, "");
     if (cpfDigits.length !== 11 && cpfDigits.length !== 14) {
       toast.error("Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido");
@@ -198,6 +216,7 @@ const Cadastro = () => {
       const profileUpdate: Record<string, unknown> = {
         cpf_cnpj: cpfDigits,
         phone: phoneDigits,
+        username: normalizedUsername,
       };
       if (planName) {
         profileUpdate.trial_plan_name = planName;
@@ -263,6 +282,29 @@ const Cadastro = () => {
               <User className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
               <Input id="name" placeholder="Seu nome" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="pl-9 h-12 rounded-xl" required />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="username">Usuário</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="username"
+                placeholder="usuario_login"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value.replace(/\s+/g, "").toLowerCase());
+                  setUsernameError(null);
+                }}
+                className="pl-9 h-12 rounded-xl"
+                autoCapitalize="none"
+                autoCorrect="off"
+                maxLength={30}
+                required
+              />
+            </div>
+            <p className={`text-xs ${usernameError ? "text-destructive" : "text-muted-foreground"}`}>
+              {usernameError ?? "Você poderá usar esse nome para fazer login no app."}
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
