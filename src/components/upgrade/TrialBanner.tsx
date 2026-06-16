@@ -20,7 +20,7 @@ export function TrialBanner() {
           </span>
         </div>
         <Button size="sm" variant="secondary" onClick={() => navigate("/pricing")}>
-          Assinar agora
+          Testar agora
         </Button>
       </div>
     );
@@ -37,7 +37,7 @@ export function TrialBanner() {
         </span>
       </div>
       <Button size="sm" onClick={() => navigate("/pricing")}>
-        Assinar agora
+        Testar agora
       </Button>
     </div>
   );
