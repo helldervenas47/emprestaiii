@@ -12,6 +12,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { MoneyInput } from "@/components/ui/money-input";
 import { Pencil, Plus, Trash2, Star, Loader2, Check } from "lucide-react";
 import { usePlans, PlanRecord } from "@/hooks/usePlans";
@@ -42,6 +43,9 @@ interface FormState {
   features: string;
   override_semestral: boolean;
   override_anual: boolean;
+  show_monthly: boolean;
+  show_semestral: boolean;
+  show_anual: boolean;
 }
 
 const emptyForm: FormState = {
@@ -62,6 +66,9 @@ const emptyForm: FormState = {
   features: "",
   override_semestral: false,
   override_anual: false,
+  show_monthly: true,
+  show_semestral: true,
+  show_anual: true,
 };
 
 function toForm(p: PlanRecord): FormState {
@@ -83,6 +90,9 @@ function toForm(p: PlanRecord): FormState {
     features: (p.features ?? []).join("\n"),
     override_semestral: p.price_semestral != null,
     override_anual: p.price_anual != null,
+    show_monthly: p.show_monthly ?? true,
+    show_semestral: p.show_semestral ?? true,
+    show_anual: p.show_anual ?? true,
   };
 }
 
@@ -118,6 +128,10 @@ export function PlanManagement() {
 
   const handleSave = async () => {
     if (!form.name.trim() || !form.price) return;
+    if (!form.show_monthly && !form.show_semestral && !form.show_anual) {
+      alert("Selecione pelo menos uma modalidade de exibição (Mensal, Semestral ou Anual).");
+      return;
+    }
     setSaving(true);
     const payload = {
       name: form.name.trim(),
@@ -135,6 +149,9 @@ export function PlanManagement() {
       active: form.active,
       sort_order: form.sort_order,
       features: form.features.split("\n").map((s) => s.trim()).filter(Boolean),
+      show_monthly: form.show_monthly,
+      show_semestral: form.show_semestral,
+      show_anual: form.show_anual,
     };
     let ok = false;
     if (editing) ok = await update(editing.id, payload as any);
@@ -343,6 +360,32 @@ export function PlanManagement() {
                   onChange={(e) => setForm({ ...form, features: e.target.value })} />
               </div>
 
+              <div className="border rounded p-3 space-y-2">
+                <Label className="text-sm">Períodos de exibição</Label>
+                <p className="text-[11px] text-muted-foreground">
+                  Selecione em quais modalidades este plano será exibido na tela de assinatura.
+                </p>
+                {([
+                  ["show_monthly", "Mensal"],
+                  ["show_semestral", "Semestral"],
+                  ["show_anual", "Anual"],
+                ] as const).map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-2 cursor-pointer text-sm">
+                    <Checkbox
+                      checked={form[key]}
+                      onCheckedChange={(c) => setForm({ ...form, [key]: !!c })}
+                    />
+                    {label}
+                  </label>
+                ))}
+                {!form.show_monthly && !form.show_semestral && !form.show_anual && (
+                  <p className="text-xs text-destructive">
+                    Selecione ao menos uma modalidade.
+                  </p>
+                )}
+              </div>
+
+
               <div className="flex items-center justify-between">
                 <Label>Plano recomendado</Label>
                 <Switch checked={form.recommended} onCheckedChange={(c) => setForm({ ...form, recommended: c })} />
@@ -416,7 +459,7 @@ export function PlanManagement() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving || !form.name.trim() || !form.price}>
+            <Button onClick={handleSave} disabled={saving || !form.name.trim() || !form.price || (!form.show_monthly && !form.show_semestral && !form.show_anual)}>
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               Salvar
             </Button>

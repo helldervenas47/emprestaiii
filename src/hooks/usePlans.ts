@@ -19,6 +19,9 @@ export interface PlanRecord {
   active: boolean | null;
   sort_order: number | null;
   features: string[] | null;
+  show_monthly: boolean | null;
+  show_semestral: boolean | null;
+  show_anual: boolean | null;
 }
 
 export type PlanInput = Omit<PlanRecord, "id">;
