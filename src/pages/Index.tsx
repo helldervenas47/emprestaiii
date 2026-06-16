@@ -128,6 +128,17 @@ const tabConfig = [
   
 ];
 
+const LEGACY_CLIENT_PLAN_TAB_IDS = new Set([
+  "overview",
+  "dashboard",
+  "calendar",
+  "clients",
+  "products",
+  "vehicles",
+  "expenses",
+  "overdue",
+]);
+
 const tabHelp: Record<Tab, { title: string; items: string[] }> = {
   overview: {
     title: "Dashboard Geral",
@@ -518,7 +529,11 @@ const Index = () => {
     // para o papel do usuário, esconde.
     if (Array.isArray(roleAllowedTabs) && !roleAllowedTabs.includes(t.id)) return false;
     // Permissão por usuário (user_tab_permissions): se houver lista, exigir presença.
-    if (Array.isArray(allowedTabs)) return allowedTabs.includes(t.id);
+    const isLegacyClientPlanTabs = role === "cliente"
+      && Array.isArray(allowedTabs)
+      && allowedTabs.length > 0
+      && allowedTabs.every((id) => LEGACY_CLIENT_PLAN_TAB_IDS.has(id));
+    if (Array.isArray(allowedTabs) && !isLegacyClientPlanTabs) return allowedTabs.includes(t.id);
     return true;
   });
 
