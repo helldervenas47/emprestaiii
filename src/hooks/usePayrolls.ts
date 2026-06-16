@@ -277,6 +277,63 @@ export function usePayrolls(enabled = true) {
     await supabase.from("payrolls" as any).delete().eq("id", id);
   }, []);
 
+  /**
+   * Reorganiza folhas antigas: extrai proventos extras (13º, férias, etc.) que
+   * estavam misturados na mesma folha em contracheques separados, preservando
+   * a data de vencimento original. Aplica somente em folhas sem pagamentos e
+   * não fechadas, para não afetar histórico financeiro.
+   */
+  const splitLegacyExtraEarnings = useCallback(async () => {
+    if (!dataOwnerId) return { split: 0, created: 0 };
+    const EXTRA_KINDS = new Set([
+      "13_salario", "ferias", "1_3_ferias", "adicional",
+      "bonificacao", "hora_extra", "comissao", "outros",
+    ]);
+    let touched = 0;
+    let created = 0;
+    for (const p of payrolls) {
+      if (p.paidAmount > 0 || p.closed) continue;
+      const earnings = p.items?.earnings ?? [];
+      const extras = earnings.filter((i) => i.kind && EXTRA_KINDS.has(i.kind));
+      if (extras.length === 0) continue;
+      const remaining = earnings.filter((i) => !i.kind || !EXTRA_KINDS.has(i.kind));
+      const deductions = p.items?.deductions ?? [];
+
+      // Cria um contracheque separado para cada provento extra
+      for (const item of extras) {
+        const { error } = await supabase.from("payrolls" as any).insert({
+          user_id: dataOwnerId,
+          employee_id: p.employeeId,
+          competence: p.competence,
+          gross_salary: Number(item.amount) || 0,
+          total_benefits: 0,
+          total_deductions: 0,
+          net_salary: Number(item.amount) || 0,
+          paid_amount: 0,
+          status: "pendente",
+          due_date: p.dueDate ?? `${p.competence}-05`,
+          items: { earnings: [item], deductions: [] } as any,
+          notes: `[${item.label}] (reorganizado de folha anterior)`,
+        } as any);
+        if (error) throw error;
+        created++;
+      }
+
+      // Atualiza a folha original removendo os extras
+      const newEarn = sumItems(remaining);
+      const newDed = sumItems(deductions);
+      await supabase.from("payrolls" as any).update({
+        items: { earnings: remaining, deductions } as any,
+        gross_salary: newEarn,
+        total_deductions: newDed,
+        net_salary: newEarn - newDed,
+      } as any).eq("id", p.id);
+      touched++;
+    }
+    await fetchAll();
+    return { split: touched, created };
+  }, [dataOwnerId, payrolls, fetchAll]);
+
   const updatePayroll = useCallback(async (id: string, patch: Partial<Payroll>) => {
     const p: any = {};
     if (patch.dueDate !== undefined) p.due_date = patch.dueDate;
@@ -296,5 +353,6 @@ export function usePayrolls(enabled = true) {
     payrolls, loading, refresh: fetchAll,
     generatePayroll, generateMonthlyBatch, payPayroll, reversePayrollPayment,
     reopenPayroll, closePayroll, deletePayroll, updatePayroll,
+    splitLegacyExtraEarnings,
   };
 }
