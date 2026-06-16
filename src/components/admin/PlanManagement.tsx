@@ -162,6 +162,9 @@ export function PlanManagement() {
       show_monthly: form.show_monthly,
       show_semestral: form.show_semestral,
       show_anual: form.show_anual,
+      trial_days: Math.max(0, Math.floor(form.trial_days || 0)),
+      limits: form.limits,
+      permissions: form.permissions,
     };
     let ok = false;
     if (editing) ok = await update(editing.id, payload as any);
