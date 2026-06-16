@@ -7,7 +7,7 @@ import { displayIncomeCategory, incomeCategoryKey, SALARY_INCOME_CATEGORY } from
 import { todayInAppTz } from "@/lib/timezone";
 import type { Employee, Payroll, PayrollItems, PayrollStatus, SalaryItem } from "@/types/salary";
 
-const linkedExpenseInFlight = new Set<string>();
+const linkedExpensePromises = new Map<string, Promise<string | null>>();
 const LINKED_EXPENSE_DEDUP_KEY = "payrolls.linkedExpenseDedup.v2";
 
 function rowToPayroll(r: any): Payroll {
@@ -110,9 +110,10 @@ export function usePayrolls(enabled = true) {
       const { data } = await supabase.from("expenses").select("id").eq("id", payroll.expenseId).maybeSingle();
       if (data) return payroll.expenseId;
     }
-    if (linkedExpenseInFlight.has(payroll.id)) return payroll.expenseId ?? payroll.id;
-    linkedExpenseInFlight.add(payroll.id);
-    try {
+    const running = linkedExpensePromises.get(payroll.id);
+    if (running) return running;
+    const promise = (async () => {
+      try {
       // Dedup defensivo: já existe despesa marcada para esta folha?
       const marker = `[Payroll:${payroll.id}]`;
       const { data: existing } = await supabase
@@ -153,10 +154,13 @@ export function usePayrolls(enabled = true) {
       }
       const expenseId = (exp as any).id as string;
       await supabase.from("payrolls" as any).update({ expense_id: expenseId } as any).eq("id", payroll.id);
-      return expenseId;
-    } finally {
-      linkedExpenseInFlight.delete(payroll.id);
-    }
+        return expenseId;
+      } finally {
+        linkedExpensePromises.delete(payroll.id);
+      }
+    })();
+    linkedExpensePromises.set(payroll.id, promise);
+    return promise;
   }, [dataOwnerId]);
 
   // Backfill + dedup: roda uma única vez por sessão.
