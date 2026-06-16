@@ -353,5 +353,6 @@ export function usePayrolls(enabled = true) {
     payrolls, loading, refresh: fetchAll,
     generatePayroll, generateMonthlyBatch, payPayroll, reversePayrollPayment,
     reopenPayroll, closePayroll, deletePayroll, updatePayroll,
+    splitLegacyExtraEarnings,
   };
 }
