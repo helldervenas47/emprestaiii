@@ -123,6 +123,16 @@ const Cadastro = () => {
       toast.error("A senha deve ter pelo menos 6 caracteres");
       return;
     }
+    const cpfDigits = cpfCnpj.replace(/\D/g, "");
+    if (cpfDigits.length !== 11 && cpfDigits.length !== 14) {
+      toast.error("Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido");
+      return;
+    }
+    const phoneDigits = phone.replace(/\D/g, "");
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+      toast.error("Informe um telefone válido com DDD");
+      return;
+    }
     if (inviteCode && !inviteState.valid) {
       toast.error("Código de convite inválido");
       return;
@@ -156,16 +166,19 @@ const Cadastro = () => {
           );
       }
 
-      // Associa o plano escolhido (ex.: "Teste Gratuito") e inicia o período de avaliação.
+      // Salva CPF/CNPJ + telefone e (se aplicável) plano de teste.
+      const profileUpdate: Record<string, unknown> = {
+        cpf_cnpj: cpfDigits,
+        phone: phoneDigits,
+      };
       if (planName) {
-        await (supabase as any)
-          .from("profiles")
-          .update({
-            trial_plan_name: planName,
-            trial_started_at: new Date().toISOString(),
-          })
-          .eq("user_id", data.user.id);
+        profileUpdate.trial_plan_name = planName;
+        profileUpdate.trial_started_at = new Date().toISOString();
       }
+      await (supabase as any)
+        .from("profiles")
+        .update(profileUpdate)
+        .eq("user_id", data.user.id);
     }
 
 
