@@ -24,10 +24,10 @@ const RefundPolicy = () => {
         <h1 className="text-3xl font-bold text-foreground mb-2">Política de Reembolso</h1>
         <p className="text-muted-foreground mb-8">Última atualização: {new Date().toLocaleDateString("pt-BR")}</p>
 
-        <h2>Garantia de 30 dias</h2>
+        <h2>Garantia de 7 dias</h2>
         <p>
-          Oferecemos uma garantia de reembolso de 30 dias. Se você não estiver satisfeito com o EmprestAI,
-          pode solicitar o reembolso integral dentro de 30 dias a partir da data do seu pedido, sem
+          Oferecemos uma garantia de reembolso de 7 dias. Se você não estiver satisfeito com o EmprestAI,
+          pode solicitar o reembolso integral dentro de 7 dias a partir da data do seu pedido, sem
           necessidade de justificativa.
         </p>
 
@@ -54,9 +54,9 @@ const RefundPolicy = () => {
           cartão.
         </p>
 
-        <h2>Após o período de 30 dias</h2>
+        <h2>Após o período de 7 dias</h2>
         <p>
-          Após os 30 dias iniciais, reembolsos não são garantidos, mas avaliamos solicitações caso a caso.
+          Após os 7 dias iniciais, reembolsos não são garantidos, mas avaliamos solicitações caso a caso.
           Você pode cancelar sua assinatura a qualquer momento, e o acesso continuará até o final do período
           já pago.
         </p>
