@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (roles.length === 0) {
       const token = accessToken ?? (await supabase.auth.getSession()).data.session?.access_token;
       if (token) {
-        const { error: ensureRoleError } = await cloudSupabase.functions.invoke("ensure-user-role", {
+        const { data: ensuredRole, error: ensureRoleError } = await cloudSupabase.functions.invoke("ensure-user-role", {
           body: { role: "cliente" },
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -58,6 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .eq("user_id", userId);
         data = retry.data;
         roles = (data ?? []).map((r: any) => r.role as string);
+        if (roles.length === 0 && ensuredRole?.role) {
+          roles = [ensuredRole.role as string];
+        }
       }
     }
     if (roles.length === 0) {
