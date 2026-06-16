@@ -120,6 +120,8 @@ const Cadastro = () => {
           body: { owner_id: inviteState.owner_id, display_name: displayName, email },
         })
         .catch(() => {});
+
+      await ensureDefaultClienteRole(userId, email);
     } else {
       // Auto-link as sub-user with default cliente role
       await (supabase as any).from("user_owner").upsert(
@@ -185,16 +187,6 @@ const Cadastro = () => {
         await applyInviteAfterSignup(data.user.id);
       } else {
         await ensureDefaultClienteRole(data.user.id, data.user.email ?? email, data.session?.access_token);
-
-        // Verificação: confirma que a role foi persistida.
-        const { data: roleCheck } = await (supabase as any)
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", data.user.id);
-        if (!roleCheck || roleCheck.length === 0) {
-          console.warn("[cadastro] role 'cliente' não foi vinculada ao usuário", data.user.id);
-          toast.error("Cadastro criado mas a função padrão não foi atribuída. Faça login novamente para reaplicar.");
-        }
       }
 
       // Salva CPF/CNPJ + telefone e (se aplicável) plano de teste.
