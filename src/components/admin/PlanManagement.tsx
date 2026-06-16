@@ -459,7 +459,7 @@ export function PlanManagement() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving || !form.name.trim() || !form.price}>
+            <Button onClick={handleSave} disabled={saving || !form.name.trim() || !form.price || (!form.show_monthly && !form.show_semestral && !form.show_anual)}>
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               Salvar
             </Button>
