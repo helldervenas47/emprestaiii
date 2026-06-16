@@ -105,6 +105,8 @@ export function usePlanEntitlements() {
       return {
         active: false,
         daysLeft: 0,
+        hoursLeft: 0,
+        msLeft: 0,
         endsAt: null as Date | null,
         expired: false,
         expirationAction: action,
@@ -113,10 +115,13 @@ export function usePlanEntitlements() {
     const endsAt = new Date(trialStartedAt.getTime() + days * 86400_000);
     const msLeft = endsAt.getTime() - Date.now();
     const daysLeft = Math.max(0, Math.ceil(msLeft / 86400_000));
+    const hoursLeft = Math.max(0, Math.ceil(msLeft / 3600_000));
     const expired = msLeft <= 0 && !isActive;
     return {
       active: !isActive && msLeft > 0,
       daysLeft,
+      hoursLeft,
+      msLeft: Math.max(0, msLeft),
       endsAt,
       expired,
       expirationAction: action,
