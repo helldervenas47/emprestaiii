@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/userClient";
+import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -170,7 +171,7 @@ const Cadastro = () => {
         if (roleErr) {
           try {
             const token = data.session?.access_token;
-            await supabase.functions.invoke("ensure-user-role", {
+            await cloudSupabase.functions.invoke("ensure-user-role", {
               body: { role: "cliente" },
               ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
             });
