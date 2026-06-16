@@ -152,7 +152,7 @@ export function PayrollManager({ readOnly }: Props) {
           const remaining = Math.max(0, p.netSalary - p.paidAmount);
           return (
             <Card key={p.id}>
-              <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+              <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold truncate">{emp?.name ?? "Funcionário"}</p>
@@ -171,22 +171,22 @@ export function PayrollManager({ readOnly }: Props) {
                   <div><div className="text-[10px] text-muted-foreground uppercase">Desc.</div><div className="text-destructive">{BRL(p.totalDeductions)}</div></div>
                   <div><div className="text-[10px] text-muted-foreground uppercase">Líquido</div><div className="font-semibold">{BRL(p.netSalary)}</div></div>
                 </div>
-                <div className="flex flex-wrap gap-1.5 sm:ml-2">
+                <div className="flex flex-nowrap gap-1 md:gap-1.5 md:ml-2 justify-end">
                   {!readOnly && remaining > 0 && (
-                    <Button size="sm" onClick={() => setPayingId(p.id)}><Wallet className="h-3 w-3" /> Pagar</Button>
+                    <Button size="sm" onClick={() => setPayingId(p.id)}><Wallet className="h-3 w-3" /> <span className="hidden md:inline">Pagar</span></Button>
                   )}
                   {!readOnly && !p.closed && p.paidAmount <= 0.01 && (
                     <Button size="sm" variant="outline" onClick={() => setEditingId(p.id)}>
-                      <Pencil className="h-3 w-3" /> Editar
+                      <Pencil className="h-3 w-3" /> <span className="hidden md:inline">Editar</span>
                     </Button>
                   )}
                   {p.paidAmount > 0 && (
                     <Button size="sm" variant="outline" onClick={() => setHistoryId(p.id)}>
-                      <History className="h-3 w-3" /> Pagamentos
+                      <History className="h-3 w-3" /> <span className="hidden md:inline">Pagamentos</span>
                     </Button>
                   )}
                   <Button size="sm" variant="outline" onClick={() => emp && generatePayslipPdf(p, emp, { brandName: branding.brand_name })}>
-                    <FileText className="h-3 w-3" /> Contracheque
+                    <FileText className="h-3 w-3" /> <span className="hidden md:inline">Contracheque</span>
                   </Button>
                   {!readOnly && (p.closed
                     ? <Button size="sm" variant="ghost" onClick={() => reopenPayroll(p)}><Unlock className="h-3 w-3" /></Button>
