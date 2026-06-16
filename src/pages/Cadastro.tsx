@@ -216,6 +216,7 @@ const Cadastro = () => {
       const profileUpdate: Record<string, unknown> = {
         cpf_cnpj: cpfDigits,
         phone: phoneDigits,
+        username: normalizedUsername,
       };
       if (planName) {
         profileUpdate.trial_plan_name = planName;
