@@ -157,15 +157,35 @@ const Cadastro = () => {
       if (inviteCode && inviteState.valid) {
         await applyInviteAfterSignup(data.user.id);
       } else {
-        // Self-service signup: o usuário é dono dos próprios dados.
-        // Papel 'admin' garante acesso de escrita às próprias tabelas via RLS.
-        // (Restrições do plano de teste são aplicadas via usePlanEntitlements.)
-        await (supabase as any)
+        // Self-service signup: todo novo usuário recebe a role 'cliente'.
+        // Tentamos via cliente autenticado; se falhar (RLS/policy), chamamos
+        // a edge function `ensure-user-role` como fallback garantido.
+        const { error: roleErr } = await (supabase as any)
           .from("user_roles")
           .upsert(
-            { user_id: data.user.id, role: "admin" },
+            { user_id: data.user.id, role: "cliente" },
             { onConflict: "user_id,role", ignoreDuplicates: true },
           );
+
+        if (roleErr) {
+          try {
+            await supabase.functions.invoke("ensure-user-role", {
+              body: { role: "cliente" },
+            });
+          } catch (e) {
+            console.error("[cadastro] ensure-user-role fallback failed", e);
+          }
+        }
+
+        // Verificação: confirma que a role foi persistida.
+        const { data: roleCheck } = await (supabase as any)
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.user.id);
+        if (!roleCheck || roleCheck.length === 0) {
+          console.warn("[cadastro] role 'cliente' não foi vinculada ao usuário", data.user.id);
+          toast.error("Cadastro criado mas a função padrão não foi atribuída. Faça login novamente para reaplicar.");
+        }
       }
 
       // Salva CPF/CNPJ + telefone e (se aplicável) plano de teste.
