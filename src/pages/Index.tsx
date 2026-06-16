@@ -8,6 +8,7 @@ import { useIsMobile, useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyRoleTabs } from "@/hooks/useRoleTabPermissions";
+import { usePlanEntitlements } from "@/hooks/usePlanEntitlements";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext";
