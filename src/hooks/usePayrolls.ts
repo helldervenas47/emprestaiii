@@ -128,8 +128,17 @@ export function usePayrolls(enabled = true) {
         return id;
       }
 
-      const name = employeeName ?? "Funcionário";
-      const desc = `Salário ${name} - ${payroll.competence}`;
+      let name = employeeName;
+      if (!name && payroll.employeeId) {
+        const { data: emp } = await supabase
+          .from("employees" as any)
+          .select("name")
+          .eq("id", payroll.employeeId)
+          .maybeSingle();
+        if (emp && (emp as any).name) name = (emp as any).name as string;
+      }
+      const finalName = name ?? "Funcionário";
+      const desc = `Salário ${finalName} - ${payroll.competence}`;
       const { data: exp, error } = await supabase.from("expenses").insert({
         id: payroll.id,
         user_id: dataOwnerId,
