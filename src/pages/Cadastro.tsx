@@ -244,6 +244,38 @@ const Cadastro = () => {
             </div>
           </div>
           <div className="space-y-2">
+            <Label htmlFor="cpfCnpj">CPF ou CNPJ</Label>
+            <div className="relative">
+              <IdCard className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="cpfCnpj"
+                inputMode="numeric"
+                placeholder="000.000.000-00"
+                value={cpfCnpj}
+                onChange={(e) => setCpfCnpj(e.target.value)}
+                className="pl-9 h-12 rounded-xl"
+                maxLength={18}
+                required
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Telefone (com DDD)</Label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="phone"
+                inputMode="tel"
+                placeholder="(11) 99999-9999"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="pl-9 h-12 rounded-xl"
+                maxLength={16}
+                required
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="password">Senha</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
