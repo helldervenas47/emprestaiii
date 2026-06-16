@@ -8,6 +8,7 @@ import { useIsMobile, useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyRoleTabs } from "@/hooks/useRoleTabPermissions";
+import { usePlanEntitlements } from "@/hooks/usePlanEntitlements";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext";
@@ -273,6 +274,7 @@ function HideValuesQuickAction() {
 const Index = () => {
   const { signOut, role, allowedTabs, linkedClientIds, loading, user } = useAuth();
   const roleAllowedTabs = useMyRoleTabs(role);
+  const { allowedTabs: planAllowedTabs } = usePlanEntitlements();
   const navigate = useNavigate();
   const { subscription, isActive: hasActiveSub } = useSubscription();
   const { branding: appBranding } = useAppBranding();
@@ -511,6 +513,12 @@ const Index = () => {
     // Visualizador: aba de Configurações é ocultada por completo (apenas leitura
     // não tem nada acionável aqui; backups, telegram, branding, etc. exigem escrita).
     if (t.id === "settings" && role === "visualizador") return false;
+    // Restrição por plano (allowed_tabs do plano de teste/assinatura):
+    // se o plano define a lista, exige presença — vale inclusive para admin,
+    // pois trial gratuito limita escopo independente do papel.
+    if (Array.isArray(planAllowedTabs) && planAllowedTabs.length > 0
+        && t.id !== "settings"
+        && !planAllowedTabs.includes(t.id)) return false;
     if (role === "admin") return true;
     if (!user) return false;
     // Permissão por papel (role_tab_permissions): se a aba não está liberada

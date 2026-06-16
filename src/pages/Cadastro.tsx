@@ -157,12 +157,14 @@ const Cadastro = () => {
       if (inviteCode && inviteState.valid) {
         await applyInviteAfterSignup(data.user.id);
       } else {
-        // Self-service signup: novo usuário começa com papel padrão 'cliente'.
+        // Self-service signup: o usuário é dono dos próprios dados.
+        // Papel 'admin' garante acesso de escrita às próprias tabelas via RLS.
+        // (Restrições do plano de teste são aplicadas via usePlanEntitlements.)
         await (supabase as any)
           .from("user_roles")
           .upsert(
-            { user_id: data.user.id, role: "cliente" },
-            { onConflict: "user_id", ignoreDuplicates: false },
+            { user_id: data.user.id, role: "admin" },
+            { onConflict: "user_id,role", ignoreDuplicates: true },
           );
       }
 
