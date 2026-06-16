@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Wallet, FileText, Lock, Unlock, RefreshCw, Trash2, CheckCircle2, Undo2, History } from "lucide-react";
+import { ChevronLeft, ChevronRight, Wallet, FileText, Lock, Unlock, RefreshCw, Trash2, CheckCircle2, Undo2, History, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,11 +25,12 @@ interface Props { readOnly?: boolean }
 
 export function PayrollManager({ readOnly }: Props) {
   const { employees } = useEmployees();
-  const { payrolls, generateMonthlyBatch, payPayroll, reversePayrollPayment, reopenPayroll, closePayroll, deletePayroll, splitLegacyExtraEarnings } = usePayrolls();
+  const { payrolls, generateMonthlyBatch, payPayroll, reversePayrollPayment, reopenPayroll, closePayroll, deletePayroll, updatePayroll, splitLegacyExtraEarnings } = usePayrolls();
   const { branding } = useAppBranding();
   const [monthOffset, setMonthOffset] = useState(0);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const competence = useMemo(() => {
     const d = new Date();
@@ -155,7 +156,12 @@ export function PayrollManager({ readOnly }: Props) {
                     <StatusBadge status={p.status} />
                     {p.closed && <Badge variant="outline" className="text-[10px]"><Lock className="h-3 w-3" /> Fechada</Badge>}
                   </div>
-                  <p className="text-xs text-muted-foreground">{emp?.role ?? ""}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {emp?.role ?? ""}
+                    {p.dueDate && (
+                      <span className="ml-1">· Vencimento {format(parseISO(p.dueDate), "dd/MM/yyyy", { locale: ptBR })}</span>
+                    )}
+                  </p>
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-right text-sm">
                   <div><div className="text-[10px] text-muted-foreground uppercase">Bruto</div><div>{BRL(p.grossSalary + p.totalBenefits)}</div></div>
@@ -165,6 +171,11 @@ export function PayrollManager({ readOnly }: Props) {
                 <div className="flex flex-wrap gap-1.5 sm:ml-2">
                   {!readOnly && remaining > 0 && (
                     <Button size="sm" onClick={() => setPayingId(p.id)}><Wallet className="h-3 w-3" /> Pagar</Button>
+                  )}
+                  {!readOnly && !p.closed && p.paidAmount <= 0.01 && (
+                    <Button size="sm" variant="outline" onClick={() => setEditingId(p.id)}>
+                      <Pencil className="h-3 w-3" /> Editar
+                    </Button>
                   )}
                   {p.paidAmount > 0 && (
                     <Button size="sm" variant="outline" onClick={() => setHistoryId(p.id)}>
@@ -209,6 +220,17 @@ export function PayrollManager({ readOnly }: Props) {
         onReverse={async (paymentId) => {
           await reversePayrollPayment(paymentId);
           toast.success("Pagamento estornado");
+        }}
+      />
+
+      <EditPayrollDialog
+        open={!!editingId}
+        onOpenChange={(o) => !o && setEditingId(null)}
+        payroll={monthRows.find((p) => p.id === editingId) ?? null}
+        onSave={async (id, patch) => {
+          await updatePayroll(id, patch);
+          toast.success("Folha atualizada");
+          setEditingId(null);
         }}
       />
     </div>
@@ -362,6 +384,95 @@ function PaymentsHistoryDialog({ open, onOpenChange, payrollId, readOnly, onReve
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditPayrollDialog({ open, onOpenChange, payroll, onSave }: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  payroll: Payroll | null;
+  onSave: (id: string, patch: Partial<Payroll>) => Promise<void>;
+}) {
+  const [dueDate, setDueDate] = useState("");
+  const [items, setItems] = useState<Payroll["items"]>({ earnings: [], deductions: [] });
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (payroll) {
+      setDueDate(payroll.dueDate ?? "");
+      setItems(payroll.items ?? { earnings: [], deductions: [] });
+      setNotes(payroll.notes ?? "");
+      setSaving(false);
+    }
+  }, [payroll]);
+
+  if (!payroll) return null;
+
+  const updateItem = (kind: "earnings" | "deductions", idx: number, patch: { label?: string; amount?: number }) => {
+    setItems((prev) => ({
+      ...prev,
+      [kind]: prev[kind].map((it, i) => i === idx ? { ...it, ...patch } : it),
+    }));
+  };
+
+  const handleSave = async () => {
+    if (saving) return;
+    if (!dueDate) { toast.error("Informe a data"); return; }
+    setSaving(true);
+    try {
+      await onSave(payroll.id, { dueDate, items, notes });
+    } catch (e: any) {
+      toast.error("Falha ao salvar", { description: e?.message });
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!saving) onOpenChange(o); }}>
+      <DialogContent className="max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>Editar folha</DialogTitle>
+          <DialogDescription>Altere a data de vencimento, valores e observações.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+          <div>
+            <Label>Data de vencimento</Label>
+            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          </div>
+          {items.earnings.length > 0 && (
+            <div className="space-y-2">
+              <Label>Proventos</Label>
+              {items.earnings.map((it, i) => (
+                <div key={i} className="grid grid-cols-[1fr_120px] gap-2">
+                  <Input value={it.label} onChange={(e) => updateItem("earnings", i, { label: e.target.value })} />
+                  <MoneyInput value={String(it.amount)} onChange={(v) => updateItem("earnings", i, { amount: Number(v) || 0 })} />
+                </div>
+              ))}
+            </div>
+          )}
+          {items.deductions.length > 0 && (
+            <div className="space-y-2">
+              <Label>Descontos</Label>
+              {items.deductions.map((it, i) => (
+                <div key={i} className="grid grid-cols-[1fr_120px] gap-2">
+                  <Input value={it.label} onChange={(e) => updateItem("deductions", i, { label: e.target.value })} />
+                  <MoneyInput value={String(it.amount)} onChange={(v) => updateItem("deductions", i, { amount: Number(v) || 0 })} />
+                </div>
+              ))}
+            </div>
+          )}
+          <div>
+            <Label>Observações</Label>
+            <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
