@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [allowedTabs, setAllowedTabs] = useState<string[] | null>(null);
   const [linkedClientIds, setLinkedClientIds] = useState<string[] | null>(null);
 
-  const fetchRole = async (userId: string) => {
+  const fetchRole = async (userId: string, accessToken?: string) => {
     let { data } = await supabase
       .from("user_roles")
       .select("role")
@@ -43,13 +43,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     let roles = (data ?? []).map((r: any) => r.role as string);
     if (roles.length === 0) {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
+      const token = accessToken ?? (await supabase.auth.getSession()).data.session?.access_token;
       if (token) {
-        await cloudSupabase.functions.invoke("ensure-user-role", {
+        const { error: ensureRoleError } = await cloudSupabase.functions.invoke("ensure-user-role", {
           body: { role: "cliente" },
           headers: { Authorization: `Bearer ${token}` },
         });
+        if (ensureRoleError) {
+          console.error("[useAuth] ensure-user-role error:", ensureRoleError);
+        }
         const retry = await supabase
           .from("user_roles")
           .select("role")
@@ -137,13 +139,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
   };
 
-  const hydrateUserState = async (userId: string, currentUser?: User | null) => {
+  const hydrateUserState = async (userId: string, currentUser?: User | null, accessToken?: string) => {
     if (currentUser) {
       await syncProfile(currentUser);
     }
 
     await Promise.all([
-      fetchRole(userId),
+      fetchRole(userId, accessToken),
       fetchDataOwner(userId),
       fetchTabPermissions(userId),
       fetchLinkedClients(userId),
@@ -161,11 +163,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
     let hydratedForUserId: string | null = null;
 
-    const doHydrate = async (userId: string, showLoading: boolean, currentUser?: User | null) => {
+    const doHydrate = async (userId: string, showLoading: boolean, currentUser?: User | null, accessToken?: string) => {
       if (hydratedForUserId === userId) return;
       hydratedForUserId = userId;
       if (showLoading) setLoading(true);
-      await hydrateUserState(userId, currentUser);
+      await hydrateUserState(userId, currentUser, accessToken);
       if (mounted) setLoading(false);
     };
 
@@ -191,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Defer to avoid deadlock with onAuthStateChange
           setTimeout(() => {
             if (!mounted) return;
-            doHydrate(nextSession.user.id, event === "SIGNED_IN", nextSession.user);
+            doHydrate(nextSession.user.id, event === "SIGNED_IN", nextSession.user, nextSession.access_token);
           }, 0);
         }
         // TOKEN_REFRESHED with valid session: no re-hydrate needed
@@ -227,7 +229,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (currentSession) {
         setSession(currentSession);
         setUser(currentSession.user);
-        await doHydrate(currentSession.user.id, false, currentSession.user);
+        await doHydrate(currentSession.user.id, false, currentSession.user, currentSession.access_token);
       }
 
       if (mounted) setLoading(false);
@@ -243,7 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(s);
           setUser(s?.user ?? null);
           if (s?.user) {
-              doHydrate(s.user.id, false, s.user);
+              doHydrate(s.user.id, false, s.user, s.access_token);
           } else {
             hydratedForUserId = null;
             clearUserState();
