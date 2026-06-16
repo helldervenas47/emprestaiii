@@ -285,21 +285,20 @@ export function usePayrolls(enabled = true) {
    */
   const splitLegacyExtraEarnings = useCallback(async () => {
     if (!dataOwnerId) return { split: 0, created: 0 };
-    const EXTRA_KINDS = new Set([
-      "13_salario", "ferias", "1_3_ferias", "adicional",
-      "bonificacao", "hora_extra", "comissao", "outros",
-    ]);
     let touched = 0;
     let created = 0;
     for (const p of payrolls) {
       if (p.paidAmount > 0 || p.closed) continue;
       const earnings = p.items?.earnings ?? [];
-      const extras = earnings.filter((i) => i.kind && EXTRA_KINDS.has(i.kind));
-      if (extras.length === 0) continue;
-      const remaining = earnings.filter((i) => !i.kind || !EXTRA_KINDS.has(i.kind));
+      if (earnings.length <= 1) continue;
+
+      // Mantém o PRIMEIRO provento (geralmente o salário base) na folha
+      // original e move os demais para contracheques separados, cada um
+      // com seu próprio vencimento. Assim, lançamentos diferentes não
+      // ficam agrupados na mesma folha.
+      const [keep, ...extras] = earnings;
       const deductions = p.items?.deductions ?? [];
 
-      // Cria um contracheque separado para cada provento extra
       for (const item of extras) {
         const { error } = await supabase.from("payrolls" as any).insert({
           user_id: dataOwnerId,
@@ -319,12 +318,12 @@ export function usePayrolls(enabled = true) {
         created++;
       }
 
-      // Atualiza a folha original removendo os extras
-      const newEarn = sumItems(remaining);
+      const newEarn = Number(keep.amount) || 0;
       const newDed = sumItems(deductions);
       await supabase.from("payrolls" as any).update({
-        items: { earnings: remaining, deductions } as any,
+        items: { earnings: [keep], deductions } as any,
         gross_salary: newEarn,
+        total_benefits: 0,
         total_deductions: newDed,
         net_salary: newEarn - newDed,
       } as any).eq("id", p.id);
