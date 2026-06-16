@@ -415,6 +415,10 @@ export function useExpenses(enabled = true) {
       if (!online) {
         await enqueueMutation({ table: "expenses", op: "update", recordId: id, payload: updatePayload });
         return;
+      }
+
+      await supabase.from("expenses").update(updatePayload).eq("id", id);
+      await syncLinkedBoletoPaid(id, true, today, finalAmount);
       await syncPayrollOnExpensePaid({
         ownerId: dataOwnerId,
         expenseId: id,
@@ -423,10 +427,6 @@ export function useExpenses(enabled = true) {
         amount: finalAmount,
         paymentMethodId: expense.paymentMethodId ?? null,
       });
-    }
-
-      await supabase.from("expenses").update(updatePayload).eq("id", id);
-      await syncLinkedBoletoPaid(id, true, today, finalAmount);
 
       // Saída no extrato: despesa simples paga (apenas business; despesas de veículos NÃO
       // entram no extrato — são debitadas exclusivamente do "Saldo em Conta" da aba Veículos).
