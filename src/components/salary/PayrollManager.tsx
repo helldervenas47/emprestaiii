@@ -100,7 +100,10 @@ export function PayrollManager({ readOnly }: Props) {
           <Button variant="outline" size="icon" onClick={() => setMonthOffset((m) => m + 1)}><ChevronRight className="h-4 w-4" /></Button>
         </div>
         {!readOnly && (
-          <Button onClick={handleGenerate} className="sm:ml-auto"><RefreshCw className="h-4 w-4" /> Gerar folha do mês</Button>
+          <div className="flex items-center gap-2 sm:ml-auto">
+            <ExtraEarningDialog />
+            <Button onClick={handleGenerate} variant="outline"><RefreshCw className="h-4 w-4" /> Gerar folha do mês</Button>
+          </div>
         )}
       </div>
 
