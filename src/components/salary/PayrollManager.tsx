@@ -87,7 +87,7 @@ export function PayrollManager({ readOnly }: Props) {
     if (readOnly) return;
     if (splitRanRef.current) return;
     if (payrolls.length === 0) return;
-    const KEY = "payrolls.splitLegacyExtras.v1";
+    const KEY = "payrolls.splitLegacyExtras.v2";
     if (localStorage.getItem(KEY)) { splitRanRef.current = true; return; }
     splitRanRef.current = true;
     (async () => {
