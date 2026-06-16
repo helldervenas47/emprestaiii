@@ -360,6 +360,32 @@ export function PlanManagement() {
                   onChange={(e) => setForm({ ...form, features: e.target.value })} />
               </div>
 
+              <div className="border rounded p-3 space-y-2">
+                <Label className="text-sm">Períodos de exibição</Label>
+                <p className="text-[11px] text-muted-foreground">
+                  Selecione em quais modalidades este plano será exibido na tela de assinatura.
+                </p>
+                {([
+                  ["show_monthly", "Mensal"],
+                  ["show_semestral", "Semestral"],
+                  ["show_anual", "Anual"],
+                ] as const).map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-2 cursor-pointer text-sm">
+                    <Checkbox
+                      checked={form[key]}
+                      onCheckedChange={(c) => setForm({ ...form, [key]: !!c })}
+                    />
+                    {label}
+                  </label>
+                ))}
+                {!form.show_monthly && !form.show_semestral && !form.show_anual && (
+                  <p className="text-xs text-destructive">
+                    Selecione ao menos uma modalidade.
+                  </p>
+                )}
+              </div>
+
+
               <div className="flex items-center justify-between">
                 <Label>Plano recomendado</Label>
                 <Switch checked={form.recommended} onCheckedChange={(c) => setForm({ ...form, recommended: c })} />
