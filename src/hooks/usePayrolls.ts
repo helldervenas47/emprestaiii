@@ -97,45 +97,97 @@ export function usePayrolls(enabled = true) {
 
   /**
    * Garante que exista uma despesa vinculada a esta folha (1:1).
-   * Reutiliza a despesa já vinculada quando presente.
+   * Reutiliza a despesa já vinculada quando presente. Usa também um marker
+   * em `expenses.notes` (`[Payroll:<id>]`) para detectar uma despesa órfã
+   * já criada anteriormente (evita duplicatas em corrida com realtime).
    */
+  const inFlightRef = useRef<Set<string>>(new Set());
   const ensureLinkedExpense = useCallback(async (payroll: Payroll, employeeName?: string): Promise<string | null> => {
     if (!dataOwnerId) return null;
     if (payroll.expenseId) {
       const { data } = await supabase.from("expenses").select("id").eq("id", payroll.expenseId).maybeSingle();
       if (data) return payroll.expenseId;
     }
-    const name = employeeName ?? "Funcionário";
-    const desc = `Salário ${name} - ${payroll.competence}`;
-    const { data: exp, error } = await supabase.from("expenses").insert({
-      user_id: dataOwnerId,
-      description: desc,
-      amount: payroll.netSalary,
-      type: "fixa",
-      category: "Salários",
-      due_date: payroll.dueDate ?? `${payroll.competence}-05`,
-      paid: payroll.status === "pago",
-      paid_date: payroll.status === "pago" ? (payroll.paidDate ?? null) : null,
-      scope: "business",
-      payment_method_id: payroll.paymentMethodId ?? null,
-      notes: `[Payroll:${payroll.id}] Despesa vinculada à folha de pagamento`,
-    } as any).select("id").single();
-    if (error || !exp) return null;
-    const expenseId = (exp as any).id as string;
-    await supabase.from("payrolls" as any).update({ expense_id: expenseId } as any).eq("id", payroll.id);
-    return expenseId;
+    if (inFlightRef.current.has(payroll.id)) return null;
+    inFlightRef.current.add(payroll.id);
+    try {
+      // Dedup defensivo: já existe despesa marcada para esta folha?
+      const marker = `[Payroll:${payroll.id}]`;
+      const { data: existing } = await supabase
+        .from("expenses")
+        .select("id")
+        .eq("user_id", dataOwnerId)
+        .ilike("notes", `%${marker}%`)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        const id = (existing[0] as any).id as string;
+        await supabase.from("payrolls" as any).update({ expense_id: id } as any).eq("id", payroll.id);
+        return id;
+      }
+
+      const name = employeeName ?? "Funcionário";
+      const desc = `Salário ${name} - ${payroll.competence}`;
+      const { data: exp, error } = await supabase.from("expenses").insert({
+        user_id: dataOwnerId,
+        description: desc,
+        amount: payroll.netSalary,
+        type: "fixa",
+        category: "Salários",
+        due_date: payroll.dueDate ?? `${payroll.competence}-05`,
+        paid: payroll.status === "pago",
+        paid_date: payroll.status === "pago" ? (payroll.paidDate ?? null) : null,
+        scope: "business",
+        payment_method_id: payroll.paymentMethodId ?? null,
+        notes: `${marker} Despesa vinculada à folha de pagamento`,
+      } as any).select("id").single();
+      if (error || !exp) return null;
+      const expenseId = (exp as any).id as string;
+      await supabase.from("payrolls" as any).update({ expense_id: expenseId } as any).eq("id", payroll.id);
+      return expenseId;
+    } finally {
+      inFlightRef.current.delete(payroll.id);
+    }
   }, [dataOwnerId]);
 
-  // Backfill: folhas antigas (sem expense_id) ganham despesa vinculada automaticamente.
+  // Backfill + dedup: roda uma única vez por sessão.
   const backfillRanRef = useRef(false);
   useEffect(() => {
     if (!enabled || !dataOwnerId) return;
     if (backfillRanRef.current) return;
     if (payrolls.length === 0) return;
-    const pending = payrolls.filter((p) => !p.expenseId);
-    if (pending.length === 0) { backfillRanRef.current = true; return; }
     backfillRanRef.current = true;
     (async () => {
+      // 1. Dedup: remove despesas vinculadas duplicadas (mantém a mais antiga).
+      const KEY = "payrolls.linkedExpenseDedup.v1";
+      if (!localStorage.getItem(KEY)) {
+        const { data: tagged } = await supabase
+          .from("expenses")
+          .select("id, notes, created_at")
+          .eq("user_id", dataOwnerId)
+          .ilike("notes", "%[Payroll:%")
+          .order("created_at", { ascending: true });
+        const seen = new Map<string, string>(); // payrollId -> kept expenseId
+        const toDelete: string[] = [];
+        for (const row of ((tagged as any[]) ?? [])) {
+          const m = String(row.notes || "").match(/\[Payroll:([0-9a-f-]+)\]/i);
+          if (!m) continue;
+          const pid = m[1];
+          if (seen.has(pid)) toDelete.push(row.id);
+          else seen.set(pid, row.id);
+        }
+        if (toDelete.length > 0) {
+          await supabase.from("account_ledger").delete().in("expense_id", toDelete);
+          await supabase.from("expenses").delete().in("id", toDelete);
+        }
+        // Garante que o expense_id da folha aponte para o registro mantido.
+        for (const [pid, expId] of seen.entries()) {
+          await supabase.from("payrolls" as any).update({ expense_id: expId } as any).eq("id", pid);
+        }
+        localStorage.setItem(KEY, new Date().toISOString());
+      }
+
+      // 2. Backfill: cria despesa vinculada para folhas ainda não pagas que não a têm.
+      const pending = payrolls.filter((p) => !p.expenseId && p.paidAmount <= 0.01);
       for (const p of pending) {
         await ensureLinkedExpense(p);
       }
