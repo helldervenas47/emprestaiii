@@ -6,6 +6,16 @@ import { supabase } from "@/integrations/supabase/userClient";
 
 export interface RoleTabRow { role: string; tab_id: string; }
 
+const DEFAULT_ROLE_TABS: Record<string, string[]> = {
+  cliente: ["overview", "dashboard", "products", "vehicles", "calendar", "clients", "expenses", "boletos", "salary", "accountant", "overdue", "settings"],
+  gerente: ["overview", "dashboard", "products", "vehicles", "calendar", "clients", "expenses", "boletos", "salary", "accountant", "overdue", "settings"],
+  visualizador: ["overview", "dashboard", "clients", "calendar", "overdue"],
+};
+
+const normalizeRoleTabs = (role: string, tabs: string[]) => (
+  tabs.length > 0 ? tabs : DEFAULT_ROLE_TABS[role] ?? tabs
+);
+
 export function useRoleTabPermissions() {
   const [rows, setRows] = useState<RoleTabRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,22 +72,24 @@ export function useMyRoleTabs(role: string | null) {
     let cancelled = false;
     if (!role) { setTabs(null); return; }
     (async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("role_tab_permissions" as any)
         .select("tab_id")
         .eq("role", role);
-      if (!cancelled) setTabs(((data as any) || []).map((r: any) => r.tab_id));
+      const loadedTabs = error ? [] : ((data as any) || []).map((r: any) => r.tab_id);
+      if (!cancelled) setTabs(normalizeRoleTabs(role, loadedTabs));
     })();
     const ch = supabase
       .channel(`role_tabs_${role}`)
       .on("postgres_changes" as any,
         { event: "*", schema: "public", table: "role_tab_permissions", filter: `role=eq.${role}` },
         async () => {
-          const { data } = await supabase
+          const { data, error } = await supabase
             .from("role_tab_permissions" as any)
             .select("tab_id")
             .eq("role", role);
-          if (!cancelled) setTabs(((data as any) || []).map((r: any) => r.tab_id));
+          const loadedTabs = error ? [] : ((data as any) || []).map((r: any) => r.tab_id);
+          if (!cancelled) setTabs(normalizeRoleTabs(role, loadedTabs));
         })
       .subscribe();
     return () => { cancelled = true; supabase.removeChannel(ch); };

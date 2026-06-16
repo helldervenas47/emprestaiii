@@ -8,7 +8,6 @@ import { useIsMobile, useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyRoleTabs } from "@/hooks/useRoleTabPermissions";
-import { usePlanEntitlements } from "@/hooks/usePlanEntitlements";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext";
@@ -128,6 +127,17 @@ const tabConfig = [
   { id: "help" as Tab, label: "Assistente IA", icon: Sparkles },
   
 ];
+
+const LEGACY_CLIENT_PLAN_TAB_IDS = new Set([
+  "overview",
+  "dashboard",
+  "calendar",
+  "clients",
+  "products",
+  "vehicles",
+  "expenses",
+  "overdue",
+]);
 
 const tabHelp: Record<Tab, { title: string; items: string[] }> = {
   overview: {
@@ -274,7 +284,6 @@ function HideValuesQuickAction() {
 const Index = () => {
   const { signOut, role, allowedTabs, linkedClientIds, loading, user } = useAuth();
   const roleAllowedTabs = useMyRoleTabs(role);
-  const { allowedTabs: planAllowedTabs } = usePlanEntitlements();
   const navigate = useNavigate();
   const { subscription, isActive: hasActiveSub } = useSubscription();
   const { branding: appBranding } = useAppBranding();
@@ -515,17 +524,16 @@ const Index = () => {
     if (t.id === "settings" && role === "visualizador") return false;
     // Admin sempre vê todas as abas (ignora plano e demais restrições).
     if (role === "admin") return true;
-    // Restrição por plano (allowed_tabs do plano de teste/assinatura):
-    // se o plano define a lista, exige presença para não-admins.
-    if (Array.isArray(planAllowedTabs) && planAllowedTabs.length > 0
-        && t.id !== "settings"
-        && !planAllowedTabs.includes(t.id)) return false;
     if (!user) return false;
     // Permissão por papel (role_tab_permissions): se a aba não está liberada
     // para o papel do usuário, esconde.
     if (Array.isArray(roleAllowedTabs) && !roleAllowedTabs.includes(t.id)) return false;
     // Permissão por usuário (user_tab_permissions): se houver lista, exigir presença.
-    if (Array.isArray(allowedTabs)) return allowedTabs.includes(t.id);
+    const isLegacyClientPlanTabs = role === "cliente"
+      && Array.isArray(allowedTabs)
+      && allowedTabs.length > 0
+      && allowedTabs.every((id) => LEGACY_CLIENT_PLAN_TAB_IDS.has(id));
+    if (Array.isArray(allowedTabs) && !isLegacyClientPlanTabs) return allowedTabs.includes(t.id);
     return true;
   });
 
