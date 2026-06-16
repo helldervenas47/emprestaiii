@@ -169,8 +169,10 @@ const Cadastro = () => {
 
         if (roleErr) {
           try {
+            const token = data.session?.access_token;
             await supabase.functions.invoke("ensure-user-role", {
               body: { role: "cliente" },
+              ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
             });
           } catch (e) {
             console.error("[cadastro] ensure-user-role fallback failed", e);
