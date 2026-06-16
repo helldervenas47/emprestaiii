@@ -114,8 +114,12 @@ export function ExtraEarningDialog() {
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!submitting) setOpen(o); }}>
       <DialogTrigger asChild>
-        <Button size="icon" className="rounded-full" title="Adicionar provento (13º, férias, etc)">
-          <Plus className="h-4 w-4" />
+        <Button
+          size="icon"
+          className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-50 h-14 w-14 rounded-full shadow-lg"
+          title="Adicionar provento (13º, férias, etc)"
+        >
+          <Plus className="h-6 w-6" />
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
