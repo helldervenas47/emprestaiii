@@ -39,7 +39,7 @@ export function TrialBanner() {
         </span>
       </div>
       <Button size="sm" onClick={() => navigate("/pricing")}>
-        Testar agora
+        Assinar agora
       </Button>
     </div>
   );
