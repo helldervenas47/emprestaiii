@@ -11,6 +11,8 @@ import {
   PlanPermissions,
 } from "@/lib/planEntitlements";
 
+export type ExpirationAction = "block_all" | "readonly" | "force_upgrade";
+
 interface PlanLite {
   id: string;
   name: string;
@@ -18,14 +20,16 @@ interface PlanLite {
   limits: PlanLimits;
   permissions: PlanPermissions;
   allowed_tabs: string[] | null;
+  expiration_action: ExpirationAction;
 }
 
 /**
  * Resolve o plano efetivo do usuário e expõe limites/permissões.
- * Heurística para descobrir o plano:
- *  1. Procura em `plans` cujo nome (case insensitive) bate com `subscriptions.product_id`.
- *  2. Se não houver assinatura ativa, usa o plano com menor `sort_order` marcado como `active`
- *     (geralmente o "Teste Gratuito").
+ *
+ * Ordem de resolução:
+ *  1. Assinatura ativa (`subscriptions.product_id` ⇄ `plans.name`).
+ *  2. `profiles.trial_plan_name` (plano escolhido no cadastro).
+ *  3. Primeiro plano ativo (fallback — costuma ser o "Teste Gratuito").
  */
 export function usePlanEntitlements() {
   const { user } = useAuth();
@@ -38,18 +42,34 @@ export function usePlanEntitlements() {
     let cancel = false;
     (async () => {
       setLoading(true);
-      const { data: allPlans } = await (supabase as any)
-        .from("plans")
-        .select("id,name,trial_days,limits,permissions,allowed_tabs,active,sort_order")
-        .eq("active", true)
-        .order("sort_order", { ascending: true });
+
+      const [{ data: allPlans }, profileRes] = await Promise.all([
+        (supabase as any)
+          .from("plans")
+          .select("id,name,trial_days,limits,permissions,allowed_tabs,expiration_action,active,sort_order")
+          .eq("active", true)
+          .order("sort_order", { ascending: true }),
+        user
+          ? (supabase as any)
+              .from("profiles")
+              .select("created_at,trial_plan_name,trial_started_at")
+              .eq("user_id", user.id)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+      ]);
 
       const list: any[] = allPlans ?? [];
+      const prof: any = profileRes?.data ?? null;
       let picked: any | null = null;
 
       if (subscription?.product_id) {
         picked = list.find(
           (p) => (p.name || "").toLowerCase() === subscription.product_id.toLowerCase()
+        );
+      }
+      if (!picked && prof?.trial_plan_name) {
+        picked = list.find(
+          (p) => (p.name || "").toLowerCase() === String(prof.trial_plan_name).toLowerCase()
         );
       }
       if (!picked) picked = list[0] ?? null;
@@ -64,23 +84,13 @@ export function usePlanEntitlements() {
                 limits: picked.limits ?? {},
                 permissions: picked.permissions ?? {},
                 allowed_tabs: picked.allowed_tabs ?? null,
+                expiration_action: (picked.expiration_action ?? "force_upgrade") as ExpirationAction,
               }
             : null
         );
+        const ts = prof?.trial_started_at || prof?.created_at || user?.created_at;
+        setTrialStartedAt(ts ? new Date(ts) : null);
         setLoading(false);
-      }
-
-      // Trial start = subscription.created_at OU profile.created_at OU user.created_at
-      if (user) {
-        const { data: prof } = await (supabase as any)
-          .from("profiles")
-          .select("created_at")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (!cancel) {
-          const ts = prof?.created_at || user.created_at;
-          setTrialStartedAt(ts ? new Date(ts) : null);
-        }
       }
     })();
     return () => {
@@ -90,19 +100,40 @@ export function usePlanEntitlements() {
 
   const trial = useMemo(() => {
     const days = plan?.trial_days ?? 0;
+    const action = plan?.expiration_action ?? "force_upgrade";
     if (!days || !trialStartedAt) {
-      return { active: false, daysLeft: 0, endsAt: null as Date | null, expired: false };
+      return {
+        active: false,
+        daysLeft: 0,
+        endsAt: null as Date | null,
+        expired: false,
+        expirationAction: action,
+      };
     }
     const endsAt = new Date(trialStartedAt.getTime() + days * 86400_000);
     const msLeft = endsAt.getTime() - Date.now();
     const daysLeft = Math.max(0, Math.ceil(msLeft / 86400_000));
     const expired = msLeft <= 0 && !isActive;
-    return { active: !isActive && msLeft > 0, daysLeft, endsAt, expired };
+    return {
+      active: !isActive && msLeft > 0,
+      daysLeft,
+      endsAt,
+      expired,
+      expirationAction: action,
+    };
   }, [plan, trialStartedAt, isActive]);
 
-  const can = (action: string) => isPermitted(plan?.permissions, action);
-  const withinLimit = (key: LimitKey, current: number) =>
-    isWithinLimit(plan?.limits, key, current);
+  // Em modo readonly após expiração, qualquer ação fica bloqueada.
+  const lockdown = trial.expired && trial.expirationAction === "readonly";
+
+  const can = (action: string) => {
+    if (lockdown) return false;
+    return isPermitted(plan?.permissions, action);
+  };
+  const withinLimit = (key: LimitKey, current: number) => {
+    if (lockdown) return false;
+    return isWithinLimit(plan?.limits, key, current);
+  };
 
   return {
     loading,

@@ -146,13 +146,23 @@ const Cadastro = () => {
         await applyInviteAfterSignup(data.user.id);
       } else {
         // Self-service signup: novo usuário começa com papel padrão 'cliente'.
-        // A unique constraint da tabela é em user_id (não user_id,role).
         await (supabase as any)
           .from("user_roles")
           .upsert(
             { user_id: data.user.id, role: "cliente" },
             { onConflict: "user_id", ignoreDuplicates: false },
           );
+      }
+
+      // Associa o plano escolhido (ex.: "Teste Gratuito") e inicia o período de avaliação.
+      if (planName) {
+        await (supabase as any)
+          .from("profiles")
+          .update({
+            trial_plan_name: planName,
+            trial_started_at: new Date().toISOString(),
+          })
+          .eq("user_id", data.user.id);
       }
     }
 

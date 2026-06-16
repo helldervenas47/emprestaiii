@@ -50,6 +50,7 @@ interface FormState {
   trial_days: number;
   limits: PlanLimits;
   permissions: PlanPermissions;
+  expiration_action: "block_all" | "readonly" | "force_upgrade";
 }
 
 const emptyForm: FormState = {
@@ -76,6 +77,7 @@ const emptyForm: FormState = {
   trial_days: 0,
   limits: {},
   permissions: {},
+  expiration_action: "force_upgrade",
 };
 
 function toForm(p: PlanRecord): FormState {
@@ -103,6 +105,7 @@ function toForm(p: PlanRecord): FormState {
     trial_days: (p as any).trial_days ?? 0,
     limits: ((p as any).limits ?? {}) as PlanLimits,
     permissions: ((p as any).permissions ?? {}) as PlanPermissions,
+    expiration_action: ((p as any).expiration_action ?? "force_upgrade") as FormState["expiration_action"],
   };
 }
 
@@ -165,6 +168,7 @@ export function PlanManagement() {
       trial_days: Math.max(0, Math.floor(form.trial_days || 0)),
       limits: form.limits,
       permissions: form.permissions,
+      expiration_action: form.expiration_action,
     };
     let ok = false;
     if (editing) ok = await update(editing.id, payload as any);
@@ -413,6 +417,24 @@ export function PlanManagement() {
                     value={form.trial_days}
                     onChange={(e) => setForm({ ...form, trial_days: parseInt(e.target.value) || 0 })}
                   />
+                </div>
+
+                <div>
+                  <Label className="text-xs">Ao expirar o teste</Label>
+                  <Select
+                    value={form.expiration_action}
+                    onValueChange={(v) => setForm({ ...form, expiration_action: v as FormState["expiration_action"] })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="force_upgrade">Forçar upgrade (redireciona para /planos)</SelectItem>
+                      <SelectItem value="readonly">Somente leitura (bloqueia criar/editar/excluir)</SelectItem>
+                      <SelectItem value="block_all">Bloquear totalmente (tela de assinatura obrigatória)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Dados cadastrados permanecem salvos em todos os casos.
+                  </p>
                 </div>
 
                 <div className="space-y-1">
