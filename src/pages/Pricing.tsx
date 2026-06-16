@@ -35,6 +35,9 @@ interface Plan {
   recommended: boolean;
   features: string[];
   sort_order: number;
+  show_monthly: boolean;
+  show_semestral: boolean;
+  show_anual: boolean;
 }
 
 type Cycle = "monthly" | "semestral" | "annual";
@@ -130,6 +133,9 @@ const Pricing = () => {
             recommended: !!p.recommended,
             features: p.features ?? [],
             sort_order: p.sort_order ?? 0,
+            show_monthly: p.show_monthly ?? true,
+            show_semestral: p.show_semestral ?? true,
+            show_anual: p.show_anual ?? true,
           })));
         }
         setLoading(false);
