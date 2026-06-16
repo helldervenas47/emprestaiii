@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Plus } from "lucide-react";
@@ -119,15 +120,18 @@ export function ExtraEarningDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!submitting) setOpen(o); }}>
-      <DialogTrigger asChild>
-        <Button
-          size="icon"
-          className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-50 h-14 w-14 rounded-full shadow-lg"
-          title="Adicionar provento (13º, férias, etc)"
-        >
-          <Plus className="h-6 w-6" />
-        </Button>
-      </DialogTrigger>
+      {createPortal(
+        <DialogTrigger asChild>
+          <Button
+            size="icon"
+            className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg"
+            title="Adicionar provento (13º, férias, etc)"
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
+        </DialogTrigger>,
+        document.body
+      )}
       <DialogContent className="max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Lançar provento trabalhista</DialogTitle>
