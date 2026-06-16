@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
+
+const seedingInFlight = new Set<string>();
+const seededOwners = new Set<string>();
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
@@ -41,19 +44,46 @@ export function usePaymentMethods(enabled = true) {
     if (!error && data) {
       let rows = data as any[];
       // Seed defaults for new users (only when this user owns the data)
-      if (rows.length === 0 && dataOwnerId && dataOwnerId === user.id) {
-        const defaults = [
-          { name: "Pix", kind: "account", active: true, sort_order: 1 },
-          { name: "Dinheiro", kind: "cash", active: true, sort_order: 2 },
-          { name: "Transferência", kind: "account", active: false, sort_order: 3 },
-          { name: "Cartão", kind: "account", active: false, sort_order: 4 },
-          { name: "Boleto", kind: "account", active: false, sort_order: 5 },
-        ].map((m) => ({ ...m, user_id: dataOwnerId, icon: null }));
-        const { data: inserted, error: insErr } = await supabase
-          .from("payment_methods" as any)
-          .insert(defaults as any)
-          .select("*");
-        if (!insErr && inserted) rows = inserted as any[];
+      if (
+        rows.length === 0 &&
+        dataOwnerId &&
+        dataOwnerId === user.id &&
+        !seededOwners.has(dataOwnerId) &&
+        !seedingInFlight.has(dataOwnerId)
+      ) {
+        seedingInFlight.add(dataOwnerId);
+        try {
+          // Re-check inside the lock to avoid double seeding across tabs/renders
+          const { data: recheck } = await supabase
+            .from("payment_methods" as any)
+            .select("id")
+            .eq("user_id", dataOwnerId)
+            .limit(1);
+          if (!recheck || recheck.length === 0) {
+            const defaults = [
+              { name: "Pix", kind: "account", active: true, sort_order: 1 },
+              { name: "Dinheiro", kind: "cash", active: true, sort_order: 2 },
+              { name: "Transferência", kind: "account", active: false, sort_order: 3 },
+              { name: "Cartão", kind: "account", active: false, sort_order: 4 },
+              { name: "Boleto", kind: "account", active: false, sort_order: 5 },
+            ].map((m) => ({ ...m, user_id: dataOwnerId, icon: null }));
+            const { data: inserted, error: insErr } = await supabase
+              .from("payment_methods" as any)
+              .insert(defaults as any)
+              .select("*");
+            if (!insErr && inserted) rows = inserted as any[];
+          } else {
+            const { data: refetched } = await supabase
+              .from("payment_methods" as any)
+              .select("*")
+              .order("sort_order", { ascending: true })
+              .order("name", { ascending: true });
+            if (refetched) rows = refetched as any[];
+          }
+          seededOwners.add(dataOwnerId);
+        } finally {
+          seedingInFlight.delete(dataOwnerId);
+        }
       }
       setMethods(rows.map(rowToMethod));
     }
