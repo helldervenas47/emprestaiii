@@ -12,6 +12,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { MoneyInput } from "@/components/ui/money-input";
 import { Pencil, Plus, Trash2, Star, Loader2, Check } from "lucide-react";
 import { usePlans, PlanRecord } from "@/hooks/usePlans";
@@ -42,6 +43,9 @@ interface FormState {
   features: string;
   override_semestral: boolean;
   override_anual: boolean;
+  show_monthly: boolean;
+  show_semestral: boolean;
+  show_anual: boolean;
 }
 
 const emptyForm: FormState = {
@@ -62,6 +66,9 @@ const emptyForm: FormState = {
   features: "",
   override_semestral: false,
   override_anual: false,
+  show_monthly: true,
+  show_semestral: true,
+  show_anual: true,
 };
 
 function toForm(p: PlanRecord): FormState {
@@ -83,6 +90,9 @@ function toForm(p: PlanRecord): FormState {
     features: (p.features ?? []).join("\n"),
     override_semestral: p.price_semestral != null,
     override_anual: p.price_anual != null,
+    show_monthly: p.show_monthly ?? true,
+    show_semestral: p.show_semestral ?? true,
+    show_anual: p.show_anual ?? true,
   };
 }
 
