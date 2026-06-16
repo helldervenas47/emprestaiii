@@ -321,7 +321,22 @@ const Cadastro = () => {
               </button>
             </div>
           </div>
-          <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold" disabled={loading || (!!inviteCode && !inviteState.valid)}>
+          <div className="flex items-start gap-2">
+            <input
+              id="acceptTerms"
+              type="checkbox"
+              checked={acceptTerms}
+              onChange={(e) => setAcceptTerms(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-input accent-primary cursor-pointer"
+            />
+            <Label htmlFor="acceptTerms" className="text-sm font-normal text-muted-foreground cursor-pointer leading-snug">
+              Li e aceito os{" "}
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">termos de uso</a>
+              {" "}e a{" "}
+              <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">política de privacidade</a>.
+            </Label>
+          </div>
+          <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold" disabled={loading || !acceptTerms || (!!inviteCode && !inviteState.valid)}>
             {loading ? "Aguarde..." : "Criar conta"}
           </Button>
         </form>
