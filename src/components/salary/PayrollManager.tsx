@@ -222,6 +222,17 @@ export function PayrollManager({ readOnly }: Props) {
           toast.success("Pagamento estornado");
         }}
       />
+
+      <EditPayrollDialog
+        open={!!editingId}
+        onOpenChange={(o) => !o && setEditingId(null)}
+        payroll={monthRows.find((p) => p.id === editingId) ?? null}
+        onSave={async (id, patch) => {
+          await updatePayroll(id, patch);
+          toast.success("Folha atualizada");
+          setEditingId(null);
+        }}
+      />
     </div>
   );
 }
