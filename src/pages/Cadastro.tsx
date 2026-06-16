@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, Loader2, CheckCircle2, AlertCircle, IdCard, Phone } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { validateInviteCode } from "@/hooks/useInviteCodes";
@@ -18,6 +18,8 @@ const Cadastro = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [cpfCnpj, setCpfCnpj] = useState("");
+  const [phone, setPhone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -121,6 +123,16 @@ const Cadastro = () => {
       toast.error("A senha deve ter pelo menos 6 caracteres");
       return;
     }
+    const cpfDigits = cpfCnpj.replace(/\D/g, "");
+    if (cpfDigits.length !== 11 && cpfDigits.length !== 14) {
+      toast.error("Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido");
+      return;
+    }
+    const phoneDigits = phone.replace(/\D/g, "");
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+      toast.error("Informe um telefone válido com DDD");
+      return;
+    }
     if (inviteCode && !inviteState.valid) {
       toast.error("Código de convite inválido");
       return;
@@ -154,16 +166,19 @@ const Cadastro = () => {
           );
       }
 
-      // Associa o plano escolhido (ex.: "Teste Gratuito") e inicia o período de avaliação.
+      // Salva CPF/CNPJ + telefone e (se aplicável) plano de teste.
+      const profileUpdate: Record<string, unknown> = {
+        cpf_cnpj: cpfDigits,
+        phone: phoneDigits,
+      };
       if (planName) {
-        await (supabase as any)
-          .from("profiles")
-          .update({
-            trial_plan_name: planName,
-            trial_started_at: new Date().toISOString(),
-          })
-          .eq("user_id", data.user.id);
+        profileUpdate.trial_plan_name = planName;
+        profileUpdate.trial_started_at = new Date().toISOString();
       }
+      await (supabase as any)
+        .from("profiles")
+        .update(profileUpdate)
+        .eq("user_id", data.user.id);
     }
 
 
@@ -226,6 +241,38 @@ const Cadastro = () => {
             <div className="relative">
               <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
               <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-9 h-12 rounded-xl" required />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="cpfCnpj">CPF ou CNPJ</Label>
+            <div className="relative">
+              <IdCard className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="cpfCnpj"
+                inputMode="numeric"
+                placeholder="000.000.000-00"
+                value={cpfCnpj}
+                onChange={(e) => setCpfCnpj(e.target.value)}
+                className="pl-9 h-12 rounded-xl"
+                maxLength={18}
+                required
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Telefone (com DDD)</Label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="phone"
+                inputMode="tel"
+                placeholder="(11) 99999-9999"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="pl-9 h-12 rounded-xl"
+                maxLength={16}
+                required
+              />
             </div>
           </div>
           <div className="space-y-2">
