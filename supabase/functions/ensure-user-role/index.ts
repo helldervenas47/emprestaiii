@@ -82,8 +82,12 @@ Deno.serve(async (req) => {
       .select("role")
       .eq("user_id", userId);
 
-    if ((existingRoles ?? []).length > 0) {
-      return new Response(JSON.stringify({ ok: true, role: existingRoles?.[0]?.role ?? null }), {
+    const validExistingRole = (existingRoles ?? []).find((r) =>
+      ["admin", "gerente", "cliente", "visualizador"].includes(String(r.role)),
+    );
+
+    if (validExistingRole) {
+      return new Response(JSON.stringify({ ok: true, role: validExistingRole.role ?? null }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
