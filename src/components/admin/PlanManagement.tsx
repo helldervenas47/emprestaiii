@@ -128,6 +128,10 @@ export function PlanManagement() {
 
   const handleSave = async () => {
     if (!form.name.trim() || !form.price) return;
+    if (!form.show_monthly && !form.show_semestral && !form.show_anual) {
+      alert("Selecione pelo menos uma modalidade de exibição (Mensal, Semestral ou Anual).");
+      return;
+    }
     setSaving(true);
     const payload = {
       name: form.name.trim(),
@@ -145,6 +149,9 @@ export function PlanManagement() {
       active: form.active,
       sort_order: form.sort_order,
       features: form.features.split("\n").map((s) => s.trim()).filter(Boolean),
+      show_monthly: form.show_monthly,
+      show_semestral: form.show_semestral,
+      show_anual: form.show_anual,
     };
     let ok = false;
     if (editing) ok = await update(editing.id, payload as any);
