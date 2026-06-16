@@ -10,8 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MoneyInput } from "@/components/ui/money-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/userClient";
 import { useEmployees } from "@/hooks/useEmployees";
-import { usePayrolls, buildPayrollFromEmployee } from "@/hooks/usePayrolls";
+import { usePayrolls } from "@/hooks/usePayrolls";
 import { todayInAppTz } from "@/lib/timezone";
 import type { PayrollItems, SalaryItem } from "@/types/salary";
 
@@ -27,8 +29,9 @@ const EARNING_TYPES = [
 ];
 
 export function ExtraEarningDialog() {
+  const { dataOwnerId } = useAuth();
   const { employees } = useEmployees();
-  const { payrolls, generatePayroll, updatePayroll } = usePayrolls();
+  const { payrolls, updatePayroll, refresh } = usePayrolls();
 
   const [open, setOpen] = useState(false);
   const [employeeId, setEmployeeId] = useState<string>("");
@@ -76,29 +79,51 @@ export function ExtraEarningDialog() {
     setSubmitting(true);
     try {
       const competence = paymentDate.slice(0, 7);
-      let payroll = payrolls.find((p) => p.employeeId === employeeId && p.competence === competence);
-      if (!payroll) {
-        payroll = await generatePayroll(employee, competence, paymentDate) ?? undefined;
-      }
-      if (!payroll) throw new Error("Não foi possível criar/obter a folha do mês");
+      // Só agrupa no mesmo contracheque se a folha existir COM a mesma data de pagamento.
+      const payroll = payrolls.find(
+        (p) => p.employeeId === employeeId
+          && p.competence === competence
+          && (p.dueDate ?? null) === paymentDate
+      );
 
       const label = description.trim()
         ? `${typeLabel} - ${description.trim()}`
         : typeLabel;
       const newItem: SalaryItem = { label, amount: v, kind: type };
 
-      const baseItems: PayrollItems = payroll.items ?? buildPayrollFromEmployee(employee).items;
-      const newItems: PayrollItems = {
-        earnings: [...(baseItems.earnings ?? []), newItem],
-        deductions: [...(baseItems.deductions ?? [])],
-      };
-
-      await updatePayroll(payroll.id, {
-        items: newItems,
-        notes: notes.trim()
-          ? `${payroll.notes ? payroll.notes + "\n" : ""}[${typeLabel}] ${notes.trim()}`
-          : payroll.notes,
-      });
+      if (payroll) {
+        const baseItems: PayrollItems = payroll.items ?? { earnings: [], deductions: [] };
+        const newItems: PayrollItems = {
+          earnings: [...(baseItems.earnings ?? []), newItem],
+          deductions: [...(baseItems.deductions ?? [])],
+        };
+        await updatePayroll(payroll.id, {
+          items: newItems,
+          notes: notes.trim()
+            ? `${payroll.notes ? payroll.notes + "\n" : ""}[${typeLabel}] ${notes.trim()}`
+            : payroll.notes,
+        });
+      } else {
+        // Cria um contracheque separado contendo apenas este provento, com vencimento = data de pagamento.
+        if (!dataOwnerId) throw new Error("Sessão inválida");
+        const items: PayrollItems = { earnings: [newItem], deductions: [] };
+        const { error } = await supabase.from("payrolls" as any).insert({
+          user_id: dataOwnerId,
+          employee_id: employeeId,
+          competence,
+          gross_salary: v,
+          total_benefits: 0,
+          total_deductions: 0,
+          net_salary: v,
+          paid_amount: 0,
+          status: "pendente",
+          due_date: paymentDate,
+          items: items as any,
+          notes: notes.trim() ? `[${typeLabel}] ${notes.trim()}` : `[${typeLabel}]`,
+        } as any);
+        if (error) throw error;
+        await refresh();
+      }
 
       toast.success("Provento adicionado", {
         description: `${typeLabel} lançado na folha de ${competenceLabel}`,
