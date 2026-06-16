@@ -29,6 +29,21 @@ const Cadastro = () => {
   const { branding } = useAppBranding();
   const brandName = branding.brand_name;
 
+  const ensureDefaultClienteRole = async (userId: string, userEmail?: string | null, accessToken?: string | null) => {
+    const { data: ensuredRole, error: ensureError } = await cloudSupabase.functions.invoke("ensure-user-role", {
+      body: { userId, email: userEmail, role: "cliente" },
+      ...(accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : {}),
+    });
+
+    if (ensureError || ensuredRole?.error) {
+      console.error("[cadastro] ensure-user-role failed", ensureError ?? ensuredRole?.error);
+      toast.error("Cadastro criado, mas a função padrão não foi atribuída. Faça login novamente para reaplicar.");
+      return false;
+    }
+
+    return ensuredRole?.role === "cliente";
+  };
+
   // Validate invite code on mount
   useEffect(() => {
     if (!inviteCode) {
@@ -40,6 +55,17 @@ const Cadastro = () => {
       setInviteState({ checking: false, ...result });
     })();
   }, [inviteCode]);
+
+  useEffect(() => {
+    const ensureOAuthSignupRole = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      await ensureDefaultClienteRole(session.user.id, session.user.email, session.access_token);
+    };
+
+    ensureOAuthSignupRole();
+  }, []);
 
   const handleGoogleSignup = async () => {
     if (inviteCode && !inviteState.valid) {
@@ -94,13 +120,15 @@ const Cadastro = () => {
           body: { owner_id: inviteState.owner_id, display_name: displayName, email },
         })
         .catch(() => {});
+
+      await ensureDefaultClienteRole(userId, email);
     } else {
       // Auto-link as sub-user with default cliente role
       await (supabase as any).from("user_owner").upsert(
         { user_id: userId, owner_id: inviteState.owner_id },
         { onConflict: "user_id" },
       );
-      await supabase.from("user_roles").insert({ user_id: userId, role: "cliente" as any });
+      await ensureDefaultClienteRole(userId, email);
     }
 
     // Increment code usage (best-effort, non-blocking)
@@ -158,37 +186,7 @@ const Cadastro = () => {
       if (inviteCode && inviteState.valid) {
         await applyInviteAfterSignup(data.user.id);
       } else {
-        // Self-service signup: todo novo usuário recebe a role 'cliente'.
-        // Tentamos via cliente autenticado; se falhar (RLS/policy), chamamos
-        // a edge function `ensure-user-role` como fallback garantido.
-        const { error: roleErr } = await (supabase as any)
-          .from("user_roles")
-          .upsert(
-            { user_id: data.user.id, role: "cliente" },
-            { onConflict: "user_id,role", ignoreDuplicates: true },
-          );
-
-        if (roleErr) {
-          try {
-            const token = data.session?.access_token;
-            await cloudSupabase.functions.invoke("ensure-user-role", {
-              body: { role: "cliente" },
-              ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
-            });
-          } catch (e) {
-            console.error("[cadastro] ensure-user-role fallback failed", e);
-          }
-        }
-
-        // Verificação: confirma que a role foi persistida.
-        const { data: roleCheck } = await (supabase as any)
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", data.user.id);
-        if (!roleCheck || roleCheck.length === 0) {
-          console.warn("[cadastro] role 'cliente' não foi vinculada ao usuário", data.user.id);
-          toast.error("Cadastro criado mas a função padrão não foi atribuída. Faça login novamente para reaplicar.");
-        }
+        await ensureDefaultClienteRole(data.user.id, data.user.email ?? email, data.session?.access_token);
       }
 
       // Salva CPF/CNPJ + telefone e (se aplicável) plano de teste.
