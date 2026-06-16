@@ -26,6 +26,7 @@ export interface PlanRecord {
   limits: Record<string, number | null> | null;
   permissions: Record<string, boolean> | null;
   allowed_tabs?: string[] | null;
+  expiration_action?: "block_all" | "readonly" | "force_upgrade" | null;
 }
 
 export type PlanInput = Omit<PlanRecord, "id">;
