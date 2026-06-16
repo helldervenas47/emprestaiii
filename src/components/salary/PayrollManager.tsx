@@ -101,10 +101,10 @@ export function PayrollManager({ readOnly }: Props) {
         </div>
         {!readOnly && (
           <div className="flex items-center gap-2 sm:ml-auto">
-            <ExtraEarningDialog />
             <Button onClick={handleGenerate} variant="outline"><RefreshCw className="h-4 w-4" /> Gerar folha do mês</Button>
           </div>
         )}
+        {!readOnly && <ExtraEarningDialog />}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
