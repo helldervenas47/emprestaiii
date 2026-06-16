@@ -23,6 +23,12 @@ interface PlanLite {
   expiration_action: ExpirationAction;
 }
 
+interface ProfilePlanFields {
+  created_at?: string | null;
+  trial_plan_name?: string | null;
+  trial_started_at?: string | null;
+}
+
 /**
  * Resolve o plano efetivo do usuário e expõe limites/permissões.
  *
@@ -47,13 +53,13 @@ export function usePlanEntitlements() {
       if (authLoading) return;
 
       const [{ data: allPlans }, profileRes] = await Promise.all([
-        (supabase as any)
+        supabase
           .from("plans")
           .select("id,name,trial_days,limits,permissions,allowed_tabs,expiration_action,active,sort_order")
           .eq("active", true)
           .order("sort_order", { ascending: true }),
         effectiveUserId
-          ? (supabase as any)
+          ? supabase
               .from("profiles")
               .select("created_at,trial_plan_name,trial_started_at")
               .eq("user_id", effectiveUserId)
@@ -61,9 +67,9 @@ export function usePlanEntitlements() {
           : Promise.resolve({ data: null }),
       ]);
 
-      const list: any[] = allPlans ?? [];
-      const prof: any = profileRes?.data ?? null;
-      let picked: any | null = null;
+      const list = allPlans ?? [];
+      const prof = (profileRes?.data ?? null) as ProfilePlanFields | null;
+      let picked: (typeof list)[number] | null = null;
 
       if (subscription?.product_id) {
         picked = list.find(
