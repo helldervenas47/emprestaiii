@@ -29,10 +29,9 @@ const EARNING_TYPES = [
 ];
 
 export function ExtraEarningDialog() {
-  const { employees } = useEmployees();
   const { dataOwnerId } = useAuth();
   const { employees } = useEmployees();
-  const { payrolls, updatePayroll } = usePayrolls();
+  const { payrolls, updatePayroll, refresh } = usePayrolls();
 
   const [open, setOpen] = useState(false);
   const [employeeId, setEmployeeId] = useState<string>("");
