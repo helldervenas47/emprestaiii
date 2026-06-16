@@ -155,6 +155,22 @@ const Cadastro = () => {
       toast.error("A senha deve ter pelo menos 6 caracteres");
       return;
     }
+    const normalizedUsername = username.trim().toLowerCase();
+    if (!/^[a-z0-9_.]{3,30}$/.test(normalizedUsername)) {
+      toast.error("Usuário deve ter 3-30 caracteres (letras, números, _ ou .)");
+      return;
+    }
+    // Verify uniqueness
+    const { data: existingUser } = await (supabase as any)
+      .from("profiles")
+      .select("user_id")
+      .ilike("username", normalizedUsername)
+      .maybeSingle();
+    if (existingUser) {
+      setUsernameError("Esse usuário já está em uso");
+      toast.error("Esse usuário já está em uso");
+      return;
+    }
     const cpfDigits = cpfCnpj.replace(/\D/g, "");
     if (cpfDigits.length !== 11 && cpfDigits.length !== 14) {
       toast.error("Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido");
