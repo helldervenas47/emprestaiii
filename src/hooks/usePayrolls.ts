@@ -149,18 +149,45 @@ export function usePayrolls(enabled = true) {
     }
   }, [dataOwnerId]);
 
-  // Backfill: folhas antigas (sem expense_id) ganham despesa vinculada uma única vez.
+  // Backfill + dedup: roda uma única vez por sessão.
   const backfillRanRef = useRef(false);
   useEffect(() => {
     if (!enabled || !dataOwnerId) return;
     if (backfillRanRef.current) return;
     if (payrolls.length === 0) return;
-    // Apenas folhas ainda não totalmente pagas — folhas já pagas no modelo antigo
-    // já possuem uma despesa "Salários" criada no pagamento; criar outra duplicaria.
-    const pending = payrolls.filter((p) => !p.expenseId && p.paidAmount <= 0.01);
     backfillRanRef.current = true;
-    if (pending.length === 0) return;
     (async () => {
+      // 1. Dedup: remove despesas vinculadas duplicadas (mantém a mais antiga).
+      const KEY = "payrolls.linkedExpenseDedup.v1";
+      if (!localStorage.getItem(KEY)) {
+        const { data: tagged } = await supabase
+          .from("expenses")
+          .select("id, notes, created_at")
+          .eq("user_id", dataOwnerId)
+          .ilike("notes", "%[Payroll:%")
+          .order("created_at", { ascending: true });
+        const seen = new Map<string, string>(); // payrollId -> kept expenseId
+        const toDelete: string[] = [];
+        for (const row of ((tagged as any[]) ?? [])) {
+          const m = String(row.notes || "").match(/\[Payroll:([0-9a-f-]+)\]/i);
+          if (!m) continue;
+          const pid = m[1];
+          if (seen.has(pid)) toDelete.push(row.id);
+          else seen.set(pid, row.id);
+        }
+        if (toDelete.length > 0) {
+          await supabase.from("account_ledger").delete().in("expense_id", toDelete);
+          await supabase.from("expenses").delete().in("id", toDelete);
+        }
+        // Garante que o expense_id da folha aponte para o registro mantido.
+        for (const [pid, expId] of seen.entries()) {
+          await supabase.from("payrolls" as any).update({ expense_id: expId } as any).eq("id", pid);
+        }
+        localStorage.setItem(KEY, new Date().toISOString());
+      }
+
+      // 2. Backfill: cria despesa vinculada para folhas ainda não pagas que não a têm.
+      const pending = payrolls.filter((p) => !p.expenseId && p.paidAmount <= 0.01);
       for (const p of pending) {
         await ensureLinkedExpense(p);
       }
