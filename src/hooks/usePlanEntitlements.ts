@@ -32,16 +32,19 @@ interface PlanLite {
  *  3. Primeiro plano ativo (fallback — costuma ser o "Teste Gratuito").
  */
 export function usePlanEntitlements() {
-  const { user } = useAuth();
+  const { user, dataOwnerId, loading: authLoading } = useAuth();
   const { subscription, isActive } = useSubscription();
   const [plan, setPlan] = useState<PlanLite | null>(null);
   const [loading, setLoading] = useState(true);
   const [trialStartedAt, setTrialStartedAt] = useState<Date | null>(null);
+  const effectiveUserId = dataOwnerId ?? user?.id ?? null;
 
   useEffect(() => {
     let cancel = false;
     (async () => {
       setLoading(true);
+
+      if (authLoading) return;
 
       const [{ data: allPlans }, profileRes] = await Promise.all([
         (supabase as any)
@@ -49,11 +52,11 @@ export function usePlanEntitlements() {
           .select("id,name,trial_days,limits,permissions,allowed_tabs,expiration_action,active,sort_order")
           .eq("active", true)
           .order("sort_order", { ascending: true }),
-        user
+        effectiveUserId
           ? (supabase as any)
               .from("profiles")
               .select("created_at,trial_plan_name,trial_started_at")
-              .eq("user_id", user.id)
+              .eq("user_id", effectiveUserId)
               .maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
@@ -96,7 +99,7 @@ export function usePlanEntitlements() {
     return () => {
       cancel = true;
     };
-  }, [user, subscription?.product_id]);
+    }, [effectiveUserId, user?.created_at, subscription?.product_id, authLoading]);
 
   const trial = useMemo(() => {
     const days = plan?.trial_days ?? 0;

@@ -32,14 +32,20 @@ const PLAN_LIMITS: Record<string, { maxLoans: number; maxUsers: number }> = {
 };
 
 export function useSubscription() {
-  const { user } = useAuth();
+  const { user, dataOwnerId, loading: authLoading } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
 
   const environment = clientToken?.startsWith("test_") ? "sandbox" : "live";
+  const effectiveUserId = dataOwnerId ?? user?.id ?? null;
 
   useEffect(() => {
-    if (!user) {
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
+
+    if (!effectiveUserId) {
       setSubscription(null);
       setLoading(false);
       return;
@@ -51,7 +57,7 @@ export function useSubscription() {
       const { data } = await supabase
         .from("subscriptions")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", effectiveUserId)
         .eq("environment", environment)
         .maybeSingle();
 
@@ -72,7 +78,7 @@ export function useSubscription() {
           event: "*",
           schema: "public",
           table: "subscriptions",
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${effectiveUserId}`,
         },
         () => {
           if (!cancelled) fetchSubscription();
@@ -84,7 +90,7 @@ export function useSubscription() {
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [user, environment]);
+  }, [user?.id, effectiveUserId, environment, authLoading]);
 
   const isActive = Boolean(
     subscription &&
