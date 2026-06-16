@@ -118,7 +118,7 @@ export function PayrollManager({ readOnly }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="relative flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => setMonthOffset((m) => m - 1)}><ChevronLeft className="h-4 w-4" /></Button>
           <div className="font-semibold text-lg capitalize min-w-[180px] text-center">
@@ -127,11 +127,11 @@ export function PayrollManager({ readOnly }: Props) {
           <Button variant="outline" size="icon" onClick={() => setMonthOffset((m) => m + 1)}><ChevronRight className="h-4 w-4" /></Button>
         </div>
         {!readOnly && (
-          <div className="flex items-center gap-2 sm:ml-auto">
+          <div className="flex items-center gap-2 sm:absolute sm:right-0">
             <Button onClick={handleGenerate} variant="outline"><RefreshCw className="h-4 w-4" /> Gerar folha do mês</Button>
+            <ExtraEarningDialog />
           </div>
         )}
-        {!readOnly && <ExtraEarningDialog />}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
