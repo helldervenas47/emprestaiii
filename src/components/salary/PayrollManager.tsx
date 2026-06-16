@@ -389,3 +389,92 @@ function PaymentsHistoryDialog({ open, onOpenChange, payrollId, readOnly, onReve
     </Dialog>
   );
 }
+
+function EditPayrollDialog({ open, onOpenChange, payroll, onSave }: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  payroll: Payroll | null;
+  onSave: (id: string, patch: Partial<Payroll>) => Promise<void>;
+}) {
+  const [dueDate, setDueDate] = useState("");
+  const [items, setItems] = useState<Payroll["items"]>({ earnings: [], deductions: [] });
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (payroll) {
+      setDueDate(payroll.dueDate ?? "");
+      setItems(payroll.items ?? { earnings: [], deductions: [] });
+      setNotes(payroll.notes ?? "");
+      setSaving(false);
+    }
+  }, [payroll]);
+
+  if (!payroll) return null;
+
+  const updateItem = (kind: "earnings" | "deductions", idx: number, patch: { label?: string; amount?: number }) => {
+    setItems((prev) => ({
+      ...prev,
+      [kind]: prev[kind].map((it, i) => i === idx ? { ...it, ...patch } : it),
+    }));
+  };
+
+  const handleSave = async () => {
+    if (saving) return;
+    if (!dueDate) { toast.error("Informe a data"); return; }
+    setSaving(true);
+    try {
+      await onSave(payroll.id, { dueDate, items, notes });
+    } catch (e: any) {
+      toast.error("Falha ao salvar", { description: e?.message });
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!saving) onOpenChange(o); }}>
+      <DialogContent className="max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>Editar folha</DialogTitle>
+          <DialogDescription>Altere a data de vencimento, valores e observações.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+          <div>
+            <Label>Data de vencimento</Label>
+            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          </div>
+          {items.earnings.length > 0 && (
+            <div className="space-y-2">
+              <Label>Proventos</Label>
+              {items.earnings.map((it, i) => (
+                <div key={i} className="grid grid-cols-[1fr_120px] gap-2">
+                  <Input value={it.label} onChange={(e) => updateItem("earnings", i, { label: e.target.value })} />
+                  <MoneyInput value={String(it.amount)} onChange={(v) => updateItem("earnings", i, { amount: Number(v) || 0 })} />
+                </div>
+              ))}
+            </div>
+          )}
+          {items.deductions.length > 0 && (
+            <div className="space-y-2">
+              <Label>Descontos</Label>
+              {items.deductions.map((it, i) => (
+                <div key={i} className="grid grid-cols-[1fr_120px] gap-2">
+                  <Input value={it.label} onChange={(e) => updateItem("deductions", i, { label: e.target.value })} />
+                  <MoneyInput value={String(it.amount)} onChange={(v) => updateItem("deductions", i, { amount: Number(v) || 0 })} />
+                </div>
+              ))}
+            </div>
+          )}
+          <div>
+            <Label>Observações</Label>
+            <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
