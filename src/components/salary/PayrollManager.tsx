@@ -156,7 +156,12 @@ export function PayrollManager({ readOnly }: Props) {
                     <StatusBadge status={p.status} />
                     {p.closed && <Badge variant="outline" className="text-[10px]"><Lock className="h-3 w-3" /> Fechada</Badge>}
                   </div>
-                  <p className="text-xs text-muted-foreground">{emp?.role ?? ""}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {emp?.role ?? ""}
+                    {p.dueDate && (
+                      <span className="ml-1">· Vencimento {format(parseISO(p.dueDate), "dd/MM/yyyy", { locale: ptBR })}</span>
+                    )}
+                  </p>
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-right text-sm">
                   <div><div className="text-[10px] text-muted-foreground uppercase">Bruto</div><div>{BRL(p.grossSalary + p.totalBenefits)}</div></div>
@@ -166,6 +171,11 @@ export function PayrollManager({ readOnly }: Props) {
                 <div className="flex flex-wrap gap-1.5 sm:ml-2">
                   {!readOnly && remaining > 0 && (
                     <Button size="sm" onClick={() => setPayingId(p.id)}><Wallet className="h-3 w-3" /> Pagar</Button>
+                  )}
+                  {!readOnly && !p.closed && p.paidAmount <= 0.01 && (
+                    <Button size="sm" variant="outline" onClick={() => setEditingId(p.id)}>
+                      <Pencil className="h-3 w-3" /> Editar
+                    </Button>
                   )}
                   {p.paidAmount > 0 && (
                     <Button size="sm" variant="outline" onClick={() => setHistoryId(p.id)}>
