@@ -361,7 +361,7 @@ const Pricing = () => {
                           </div>
                         )}
                         <span className="text-4xl font-bold text-foreground">{formatBRL(totalPrice)}</span>
-                        <span className="text-muted-foreground text-sm">/{CYCLE_LABEL[cycle].toLowerCase()}</span>
+                        <span className="text-muted-foreground text-sm"></span>
                         {months > 1 && (
                           <div className="text-xs text-muted-foreground mt-1">
                             equivale a {formatBRL(equivMonthly)}/mês
