@@ -171,7 +171,7 @@ export function PayrollManager({ readOnly }: Props) {
                   <div><div className="text-[10px] text-muted-foreground uppercase">Desc.</div><div className="text-destructive">{BRL(p.totalDeductions)}</div></div>
                   <div><div className="text-[10px] text-muted-foreground uppercase">Líquido</div><div className="font-semibold">{BRL(p.netSalary)}</div></div>
                 </div>
-                <div className="flex flex-nowrap gap-1 md:gap-1.5 md:ml-2 justify-end">
+                <div className="flex flex-nowrap gap-1 md:gap-1.5 md:ml-2 justify-end w-full md:w-auto [&>button]:flex-1 md:[&>button]:flex-none">
                   {!readOnly && remaining > 0 && (
                     <Button size="sm" onClick={() => setPayingId(p.id)}><Wallet className="h-3 w-3" /> <span className="hidden md:inline">Pagar</span></Button>
                   )}
