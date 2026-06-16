@@ -79,51 +79,32 @@ export function ExtraEarningDialog() {
     setSubmitting(true);
     try {
       const competence = paymentDate.slice(0, 7);
-      // Só agrupa no mesmo contracheque se a folha existir COM a mesma data de pagamento.
-      const payroll = payrolls.find(
-        (p) => p.employeeId === employeeId
-          && p.competence === competence
-          && (p.dueDate ?? null) === paymentDate
-      );
-
       const label = description.trim()
         ? `${typeLabel} - ${description.trim()}`
         : typeLabel;
       const newItem: SalaryItem = { label, amount: v, kind: type };
 
-      if (payroll) {
-        const baseItems: PayrollItems = payroll.items ?? { earnings: [], deductions: [] };
-        const newItems: PayrollItems = {
-          earnings: [...(baseItems.earnings ?? []), newItem],
-          deductions: [...(baseItems.deductions ?? [])],
-        };
-        await updatePayroll(payroll.id, {
-          items: newItems,
-          notes: notes.trim()
-            ? `${payroll.notes ? payroll.notes + "\n" : ""}[${typeLabel}] ${notes.trim()}`
-            : payroll.notes,
-        });
-      } else {
-        // Cria um contracheque separado contendo apenas este provento, com vencimento = data de pagamento.
-        if (!dataOwnerId) throw new Error("Sessão inválida");
-        const items: PayrollItems = { earnings: [newItem], deductions: [] };
-        const { error } = await supabase.from("payrolls" as any).insert({
-          user_id: dataOwnerId,
-          employee_id: employeeId,
-          competence,
-          gross_salary: v,
-          total_benefits: 0,
-          total_deductions: 0,
-          net_salary: v,
-          paid_amount: 0,
-          status: "pendente",
-          due_date: paymentDate,
-          items: items as any,
-          notes: notes.trim() ? `[${typeLabel}] ${notes.trim()}` : `[${typeLabel}]`,
-        } as any);
-        if (error) throw error;
-        await refresh();
-      }
+      // Sempre cria um contracheque separado para cada lançamento, usando a
+      // data de pagamento como vencimento. Assim, datas diferentes (mesmo
+      // dentro da mesma competência) nunca se misturam na mesma folha.
+      if (!dataOwnerId) throw new Error("Sessão inválida");
+      const items: PayrollItems = { earnings: [newItem], deductions: [] };
+      const { error } = await supabase.from("payrolls" as any).insert({
+        user_id: dataOwnerId,
+        employee_id: employeeId,
+        competence,
+        gross_salary: v,
+        total_benefits: 0,
+        total_deductions: 0,
+        net_salary: v,
+        paid_amount: 0,
+        status: "pendente",
+        due_date: paymentDate,
+        items: items as any,
+        notes: notes.trim() ? `[${typeLabel}] ${notes.trim()}` : `[${typeLabel}]`,
+      } as any);
+      if (error) throw error;
+      await refresh();
 
       toast.success("Provento adicionado", {
         description: `${typeLabel} lançado na folha de ${competenceLabel}`,
