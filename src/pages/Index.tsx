@@ -517,7 +517,7 @@ const Index = () => {
     // se o plano define a lista, exige presença — vale inclusive para admin,
     // pois trial gratuito limita escopo independente do papel.
     if (Array.isArray(planAllowedTabs) && planAllowedTabs.length > 0
-        && t.id !== "help" && t.id !== "settings"
+        && t.id !== "settings"
         && !planAllowedTabs.includes(t.id)) return false;
     if (role === "admin") return true;
     if (!user) return false;
