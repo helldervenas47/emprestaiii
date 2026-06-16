@@ -522,6 +522,26 @@ export function SystemHealth() {
           ]}
         />
 
+        {/* Uso do Sistema */}
+        <SectionCard
+          icon={Users2}
+          title="Uso do Sistema"
+          metrics={[
+            { label: "Sessões ativas", value: activeSessions === null ? "—" : fmt(activeSessions) },
+            {
+              label: "Recebimentos (24h)",
+              value: counts.payments24h === null ? "—" : fmt(counts.payments24h),
+            },
+            { label: "Despesas totais", value: counts.expenses === null ? "—" : fmt(counts.expenses) },
+            {
+              label: "Usuários ativos agora",
+              value: "Indisponível",
+              estimated: true,
+              hint: "Requer métrica server-side",
+            },
+          ]}
+        />
+
         {/* Logs e Erros */}
         <Card no3d className="md:col-span-2">
           <CardHeader className="pb-2">
@@ -572,25 +592,6 @@ export function SystemHealth() {
           </CardContent>
         </Card>
 
-        {/* Uso do Sistema */}
-        <SectionCard
-          icon={Users2}
-          title="Uso do Sistema"
-          metrics={[
-            { label: "Sessões ativas", value: activeSessions === null ? "—" : fmt(activeSessions) },
-            {
-              label: "Recebimentos (24h)",
-              value: counts.payments24h === null ? "—" : fmt(counts.payments24h),
-            },
-            { label: "Despesas totais", value: counts.expenses === null ? "—" : fmt(counts.expenses) },
-            {
-              label: "Usuários ativos agora",
-              value: "Indisponível",
-              estimated: true,
-              hint: "Requer métrica server-side",
-            },
-          ]}
-        />
 
         {/* Alertas */}
         <Card no3d className="md:col-span-2 xl:col-span-1">
