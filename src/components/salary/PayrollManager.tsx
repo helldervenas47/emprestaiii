@@ -80,6 +80,29 @@ export function PayrollManager({ readOnly }: Props) {
     })();
   }, [competence, monthRows.length, totals.net, totals.pending, payrolls, employees, generateMonthlyBatch, readOnly]);
 
+  // Migração única: reorganiza folhas antigas que tinham proventos extras
+  // (13º, férias, etc.) misturados, separando-os em contracheques próprios.
+  const splitRanRef = useRef(false);
+  useEffect(() => {
+    if (readOnly) return;
+    if (splitRanRef.current) return;
+    if (payrolls.length === 0) return;
+    const KEY = "payrolls.splitLegacyExtras.v1";
+    if (localStorage.getItem(KEY)) { splitRanRef.current = true; return; }
+    splitRanRef.current = true;
+    (async () => {
+      try {
+        const res = await splitLegacyExtraEarnings();
+        localStorage.setItem(KEY, new Date().toISOString());
+        if (res.created > 0) {
+          toast.success(`${res.created} provento(s) extra(s) reorganizado(s) em contracheques separados`);
+        }
+      } catch (e: any) {
+        toast.error("Falha ao reorganizar folhas antigas", { description: e?.message });
+      }
+    })();
+  }, [payrolls, readOnly, splitLegacyExtraEarnings]);
+
   const handleGenerate = async () => {
     const created = await generateMonthlyBatch(employees, competence);
     if (created.length === 0) toast.info("Folha já existe para todos os funcionários ativos.");
