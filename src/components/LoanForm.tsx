@@ -323,9 +323,9 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               {/* Cliente — full width */}
-              <div className="md:col-span-2">
+              <div className="col-span-2">
                 <Label>Cliente</Label>
                 {activeClients.length === 0 ? (
                   <p className="text-sm text-destructive mt-1">Nenhum cliente ativo cadastrado. Cadastre um cliente primeiro.</p>
@@ -347,7 +347,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
 
               {/* Limite de crédito — full width */}
               {selectedClient && (
-                <div className={`md:col-span-2 rounded-lg border p-3 space-y-2 ${exceedsLimit ? "border-warning bg-warning/10" : "border-border bg-muted/20"}`}>
+                <div className={`col-span-2 rounded-lg border p-3 space-y-2 ${exceedsLimit ? "border-warning bg-warning/10" : "border-border bg-muted/20"}`}>
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2">
                       <Wallet className={`h-4 w-4 ${exceedsLimit ? "text-warning" : "text-primary"}`} />
@@ -498,7 +498,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
               </div>
 
               {/* Contrato de venda — full width */}
-              <div className="border border-border rounded-lg p-3 bg-muted/20 md:col-span-2">
+              <div className="border border-border rounded-lg p-3 bg-muted/20 col-span-2">
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -514,7 +514,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
               </div>
 
               {/* Empréstimo com gerente — full width */}
-              <div className="border border-border rounded-lg p-3 space-y-3 bg-muted/20 md:col-span-2">
+              <div className="border border-border rounded-lg p-3 space-y-3 bg-muted/20 col-span-2">
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -598,7 +598,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
               </div>
 
               {/* Etiquetas — full width */}
-              <div className="md:col-span-2">
+              <div className="col-span-2">
                 <Label>Etiquetas</Label>
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {tags.map((tag, i) => (
@@ -668,7 +668,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
               </div>
 
               {/* Forma de pagamento / split — full width */}
-              <div className="md:col-span-2">
+              <div className="col-span-2">
                 <LoanPaymentSplitEditor
                   total={amount}
                   state={{ ...splitState, method1Id: splitState.enabled ? splitState.method1Id : paymentMethodId }}
@@ -682,7 +682,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
               </div>
 
               {/* Observações — full width */}
-              <div className="md:col-span-2">
+              <div className="col-span-2">
                 <Label htmlFor="notes">Observações</Label>
                 <Textarea
                   id="notes" value={form.notes} onChange={(e) => update("notes", e.target.value)}
@@ -692,7 +692,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
 
               {/* Simulação (editável) — full width */}
               {amount > 0 && installments > 0 && (
-                <div className="rounded-lg bg-muted p-4 space-y-3 md:col-span-2">
+                <div className="rounded-lg bg-muted p-4 space-y-3 col-span-2">
                   <p className="text-sm font-medium text-foreground">Simulação (editável)</p>
                   <div className="grid grid-cols-3 gap-3">
                     <div>
@@ -725,7 +725,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
 
               {/* Parcelas editáveis — full width */}
               {installments >= 2 && (
-                <div className="rounded-lg border border-border/50 overflow-hidden md:col-span-2">
+                <div className="rounded-lg border border-border/50 overflow-hidden col-span-2">
                   <button
                     type="button"
                     onClick={() => setShowSchedule(!showSchedule)}
