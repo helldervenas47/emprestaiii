@@ -46,6 +46,7 @@ const VehicleCardList = lazy(() => import("@/components/VehicleCardList").then(m
 const LocadorPopoverContent = lazy(() => import("@/components/LocadorPopoverContent").then(m => ({ default: m.LocadorPopoverContent })));
 const LocadorList = lazy(() => import("@/components/LocadorList").then(m => ({ default: m.LocadorList })));
 const SubscriptionBanner = lazy(() => import("@/components/SubscriptionBanner").then(m => ({ default: m.SubscriptionBanner })));
+const TrialBanner = lazy(() => import("@/components/upgrade/TrialBanner").then(m => ({ default: m.TrialBanner })));
 const SubscriptionGate = lazy(() => import("@/components/SubscriptionGate").then(m => ({ default: m.SubscriptionGate })));
 const VehicleExpenseForm = lazy(() => import("@/components/VehicleExpenseForm").then(m => ({ default: m.VehicleExpenseForm })));
 const NotificationSettings = lazy(() => import("@/components/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
@@ -637,6 +638,7 @@ const Index = () => {
     <HideValuesProvider>
     <div className="min-h-screen bg-background" style={{ paddingBottom: `calc(env(safe-area-inset-bottom) + ${isMobile ? '72px' : '0px'})`, paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}>
       <SubscriptionBanner />
+      <TrialBanner />
 
       <header className="border-b border-border/30 glass sticky top-0 z-40" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-3 flex items-center justify-between gap-2">

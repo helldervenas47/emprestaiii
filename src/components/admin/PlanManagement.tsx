@@ -17,6 +17,7 @@ import { MoneyInput } from "@/components/ui/money-input";
 import { Pencil, Plus, Trash2, Star, Loader2, Check } from "lucide-react";
 import { usePlans, PlanRecord } from "@/hooks/usePlans";
 import { calcCyclePrice, calcSavings, equivalentMonthly, formatBRL } from "@/lib/planPricing";
+import { LIMIT_KEYS, PERMISSION_GROUPS, PlanLimits, PlanPermissions } from "@/lib/planEntitlements";
 
 const BADGE_OPTIONS = [
   { value: "__none__", label: "Nenhum" },
@@ -46,6 +47,9 @@ interface FormState {
   show_monthly: boolean;
   show_semestral: boolean;
   show_anual: boolean;
+  trial_days: number;
+  limits: PlanLimits;
+  permissions: PlanPermissions;
 }
 
 const emptyForm: FormState = {
@@ -69,6 +73,9 @@ const emptyForm: FormState = {
   show_monthly: true,
   show_semestral: true,
   show_anual: true,
+  trial_days: 0,
+  limits: {},
+  permissions: {},
 };
 
 function toForm(p: PlanRecord): FormState {
@@ -93,6 +100,9 @@ function toForm(p: PlanRecord): FormState {
     show_monthly: p.show_monthly ?? true,
     show_semestral: p.show_semestral ?? true,
     show_anual: p.show_anual ?? true,
+    trial_days: (p as any).trial_days ?? 0,
+    limits: ((p as any).limits ?? {}) as PlanLimits,
+    permissions: ((p as any).permissions ?? {}) as PlanPermissions,
   };
 }
 
@@ -152,6 +162,9 @@ export function PlanManagement() {
       show_monthly: form.show_monthly,
       show_semestral: form.show_semestral,
       show_anual: form.show_anual,
+      trial_days: Math.max(0, Math.floor(form.trial_days || 0)),
+      limits: form.limits,
+      permissions: form.permissions,
     };
     let ok = false;
     if (editing) ok = await update(editing.id, payload as any);
@@ -384,6 +397,78 @@ export function PlanManagement() {
                   </p>
                 )}
               </div>
+
+              <div className="border rounded p-3 space-y-3">
+                <div>
+                  <Label className="text-sm">Permissões e limites do plano</Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Configure limites de uso e quais ações o usuário poderá executar.
+                  </p>
+                </div>
+
+                <div>
+                  <Label className="text-xs">Dias de teste gratuito (0 = sem teste)</Label>
+                  <Input
+                    type="number" min={0}
+                    value={form.trial_days}
+                    onChange={(e) => setForm({ ...form, trial_days: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs">Limites (vazio = ilimitado)</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {LIMIT_KEYS.map(({ key, label }) => (
+                      <div key={key} className="space-y-0.5">
+                        <Label className="text-[11px] text-muted-foreground">{label}</Label>
+                        <Input
+                          type="number" min={0}
+                          value={form.limits[key] ?? ""}
+                          placeholder="∞"
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            setForm({
+                              ...form,
+                              limits: {
+                                ...form.limits,
+                                [key]: raw === "" ? null : Math.max(0, parseInt(raw) || 0),
+                              },
+                            });
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs">Ações permitidas</Label>
+                  {PERMISSION_GROUPS.map((group) => (
+                    <div key={group.module} className="border rounded p-2 space-y-1">
+                      <p className="text-[11px] font-semibold text-muted-foreground">{group.module}</p>
+                      {group.perms.map((p) => {
+                        const allowed = form.permissions[p.key] !== false;
+                        return (
+                          <label key={p.key} className="flex items-center justify-between text-sm cursor-pointer">
+                            <span>{p.label}</span>
+                            <Switch
+                              checked={allowed}
+                              onCheckedChange={(c) =>
+                                setForm({
+                                  ...form,
+                                  permissions: { ...form.permissions, [p.key]: c },
+                                })
+                              }
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+
 
 
               <div className="flex items-center justify-between">

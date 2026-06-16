@@ -22,6 +22,10 @@ export interface PlanRecord {
   show_monthly: boolean | null;
   show_semestral: boolean | null;
   show_anual: boolean | null;
+  trial_days: number | null;
+  limits: Record<string, number | null> | null;
+  permissions: Record<string, boolean> | null;
+  allowed_tabs?: string[] | null;
 }
 
 export type PlanInput = Omit<PlanRecord, "id">;
