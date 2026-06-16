@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
-import { recordLedger, removeLedgerByRef } from "@/lib/ledger";
+import { recordLedger } from "@/lib/ledger";
+import { adjustBalance, type Wallet } from "@/lib/balance";
 import { displayIncomeCategory, incomeCategoryKey, SALARY_INCOME_CATEGORY } from "@/lib/incomeCategory";
 import { todayInAppTz } from "@/lib/timezone";
 import type { Employee, Payroll, PayrollItems, PayrollStatus, SalaryItem } from "@/types/salary";
@@ -47,6 +48,26 @@ export function buildPayrollFromEmployee(e: Employee): { items: PayrollItems; gr
   return { items: { earnings, deductions }, gross, benefits, deductions: totalDeductions, net };
 }
 
+/**
+ * Remove ledger entries matched by metadata key/value. Reverts wallet balances.
+ * Used to estornar pagamentos individuais sem afetar a despesa vinculada da folha.
+ */
+async function removeLedgerByMetadata(key: string, value: string) {
+  const { data } = await supabase
+    .from("account_ledger")
+    .select("id, direction, amount, wallet" as any)
+    .contains("metadata", { [key]: value } as any);
+  const rows = (data as any[]) ?? [];
+  if (rows.length === 0) return;
+  const ids = rows.map((r) => r.id);
+  await supabase.from("account_ledger").delete().in("id", ids);
+  for (const r of rows) {
+    const w: Wallet = (r.wallet as Wallet) || "account";
+    const delta = r.direction === "in" ? -Number(r.amount) : Number(r.amount);
+    if (delta !== 0) await adjustBalance(delta, w);
+  }
+}
+
 export function usePayrolls(enabled = true) {
   const { user, dataOwnerId } = useAuth();
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
@@ -74,7 +95,53 @@ export function usePayrolls(enabled = true) {
     return () => { supabase.removeChannel(ch); };
   }, [user, enabled, fetchAll]);
 
-  /** Cria a folha do funcionário na competência informada (se não existir). */
+  /**
+   * Garante que exista uma despesa vinculada a esta folha (1:1).
+   * Reutiliza a despesa já vinculada quando presente.
+   */
+  const ensureLinkedExpense = useCallback(async (payroll: Payroll, employeeName?: string): Promise<string | null> => {
+    if (!dataOwnerId) return null;
+    if (payroll.expenseId) {
+      const { data } = await supabase.from("expenses").select("id").eq("id", payroll.expenseId).maybeSingle();
+      if (data) return payroll.expenseId;
+    }
+    const name = employeeName ?? "Funcionário";
+    const desc = `Salário ${name} - ${payroll.competence}`;
+    const { data: exp, error } = await supabase.from("expenses").insert({
+      user_id: dataOwnerId,
+      description: desc,
+      amount: payroll.netSalary,
+      type: "fixa",
+      category: "Salários",
+      due_date: payroll.dueDate ?? `${payroll.competence}-05`,
+      paid: payroll.status === "pago",
+      paid_date: payroll.status === "pago" ? (payroll.paidDate ?? null) : null,
+      scope: "business",
+      payment_method_id: payroll.paymentMethodId ?? null,
+      notes: `[Payroll:${payroll.id}] Despesa vinculada à folha de pagamento`,
+    } as any).select("id").single();
+    if (error || !exp) return null;
+    const expenseId = (exp as any).id as string;
+    await supabase.from("payrolls" as any).update({ expense_id: expenseId } as any).eq("id", payroll.id);
+    return expenseId;
+  }, [dataOwnerId]);
+
+  // Backfill: folhas antigas (sem expense_id) ganham despesa vinculada automaticamente.
+  const backfillRanRef = useRef(false);
+  useEffect(() => {
+    if (!enabled || !dataOwnerId) return;
+    if (backfillRanRef.current) return;
+    if (payrolls.length === 0) return;
+    const pending = payrolls.filter((p) => !p.expenseId);
+    if (pending.length === 0) { backfillRanRef.current = true; return; }
+    backfillRanRef.current = true;
+    (async () => {
+      for (const p of pending) {
+        await ensureLinkedExpense(p);
+      }
+    })();
+  }, [payrolls, enabled, dataOwnerId, ensureLinkedExpense]);
+
   const generatePayroll = useCallback(async (employee: Employee, competence: string, dueDate?: string) => {
     if (!dataOwnerId) return null;
     const existing = payrolls.find((p) => p.employeeId === employee.id && p.competence === competence);
@@ -95,10 +162,12 @@ export function usePayrolls(enabled = true) {
     };
     const { data, error } = await supabase.from("payrolls" as any).insert(payload as any).select().single();
     if (error) throw error;
-    return rowToPayroll(data);
-  }, [dataOwnerId, payrolls]);
+    const payroll = rowToPayroll(data);
+    // Cria despesa vinculada (1:1) já na criação da folha.
+    await ensureLinkedExpense(payroll, employee.name);
+    return payroll;
+  }, [dataOwnerId, payrolls, ensureLinkedExpense]);
 
-  /** Gera folhas para todos os funcionários ativos da competência (se faltarem). */
   const generateMonthlyBatch = useCallback(async (employees: Employee[], competence: string) => {
     const created: Payroll[] = [];
     for (const e of employees.filter((x) => x.status === "ativo")) {
@@ -109,16 +178,9 @@ export function usePayrolls(enabled = true) {
   }, [generatePayroll]);
 
   /**
-   * Aplica um pagamento (total ou parcial).
-   *
-   * Regra única de saída financeira:
-   *   - A despesa "Salários" criada aqui é o ÚNICO evento que debita o caixa
-   *     (via uma entrada no extrato vinculada a essa despesa).
-   *
-   * Composição opcional (employee.addToIncomes = true):
-   *   - Cria também uma entrada na aba Receitas (status recebido), categoria
-   *     "Salários", SEM tocar no extrato — serve apenas para compor o saldo
-   *     operacional da aba Receitas. Não duplica nem altera o saldo total.
+   * Aplica pagamento (total/parcial) SEM criar nova despesa.
+   * Atualiza a despesa vinculada (paga somente quando totalmente quitada),
+   * registra o movimento no extrato e grava o histórico em payroll_payments.
    */
   const payPayroll = useCallback(async (payroll: Payroll, employee: Employee | undefined, amount: number, opts?: { paidDate?: string; paymentMethodId?: string | null; notes?: string }) => {
     if (!dataOwnerId) return;
@@ -126,28 +188,25 @@ export function usePayrolls(enabled = true) {
     const newPaid = Math.min(payroll.netSalary, payroll.paidAmount + amount);
     const fully = newPaid >= payroll.netSalary - 0.01;
     const status: PayrollStatus = fully ? "pago" : "parcial";
-
     const empName = employee?.name ?? "Funcionário";
-    const baseDesc = `Salário ${empName} - ${payroll.competence}${fully ? "" : " (parcial)"}`;
 
-    // 1. Despesa em "Salários" (única saída financeira real)
-    const expensePayload = {
+    // 1. Garante despesa vinculada (legacy ou nova).
+    const expenseId = await ensureLinkedExpense(payroll, empName);
+
+    // 2. Histórico de pagamento (precisa do id para amarrar o ledger).
+    const { data: paymentRow } = await supabase.from("payroll_payments" as any).insert({
       user_id: dataOwnerId,
-      description: baseDesc,
+      payroll_id: payroll.id,
       amount,
-      type: "fixa",
-      category: "Salários",
-      due_date: date,
-      paid: true,
       paid_date: date,
-      scope: "business",
       payment_method_id: opts?.paymentMethodId ?? null,
-      notes: opts?.notes ?? `Folha de pagamento - competência ${payroll.competence} | employee_id=${payroll.employeeId}`,
-    };
-    const { data: expenseRow } = await supabase.from("expenses").insert(expensePayload as any).select().single();
-    const expenseId = (expenseRow as any)?.id ?? null;
+      expense_id: expenseId,
+      income_id: null,
+      notes: opts?.notes ?? null,
+    } as any).select("id").single();
+    const paymentId = (paymentRow as any)?.id as string | undefined;
 
-    // 2. Extrato (única baixa) — vinculado à despesa
+    // 3. Extrato — amarra o ledger ao payment_id via metadata para estorno granular.
     await recordLedger({
       direction: "out",
       category: "expense",
@@ -157,14 +216,17 @@ export function usePayrolls(enabled = true) {
       expense_id: expenseId,
       source: "salary",
       payment_method_id: opts?.paymentMethodId ?? null,
-      metadata: { payroll_id: payroll.id, competence: payroll.competence, employee_id: payroll.employeeId },
+      metadata: {
+        payroll_id: payroll.id,
+        payroll_payment_id: paymentId ?? null,
+        competence: payroll.competence,
+        employee_id: payroll.employeeId,
+      },
     });
 
-    // 3. Composição opcional na aba Receitas (não toca em saldo/extrato)
+    // 4. Composição opcional em Receitas (sem tocar no extrato).
     let incomeId: string | null = null;
     if (employee?.addToIncomes) {
-      // Resolve a categoria de receita reutilizando a categoria já cadastrada
-      // pelo usuário (ex.: "Salário"), evitando criar duplicata "Salários".
       const { data: cats } = await supabase
         .from("income_categories" as any)
         .select("name")
@@ -173,7 +235,7 @@ export function usePayrolls(enabled = true) {
         .map((c) => c.name as string)
         .find((n) => incomeCategoryKey(n) === "salario");
       const incomeCategory = displayIncomeCategory(existing ?? SALARY_INCOME_CATEGORY);
-
+      const baseDesc = `Salário ${empName} - ${payroll.competence}${fully ? "" : " (parcial)"}`;
       const { data: incomeRow } = await supabase.from("incomes").insert({
         user_id: dataOwnerId,
         description: baseDesc,
@@ -188,33 +250,38 @@ export function usePayrolls(enabled = true) {
         notes: `Composição interna do salário | payroll_id=${payroll.id} | employee_id=${payroll.employeeId}`,
       } as any).select().single();
       incomeId = (incomeRow as any)?.id ?? null;
+      if (paymentId && incomeId) {
+        await supabase.from("payroll_payments" as any).update({ income_id: incomeId } as any).eq("id", paymentId);
+      }
     }
 
-    // 4. Histórico do pagamento (vincula despesa + income opcional)
-    await supabase.from("payroll_payments" as any).insert({
-      user_id: dataOwnerId,
-      payroll_id: payroll.id,
-      amount,
-      paid_date: date,
-      payment_method_id: opts?.paymentMethodId ?? null,
-      expense_id: expenseId,
-      income_id: incomeId,
-      notes: opts?.notes ?? null,
-    } as any);
-
-    // 5. Atualiza folha
+    // 5. Atualiza a folha.
     await supabase.from("payrolls" as any).update({
       paid_amount: newPaid,
       status,
       paid_date: fully ? date : null,
       payment_method_id: opts?.paymentMethodId ?? null,
-      expense_id: fully ? expenseId : payroll.expenseId,
+      expense_id: expenseId,
       income_id: fully ? incomeId : payroll.incomeId,
       closed: fully ? true : payroll.closed,
     } as any).eq("id", payroll.id);
-  }, [dataOwnerId]);
 
-  /** Estorna um pagamento individual: remove despesa, extrato e income vinculados. */
+    // 6. Quando totalmente quitada → marca a despesa vinculada como paga.
+    if (fully && expenseId) {
+      await supabase.from("expenses").update({
+        paid: true,
+        paid_date: date,
+        payment_method_id: opts?.paymentMethodId ?? null,
+      } as any).eq("id", expenseId);
+    }
+  }, [dataOwnerId, ensureLinkedExpense]);
+
+  /**
+   * Estorna um pagamento específico: remove APENAS o lançamento de extrato
+   * desse pagamento (via metadata), apaga eventual receita vinculada, recalcula
+   * o total pago da folha e, se necessário, desfaz o status "pago" da despesa
+   * vinculada. A despesa em si nunca é apagada — ela permanece vinculada à folha.
+   */
   const reversePayrollPayment = useCallback(async (paymentId: string) => {
     const { data: pay } = await supabase
       .from("payroll_payments" as any)
@@ -223,24 +290,23 @@ export function usePayrolls(enabled = true) {
       .maybeSingle();
     if (!pay) return;
     const p = pay as any;
-    if (p.expense_id) {
-      await removeLedgerByRef({ expense_id: p.expense_id });
-      await supabase.from("expenses").delete().eq("id", p.expense_id);
-    }
-    if (p.income_id) {
-      await supabase.from("incomes").delete().eq("id", p.income_id);
-    }
+
+    await removeLedgerByMetadata("payroll_payment_id", paymentId);
+    if (p.income_id) await supabase.from("incomes").delete().eq("id", p.income_id);
     await supabase.from("payroll_payments" as any).delete().eq("id", paymentId);
 
-    // Recalcula totais da folha
     const { data: remaining } = await supabase
       .from("payroll_payments" as any)
       .select("amount")
       .eq("payroll_id", p.payroll_id);
     const newPaid = ((remaining as any[]) ?? []).reduce((s, r) => s + Number(r.amount || 0), 0);
     const { data: payrollRow } = await supabase
-      .from("payrolls" as any).select("net_salary").eq("id", p.payroll_id).maybeSingle();
+      .from("payrolls" as any)
+      .select("net_salary, expense_id")
+      .eq("id", p.payroll_id)
+      .maybeSingle();
     const net = Number((payrollRow as any)?.net_salary ?? 0);
+    const expenseId = (payrollRow as any)?.expense_id ?? p.expense_id ?? null;
     const fully = newPaid >= net - 0.01;
     const status: PayrollStatus = newPaid <= 0.01 ? "pendente" : fully ? "pago" : "parcial";
     await supabase.from("payrolls" as any).update({
@@ -249,6 +315,11 @@ export function usePayrolls(enabled = true) {
       paid_date: fully ? p.paid_date : null,
       closed: fully ? true : false,
     } as any).eq("id", p.payroll_id);
+
+    // Se a folha não está mais totalmente paga → despesa vinculada volta a "pendente".
+    if (!fully && expenseId) {
+      await supabase.from("expenses").update({ paid: false, paid_date: null } as any).eq("id", expenseId);
+    }
   }, []);
 
   const reopenPayroll = useCallback(async (payroll: Payroll) => {
@@ -259,30 +330,33 @@ export function usePayrolls(enabled = true) {
     await supabase.from("payrolls" as any).update({ closed: true } as any).eq("id", payroll.id);
   }, []);
 
-  /** Exclui a folha e todos os efeitos colaterais (despesas, incomes, extrato). */
+  /** Exclui a folha e todos os efeitos colaterais (despesa vinculada, ledger, incomes). */
   const deletePayroll = useCallback(async (id: string) => {
+    const { data: payrollRow } = await supabase
+      .from("payrolls" as any)
+      .select("expense_id")
+      .eq("id", id)
+      .maybeSingle();
+    const expenseId = (payrollRow as any)?.expense_id as string | null;
+
     const { data: payments } = await supabase
       .from("payroll_payments" as any)
-      .select("expense_id, income_id")
+      .select("id, income_id")
       .eq("payroll_id", id);
     for (const p of ((payments as any[]) ?? [])) {
-      if (p.expense_id) {
-        await removeLedgerByRef({ expense_id: p.expense_id });
-        await supabase.from("expenses").delete().eq("id", p.expense_id);
-      }
-      if (p.income_id) {
-        await supabase.from("incomes").delete().eq("id", p.income_id);
-      }
+      await removeLedgerByMetadata("payroll_payment_id", p.id);
+      if (p.income_id) await supabase.from("incomes").delete().eq("id", p.income_id);
+    }
+    await supabase.from("payroll_payments" as any).delete().eq("payroll_id", id);
+
+    // Despesa vinculada: remove (cascata em ledger residual via expense_id).
+    if (expenseId) {
+      await supabase.from("account_ledger").delete().eq("expense_id", expenseId);
+      await supabase.from("expenses").delete().eq("id", expenseId);
     }
     await supabase.from("payrolls" as any).delete().eq("id", id);
   }, []);
 
-  /**
-   * Reorganiza folhas antigas: extrai proventos extras (13º, férias, etc.) que
-   * estavam misturados na mesma folha em contracheques separados, preservando
-   * a data de vencimento original. Aplica somente em folhas sem pagamentos e
-   * não fechadas, para não afetar histórico financeiro.
-   */
   const splitLegacyExtraEarnings = useCallback(async () => {
     if (!dataOwnerId) return { split: 0, created: 0 };
     let touched = 0;
@@ -292,10 +366,6 @@ export function usePayrolls(enabled = true) {
       const earnings = p.items?.earnings ?? [];
       if (earnings.length <= 1) continue;
 
-      // Mantém o PRIMEIRO provento (geralmente o salário base) na folha
-      // original e move os demais para contracheques separados, cada um
-      // com seu próprio vencimento. Assim, lançamentos diferentes não
-      // ficam agrupados na mesma folha.
       const [keep, ...extras] = earnings;
       const deductions = p.items?.deductions ?? [];
 
@@ -346,7 +416,22 @@ export function usePayrolls(enabled = true) {
       p.net_salary = earnings - ded;
     }
     await supabase.from("payrolls" as any).update(p).eq("id", id);
-  }, []);
+
+    // Mantém a despesa vinculada sincronizada (valor / vencimento).
+    const current = payrolls.find((x) => x.id === id);
+    if (current?.expenseId) {
+      const expPatch: any = {};
+      if (patch.dueDate !== undefined) expPatch.due_date = patch.dueDate;
+      if (patch.items !== undefined) {
+        const earnings = sumItems(patch.items.earnings);
+        const ded = sumItems(patch.items.deductions);
+        expPatch.amount = earnings - ded;
+      }
+      if (Object.keys(expPatch).length > 0) {
+        await supabase.from("expenses").update(expPatch).eq("id", current.expenseId);
+      }
+    }
+  }, [payrolls]);
 
   return {
     payrolls, loading, refresh: fetchAll,
