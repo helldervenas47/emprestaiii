@@ -415,7 +415,15 @@ export function useExpenses(enabled = true) {
       if (!online) {
         await enqueueMutation({ table: "expenses", op: "update", recordId: id, payload: updatePayload });
         return;
-      }
+      await syncPayrollOnExpensePaid({
+        ownerId: dataOwnerId,
+        expenseId: id,
+        paid: true,
+        paidDate: today,
+        amount: finalAmount,
+        paymentMethodId: expense.paymentMethodId ?? null,
+      });
+    }
 
       await supabase.from("expenses").update(updatePayload).eq("id", id);
       await syncLinkedBoletoPaid(id, true, today, finalAmount);
