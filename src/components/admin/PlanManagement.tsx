@@ -538,6 +538,9 @@ export function PlanManagement() {
                     ))}
                   </ul>
                 )}
+                <Button className="w-full mt-6 rounded-full" disabled>
+                  Testar agora
+                </Button>
               </div>
             </div>
           </div>
