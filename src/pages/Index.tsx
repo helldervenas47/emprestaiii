@@ -513,6 +513,12 @@ const Index = () => {
     // Visualizador: aba de Configurações é ocultada por completo (apenas leitura
     // não tem nada acionável aqui; backups, telegram, branding, etc. exigem escrita).
     if (t.id === "settings" && role === "visualizador") return false;
+    // Restrição por plano (allowed_tabs do plano de teste/assinatura):
+    // se o plano define a lista, exige presença — vale inclusive para admin,
+    // pois trial gratuito limita escopo independente do papel.
+    if (Array.isArray(planAllowedTabs) && planAllowedTabs.length > 0
+        && t.id !== "help" && t.id !== "settings"
+        && !planAllowedTabs.includes(t.id)) return false;
     if (role === "admin") return true;
     if (!user) return false;
     // Permissão por papel (role_tab_permissions): se a aba não está liberada
