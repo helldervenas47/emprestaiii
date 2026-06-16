@@ -19,7 +19,7 @@ export function TrialBanner() {
             Assine um plano para continuar criando novos registros.
           </span>
         </div>
-        <Button size="sm" variant="secondary" onClick={() => navigate("/pricing")}>
+        <Button size="sm" variant="secondary" onClick={() => navigate("/planos")}>
           Testar agora
         </Button>
       </div>
@@ -38,7 +38,7 @@ export function TrialBanner() {
             : `Período de teste gratuito — restam ${trial.daysLeft} dia${trial.daysLeft === 1 ? "" : "s"}.`}
         </span>
       </div>
-      <Button size="sm" onClick={() => navigate("/pricing")}>
+      <Button size="sm" onClick={() => navigate("/planos")}>
         Assinar agora
       </Button>
     </div>
