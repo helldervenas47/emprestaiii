@@ -17,6 +17,7 @@ import { useAppBranding } from "@/hooks/useAppBranding";
 import { generatePayslipPdf } from "@/lib/payslipPdf";
 import type { Payroll } from "@/types/salary";
 import { todayInAppTz } from "@/lib/timezone";
+import { ExtraEarningDialog } from "./ExtraEarningDialog";
 
 const BRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -99,7 +100,10 @@ export function PayrollManager({ readOnly }: Props) {
           <Button variant="outline" size="icon" onClick={() => setMonthOffset((m) => m + 1)}><ChevronRight className="h-4 w-4" /></Button>
         </div>
         {!readOnly && (
-          <Button onClick={handleGenerate} className="sm:ml-auto"><RefreshCw className="h-4 w-4" /> Gerar folha do mês</Button>
+          <div className="flex items-center gap-2 sm:ml-auto">
+            <ExtraEarningDialog />
+            <Button onClick={handleGenerate} variant="outline"><RefreshCw className="h-4 w-4" /> Gerar folha do mês</Button>
+          </div>
         )}
       </div>
 
