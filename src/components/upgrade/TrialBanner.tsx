@@ -33,7 +33,9 @@ export function TrialBanner() {
       <div className="flex items-center gap-2">
         <Clock className="h-4 w-4 text-primary" />
         <span className="font-medium">
-          Período de teste gratuito — restam {trial.daysLeft} dia{trial.daysLeft === 1 ? "" : "s"}.
+          {trial.msLeft < 86400_000
+            ? `Período de teste gratuito — restam ${trial.hoursLeft} hora${trial.hoursLeft === 1 ? "" : "s"}.`
+            : `Período de teste gratuito — restam ${trial.daysLeft} dia${trial.daysLeft === 1 ? "" : "s"}.`}
         </span>
       </div>
       <Button size="sm" onClick={() => navigate("/pricing")}>
