@@ -167,6 +167,10 @@ const Cadastro = () => {
       toast.error("Código de convite inválido");
       return;
     }
+    if (!acceptTerms) {
+      toast.error("Você precisa aceitar os termos de uso para continuar");
+      return;
+    }
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email,
