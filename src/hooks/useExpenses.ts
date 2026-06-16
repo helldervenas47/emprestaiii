@@ -144,6 +144,57 @@ async function deleteLinkedIncomeFor(ownerId: string, expenseId: string): Promis
     .ilike("notes", `%${marker}%`);
 }
 
+/**
+ * Sincroniza a folha de pagamento vinculada quando o pagamento é feito/desfeito
+ * pela aba "Despesas da Empresa". Não duplica registros: a despesa é a mesma
+ * já vinculada à folha; aqui só atualizamos status e histórico.
+ */
+async function syncPayrollOnExpensePaid(opts: {
+  ownerId: string;
+  expenseId: string;
+  paid: boolean;
+  paidDate: string | null;
+  amount: number;
+  paymentMethodId: string | null;
+}) {
+  const { data: payroll } = await supabase
+    .from("payrolls" as any)
+    .select("id, net_salary")
+    .eq("expense_id", opts.expenseId)
+    .maybeSingle();
+  if (!payroll) return;
+  const p = payroll as any;
+  const net = Number(p.net_salary ?? 0);
+
+  if (opts.paid) {
+    await supabase.from("payroll_payments" as any).insert({
+      user_id: opts.ownerId,
+      payroll_id: p.id,
+      amount: net,
+      paid_date: opts.paidDate ?? new Date().toISOString().slice(0, 10),
+      payment_method_id: opts.paymentMethodId,
+      expense_id: opts.expenseId,
+      income_id: null,
+      notes: "Pago via Despesas da Empresa",
+    } as any);
+    await supabase.from("payrolls" as any).update({
+      paid_amount: net,
+      status: "pago",
+      paid_date: opts.paidDate,
+      payment_method_id: opts.paymentMethodId,
+      closed: true,
+    } as any).eq("id", p.id);
+  } else {
+    await supabase.from("payroll_payments" as any).delete().eq("payroll_id", p.id);
+    await supabase.from("payrolls" as any).update({
+      paid_amount: 0,
+      status: "pendente",
+      paid_date: null,
+      closed: false,
+    } as any).eq("id", p.id);
+  }
+}
+
 export function useExpenses(enabled = true) {
   const { user, dataOwnerId } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
