@@ -22,6 +22,7 @@ const Cadastro = () => {
   const [cpfCnpj, setCpfCnpj] = useState("");
   const [phone, setPhone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [inviteState, setInviteState] = useState<{ checking: boolean; valid: boolean; owner_id?: string; require_approval?: boolean; reason?: string }>({ checking: !!inviteCode, valid: false });
