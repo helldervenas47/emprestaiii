@@ -7,6 +7,9 @@ import { displayIncomeCategory, incomeCategoryKey, SALARY_INCOME_CATEGORY } from
 import { todayInAppTz } from "@/lib/timezone";
 import type { Employee, Payroll, PayrollItems, PayrollStatus, SalaryItem } from "@/types/salary";
 
+const linkedExpenseInFlight = new Set<string>();
+const LINKED_EXPENSE_DEDUP_KEY = "payrolls.linkedExpenseDedup.v2";
+
 function rowToPayroll(r: any): Payroll {
   return {
     id: r.id,
@@ -101,15 +104,14 @@ export function usePayrolls(enabled = true) {
    * em `expenses.notes` (`[Payroll:<id>]`) para detectar uma despesa órfã
    * já criada anteriormente (evita duplicatas em corrida com realtime).
    */
-  const inFlightRef = useRef<Set<string>>(new Set());
   const ensureLinkedExpense = useCallback(async (payroll: Payroll, employeeName?: string): Promise<string | null> => {
     if (!dataOwnerId) return null;
     if (payroll.expenseId) {
       const { data } = await supabase.from("expenses").select("id").eq("id", payroll.expenseId).maybeSingle();
       if (data) return payroll.expenseId;
     }
-    if (inFlightRef.current.has(payroll.id)) return null;
-    inFlightRef.current.add(payroll.id);
+    if (linkedExpenseInFlight.has(payroll.id)) return payroll.expenseId ?? payroll.id;
+    linkedExpenseInFlight.add(payroll.id);
     try {
       // Dedup defensivo: já existe despesa marcada para esta folha?
       const marker = `[Payroll:${payroll.id}]`;
@@ -128,6 +130,7 @@ export function usePayrolls(enabled = true) {
       const name = employeeName ?? "Funcionário";
       const desc = `Salário ${name} - ${payroll.competence}`;
       const { data: exp, error } = await supabase.from("expenses").insert({
+        id: payroll.id,
         user_id: dataOwnerId,
         description: desc,
         amount: payroll.netSalary,
@@ -140,12 +143,19 @@ export function usePayrolls(enabled = true) {
         payment_method_id: payroll.paymentMethodId ?? null,
         notes: `${marker} Despesa vinculada à folha de pagamento`,
       } as any).select("id").single();
-      if (error || !exp) return null;
+      if (error || !exp) {
+        const { data: deterministic } = await supabase.from("expenses").select("id").eq("id", payroll.id).maybeSingle();
+        if (deterministic) {
+          await supabase.from("payrolls" as any).update({ expense_id: payroll.id } as any).eq("id", payroll.id);
+          return payroll.id;
+        }
+        return null;
+      }
       const expenseId = (exp as any).id as string;
       await supabase.from("payrolls" as any).update({ expense_id: expenseId } as any).eq("id", payroll.id);
       return expenseId;
     } finally {
-      inFlightRef.current.delete(payroll.id);
+      linkedExpenseInFlight.delete(payroll.id);
     }
   }, [dataOwnerId]);
 
@@ -158,8 +168,7 @@ export function usePayrolls(enabled = true) {
     backfillRanRef.current = true;
     (async () => {
       // 1. Dedup: remove despesas vinculadas duplicadas (mantém a mais antiga).
-      const KEY = "payrolls.linkedExpenseDedup.v1";
-      if (!localStorage.getItem(KEY)) {
+      if (!localStorage.getItem(LINKED_EXPENSE_DEDUP_KEY)) {
         const { data: tagged } = await supabase
           .from("expenses")
           .select("id, notes, created_at")
@@ -183,7 +192,7 @@ export function usePayrolls(enabled = true) {
         for (const [pid, expId] of seen.entries()) {
           await supabase.from("payrolls" as any).update({ expense_id: expId } as any).eq("id", pid);
         }
-        localStorage.setItem(KEY, new Date().toISOString());
+        localStorage.setItem(LINKED_EXPENSE_DEDUP_KEY, new Date().toISOString());
       }
 
       // 2. Backfill: cria despesa vinculada para folhas ainda não pagas que não a têm.
