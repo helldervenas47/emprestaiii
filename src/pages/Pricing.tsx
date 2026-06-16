@@ -398,7 +398,7 @@ const Pricing = () => {
                           </>
                         ) : (
                           <>
-                            Assinar agora <ArrowRight className="h-4 w-4" />
+                            Testar agora <ArrowRight className="h-4 w-4" />
                           </>
                         )}
                       </Button>
