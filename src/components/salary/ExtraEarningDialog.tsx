@@ -10,8 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MoneyInput } from "@/components/ui/money-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/userClient";
 import { useEmployees } from "@/hooks/useEmployees";
-import { usePayrolls, buildPayrollFromEmployee } from "@/hooks/usePayrolls";
+import { usePayrolls } from "@/hooks/usePayrolls";
 import { todayInAppTz } from "@/lib/timezone";
 import type { PayrollItems, SalaryItem } from "@/types/salary";
 
