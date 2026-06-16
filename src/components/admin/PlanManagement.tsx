@@ -419,6 +419,24 @@ export function PlanManagement() {
                   />
                 </div>
 
+                <div>
+                  <Label className="text-xs">Ao expirar o teste</Label>
+                  <Select
+                    value={form.expiration_action}
+                    onValueChange={(v) => setForm({ ...form, expiration_action: v as FormState["expiration_action"] })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="force_upgrade">Forçar upgrade (redireciona para /planos)</SelectItem>
+                      <SelectItem value="readonly">Somente leitura (bloqueia criar/editar/excluir)</SelectItem>
+                      <SelectItem value="block_all">Bloquear totalmente (tela de assinatura obrigatória)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Dados cadastrados permanecem salvos em todos os casos.
+                  </p>
+                </div>
+
                 <div className="space-y-1">
                   <Label className="text-xs">Limites (vazio = ilimitado)</Label>
                   <div className="grid grid-cols-2 gap-2">
