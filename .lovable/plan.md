@@ -1,91 +1,70 @@
-# Subaba "Planos" em Sistemas
+# Permissões e Limites por Plano
 
-## Escopo
+Adicionar controle granular por plano: limites numéricos, abas liberadas/bloqueadas, ações internas por módulo, banner de teste e bloqueios efetivos.
 
-Nova subaba **Planos** dentro de `SystemSettings.tsx`, posicionada logo após **Administração** (somente admin). Gerencia a tabela `plans` já existente, estendida com novos campos, e a tela `/planos` (Pricing) passa a refletir tudo automaticamente.
+## 1. Schema (SQL no editor — não automatizado)
 
-## 1. Banco de dados (migration)
+`ALTER TABLE public.plans` adicionar:
+- `trial_days int NOT NULL DEFAULT 0` — duração do teste (0 = plano pago normal)
+- `limits jsonb NOT NULL DEFAULT '{}'::jsonb` — limites numéricos
+- `permissions jsonb NOT NULL DEFAULT '{}'::jsonb` — flags por ação
+- (já existe `allowed_tabs text[]`) — reutilizar
 
-Estender a tabela `public.plans` (já existe com `id, name, price, highlight, active, features, sort_order, allowed_tabs, max_users, max_loans`). Adicionar:
+Formato:
+```json
+limits:       { "loans": 10, "clients": 20, "billings": 10, "users": 1, "notifications": 100 }
+permissions:  { "loans.delete": false, "clients.import": false, "clients.export": false, "reports.advanced": false }
+```
+`null` ou ausente = ilimitado/permitido.
 
-- `description text`
-- `price_semestral numeric` (valor total cobrado no semestre — pode ser calculado ou manual)
-- `price_anual numeric` (valor total do ano)
-- `discount_semestral numeric default 0` (% — CHECK 0..100)
-- `discount_anual numeric default 0` (% — CHECK 0..100)
-- `badge text` (ex.: "Mais Popular", "Melhor Custo-Benefício", "Mais Vendido", null)
-- `promo_text text` (texto livre, ex.: "2 meses grátis")
-- `highlight_color text` (hex/HSL para borda/destaque)
-- `recommended boolean default false` (Plano Recomendado — destaque visual extra)
+Em `subscriptions` já existe vínculo plano↔usuário; expor `trial_ends_at` via campo já existente ou derivado de `created_at + plan.trial_days`.
 
-RLS: a tabela já tem policy de leitura pública. Adicionar policies de INSERT/UPDATE/DELETE restritas a `has_role(auth.uid(),'admin')`. Manter GRANTs (`SELECT` para `anon`/`authenticated`, `ALL` para `service_role`).
+## 2. Cadastro do plano (`src/components/admin/PlanManagement.tsx`)
 
-## 2. Componente novo `PlanManagement.tsx`
+Nova aba/seção **"Permissões e Limites"** dentro do dialog:
+- Campo "Dias de teste gratuito" (number).
+- Grid de limites numéricos (empréstimos, clientes, cobranças, contratos, registros financeiros, usuários, notificações). Vazio = ilimitado.
+- Lista de ações com toggle (loans.create/edit/delete, clients.create/import/export, reports.basic/advanced, etc.).
+- Reutiliza `allowed_tabs` para abas liberadas (já existe configurador).
 
-Em `src/components/admin/PlanManagement.tsx`:
+Persistir em `limits` e `permissions` JSON.
 
-- Lista de planos (cards/tabela) com botões Editar, Ativar/Desativar, Excluir, "Definir como recomendado".
-- Botão "Novo plano" abre `Dialog` com formulário (react-hook-form + zod):
-  - Nome, Descrição, Ordem, Status (Switch Ativo)
-  - **Valor mensal** (MoneyInput)
-  - **Desconto semestral (%)** e **Desconto anual (%)** — sliders/inputs 0–100
-  - **Valor semestral** e **Valor anual** — auto-calculados a partir do mensal e desconto (`mensal * meses * (1 - desc/100)`), mas editáveis manualmente (campo "sobrescrever").
-  - Selo (`Select`: nenhum, Mais Popular, Melhor Custo-Benefício, Mais Vendido, custom)
-  - Texto promocional
-  - Cor de destaque (color picker)
-  - Switch "Plano recomendado" (ao marcar, desmarca os outros)
-  - Switch "Destaque (highlight)"
-- Painel de preview ao lado mostrando como o card aparecerá na tela `/planos`, incluindo: valor original riscado, valor com desconto, "Economize R$ X (Y%)", badge e borda colorida.
-- Validações: desconto 0–100, preço ≥ 0, nome obrigatório.
+## 3. Hook central `usePlanEntitlements`
 
-Hook `usePlans.ts` para CRUD via supabase client (`from('plans')`).
+`src/hooks/usePlanEntitlements.ts`:
+- Carrega plano atual via `useSubscription`.
+- Expõe `{ limits, permissions, allowedTabs, trial: { active, daysLeft, endsAt }, can(action), withinLimit(key, currentCount), isExpired }`.
+- Conta uso atual com `select count('*', { head: true })` por tabela (loans, clients, etc.) — memoizado.
 
-## 3. Integração com `SystemSettings.tsx`
+## 4. Bloqueios no app
 
-- Importar lazy `PlanManagement`.
-- Adicionar `<TabsTrigger value="plans">` com ícone `Package`/`Tag`, logo após o trigger `admin`, condicionado a `isAdmin`.
-- Adicionar `<TabsContent value="plans">` chamando `<PlanManagement />`.
+- **Tabs**: `appTabs.ts` + render do menu — exibir todas, mas marcar bloqueadas (cadeado). Roteamento da aba bloqueada renderiza `<UpgradeGate feature="..." />` em vez do componente real.
+- **Ações**: nos botões "Novo empréstimo", "Importar", "Exportar", etc., chamar `can(action)` e `withinLimit(...)`. Quando falso → abrir `UpgradeDialog` com texto explicando o benefício.
+- **Trial expirado**: `isExpired === true` → todas as ações de criação/edição bloqueadas; visualização permitida; CTA persistente para upgrade.
 
-## 4. Tela `/planos` (Pricing.tsx)
+## 5. Componentes novos
 
-- Estender query para selecionar novos campos.
-- Adicionar **toggle de ciclo** (Mensal | Semestral | Anual) acima do grid.
-- Renderização dinâmica por plano:
-  - Calcular `displayPrice = ciclo === 'mensal' ? price : (override || price*meses*(1-desc/100))`.
-  - Mostrar valor "por mês equivalente" (`displayPrice / meses`).
-  - Se há desconto: mostrar valor original riscado + economia em R$ e %.
-  - Renderizar `badge` (substitui o atual "Mais popular" fixo).
-  - Aplicar `highlight_color` na borda quando `recommended`.
-  - Mostrar `promo_text` abaixo do preço.
-- Ordenação por `sort_order`.
+- `UpgradeGate.tsx` — tela cheia para abas bloqueadas (cadeado, benefícios, botão).
+- `UpgradeDialog.tsx` — modal reutilizável para ações.
+- `TrialBanner.tsx` — banner fixo no topo (quando trial ativo) com "Restam X dias", barras de uso (`empréstimos 7/10`), botão "Assinar agora".
 
-## 5. Regras de cálculo (helper `src/lib/planPricing.ts`)
+## 6. Seed do plano Teste Gratuito
 
-```ts
-calcCyclePrice(monthly, months, discountPct, override?)
-calcSavings(monthly, cyclePrice, months) → { saved: R$, percent: % }
+Atualizar via UI admin:
+```
+trial_days: 7
+limits: { loans:10, clients:20, billings:10, users:1 }
+permissions: { loans.delete:false, clients.import:false, clients.export:false, reports.advanced:false }
+allowed_tabs: ["dashboard","clients","loans","profile"]
 ```
 
 ## Detalhes técnicos
 
-- Tipos do Supabase serão auto-regenerados após a migration.
-- Usar `Money` formatter já existente em `src/lib/utils.ts` / `MoneyInput`.
-- Cache: `Pricing` faz fetch direto; após edição, admin pode recarregar — sem realtime por enquanto.
-- Acesso à subaba: bloqueado se `role !== 'admin'`.
+- Contagem de uso usa `head:true count:'exact'` para evitar baixar dados.
+- `can()`/`withinLimit()` retornam `{ allowed, reason }` para o `UpgradeDialog` exibir texto contextual.
+- `permissions` segue convenção `modulo.acao` (string flat) para extensão sem migração.
+- Server-side: criar trigger opcional em fase 2 para impor limites no banco; nesta fase apenas client-side.
 
-## Arquivos criados/alterados
+## Entregáveis
 
-```text
-db migration                               (nova)
-src/components/admin/PlanManagement.tsx    (novo)
-src/hooks/usePlans.ts                      (novo)
-src/lib/planPricing.ts                     (novo)
-src/components/SystemSettings.tsx          (editado)
-src/pages/Pricing.tsx                      (editado)
-```
-
-## Fora do escopo
-
-- Integração com gateway de pagamento por ciclo (Asaas/Stripe) — os novos preços ficam disponíveis no banco, mas a criação de assinaturas semestral/anual no gateway é um próximo passo.
-- Histórico de versões de preço.
-- A/B testing de planos.
+SQL para o usuário rodar + edição de `PlanManagement.tsx`, novo `usePlanEntitlements`, `UpgradeGate`, `UpgradeDialog`, `TrialBanner`, e integração nos pontos de criação principais (loans, clients, billings) e no roteador de abas.
