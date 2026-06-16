@@ -50,6 +50,7 @@ interface FormState {
   trial_days: number;
   limits: PlanLimits;
   permissions: PlanPermissions;
+  expiration_action: "block_all" | "readonly" | "force_upgrade";
 }
 
 const emptyForm: FormState = {
