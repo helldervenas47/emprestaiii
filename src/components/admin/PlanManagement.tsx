@@ -77,6 +77,7 @@ const emptyForm: FormState = {
   trial_days: 0,
   limits: {},
   permissions: {},
+  expiration_action: "force_upgrade",
 };
 
 function toForm(p: PlanRecord): FormState {
@@ -104,6 +105,7 @@ function toForm(p: PlanRecord): FormState {
     trial_days: (p as any).trial_days ?? 0,
     limits: ((p as any).limits ?? {}) as PlanLimits,
     permissions: ((p as any).permissions ?? {}) as PlanPermissions,
+    expiration_action: ((p as any).expiration_action ?? "force_upgrade") as FormState["expiration_action"],
   };
 }
 
