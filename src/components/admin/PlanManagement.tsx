@@ -17,6 +17,7 @@ import { MoneyInput } from "@/components/ui/money-input";
 import { Pencil, Plus, Trash2, Star, Loader2, Check } from "lucide-react";
 import { usePlans, PlanRecord } from "@/hooks/usePlans";
 import { calcCyclePrice, calcSavings, equivalentMonthly, formatBRL } from "@/lib/planPricing";
+import { LIMIT_KEYS, PERMISSION_GROUPS, PlanLimits, PlanPermissions } from "@/lib/planEntitlements";
 
 const BADGE_OPTIONS = [
   { value: "__none__", label: "Nenhum" },
@@ -46,6 +47,9 @@ interface FormState {
   show_monthly: boolean;
   show_semestral: boolean;
   show_anual: boolean;
+  trial_days: number;
+  limits: PlanLimits;
+  permissions: PlanPermissions;
 }
 
 const emptyForm: FormState = {
@@ -69,6 +73,9 @@ const emptyForm: FormState = {
   show_monthly: true,
   show_semestral: true,
   show_anual: true,
+  trial_days: 0,
+  limits: {},
+  permissions: {},
 };
 
 function toForm(p: PlanRecord): FormState {
@@ -93,6 +100,9 @@ function toForm(p: PlanRecord): FormState {
     show_monthly: p.show_monthly ?? true,
     show_semestral: p.show_semestral ?? true,
     show_anual: p.show_anual ?? true,
+    trial_days: (p as any).trial_days ?? 0,
+    limits: ((p as any).limits ?? {}) as PlanLimits,
+    permissions: ((p as any).permissions ?? {}) as PlanPermissions,
   };
 }
 
