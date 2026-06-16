@@ -168,6 +168,7 @@ export function PlanManagement() {
       trial_days: Math.max(0, Math.floor(form.trial_days || 0)),
       limits: form.limits,
       permissions: form.permissions,
+      expiration_action: form.expiration_action,
     };
     let ok = false;
     if (editing) ok = await update(editing.id, payload as any);
