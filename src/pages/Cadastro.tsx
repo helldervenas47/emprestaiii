@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, Loader2, CheckCircle2, AlertCircle, IdCard, Phone } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { validateInviteCode } from "@/hooks/useInviteCodes";
@@ -18,6 +18,8 @@ const Cadastro = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [cpfCnpj, setCpfCnpj] = useState("");
+  const [phone, setPhone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
