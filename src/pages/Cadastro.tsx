@@ -284,6 +284,29 @@ const Cadastro = () => {
             </div>
           </div>
           <div className="space-y-2">
+            <Label htmlFor="username">Usuário</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="username"
+                placeholder="usuario_login"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value.replace(/\s+/g, "").toLowerCase());
+                  setUsernameError(null);
+                }}
+                className="pl-9 h-12 rounded-xl"
+                autoCapitalize="none"
+                autoCorrect="off"
+                maxLength={30}
+                required
+              />
+            </div>
+            <p className={`text-xs ${usernameError ? "text-destructive" : "text-muted-foreground"}`}>
+              {usernameError ?? "Você poderá usar esse nome para fazer login no app."}
+            </p>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
