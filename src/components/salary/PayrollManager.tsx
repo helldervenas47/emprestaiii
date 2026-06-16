@@ -25,7 +25,7 @@ interface Props { readOnly?: boolean }
 
 export function PayrollManager({ readOnly }: Props) {
   const { employees } = useEmployees();
-  const { payrolls, generateMonthlyBatch, payPayroll, reversePayrollPayment, reopenPayroll, closePayroll, deletePayroll } = usePayrolls();
+  const { payrolls, generateMonthlyBatch, payPayroll, reversePayrollPayment, reopenPayroll, closePayroll, deletePayroll, splitLegacyExtraEarnings } = usePayrolls();
   const { branding } = useAppBranding();
   const [monthOffset, setMonthOffset] = useState(0);
   const [payingId, setPayingId] = useState<string | null>(null);
