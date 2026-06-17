@@ -172,6 +172,41 @@ export function ConsolidatedBalanceCards() {
     [products],
   );
 
+  // Patrimônio Total = Saldo em Conta + Saldo na Rua
+  const patrimonioTotal = contaMaisDinheiro + totalNaRua;
+
+  // Variação mensal: compara com snapshot persistido do mês anterior.
+  const PATRIMONIO_SNAP_KEY = "patrimonio.snapshots.v1";
+  const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const now = new Date();
+  const currentKey = monthKey(now);
+  const prevKey = monthKey(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+
+  const [prevPatrimonio, setPrevPatrimonio] = useState<number | null>(null);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PATRIMONIO_SNAP_KEY);
+      const snaps: Record<string, number> = raw ? JSON.parse(raw) : {};
+      // Atualiza snapshot do mês corrente continuamente (último valor observado).
+      snaps[currentKey] = patrimonioTotal;
+      localStorage.setItem(PATRIMONIO_SNAP_KEY, JSON.stringify(snaps));
+      setPrevPatrimonio(typeof snaps[prevKey] === "number" ? snaps[prevKey] : null);
+    } catch {
+      setPrevPatrimonio(null);
+    }
+  }, [patrimonioTotal, currentKey, prevKey]);
+
+  const variacaoPct = useMemo(() => {
+    if (prevPatrimonio == null || prevPatrimonio === 0) return null;
+    return ((patrimonioTotal - prevPatrimonio) / Math.abs(prevPatrimonio)) * 100;
+  }, [patrimonioTotal, prevPatrimonio]);
+
+  const variacaoTrend: "up" | "down" | "flat" =
+    variacaoPct == null || Math.abs(variacaoPct) < 0.005 ? "flat" : variacaoPct > 0 ? "up" : "down";
+  const variacaoColor =
+    variacaoTrend === "up" ? "text-success" : variacaoTrend === "down" ? "text-destructive" : "text-muted-foreground";
+  const VariacaoIcon = variacaoTrend === "up" ? ArrowUp : variacaoTrend === "down" ? ArrowDown : Minus;
+
   const Row = ({ label, value }: { label: string; value: number }) => (
     <div className="flex items-center justify-between py-2 border-b border-border/40 last:border-0">
       <span className="text-sm text-muted-foreground">{label}</span>
