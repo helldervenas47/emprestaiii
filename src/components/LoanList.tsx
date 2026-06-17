@@ -3362,7 +3362,7 @@ function LoanRowView({
           ) : (
           <div className="space-y-4">
             {/* Info grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
               <div className="bg-card rounded-lg p-3 border border-border/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase">Emprestado</p>
                 <p className="text-sm font-bold text-foreground">{formatCurrency(loan.amount)}</p>
