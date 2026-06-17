@@ -398,9 +398,7 @@ const Pricing = () => {
                           </>
                         ) : (
                           <>
-                            {(plan.price ?? 0) === 0 || /teste|trial|grátis|gratis/i.test(plan.name)
-                              ? "Testar agora"
-                              : "Assinar agora"} <ArrowRight className="h-4 w-4" />
+                            Assinar agora <ArrowRight className="h-4 w-4" />
                           </>
                         )}
                       </Button>
