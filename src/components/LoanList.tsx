@@ -3388,7 +3388,7 @@ function LoanRowView({
                 <p className="text-sm font-bold text-foreground">{formatCurrency(managerCommissionTotal || 0)}</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase">Juros</p>
                 <p className="text-xs font-medium">{loan.interestRate}% {loan.interestType}</p>
