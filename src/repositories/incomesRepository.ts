@@ -2,6 +2,7 @@
  * Repository de recebimentos (receitas) — superfície única para `incomes`.
  */
 import { supabase } from "@/integrations/supabase/userClient";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export type IncomeRow = Record<string, any>;
 
@@ -26,6 +27,7 @@ export const incomesRepository = {
   },
 
   async insert(payload: Record<string, any>): Promise<IncomeRow> {
+    assertWritable();
     const { data, error } = await (supabase.from("incomes" as any) as any)
       .insert(payload)
       .select()
@@ -35,17 +37,20 @@ export const incomesRepository = {
   },
 
   async update(id: string, patch: Record<string, any>): Promise<void> {
+    assertWritable();
     const { error } = await (supabase.from("incomes" as any) as any).update(patch).eq("id", id);
     if (error) throw error;
   },
 
   async remove(id: string): Promise<void> {
+    assertWritable();
     const { error } = await supabase.from("incomes" as any).delete().eq("id", id);
     if (error) throw error;
   },
 
   async removeMany(ids: string[]): Promise<void> {
     if (ids.length === 0) return;
+    assertWritable();
     const { error } = await supabase.from("incomes" as any).delete().in("id", ids);
     if (error) throw error;
   },

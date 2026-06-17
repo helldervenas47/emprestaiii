@@ -189,6 +189,19 @@ const Cadastro = () => {
       toast.error("Você precisa aceitar os termos de uso para continuar");
       return;
     }
+    // Bloqueia novo trial se este email já usou antes (unicidade do plano de teste).
+    if (planName) {
+      try {
+        const { data: alreadyUsed } = await (supabase as any).rpc("has_used_trial", { _email: email });
+        if (alreadyUsed === true) {
+          toast.error("Este email já utilizou o plano de teste. Escolha um plano pago para continuar.");
+          navigate("/planos");
+          return;
+        }
+      } catch {
+        // Se a RPC ainda não foi aplicada no banco, segue o fluxo (fail-open no front; backend é a fonte da verdade).
+      }
+    }
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email,

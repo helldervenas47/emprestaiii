@@ -14,6 +14,7 @@
  * `payments`, `expenses`, `incomes`, `sales` etc. nas próximas iterações.
  */
 import { supabase } from "@/integrations/supabase/userClient";
+import { assertWritable } from "@/lib/readOnlyState";
 
 /** Linha bruta da tabela `loans` no banco (snake_case). */
 export type LoanRow = Record<string, any>;
@@ -49,6 +50,7 @@ export const loansRepository = {
   },
 
   async insert(payload: Record<string, any>): Promise<LoanRow> {
+    assertWritable();
     const { data, error } = await (supabase.from("loans") as any)
       .insert(payload)
       .select()
@@ -58,11 +60,13 @@ export const loansRepository = {
   },
 
   async update(id: string, patch: Record<string, any>): Promise<void> {
+    assertWritable();
     const { error } = await (supabase.from("loans") as any).update(patch).eq("id", id);
     if (error) throw error;
   },
 
   async remove(id: string): Promise<void> {
+    assertWritable();
     const { error } = await supabase.from("loans").delete().eq("id", id);
     if (error) throw error;
   },
@@ -96,6 +100,7 @@ export const loansRepository = {
     newRemainingAmount: number;
     newDueDate: string;
   }): Promise<{ ok: true } | { ok: false; missing: boolean; error: any }> {
+    assertWritable();
     const { error } = await supabase.rpc("register_loan_payment_atomic" as any, {
       p_loan_id: input.loanId,
       p_user_id: input.userId,

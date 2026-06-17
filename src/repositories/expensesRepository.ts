@@ -3,6 +3,7 @@
  * Replica o padrão estabelecido em loansRepository.
  */
 import { supabase } from "@/integrations/supabase/userClient";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export type ExpenseRow = Record<string, any>;
 
@@ -39,6 +40,7 @@ export const expensesRepository = {
   },
 
   async insert(payload: Record<string, any>): Promise<ExpenseRow> {
+    assertWritable();
     const { data, error } = await (supabase.from("expenses") as any)
       .insert(payload)
       .select()
@@ -48,11 +50,13 @@ export const expensesRepository = {
   },
 
   async update(id: string, patch: Record<string, any>): Promise<void> {
+    assertWritable();
     const { error } = await (supabase.from("expenses") as any).update(patch).eq("id", id);
     if (error) throw error;
   },
 
   async remove(id: string): Promise<void> {
+    assertWritable();
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) throw error;
   },
