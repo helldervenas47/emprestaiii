@@ -293,7 +293,7 @@ export function ConsolidatedBalanceCards() {
             </p>
           </CardContent>
         </Card>
-        <Card no3d>
+        <Card no3d className="cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => setOpenPatrimonio(true)}>
           <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
             <div className="flex items-center justify-center gap-1.5">
               <Gem className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
@@ -304,7 +304,7 @@ export function ConsolidatedBalanceCards() {
             </p>
           </CardContent>
         </Card>
-        <Card no3d>
+        <Card no3d className="cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => setOpenVariacao(true)}>
           <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
             <div className="flex items-center justify-center gap-1.5">
               <BarChart3 className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${variacaoColor}`} />
@@ -318,6 +318,72 @@ export function ConsolidatedBalanceCards() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={openPatrimonio} onOpenChange={setOpenPatrimonio}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Gem className="h-4 w-4 text-primary" /> Patrimônio Total
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1">
+            <Row label="Saldo em Conta" value={contaMaisDinheiro} />
+            <Row label="Pendente de Empréstimos" value={pendingLoans} />
+            <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
+              <span className="text-sm font-semibold">Patrimônio Total</span>
+              <span className={`text-base font-bold tabular-nums ${patrimonioTotal < 0 ? "text-destructive" : "text-foreground"}`}>
+                {formatBRL(patrimonioTotal)}
+              </span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openVariacao} onOpenChange={setOpenVariacao}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart3 className={`h-4 w-4 ${variacaoColor}`} /> Variação Mensal
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Mês Atual</p>
+              <Row label="Saldo em Conta" value={contaMaisDinheiro} />
+              <Row label="Pendente de Empréstimos" value={pendingLoans} />
+              <Row label="Patrimônio" value={patrimonioTotal} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Mês Anterior</p>
+              {prevSnap ? (
+                <>
+                  <Row label="Saldo em Conta" value={prevSnap.account} />
+                  <Row label="Pendente de Empréstimos" value={prevSnap.rua} />
+                  <Row label="Patrimônio" value={prevSnap.total} />
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground py-2">Sem snapshot do mês anterior.</p>
+              )}
+            </div>
+            <div className="pt-3 border-t border-border space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold">Diferença</span>
+                <span className={`text-sm font-bold tabular-nums ${prevPatrimonio == null ? "text-muted-foreground" : (patrimonioTotal - prevPatrimonio) >= 0 ? "text-success" : "text-destructive"}`}>
+                  {prevPatrimonio == null ? "—" : `${(patrimonioTotal - prevPatrimonio) >= 0 ? "+" : ""}${formatBRL(patrimonioTotal - prevPatrimonio)}`}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold">Variação</span>
+                <span className={`text-sm font-bold tabular-nums inline-flex items-center gap-1 ${variacaoColor}`}>
+                  <VariacaoIcon className="h-4 w-4" />
+                  {variacaoPct == null ? "—" : `${variacaoPct >= 0 ? "+" : ""}${variacaoPct.toFixed(2)}%`}
+                </span>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
 
 
