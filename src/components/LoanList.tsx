@@ -2358,9 +2358,12 @@ function LoanCardView({
             };
             const nextD = new Date(anchorRef + "T00:00:00");
             advance(nextD);
-            const todayStr = formatYmdInAppTz(paymentDate);
+            // Alinha com addInterestOnlyPayment: avança a âncora até superar o
+            // vencimento ATUAL do contrato (não a data do pagamento). Assim,
+            // pagar juros adiantado (ex.: 16/06 p/ venc. 01/07) projeta 01/08.
+            const boundStr = loan.dueDate;
             let g = 0;
-            while (formatYmdInAppTz(nextD) <= todayStr && g < 600) { advance(nextD); g++; }
+            while (formatYmdInAppTz(nextD) <= boundStr && g < 600) { advance(nextD); g++; }
             const nextDateStr = nextD.toLocaleDateString("pt-BR");
             const dueStr = new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR");
             const today = todayInAppTz();
@@ -4262,9 +4265,12 @@ function LoanRowView({
             };
             const nextD = new Date(anchorRef + "T00:00:00");
             advance(nextD);
-            const todayStr = formatYmdInAppTz(paymentDate);
+            // Alinha com addInterestOnlyPayment: avança a âncora até superar o
+            // vencimento ATUAL do contrato (não a data do pagamento). Assim,
+            // pagar juros adiantado (ex.: 16/06 p/ venc. 01/07) projeta 01/08.
+            const boundStr = loan.dueDate;
             let g = 0;
-            while (formatYmdInAppTz(nextD) <= todayStr && g < 600) { advance(nextD); g++; }
+            while (formatYmdInAppTz(nextD) <= boundStr && g < 600) { advance(nextD); g++; }
             const nextDateStr = nextD.toLocaleDateString("pt-BR");
             const dueStr = new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR");
             const today = todayInAppTz();
