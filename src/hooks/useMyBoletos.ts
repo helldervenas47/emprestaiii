@@ -84,6 +84,7 @@ export function useMyBoletos() {
   }, [user, fetchItems]);
 
   const add = useCallback(async (input: MyBoletoInput): Promise<string> => {
+    assertWritable();
     if (!user) throw new Error("not-auth");
     const { data: ownerRow } = await supabase.rpc("get_data_owner_id", { _user_id: user.id });
     const owner_id = (ownerRow as unknown as string) ?? user.id;
@@ -99,6 +100,7 @@ export function useMyBoletos() {
   }, [user, fetchItems]);
 
   const syncExpensePaid = useCallback(async (expenseId: string | null | undefined, paid: boolean, paidDate: string | null) => {
+    assertWritable();
     if (!expenseId) return;
     try {
       await supabase
@@ -109,12 +111,14 @@ export function useMyBoletos() {
   }, []);
 
   const update = useCallback(async (id: string, patch: Partial<MyBoletoInput & { status: MyBoletoStatus }>) => {
+    assertWritable();
     const { error } = await supabase.from("my_boletos").update(patch).eq("id", id);
     if (error) throw error;
     await fetchItems();
   }, [fetchItems]);
 
   const remove = useCallback(async (id: string) => {
+    assertWritable();
     const item = items.find((i) => i.id === id);
     if (item?.expense_id) {
       await syncExpensePaid(item.expense_id, false, null);
@@ -128,6 +132,7 @@ export function useMyBoletos() {
   }, [items, fetchItems, syncExpensePaid]);
 
   const recordPayment = useCallback(async (boletoId: string, payment: PaymentInput) => {
+    assertWritable();
     if (!user) throw new Error("not-auth");
     const { data: ownerRow } = await supabase.rpc("get_data_owner_id", { _user_id: user.id });
     const owner_id = (ownerRow as unknown as string) ?? user.id;
@@ -178,6 +183,7 @@ export function useMyBoletos() {
   }, []);
 
   const deletePayment = useCallback(async (paymentId: string) => {
+    assertWritable();
     // Descobre o boleto vinculado antes de excluir
     const { data: payRow } = await supabase
       .from("my_boleto_payments")
@@ -226,6 +232,7 @@ export function useMyBoletos() {
   }, []);
 
   const linkExpense = useCallback(async (boletoId: string, expenseId: string) => {
+    assertWritable();
     // Garante 1:1 — desvincula qualquer outro boleto que já aponte para essa despesa
     await supabase.from("my_boletos").update({ expense_id: null }).eq("expense_id", expenseId);
     const { error } = await supabase.from("my_boletos").update({ expense_id: expenseId }).eq("id", boletoId);
@@ -234,12 +241,14 @@ export function useMyBoletos() {
   }, [fetchItems]);
 
   const unlinkExpense = useCallback(async (boletoId: string) => {
+    assertWritable();
     const { error } = await supabase.from("my_boletos").update({ expense_id: null }).eq("id", boletoId);
     if (error) throw error;
     await fetchItems();
   }, [fetchItems]);
 
   const linkIncome = useCallback(async (boletoId: string, incomeId: string) => {
+    assertWritable();
     // Garante 1:1 — desvincula qualquer outro boleto que já aponte para essa receita
     await supabase.from("my_boletos").update({ income_id: null }).eq("income_id", incomeId);
     const { error } = await supabase.from("my_boletos").update({ income_id: incomeId }).eq("id", boletoId);
@@ -248,6 +257,7 @@ export function useMyBoletos() {
   }, [fetchItems]);
 
   const unlinkIncome = useCallback(async (boletoId: string) => {
+    assertWritable();
     const { error } = await supabase.from("my_boletos").update({ income_id: null }).eq("id", boletoId);
     if (error) throw error;
     await fetchItems();
@@ -257,6 +267,7 @@ export function useMyBoletos() {
     boletoId: string,
     opts: { scope: "business" | "personal"; category: string; type?: "fixa" | "recorrente" },
   ): Promise<string> => {
+    assertWritable();
     if (!user) throw new Error("not-auth");
     const { data: ownerRow } = await supabase.rpc("get_data_owner_id", { _user_id: user.id });
     const owner_id = (ownerRow as unknown as string) ?? user.id;

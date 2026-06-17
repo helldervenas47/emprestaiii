@@ -111,6 +111,7 @@ export function useWarranty(saleId: string | undefined) {
     event: string,
     extra: { from?: string | null; to?: string | null; payload?: Record<string, unknown> | null } = {},
   ) => {
+    assertWritable();
     if (!user || !dataOwnerId) return;
     await supabase.from("warranty_history" as any).insert({
       warranty_case_id: caseId,
@@ -129,6 +130,7 @@ export function useWarranty(saleId: string | undefined) {
     notes?: string | null;
     items: { productId: string | null; productName: string; quantity: number }[];
   }) => {
+    assertWritable();
     if (!saleId || !user || !dataOwnerId) throw new Error("Sessão não carregada");
     const { data, error } = await supabase.from("warranty_cases" as any).insert({
       user_id: dataOwnerId,
@@ -157,6 +159,7 @@ export function useWarranty(saleId: string | undefined) {
   }, [saleId, user, dataOwnerId, logHistory]);
 
   const updateStatus = useCallback(async (caseId: string, next: WarrantyStatus) => {
+    assertWritable();
     const current = cases.find((c) => c.id === caseId);
     const patch: any = { status: next };
     if (next === "concluida" || next === "cancelada") patch.closed_at = new Date().toISOString();
@@ -168,6 +171,7 @@ export function useWarranty(saleId: string | undefined) {
   }, [cases, logHistory]);
 
   const updateNotes = useCallback(async (caseId: string, notes: string) => {
+    assertWritable();
     const { error } = await supabase.from("warranty_cases" as any).update({ notes }).eq("id", caseId);
     if (error) throw new Error(error.message);
     setCases((prev) => prev.map((c) => c.id === caseId ? { ...c, notes } : c));
@@ -175,6 +179,7 @@ export function useWarranty(saleId: string | undefined) {
   }, [logHistory]);
 
   const deleteCase = useCallback(async (caseId: string) => {
+    assertWritable();
     const { error } = await supabase.from("warranty_cases" as any).delete().eq("id", caseId);
     if (error) throw new Error(error.message);
     setCases((prev) => prev.filter((c) => c.id !== caseId));
@@ -193,6 +198,7 @@ export function useWarranty(saleId: string | undefined) {
     quantity: number;
     notes?: string | null;
   }) => {
+    assertWritable();
     if (!user || !dataOwnerId) throw new Error("Sessão não carregada");
     if (!input.productId) throw new Error("Selecione um produto cadastrado para movimentar estoque");
     if (input.quantity <= 0) throw new Error("Quantidade inválida");
@@ -248,6 +254,7 @@ export function useWarranty(saleId: string | undefined) {
 
   // ---------- attachments ----------
   const uploadAttachment = useCallback(async (caseId: string, file: File) => {
+    assertWritable();
     if (!user || !dataOwnerId) throw new Error("Sessão não carregada");
     const safe = file.name.replace(/[^\w.\-]+/g, "_");
     const path = `${dataOwnerId}/${caseId}/${Date.now()}-${safe}`;
@@ -276,6 +283,7 @@ export function useWarranty(saleId: string | undefined) {
   }, []);
 
   const deleteAttachment = useCallback(async (att: WarrantyAttachment) => {
+    assertWritable();
     await supabase.storage.from(BUCKET).remove([att.filePath]);
     await supabase.from("warranty_attachments" as any).delete().eq("id", att.id);
     setAttachments((prev) => prev.filter((a) => a.id !== att.id));
