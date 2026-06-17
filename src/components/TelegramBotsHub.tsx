@@ -5,10 +5,12 @@ import { TelegramDailyPlanningScheduleCard } from "@/components/TelegramDailyPla
 import { TelegramIncomesExpensesScheduleCard } from "@/components/TelegramIncomesExpensesScheduleCard";
 import { TelegramWeeklyVencimentosCard } from "@/components/TelegramWeeklyVencimentosCard";
 import { ScheduledReportCard } from "@/components/ScheduledReportCard";
+import { ReadOnlyOverlay } from "@/components/upgrade/ReadOnlyOverlay";
 
 
 export function TelegramBotsHub() {
   return (
+    <ReadOnlyOverlay message="Seu plano de teste expirou. Os bots cadastrados continuam visíveis, mas não é possível conectar ou alterar configurações sem um plano ativo.">
     <div className="space-y-4">
       <Card no3d>
         <CardContent className="p-4">

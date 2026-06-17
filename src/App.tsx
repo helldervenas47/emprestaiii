@@ -20,6 +20,7 @@ import { DevCacheErrorBoundary } from "./components/DevCacheErrorBoundary";
 import { PaymentCelebrationProvider } from "./hooks/usePaymentCelebration";
 import ScrollToTop from "./components/ScrollToTop";
 import { TrialExpiredGate } from "./components/upgrade/TrialExpiredGate";
+import { ReadOnlyModeSync } from "./components/upgrade/ReadOnlyModeSync";
 
 wireAutoSync();
 
@@ -69,7 +70,12 @@ function ProtectedRoute({ children, skipOnboardingCheck = false }: { children: R
     if (onboardingLoading) return <PageLoader />;
     if (needsOnboarding) return <Navigate to="/bem-vindo" replace />;
   }
-  return <TrialExpiredGate>{children}</TrialExpiredGate>;
+  return (
+    <TrialExpiredGate>
+      <ReadOnlyModeSync />
+      {children}
+    </TrialExpiredGate>
+  );
 }
 
 
