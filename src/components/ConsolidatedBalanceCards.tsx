@@ -264,7 +264,32 @@ export function ConsolidatedBalanceCards() {
             </p>
           </CardContent>
         </Card>
+        <Card no3d>
+          <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
+            <div className="flex items-center justify-center gap-1.5">
+              <Gem className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Patrimônio Total</p>
+            </div>
+            <p className={`text-base sm:text-xl font-bold truncate leading-tight mt-0.5 ${patrimonioTotal < 0 ? "text-destructive" : "text-foreground"}`}>
+              {formatBRL(patrimonioTotal)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card no3d>
+          <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
+            <div className="flex items-center justify-center gap-1.5">
+              <BarChart3 className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${variacaoColor}`} />
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Variação Mensal</p>
+            </div>
+            <p className={`text-base sm:text-xl font-bold truncate leading-tight mt-0.5 flex items-center justify-center gap-1 ${variacaoColor}`}>
+              <VariacaoIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+              {variacaoPct == null ? "—" : `${variacaoPct >= 0 ? "+" : ""}${variacaoPct.toFixed(2)}%`}
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">vs. mês anterior</p>
+          </CardContent>
+        </Card>
       </div>
+
 
 
       <Dialog open={openRua} onOpenChange={setOpenRua}>
