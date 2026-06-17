@@ -3363,27 +3363,27 @@ function LoanRowView({
           <div className="space-y-4">
             {/* Info grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-card rounded-lg p-3 border border-border/30">
+              <div className="bg-card rounded-lg p-3 border border-border/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase">Emprestado</p>
                 <p className="text-sm font-bold text-foreground">{formatCurrency(loan.amount)}</p>
               </div>
-              <div className="bg-card rounded-lg p-3 border border-border/30">
+              <div className="bg-card rounded-lg p-3 border border-border/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase">Total a Receber</p>
                 <p className="text-sm font-bold text-foreground">{formatCurrency(Math.round((totalPaid + remaining) * 100) / 100)}</p>
               </div>
-              <div className="bg-card rounded-lg p-3 border border-border/30">
+              <div className="bg-card rounded-lg p-3 border border-border/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase">Total Pago</p>
                 <p className="text-sm font-bold text-success">{formatCurrency(totalPaid)}</p>
               </div>
-              <div className="bg-card rounded-lg p-3 border border-border/30">
+              <div className="bg-card rounded-lg p-3 border border-border/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase">Restante</p>
                 <p className="text-sm font-bold text-destructive">{formatCurrency(remaining)}</p>
               </div>
-              <div className="bg-card rounded-lg p-3 border border-border/30">
+              <div className="bg-card rounded-lg p-3 border border-border/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase">Juros do Contrato</p>
                 <p className="text-sm font-bold text-foreground">{formatCurrency(Math.max(0, (total - loan.amount)) + lateFees)}</p>
               </div>
-              <div className="bg-card rounded-lg p-3 border border-border/30">
+              <div className="bg-card rounded-lg p-3 border border-border/30 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase">Comissão do Gerente</p>
                 <p className="text-sm font-bold text-foreground">{formatCurrency(managerCommissionTotal || 0)}</p>
               </div>
