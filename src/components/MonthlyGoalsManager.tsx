@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Target, Pencil, Trash2, Plus, Percent, TrendingUp, Banknote, FileText,
   HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus, Copy,
-  ChevronLeft, ChevronRight, RefreshCw,
+  ChevronLeft, ChevronRight, RefreshCw, BarChart3,
 } from "lucide-react";
 import { RowActions } from "@/components/ui/row-actions";
 import { toast } from "sonner";
