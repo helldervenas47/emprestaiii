@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { ManagerCommission } from "@/types/loan";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export function useManagerCommissions(enabled: boolean = true) {
   const { user, dataOwnerId } = useAuth();
@@ -68,6 +69,7 @@ export function useManagerCommissions(enabled: boolean = true) {
       generatedAt: string;
       notes?: string;
     }) => {
+      assertWritable();
       if (!user || !dataOwnerId) return;
       const amount = (params.baseAmount * params.rate) / 100;
       const { error } = await supabase.from("manager_commissions").insert({

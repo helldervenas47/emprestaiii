@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export interface LocadorInfo {
   id?: string;
@@ -48,6 +49,7 @@ export function useLocadorInfo(enabled = true) {
   useEffect(() => { if (enabled) fetchAll(); }, [fetchAll, enabled]);
 
   const save = useCallback(async (info: LocadorInfo): Promise<boolean> => {
+    assertWritable();
     if (!user || !dataOwnerId) return false;
 
     if (info.id) {
@@ -73,6 +75,7 @@ export function useLocadorInfo(enabled = true) {
   }, [user, dataOwnerId]);
 
   const remove = useCallback(async (id: string) => {
+    assertWritable();
     if (!user) return;
     await supabase.from("locador_info").delete().eq("id", id);
     setLocadores(prev => prev.filter(l => l.id !== id));

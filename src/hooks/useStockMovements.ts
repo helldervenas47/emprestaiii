@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export type StockMovementType = "entrada_manual" | "compra" | "venda" | "ajuste";
 
@@ -72,6 +73,7 @@ export function useStockMovements(enabled = true) {
     saleId?: string | null;
     notes?: string | null;
   }) => {
+    assertWritable();
     if (!user || !dataOwnerId) return null;
     const { data, error } = await supabase.from("stock_movements" as any).insert({
       owner_id: dataOwnerId,
@@ -91,6 +93,7 @@ export function useStockMovements(enabled = true) {
   }, [user, dataOwnerId]);
 
   const deleteMovement = useCallback(async (id: string) => {
+    assertWritable();
     const { error } = await supabase.from("stock_movements" as any).delete().eq("id", id);
     if (!error) setMovements((prev) => prev.filter((m) => m.id !== id));
     return !error;

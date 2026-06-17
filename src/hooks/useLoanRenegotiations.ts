@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { LoanRenegotiation } from "@/types/loan";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
+import { assertWritable } from "@/lib/readOnlyState";
 
 function rowToRenegotiation(r: any): LoanRenegotiation {
   return {
@@ -71,6 +72,7 @@ export function useLoanRenegotiations() {
       id: string,
       patch: { notes?: string | null; type?: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null },
     ) => {
+      assertWritable();
       const updatePayload: any = {};
       if (patch.notes !== undefined) updatePayload.notes = patch.notes;
       if (patch.type !== undefined) updatePayload.type = patch.type;
@@ -99,6 +101,7 @@ export function useLoanRenegotiations() {
   );
 
   const deleteRenegotiation = useCallback(async (id: string) => {
+    assertWritable();
     // Busca o registro com snapshot para reverter o contrato
     const { data: row, error: fetchErr } = await supabase
       .from("loan_renegotiations" as any)

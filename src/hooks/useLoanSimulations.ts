@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 import type { LoanSimulation, SimulationScenario, SimulationSettings } from "@/types/loanSimulation";
 import { toast } from "sonner";
+import { assertWritable } from "@/lib/readOnlyState";
 
 function mapRow(row: any): LoanSimulation {
   return {
@@ -65,6 +66,7 @@ export function useLoanSimulations() {
       scenarios: SimulationScenario[];
       chosenScenarioId: string | null;
     }): Promise<LoanSimulation | null> => {
+      assertWritable();
       if (!user) return null;
       try {
         // owner_id will default via RLS check; we need to pass it explicitly. Get it via RPC.
@@ -112,6 +114,7 @@ export function useLoanSimulations() {
   );
 
   const deleteSimulation = useCallback(async (id: string) => {
+    assertWritable();
     try {
       const { error } = await supabase.from("loan_simulations" as any).delete().eq("id", id);
       if (error) throw error;
@@ -125,6 +128,7 @@ export function useLoanSimulations() {
 
   const updateSettings = useCallback(
     async (next: SimulationSettings) => {
+      assertWritable();
       if (!user) return;
       try {
         const { data: ownerRes } = await supabase.rpc("get_data_owner_id" as any, { _user_id: user.id });
