@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwner } from "@/hooks/useDataOwner";
 import { toast } from "sonner";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export interface CreditCard {
   id: string;
@@ -64,6 +65,7 @@ export function useCreditCards() {
   }, [user, ownerId, load]);
 
   const addCard = async (input: CreditCardInput) => {
+    assertWritable();
     if (!ownerId) return;
     const { data, error } = await supabase
       .from("credit_cards")
@@ -89,6 +91,7 @@ export function useCreditCards() {
   };
 
   const updateCard = async (id: string, input: CreditCardInput) => {
+    assertWritable();
     const { data, error } = await supabase
       .from("credit_cards")
       .update({
@@ -113,6 +116,7 @@ export function useCreditCards() {
   };
 
   const deleteCard = async (id: string) => {
+    assertWritable();
     const { error } = await supabase.from("credit_cards").delete().eq("id", id);
     if (error) {
       toast.error("Erro ao excluir cartão");
