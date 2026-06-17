@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export type StockMovementType = "entrada_manual" | "compra" | "venda" | "ajuste";
 
