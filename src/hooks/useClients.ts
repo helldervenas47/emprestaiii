@@ -12,6 +12,7 @@ import {
   rewritePendingRecordId,
 } from "@/lib/offline/sync";
 import { isOnline } from "@/lib/offline/status";
+import { assertWritable } from "@/lib/readOnlyState";
 
 async function triggerClientAnalysis(clientId: string) {
   await supabase.functions.invoke("sync-client-analysis", {
@@ -51,7 +52,6 @@ export function useClients() {
         return;
       }
     }
-    // Offline / fetch failed → load from cache
     const cached = await getCachedRows("clients");
     if (cached.length > 0) {
       setClients(cached
@@ -62,7 +62,6 @@ export function useClients() {
 
   useEffect(() => { fetchClients(); }, [fetchClients]);
 
-  // Realtime
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -72,7 +71,6 @@ export function useClients() {
     return () => { supabase.removeChannel(channel); };
   }, [user, fetchClients]);
 
-  // Auto-refetch when offline queue flushes
   useEffect(() => {
     const handler = (e: any) => {
       if (e.detail?.tables?.includes("clients")) fetchClients();
@@ -82,6 +80,7 @@ export function useClients() {
   }, [fetchClients]);
 
   const addClient = useCallback(async (client: Omit<Client, "id" | "createdAt">): Promise<string | null> => {
+    assertWritable();
     if (!user || !dataOwnerId) return null;
     const tempId = crypto.randomUUID();
     const optimistic: Client = { ...client, id: tempId, createdAt: new Date().toISOString() };
@@ -100,17 +99,15 @@ export function useClients() {
       auto_billing_enabled: client.autoBillingEnabled ?? true,
     };
 
-    // Local cache write — always
     await upsertCachedRow("clients", { ...insertPayload, created_at: optimistic.createdAt });
 
     if (!isOnline()) {
       await enqueueMutation({ table: "clients", op: "insert", recordId: tempId, payload: insertPayload });
-      return;
+      return tempId;
     }
 
     const { data, error } = await supabase.from("clients").insert(insertPayload as any).select().single();
     if (error) {
-      // Network/RLS — queue if it looks like network, else revert
       if (!error.message.toLowerCase().includes("row-level")) {
         await enqueueMutation({ table: "clients", op: "insert", recordId: tempId, payload: insertPayload });
         return tempId;
@@ -131,6 +128,7 @@ export function useClients() {
   }, [user, dataOwnerId]);
 
   const deleteClient = useCallback(async (id: string) => {
+    assertWritable();
     setClients((prev) => prev.filter((c) => c.id !== id));
     await removeCachedRow("clients", id);
     if (!isOnline()) {
@@ -144,6 +142,7 @@ export function useClients() {
   }, []);
 
   const updateClient = useCallback(async (id: string, data: Partial<Omit<Client, "id" | "createdAt">>) => {
+    assertWritable();
     setClients((prev) => prev.map((c) => c.id === id ? { ...c, ...data } : c));
     const updatePayload: any = {
       name: data.name, phone: data.phone, email: data.email, cpf: data.cpf,
