@@ -37,7 +37,7 @@ export function UpgradeDialog({
         )}
         <DialogFooter className="sm:justify-center">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Agora não</Button>
-          <Button onClick={() => navigate("/pricing")}>Fazer upgrade</Button>
+          <Button onClick={() => navigate("/planos")}>Ver planos</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
