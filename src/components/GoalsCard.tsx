@@ -235,6 +235,7 @@ const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: Unit; c
   new_clients_count:  { label: "Novos Clientes",                   icon: UserPlus,      unit: "qtd", color: "text-primary",     bgColor: "bg-primary/15",     description: "Clientes cadastrados no período." },
   renegotiation_rate: { label: "Contratos Renegociados",           icon: RefreshCw,     unit: "qtd", color: "text-destructive", bgColor: "bg-destructive/15", description: "Limite máximo de contratos renegociados no mês (meta inversa).", inverse: true },
   daily_received_avg: { label: "Receita Média Diária",           icon: HandCoins,     unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Meta diária com média diária e necessário/dia restante." },
+  monthly_variation:  { label: "Variação Mensal do Patrimônio",   icon: BarChart3,     unit: "%",   color: "text-primary",     bgColor: "bg-primary/15",     description: "Meta de crescimento mensal do patrimônio total (% vs mês anterior)." },
 };
 
 interface Props {
