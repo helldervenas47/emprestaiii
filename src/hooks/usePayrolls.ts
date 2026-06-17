@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
+import { assertWritable } from "@/lib/readOnlyState";
 import { recordLedger } from "@/lib/ledger";
 import { adjustBalance, type Wallet } from "@/lib/balance";
 import { displayIncomeCategory, incomeCategoryKey, SALARY_INCOME_CATEGORY } from "@/lib/incomeCategory";
@@ -105,6 +106,7 @@ export function usePayrolls(enabled = true) {
    * já criada anteriormente (evita duplicatas em corrida com realtime).
    */
   const ensureLinkedExpense = useCallback(async (payroll: Payroll, employeeName?: string): Promise<string | null> => {
+    assertWritable();
     if (!dataOwnerId) return null;
     if (payroll.expenseId) {
       const { data } = await supabase.from("expenses").select("id").eq("id", payroll.expenseId).maybeSingle();
@@ -217,6 +219,7 @@ export function usePayrolls(enabled = true) {
   }, [payrolls, enabled, dataOwnerId, ensureLinkedExpense]);
 
   const generatePayroll = useCallback(async (employee: Employee, competence: string, dueDate?: string) => {
+    assertWritable();
     if (!dataOwnerId) return null;
     const existing = payrolls.find((p) => p.employeeId === employee.id && p.competence === competence);
     if (existing) return existing;
@@ -257,6 +260,7 @@ export function usePayrolls(enabled = true) {
    * registra o movimento no extrato e grava o histórico em payroll_payments.
    */
   const payPayroll = useCallback(async (payroll: Payroll, employee: Employee | undefined, amount: number, opts?: { paidDate?: string; paymentMethodId?: string | null; notes?: string }) => {
+    assertWritable();
     if (!dataOwnerId) return;
     const date = opts?.paidDate || todayInAppTz();
     const newPaid = Math.min(payroll.netSalary, payroll.paidAmount + amount);
@@ -357,6 +361,7 @@ export function usePayrolls(enabled = true) {
    * vinculada. A despesa em si nunca é apagada — ela permanece vinculada à folha.
    */
   const reversePayrollPayment = useCallback(async (paymentId: string) => {
+    assertWritable();
     const { data: pay } = await supabase
       .from("payroll_payments" as any)
       .select("*")
@@ -397,15 +402,18 @@ export function usePayrolls(enabled = true) {
   }, []);
 
   const reopenPayroll = useCallback(async (payroll: Payroll) => {
+    assertWritable();
     await supabase.from("payrolls" as any).update({ closed: false } as any).eq("id", payroll.id);
   }, []);
 
   const closePayroll = useCallback(async (payroll: Payroll) => {
+    assertWritable();
     await supabase.from("payrolls" as any).update({ closed: true } as any).eq("id", payroll.id);
   }, []);
 
   /** Exclui a folha e todos os efeitos colaterais (despesa vinculada, ledger, incomes). */
   const deletePayroll = useCallback(async (id: string) => {
+    assertWritable();
     const { data: payrollRow } = await supabase
       .from("payrolls" as any)
       .select("expense_id")
@@ -432,6 +440,7 @@ export function usePayrolls(enabled = true) {
   }, []);
 
   const splitLegacyExtraEarnings = useCallback(async () => {
+    assertWritable();
     if (!dataOwnerId) return { split: 0, created: 0 };
     let touched = 0;
     let created = 0;
@@ -478,6 +487,7 @@ export function usePayrolls(enabled = true) {
   }, [dataOwnerId, payrolls, fetchAll]);
 
   const updatePayroll = useCallback(async (id: string, patch: Partial<Payroll>) => {
+    assertWritable();
     const p: any = {};
     if (patch.dueDate !== undefined) p.due_date = patch.dueDate;
     if (patch.notes !== undefined) p.notes = patch.notes;
