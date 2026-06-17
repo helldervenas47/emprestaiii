@@ -217,6 +217,13 @@ export function ConsolidatedBalanceCards() {
         snaps[currentKey] = { account: contaMaisDinheiro, rua: pendingLoans, total: patrimonioTotal };
         localStorage.setItem(PATRIMONIO_SNAP_KEY, JSON.stringify(snaps));
       }
+      // Sempre publica o patrimônio "ao vivo" do mês corrente para outros módulos (ex.: metas).
+      try {
+        localStorage.setItem(
+          "patrimonio.current.v1",
+          JSON.stringify({ month: currentKey, account: contaMaisDinheiro, rua: pendingLoans, total: patrimonioTotal }),
+        );
+      } catch {}
       setPrevSnap(normalizeSnap(snaps[prevKey]));
     } catch {
       setPrevSnap(null);
