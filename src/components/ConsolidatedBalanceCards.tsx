@@ -172,24 +172,31 @@ export function ConsolidatedBalanceCards() {
     [products],
   );
 
-  // Patrimônio Total = Saldo em Conta + Saldo na Rua
-  const patrimonioTotal = contaMaisDinheiro + totalNaRua;
+  // Patrimônio Total = Saldo total (conta + dinheiro) + Pendente de empréstimos
+  const patrimonioTotal = contaMaisDinheiro + pendingLoans;
 
-  // Variação mensal: compara com snapshot persistido do mês anterior.
+  // Variação mensal: compara com snapshot "travado" no último dia do mês anterior.
   const PATRIMONIO_SNAP_KEY = "patrimonio.snapshots.v1";
   const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   const now = new Date();
   const currentKey = monthKey(now);
   const prevKey = monthKey(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+  const isLastDayOfMonth = (d: Date) => {
+    const next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+    return next.getMonth() !== d.getMonth();
+  };
 
   const [prevPatrimonio, setPrevPatrimonio] = useState<number | null>(null);
   useEffect(() => {
     try {
       const raw = localStorage.getItem(PATRIMONIO_SNAP_KEY);
       const snaps: Record<string, number> = raw ? JSON.parse(raw) : {};
-      // Atualiza snapshot do mês corrente continuamente (último valor observado).
-      snaps[currentKey] = patrimonioTotal;
-      localStorage.setItem(PATRIMONIO_SNAP_KEY, JSON.stringify(snaps));
+      // Trava o snapshot do mês corrente APENAS no último dia do mês.
+      // Meses anteriores nunca são sobrescritos (ficam congelados).
+      if (isLastDayOfMonth(now) && snaps[currentKey] == null) {
+        snaps[currentKey] = patrimonioTotal;
+        localStorage.setItem(PATRIMONIO_SNAP_KEY, JSON.stringify(snaps));
+      }
       setPrevPatrimonio(typeof snaps[prevKey] === "number" ? snaps[prevKey] : null);
     } catch {
       setPrevPatrimonio(null);
