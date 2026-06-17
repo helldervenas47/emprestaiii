@@ -2736,7 +2736,7 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, renegotiations = [], onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, existingTags = [], clients = [],
+  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, renegotiations = [], onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, existingTags = [], clients = [], managerCommissionTotal = 0,
 }: {
   loan: Loan;
   payments: Payment[];
@@ -2755,6 +2755,7 @@ function LoanRowView({
   readOnly?: boolean;
   existingTags?: string[];
   clients?: Client[];
+  managerCommissionTotal?: number;
 }) {
   const [showAdjustDueDateRow, setShowAdjustDueDateRow] = useState(false);
   const [payMenuOpen, setPayMenuOpen] = useState(false);
