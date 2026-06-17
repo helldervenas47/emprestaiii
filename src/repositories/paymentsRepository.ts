@@ -3,6 +3,7 @@
  * Mesmo padrão de loansRepository — única superfície para a tabela `payments`.
  */
 import { supabase } from "@/integrations/supabase/userClient";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export type PaymentRow = Record<string, any>;
 
@@ -27,6 +28,7 @@ export const paymentsRepository = {
   },
 
   async insert(payload: Record<string, any>): Promise<PaymentRow> {
+    assertWritable();
     const { data, error } = await (supabase.from("payments") as any)
       .insert(payload)
       .select()
@@ -36,11 +38,13 @@ export const paymentsRepository = {
   },
 
   async remove(id: string): Promise<void> {
+    assertWritable();
     const { error } = await supabase.from("payments").delete().eq("id", id);
     if (error) throw error;
   },
 
   async removeByLoan(loanId: string): Promise<void> {
+    assertWritable();
     const { error } = await supabase.from("payments").delete().eq("loan_id", loanId);
     if (error) throw error;
   },
