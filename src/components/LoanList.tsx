@@ -3408,7 +3408,7 @@ function LoanRowView({
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase">Vencimento</p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center gap-2">
                   <p className="text-xs font-medium">
                     {getFirstPendingDate(loan, installmentSchedules).toLocaleDateString("pt-BR")}
                   </p>
