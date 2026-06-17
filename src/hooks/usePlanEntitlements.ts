@@ -159,7 +159,7 @@ export function usePlanEntitlements() {
   };
 
   return {
-    loading,
+    loading: loading || authLoading || subscriptionLoading,
     plan,
     limits: plan?.limits ?? {},
     permissions: plan?.permissions ?? {},
