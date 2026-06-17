@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useDataOwner } from "@/hooks/useDataOwner";
 import { toast } from "sonner";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export type GoalType =
   | "interest_rate"
@@ -21,7 +22,7 @@ export type GoalType =
 export interface MonthlyGoal {
   id: string;
   goalType: GoalType;
-  month: string; // YYYY-MM
+  month: string;
   targetValue: number;
   notes?: string | null;
 }
@@ -58,6 +59,7 @@ export function useMonthlyGoals() {
   }, [ownerId, load]);
 
   const upsertGoal = async (goalType: GoalType, month: string, targetValue: number, notes?: string) => {
+    assertWritable();
     if (!ownerId) return;
     const { error } = await supabase
       .from("monthly_goals")
@@ -74,6 +76,7 @@ export function useMonthlyGoals() {
   };
 
   const deleteGoal = async (id: string) => {
+    assertWritable();
     const { error } = await supabase.from("monthly_goals").delete().eq("id", id);
     if (error) {
       toast.error("Erro ao excluir meta");
@@ -85,15 +88,12 @@ export function useMonthlyGoals() {
 
   const getGoal = useCallback(
     (goalType: GoalType, month: string): MonthlyGoal | undefined => {
-      // Exact match first
       const exact = goals.find((g) => g.goalType === goalType && g.month === month);
       if (exact) return exact;
-      // Fallback: most recent goal of this type with month <= requested month
       const candidates = goals
         .filter((g) => g.goalType === goalType && g.month <= month)
         .sort((a, b) => b.month.localeCompare(a.month));
       if (candidates.length > 0) return candidates[0];
-      // Last resort: most recent goal of this type (any month)
       const anyMostRecent = goals
         .filter((g) => g.goalType === goalType)
         .sort((a, b) => b.month.localeCompare(a.month));
