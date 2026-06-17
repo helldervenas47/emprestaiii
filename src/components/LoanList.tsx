@@ -3384,8 +3384,9 @@ function LoanRowView({
                 <p className="text-sm font-bold text-foreground">{formatCurrency(Math.max(0, (total - loan.amount)) + lateFees)}</p>
               </div>
               {(() => {
-                const rate = Number(loan.managerCommissionRate || 0);
-                const commissionValue = loan.managerId && rate > 0
+                const rate = Number(loan.managerCommissionRate ?? 0);
+                const hasManagerCommission = Boolean(loan.hasManager || loan.managerId);
+                const commissionValue = hasManagerCommission && rate > 0
                   ? (Number(loan.amount) * rate) / 100
                   : 0;
                 return (
