@@ -18,6 +18,7 @@ import { AIVoiceSettingsCard } from "@/components/AIVoiceSettingsCard";
 import { ThemeSettingsCard } from "@/components/ThemeSettingsCard";
 import { ChangePasswordCard } from "@/components/ChangePasswordCard";
 import { ProfilePhoneCard } from "@/components/ProfilePhoneCard";
+import { PlanStatusCard } from "@/components/PlanStatusCard";
 
 const NotificationSettings = lazy(() => import("@/components/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
 const PaymentFeedbackSettings = lazy(() => import("@/components/PaymentFeedbackSettings").then(m => ({ default: m.PaymentFeedbackSettings })));
@@ -110,6 +111,8 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
         <h2 className="text-2xl font-bold text-foreground">Configurações</h2>
         <p className="text-sm text-muted-foreground mt-1">Gerencie preferências, notificações, dados e sua conta.</p>
       </div>
+      {/* Status do plano (dias restantes + alerta) */}
+      <PlanStatusCard />
 
       {/* Alteração de senha */}
       <ChangePasswordCard />
