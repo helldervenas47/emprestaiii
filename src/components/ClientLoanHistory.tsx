@@ -408,8 +408,8 @@ export function ClientLoanHistory({ loans, payments }: Props) {
               <SelectItem value="pending-asc">Menor valor pendente</SelectItem>
               <SelectItem value="total-desc">Maior valor total</SelectItem>
               <SelectItem value="total-asc">Menor valor total</SelectItem>
-              <SelectItem value="rate-desc">Maior taxa de juros</SelectItem>
-              <SelectItem value="rate-asc">Menor taxa de juros</SelectItem>
+              <SelectItem value="rate-desc">Maior taxa de variação</SelectItem>
+              <SelectItem value="rate-asc">Menor taxa de variação</SelectItem>
             </SelectContent>
           </Select>
           <Button
@@ -468,7 +468,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           </Card>
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
-              <div className="text-sm text-muted-foreground mb-1">Taxa de Juros Média</div>
+              <div className="text-sm text-muted-foreground mb-1">Variação Média</div>
               <div className="font-bold tabular-nums text-primary text-xl">
                 {hidden ? "•••" : `${totals.avgInterestRate.toFixed(2).replace(".", ",")}%`}
               </div>
@@ -492,7 +492,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                 <TableHead className="text-right">Pago</TableHead>
                 <TableHead className="text-right">Pendente</TableHead>
                 <TableHead className="text-right">Total</TableHead>
-                <TableHead className="text-right">Taxa de Juros</TableHead>
+                <TableHead className="text-right">Taxa de Variação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
