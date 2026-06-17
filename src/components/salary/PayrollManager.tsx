@@ -127,8 +127,11 @@ export function PayrollManager({ readOnly }: Props) {
           <Button variant="outline" size="icon" onClick={() => setMonthOffset((m) => m + 1)}><ChevronRight className="h-4 w-4" /></Button>
         </div>
         {!readOnly && (
-          <div className="flex items-center gap-2 sm:absolute sm:right-0">
-            <Button onClick={handleGenerate} variant="outline"><RefreshCw className="h-4 w-4" /> Gerar folha do mês</Button>
+          <div className="flex flex-col items-center gap-2 sm:flex-row sm:absolute sm:right-0">
+            <Button onClick={handleGenerate} variant="outline" size="icon" aria-label="Gerar folha do mês" title="Gerar folha do mês" className="sm:w-auto sm:px-4">
+              <RefreshCw className="h-4 w-4" />
+              <span className="hidden sm:inline sm:ml-2">Gerar folha do mês</span>
+            </Button>
             <ExtraEarningDialog />
           </div>
         )}
