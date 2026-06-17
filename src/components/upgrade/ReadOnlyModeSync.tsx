@@ -24,11 +24,10 @@ export function ReadOnlyModeSync() {
     const style = document.createElement("style");
     style.setAttribute("data-readonly-lock", "true");
     style.textContent = `
-      body[data-readonly="true"] :is(input, textarea, select):not([data-allow-readonly]):not([type="search"]):not([type="hidden"]) {
+      body[data-readonly="true"] :is(input, textarea, select):not([data-allow-readonly]):not([type="search"]):not([type="hidden"]):not([type="button"]) {
         pointer-events: none !important;
         opacity: 0.6 !important;
       }
-      body[data-readonly="true"] button[type="submit"]:not([data-allow-readonly]),
       body[data-readonly="true"] [data-mutation]:not([data-allow-readonly]) {
         pointer-events: none !important;
         opacity: 0.5 !important;
