@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { useDataOwner } from "./useDataOwner";
 import { toast } from "sonner";
+import { assertWritable } from "@/lib/readOnlyState";
 import {
   computePiggyDetailed as computePiggyDetailedSeg,
   type PiggyDetailed,
@@ -301,6 +302,7 @@ export function usePiggyBanks() {
     category?: string | null;
     targetDate?: string | null;
   }) => {
+    assertWritable();
     if (!user || !dataOwnerId) return null;
     const payload: any = {
       user_id: dataOwnerId,
@@ -341,6 +343,7 @@ export function usePiggyBanks() {
     category: string | null;
     targetDate: string | null;
   }>) => {
+    assertWritable();
     const dbPatch: any = {};
     if (patch.name !== undefined) dbPatch.name = patch.name;
     if (patch.color !== undefined) dbPatch.color = patch.color;
@@ -366,12 +369,14 @@ export function usePiggyBanks() {
   }, [reload]);
 
   const deletePiggyBank = useCallback(async (id: string) => {
+    assertWritable();
     const { error } = await supabase.from("piggy_banks" as any).delete().eq("id", id);
     if (error) { toast.error("Erro ao excluir cofrinho"); return; }
     await reload();
   }, [reload]);
 
   const addDeposit = useCallback(async (input: { piggyBankId: string; amount: number; depositDate: string; expenseId?: string; source?: string }) => {
+    assertWritable();
     if (!dataOwnerId) return;
     const { error } = await supabase.from("piggy_bank_deposits" as any).insert({
       user_id: dataOwnerId,
@@ -386,6 +391,7 @@ export function usePiggyBanks() {
   }, [dataOwnerId, reload]);
 
   const removeDepositByExpenseId = useCallback(async (expenseId: string) => {
+    assertWritable();
     await supabase.from("piggy_bank_deposits" as any).delete().eq("expense_id", expenseId);
     await reload();
   }, [reload]);
@@ -395,6 +401,7 @@ export function usePiggyBanks() {
     id: string,
     patch: Partial<{ amount: number; depositDate: string }>
   ) => {
+    assertWritable();
     const dbPatch: any = {};
     if (patch.amount !== undefined) dbPatch.amount = patch.amount;
     if (patch.depositDate !== undefined) dbPatch.deposit_date = patch.depositDate;
@@ -405,6 +412,7 @@ export function usePiggyBanks() {
 
   /** Delete a single deposit by id. */
   const deleteDeposit = useCallback(async (id: string) => {
+    assertWritable();
     const { error } = await supabase.from("piggy_bank_deposits" as any).delete().eq("id", id);
     if (error) { toast.error("Erro ao excluir lançamento"); return; }
     await reload();
@@ -416,6 +424,7 @@ export function usePiggyBanks() {
     newBalance: number,
     note?: string
   ) => {
+    assertWritable();
     if (!dataOwnerId) return;
     const pb = piggyBanks.find((p) => p.id === piggyBankId);
     if (!pb) return;
