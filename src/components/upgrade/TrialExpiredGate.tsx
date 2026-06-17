@@ -1,35 +1,21 @@
-import { useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { AlertTriangle, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePlanEntitlements } from "@/hooks/usePlanEntitlements";
 import { supabase } from "@/integrations/supabase/userClient";
 
-const ALLOWED_WHEN_EXPIRED = ["/planos", "/auth", "/cadastro", "/termos", "/privacidade", "/reembolso"];
-
 /**
  * Aplica a regra configurada no plano quando o período de teste expira:
  *   - block_all: tela cheia bloqueando todo acesso.
- *   - readonly:  libera navegação; `can()`/`withinLimit()` retornam false.
- *   - force_upgrade (default): redireciona para /planos.
+ *   - readonly / force_upgrade: libera navegação na aba principal;
+ *     as funcionalidades ficam bloqueadas via SubscriptionGate/Banner.
  *
  * Os dados do usuário permanecem no banco — nada é apagado.
+ * (Não há mais redirecionamento automático para /planos quando o plano expira.)
  */
 export function TrialExpiredGate({ children }: { children: React.ReactNode }) {
   const { trial, isPaid, loading } = usePlanEntitlements();
   const navigate = useNavigate();
-  const location = useLocation();
-
-  const shouldForceRedirect =
-    !loading &&
-    !isPaid &&
-    trial.expired &&
-    trial.expirationAction === "force_upgrade" &&
-    !ALLOWED_WHEN_EXPIRED.some((p) => location.pathname.startsWith(p));
-
-  useEffect(() => {
-    if (shouldForceRedirect) navigate("/planos", { replace: true });
-  }, [shouldForceRedirect, navigate]);
 
   if (loading || isPaid || !trial.expired) return <>{children}</>;
 
@@ -66,6 +52,8 @@ export function TrialExpiredGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // readonly e force_upgrade liberam o conteúdo (force_upgrade já redirecionou).
+  // readonly e force_upgrade: mantém o usuário na aba principal.
+  // O bloqueio das funcionalidades é feito pelo SubscriptionGate e o
+  // SubscriptionBanner exibe o CTA para renovação.
   return <>{children}</>;
 }
