@@ -191,6 +191,15 @@ export function ConsolidatedBalanceCards() {
     try {
       const raw = localStorage.getItem(PATRIMONIO_SNAP_KEY);
       const snaps: Record<string, number> = raw ? JSON.parse(raw) : {};
+
+      // Seed único: patrimônio do fim do mês passado informado pelo usuário.
+      const SEED_FLAG = "patrimonio.snapshots.seed.v1";
+      if (!localStorage.getItem(SEED_FLAG)) {
+        snaps[prevKey] = 79235.36;
+        localStorage.setItem(PATRIMONIO_SNAP_KEY, JSON.stringify(snaps));
+        localStorage.setItem(SEED_FLAG, "1");
+      }
+
       // Trava o snapshot do mês corrente APENAS no último dia do mês.
       // Meses anteriores nunca são sobrescritos (ficam congelados).
       if (isLastDayOfMonth(now) && snaps[currentKey] == null) {
