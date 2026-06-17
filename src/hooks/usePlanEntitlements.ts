@@ -44,7 +44,7 @@ type PlanEntitlementRow = PlanLite & {
  */
 export function usePlanEntitlements() {
   const { user, dataOwnerId, loading: authLoading } = useAuth();
-  const { subscription, isActive } = useSubscription();
+  const { subscription, isActive, loading: subscriptionLoading } = useSubscription();
   const [plan, setPlan] = useState<PlanLite | null>(null);
   const [loading, setLoading] = useState(true);
   const [trialStartedAt, setTrialStartedAt] = useState<Date | null>(null);
@@ -115,7 +115,11 @@ export function usePlanEntitlements() {
   const trial = useMemo(() => {
     const days = plan?.trial_days ?? 0;
     const action = plan?.expiration_action ?? "force_upgrade";
-    if (!days || !trialStartedAt) {
+    // Enquanto auth/assinatura estão carregando, NÃO marcamos como expirado —
+    // evita falso positivo de "trial expirado" em contas com plano ativo
+    // antes do registro da assinatura terminar de carregar.
+    const stillResolving = authLoading || subscriptionLoading || loading;
+    if (!days || !trialStartedAt || stillResolving) {
       return {
         active: false,
         daysLeft: 0,
@@ -140,7 +144,7 @@ export function usePlanEntitlements() {
       expired,
       expirationAction: action,
     };
-  }, [plan, trialStartedAt, isActive]);
+  }, [plan, trialStartedAt, isActive, authLoading, subscriptionLoading, loading]);
 
   // Em modo readonly após expiração, qualquer ação fica bloqueada.
   const lockdown = trial.expired && trial.expirationAction === "readonly";
@@ -155,7 +159,7 @@ export function usePlanEntitlements() {
   };
 
   return {
-    loading,
+    loading: loading || authLoading || subscriptionLoading,
     plan,
     limits: plan?.limits ?? {},
     permissions: plan?.permissions ?? {},
