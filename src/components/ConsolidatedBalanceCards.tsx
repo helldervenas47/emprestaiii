@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { Settings, TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle, ArrowUpRight, ArrowDownRight, PieChart, Percent, Hourglass, BarChart3, Trophy, CalendarClock, CalendarX, LineChart } from "lucide-react";
+import { Settings, TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle, ArrowUpRight, ArrowDownRight, PieChart, Percent, Hourglass, BarChart3, Trophy, CalendarClock, CalendarX, LineChart, Gem, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { useLoans } from "@/hooks/useLoans";
 import { useProducts } from "@/hooks/useProducts";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
@@ -172,6 +172,41 @@ export function ConsolidatedBalanceCards() {
     [products],
   );
 
+  // Patrimônio Total = Saldo em Conta + Saldo na Rua
+  const patrimonioTotal = contaMaisDinheiro + totalNaRua;
+
+  // Variação mensal: compara com snapshot persistido do mês anterior.
+  const PATRIMONIO_SNAP_KEY = "patrimonio.snapshots.v1";
+  const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const now = new Date();
+  const currentKey = monthKey(now);
+  const prevKey = monthKey(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+
+  const [prevPatrimonio, setPrevPatrimonio] = useState<number | null>(null);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PATRIMONIO_SNAP_KEY);
+      const snaps: Record<string, number> = raw ? JSON.parse(raw) : {};
+      // Atualiza snapshot do mês corrente continuamente (último valor observado).
+      snaps[currentKey] = patrimonioTotal;
+      localStorage.setItem(PATRIMONIO_SNAP_KEY, JSON.stringify(snaps));
+      setPrevPatrimonio(typeof snaps[prevKey] === "number" ? snaps[prevKey] : null);
+    } catch {
+      setPrevPatrimonio(null);
+    }
+  }, [patrimonioTotal, currentKey, prevKey]);
+
+  const variacaoPct = useMemo(() => {
+    if (prevPatrimonio == null || prevPatrimonio === 0) return null;
+    return ((patrimonioTotal - prevPatrimonio) / Math.abs(prevPatrimonio)) * 100;
+  }, [patrimonioTotal, prevPatrimonio]);
+
+  const variacaoTrend: "up" | "down" | "flat" =
+    variacaoPct == null || Math.abs(variacaoPct) < 0.005 ? "flat" : variacaoPct > 0 ? "up" : "down";
+  const variacaoColor =
+    variacaoTrend === "up" ? "text-success" : variacaoTrend === "down" ? "text-destructive" : "text-muted-foreground";
+  const VariacaoIcon = variacaoTrend === "up" ? ArrowUp : variacaoTrend === "down" ? ArrowDown : Minus;
+
   const Row = ({ label, value }: { label: string; value: number }) => (
     <div className="flex items-center justify-between py-2 border-b border-border/40 last:border-0">
       <span className="text-sm text-muted-foreground">{label}</span>
@@ -229,7 +264,32 @@ export function ConsolidatedBalanceCards() {
             </p>
           </CardContent>
         </Card>
+        <Card no3d>
+          <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
+            <div className="flex items-center justify-center gap-1.5">
+              <Gem className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Patrimônio Total</p>
+            </div>
+            <p className={`text-base sm:text-xl font-bold truncate leading-tight mt-0.5 ${patrimonioTotal < 0 ? "text-destructive" : "text-foreground"}`}>
+              {formatBRL(patrimonioTotal)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card no3d>
+          <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
+            <div className="flex items-center justify-center gap-1.5">
+              <BarChart3 className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${variacaoColor}`} />
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Variação Mensal</p>
+            </div>
+            <p className={`text-base sm:text-xl font-bold truncate leading-tight mt-0.5 flex items-center justify-center gap-1 ${variacaoColor}`}>
+              <VariacaoIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+              {variacaoPct == null ? "—" : `${variacaoPct >= 0 ? "+" : ""}${variacaoPct.toFixed(2)}%`}
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">vs. mês anterior</p>
+          </CardContent>
+        </Card>
       </div>
+
 
 
       <Dialog open={openRua} onOpenChange={setOpenRua}>
