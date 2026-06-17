@@ -3385,7 +3385,7 @@ function LoanRowView({
               </div>
               {(() => {
                 const rate = Number(loan.managerCommissionRate || 0);
-                const commissionValue = loan.hasManager && loan.managerId && rate > 0
+                const commissionValue = loan.managerId && rate > 0
                   ? (Number(loan.amount) * rate) / 100
                   : 0;
                 return (
