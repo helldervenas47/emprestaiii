@@ -22,7 +22,7 @@ import {
   Target, Percent, TrendingUp, Banknote, FileText,
   HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus,
   Sparkles, CheckCircle2, AlertCircle, TrendingDown, Lightbulb,
-  BookOpen, Calculator, Database, FlaskConical, Settings2, ArrowUp, ArrowDown, GripVertical, RefreshCw, Lock,
+  BookOpen, Calculator, Database, FlaskConical, Settings2, ArrowUp, ArrowDown, GripVertical, RefreshCw, Lock, BarChart3,
   Pencil, Check, X,
 } from "lucide-react";
 
