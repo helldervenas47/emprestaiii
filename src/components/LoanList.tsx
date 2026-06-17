@@ -4926,6 +4926,14 @@ function ClientFolder({
 
 export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, initialCategory, initialView, clients = [], onOpenClientHistory, onOpenSimulator }: Props) {
   const { renegotiations: allRenegotiations } = useLoanRenegotiations();
+  const { commissions: allCommissions } = useManagerCommissions();
+  const commissionTotalByLoan = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of allCommissions) {
+      m.set(c.loanId, (m.get(c.loanId) || 0) + Number(c.amount || 0));
+    }
+    return m;
+  }, [allCommissions]);
   const renegotiationsByLoan = useMemo(() => {
     const map = new Map<string, LoanRenegotiation[]>();
     for (const r of allRenegotiations) {
