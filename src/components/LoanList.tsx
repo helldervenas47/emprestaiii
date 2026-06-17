@@ -34,6 +34,7 @@ import { AdjustDueDateDialog } from "@/components/AdjustDueDateDialog";
 import { AmortizationSimulator } from "@/components/AmortizationSimulator";
 import { RenegotiateLoanDialog } from "@/components/RenegotiateLoanDialog";
 import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
+import { useManagerCommissions } from "@/hooks/useManagerCommissions";
 import { generateLoanReportPdf } from "@/lib/loanReportPdf";
 import type { LoanRenegotiation } from "@/types/loan";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
