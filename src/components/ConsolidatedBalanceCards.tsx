@@ -285,7 +285,7 @@ export function ConsolidatedBalanceCards() {
               <VariacaoIcon className="h-4 w-4 sm:h-5 sm:w-5" />
               {variacaoPct == null ? "—" : `${variacaoPct >= 0 ? "+" : ""}${variacaoPct.toFixed(2)}%`}
             </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">vs. mês anterior</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{"\n"}</p>
           </CardContent>
         </Card>
       </div>
