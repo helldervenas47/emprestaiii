@@ -408,8 +408,8 @@ export function ClientLoanHistory({ loans, payments }: Props) {
               <SelectItem value="pending-asc">Menor valor pendente</SelectItem>
               <SelectItem value="total-desc">Maior valor total</SelectItem>
               <SelectItem value="total-asc">Menor valor total</SelectItem>
-              <SelectItem value="rate-desc">Maior taxa de juros</SelectItem>
-              <SelectItem value="rate-asc">Menor taxa de juros</SelectItem>
+              <SelectItem value="rate-desc">Maior taxa de variação</SelectItem>
+              <SelectItem value="rate-asc">Menor taxa de variação</SelectItem>
             </SelectContent>
           </Select>
           <Button
