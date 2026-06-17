@@ -34,6 +34,7 @@ import { AdjustDueDateDialog } from "@/components/AdjustDueDateDialog";
 import { AmortizationSimulator } from "@/components/AmortizationSimulator";
 import { RenegotiateLoanDialog } from "@/components/RenegotiateLoanDialog";
 import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
+import { useManagerCommissions } from "@/hooks/useManagerCommissions";
 import { generateLoanReportPdf } from "@/lib/loanReportPdf";
 import type { LoanRenegotiation } from "@/types/loan";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
@@ -2735,7 +2736,7 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, renegotiations = [], onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, existingTags = [], clients = [],
+  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, renegotiations = [], onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, existingTags = [], clients = [], managerCommissionTotal = 0,
 }: {
   loan: Loan;
   payments: Payment[];
@@ -2754,6 +2755,7 @@ function LoanRowView({
   readOnly?: boolean;
   existingTags?: string[];
   clients?: Client[];
+  managerCommissionTotal?: number;
 }) {
   const [showAdjustDueDateRow, setShowAdjustDueDateRow] = useState(false);
   const [payMenuOpen, setPayMenuOpen] = useState(false);
@@ -3376,6 +3378,14 @@ function LoanRowView({
               <div className="bg-card rounded-lg p-3 border border-border/30">
                 <p className="text-[10px] text-muted-foreground uppercase">Restante</p>
                 <p className="text-sm font-bold text-destructive">{formatCurrency(remaining)}</p>
+              </div>
+              <div className="bg-card rounded-lg p-3 border border-border/30">
+                <p className="text-[10px] text-muted-foreground uppercase">Juros do Contrato</p>
+                <p className="text-sm font-bold text-foreground">{formatCurrency(Math.max(0, (total - loan.amount)) + lateFees)}</p>
+              </div>
+              <div className="bg-card rounded-lg p-3 border border-border/30">
+                <p className="text-[10px] text-muted-foreground uppercase">Comissão do Gerente</p>
+                <p className="text-sm font-bold text-foreground">{formatCurrency(managerCommissionTotal || 0)}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -4712,7 +4722,7 @@ interface ClientGroup {
 }
 
 function ClientFolder({
-  group, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, renegotiations = [], onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, clients = [],
+  group, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, renegotiations = [], onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, clients = [], commissionTotalByLoan,
 }: {
   group: ClientGroup;
   payments: Payment[];
@@ -4730,6 +4740,7 @@ function ClientFolder({
   onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   readOnly?: boolean;
   clients?: Client[];
+  commissionTotalByLoan?: Map<string, number>;
 }) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -4909,7 +4920,7 @@ function ClientFolder({
                 </thead>
                 <tbody>
                   {group.loans.map((loan) => (
-                    <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]} clients={clients} renegotiations={renegotiations.filter((r) => r.loanId === loan.id)}
+                    <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]} clients={clients} renegotiations={renegotiations.filter((r) => r.loanId === loan.id)} managerCommissionTotal={commissionTotalByLoan?.get(loan.id) || 0}
                       onPayment={(date, mid, split) => onPayment(loan.id, date, mid, split)} onPartialPayment={(amt, date, mid, split) => onPartialPayment(loan.id, amt, date, mid, split)} onFullPayment={onFullPayment ? (date, custom, mid, split) => onFullPayment(loan.id, date, custom, mid, split) : undefined}
                       onInterestPayment={(date, custom, fees, mid, split, opts) => onInterestPayment(loan.id, date, custom, fees, mid, split, opts)} onAmortize={onAmortize ? (amt, date, mid, split) => onAmortize(loan.id, amt, date, mid, split) : undefined} onRenegotiate={onRenegotiate ? (params) => onRenegotiate(loan.id, params) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                   ))}
@@ -4925,6 +4936,14 @@ function ClientFolder({
 
 export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, initialCategory, initialView, clients = [], onOpenClientHistory, onOpenSimulator }: Props) {
   const { renegotiations: allRenegotiations } = useLoanRenegotiations();
+  const { commissions: allCommissions } = useManagerCommissions();
+  const commissionTotalByLoan = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of allCommissions) {
+      m.set(c.loanId, (m.get(c.loanId) || 0) + Number(c.amount || 0));
+    }
+    return m;
+  }, [allCommissions]);
   const renegotiationsByLoan = useMemo(() => {
     const map = new Map<string, LoanRenegotiation[]>();
     for (const r of allRenegotiations) {
@@ -5551,7 +5570,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             <>
             <div className="space-y-4">
               {grouped.map((g) => (
-                <ClientFolder key={g.name} group={g} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} clients={clients} renegotiations={allRenegotiations}
+                <ClientFolder key={g.name} group={g} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} clients={clients} renegotiations={allRenegotiations} commissionTotalByLoan={commissionTotalByLoan}
                   onPayment={onPayment} onPartialPayment={onPartialPayment} onFullPayment={onFullPayment}
                   onInterestPayment={onInterestPayment} onAmortize={onAmortize} onRenegotiate={onRenegotiate} onUpdate={onUpdate} onDelete={onDelete} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
               ))}
@@ -5604,7 +5623,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 </thead>
                 <tbody>
                   {categorized.map((loan) => (
-                    <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients} renegotiations={renegotiationsByLoan.get(loan.id) || []}
+                    <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients} renegotiations={renegotiationsByLoan.get(loan.id) || []} managerCommissionTotal={commissionTotalByLoan.get(loan.id) || 0}
                       onPayment={(date, mid, split) => onPayment(loan.id, date, mid, split)} onPartialPayment={(amt, date, mid, split) => onPartialPayment(loan.id, amt, date, mid, split)} onFullPayment={onFullPayment ? (date, custom, mid, split) => onFullPayment(loan.id, date, custom, mid, split) : undefined}
                       onInterestPayment={(date, custom, fees, mid, split, opts) => onInterestPayment(loan.id, date, custom, fees, mid, split, opts)} onAmortize={onAmortize ? (amt, date, mid, split) => onAmortize(loan.id, amt, date, mid, split) : undefined} onRenegotiate={onRenegotiate ? (params) => onRenegotiate(loan.id, params) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                   ))}
