@@ -3384,12 +3384,10 @@ function LoanRowView({
                 <p className="text-sm font-bold text-foreground">{formatCurrency(Math.max(0, (total - loan.amount)) + lateFees)}</p>
               </div>
               {(() => {
-                const contractInterest = Math.max(0, total - loan.amount) + lateFees;
                 const rate = Number(loan.managerCommissionRate || 0);
-                const fallback = loan.hasManager && loan.managerId && rate > 0
-                  ? (contractInterest * rate) / 100
+                const commissionValue = loan.hasManager && loan.managerId && rate > 0
+                  ? (Number(loan.amount) * rate) / 100
                   : 0;
-                const commissionValue = managerCommissionTotal > 0 ? managerCommissionTotal : fallback;
                 return (
                   <div className="bg-card rounded-lg p-3 border border-border/30 text-center">
                     <p className="text-[10px] text-muted-foreground uppercase">Comissão do Gerente</p>
