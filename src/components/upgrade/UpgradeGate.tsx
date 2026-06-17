@@ -33,8 +33,8 @@ export function UpgradeGate({ feature, description, benefits }: UpgradeGateProps
               ))}
             </ul>
           )}
-          <Button size="lg" onClick={() => navigate("/pricing")} className="w-full">
-            Fazer upgrade <ArrowRight className="h-4 w-4" />
+          <Button size="lg" onClick={() => navigate("/planos")} className="w-full">
+            Ver planos <ArrowRight className="h-4 w-4" />
           </Button>
         </CardContent>
       </Card>
