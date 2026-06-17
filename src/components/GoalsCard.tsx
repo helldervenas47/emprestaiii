@@ -583,14 +583,18 @@ export function computeActual(
         const prevDate = new Date(y, (mo - 1) - 1, 1);
         const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
         const todayKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
-        let currentTotal: number | null = totalFrom(snaps[m]);
-        if (currentTotal == null && m === todayKey) {
+        // Para o mês corrente, sempre usa o patrimônio "ao vivo" (mesmo valor exibido
+        // no card "Variação Mensal" do extrato). Snapshots só substituem o atual em
+        // meses passados.
+        let currentTotal: number | null = null;
+        if (m === todayKey) {
           const liveRaw = window.localStorage.getItem("patrimonio.current.v1");
           if (liveRaw) {
             const live = JSON.parse(liveRaw);
             if (live?.month === todayKey && typeof live.total === "number") currentTotal = Number(live.total);
           }
         }
+        if (currentTotal == null) currentTotal = totalFrom(snaps[m]);
         const prevTotal = totalFrom(snaps[prevKey]);
         if (currentTotal == null || prevTotal == null || prevTotal === 0) return 0;
         return ((currentTotal - prevTotal) / Math.abs(prevTotal)) * 100;
