@@ -4713,7 +4713,7 @@ interface ClientGroup {
 }
 
 function ClientFolder({
-  group, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, renegotiations = [], onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, clients = [],
+  group, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, renegotiations = [], onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, clients = [], commissionTotalByLoan,
 }: {
   group: ClientGroup;
   payments: Payment[];
@@ -4731,6 +4731,7 @@ function ClientFolder({
   onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   readOnly?: boolean;
   clients?: Client[];
+  commissionTotalByLoan?: Map<string, number>;
 }) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
