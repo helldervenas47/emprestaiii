@@ -101,6 +101,8 @@ export function ConsolidatedBalanceCards() {
   const [openRua, setOpenRua] = useState(false);
   const [openMaos, setOpenMaos] = useState(false);
   const [openTotal, setOpenTotal] = useState(false);
+  const [openPatrimonio, setOpenPatrimonio] = useState(false);
+  const [openVariacao, setOpenVariacao] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
   const { extraCards, visibility, setExtraCards, setVisibility, toggleExtra, toggleVis } = useDashboardPrefs();
 
@@ -186,11 +188,21 @@ export function ConsolidatedBalanceCards() {
     return next.getMonth() !== d.getMonth();
   };
 
-  const [prevPatrimonio, setPrevPatrimonio] = useState<number | null>(null);
+  type Snap = { account: number; rua: number; total: number };
+  const normalizeSnap = (v: any): Snap | null => {
+    if (v == null) return null;
+    if (typeof v === "number") return { account: 0, rua: 0, total: v };
+    if (typeof v === "object" && typeof v.total === "number") {
+      return { account: Number(v.account) || 0, rua: Number(v.rua) || 0, total: Number(v.total) };
+    }
+    return null;
+  };
+
+  const [prevSnap, setPrevSnap] = useState<Snap | null>(null);
   useEffect(() => {
     try {
       const raw = localStorage.getItem(PATRIMONIO_SNAP_KEY);
-      const snaps: Record<string, number> = raw ? JSON.parse(raw) : {};
+      const snaps: Record<string, any> = raw ? JSON.parse(raw) : {};
 
       // Seed único: patrimônio do fim do mês passado informado pelo usuário.
       const SEED_FLAG = "patrimonio.snapshots.seed.v1";
@@ -201,16 +213,17 @@ export function ConsolidatedBalanceCards() {
       }
 
       // Trava o snapshot do mês corrente APENAS no último dia do mês.
-      // Meses anteriores nunca são sobrescritos (ficam congelados).
       if (isLastDayOfMonth(now) && snaps[currentKey] == null) {
-        snaps[currentKey] = patrimonioTotal;
+        snaps[currentKey] = { account: contaMaisDinheiro, rua: pendingLoans, total: patrimonioTotal };
         localStorage.setItem(PATRIMONIO_SNAP_KEY, JSON.stringify(snaps));
       }
-      setPrevPatrimonio(typeof snaps[prevKey] === "number" ? snaps[prevKey] : null);
+      setPrevSnap(normalizeSnap(snaps[prevKey]));
     } catch {
-      setPrevPatrimonio(null);
+      setPrevSnap(null);
     }
-  }, [patrimonioTotal, currentKey, prevKey]);
+  }, [patrimonioTotal, contaMaisDinheiro, pendingLoans, currentKey, prevKey]);
+
+  const prevPatrimonio = prevSnap?.total ?? null;
 
   const variacaoPct = useMemo(() => {
     if (prevPatrimonio == null || prevPatrimonio === 0) return null;
@@ -280,7 +293,7 @@ export function ConsolidatedBalanceCards() {
             </p>
           </CardContent>
         </Card>
-        <Card no3d>
+        <Card no3d className="cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => setOpenPatrimonio(true)}>
           <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
             <div className="flex items-center justify-center gap-1.5">
               <Gem className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
@@ -291,7 +304,7 @@ export function ConsolidatedBalanceCards() {
             </p>
           </CardContent>
         </Card>
-        <Card no3d>
+        <Card no3d className="cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => setOpenVariacao(true)}>
           <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
             <div className="flex items-center justify-center gap-1.5">
               <BarChart3 className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${variacaoColor}`} />
@@ -305,6 +318,72 @@ export function ConsolidatedBalanceCards() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={openPatrimonio} onOpenChange={setOpenPatrimonio}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Gem className="h-4 w-4 text-primary" /> Patrimônio Total
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1">
+            <Row label="Saldo em Conta" value={contaMaisDinheiro} />
+            <Row label="Pendente de Empréstimos" value={pendingLoans} />
+            <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
+              <span className="text-sm font-semibold">Patrimônio Total</span>
+              <span className={`text-base font-bold tabular-nums ${patrimonioTotal < 0 ? "text-destructive" : "text-foreground"}`}>
+                {formatBRL(patrimonioTotal)}
+              </span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openVariacao} onOpenChange={setOpenVariacao}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart3 className={`h-4 w-4 ${variacaoColor}`} /> Variação Mensal
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Mês Atual</p>
+              <Row label="Saldo em Conta" value={contaMaisDinheiro} />
+              <Row label="Pendente de Empréstimos" value={pendingLoans} />
+              <Row label="Patrimônio" value={patrimonioTotal} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Mês Anterior</p>
+              {prevSnap ? (
+                <>
+                  <Row label="Saldo em Conta" value={prevSnap.account} />
+                  <Row label="Pendente de Empréstimos" value={prevSnap.rua} />
+                  <Row label="Patrimônio" value={prevSnap.total} />
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground py-2">Sem snapshot do mês anterior.</p>
+              )}
+            </div>
+            <div className="pt-3 border-t border-border space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold">Diferença</span>
+                <span className={`text-sm font-bold tabular-nums ${prevPatrimonio == null ? "text-muted-foreground" : (patrimonioTotal - prevPatrimonio) >= 0 ? "text-success" : "text-destructive"}`}>
+                  {prevPatrimonio == null ? "—" : `${(patrimonioTotal - prevPatrimonio) >= 0 ? "+" : ""}${formatBRL(patrimonioTotal - prevPatrimonio)}`}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold">Variação</span>
+                <span className={`text-sm font-bold tabular-nums inline-flex items-center gap-1 ${variacaoColor}`}>
+                  <VariacaoIcon className="h-4 w-4" />
+                  {variacaoPct == null ? "—" : `${variacaoPct >= 0 ? "+" : ""}${variacaoPct.toFixed(2)}%`}
+                </span>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
 
 
