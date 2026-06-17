@@ -44,7 +44,7 @@ type PlanEntitlementRow = PlanLite & {
  */
 export function usePlanEntitlements() {
   const { user, dataOwnerId, loading: authLoading } = useAuth();
-  const { subscription, isActive } = useSubscription();
+  const { subscription, isActive, loading: subscriptionLoading } = useSubscription();
   const [plan, setPlan] = useState<PlanLite | null>(null);
   const [loading, setLoading] = useState(true);
   const [trialStartedAt, setTrialStartedAt] = useState<Date | null>(null);
