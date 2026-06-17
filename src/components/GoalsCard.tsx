@@ -567,6 +567,37 @@ export function computeActual(
         .filter((p: any) => inMonth(p.date, m))
         .reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
     }
+    case "monthly_variation": {
+      // Variação (%) = ((Patrimônio do mês m − Patrimônio do mês m-1) / Patrimônio do mês m-1) × 100
+      // Mês corrente usa o snapshot "ao vivo" publicado por ConsolidatedBalanceCards.
+      try {
+        const raw = typeof window !== "undefined" ? window.localStorage.getItem("patrimonio.snapshots.v1") : null;
+        const snaps: Record<string, any> = raw ? JSON.parse(raw) : {};
+        const totalFrom = (v: any): number | null => {
+          if (v == null) return null;
+          if (typeof v === "number") return v;
+          if (typeof v === "object" && typeof v.total === "number") return Number(v.total);
+          return null;
+        };
+        const [y, mo] = m.split("-").map(Number);
+        const prevDate = new Date(y, (mo - 1) - 1, 1);
+        const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
+        const todayKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+        let currentTotal: number | null = totalFrom(snaps[m]);
+        if (currentTotal == null && m === todayKey) {
+          const liveRaw = window.localStorage.getItem("patrimonio.current.v1");
+          if (liveRaw) {
+            const live = JSON.parse(liveRaw);
+            if (live?.month === todayKey && typeof live.total === "number") currentTotal = Number(live.total);
+          }
+        }
+        const prevTotal = totalFrom(snaps[prevKey]);
+        if (currentTotal == null || prevTotal == null || prevTotal === 0) return 0;
+        return ((currentTotal - prevTotal) / Math.abs(prevTotal)) * 100;
+      } catch {
+        return 0;
+      }
+    }
     default:
       return 0;
   }
