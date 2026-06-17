@@ -101,6 +101,8 @@ export function ConsolidatedBalanceCards() {
   const [openRua, setOpenRua] = useState(false);
   const [openMaos, setOpenMaos] = useState(false);
   const [openTotal, setOpenTotal] = useState(false);
+  const [openPatrimonio, setOpenPatrimonio] = useState(false);
+  const [openVariacao, setOpenVariacao] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
   const { extraCards, visibility, setExtraCards, setVisibility, toggleExtra, toggleVis } = useDashboardPrefs();
 
