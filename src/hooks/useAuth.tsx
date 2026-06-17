@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
-import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+
 import type { User, Session } from "@supabase/supabase-js";
 
 export type AppRole = "admin" | "gerente" | "cliente" | "visualizador" | null;
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (roles.length === 0) {
       const token = accessToken ?? (await supabase.auth.getSession()).data.session?.access_token;
       if (token) {
-        const { data: ensuredRole, error: ensureRoleError } = await cloudSupabase.functions.invoke("ensure-user-role", {
+        const { data: ensuredRole, error: ensureRoleError } = await supabase.functions.invoke("ensure-user-role", {
           body: { role: "cliente" },
           headers: { Authorization: `Bearer ${token}` },
         });

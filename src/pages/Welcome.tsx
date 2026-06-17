@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase as userSupabase } from "@/integrations/supabase/userClient";
-import { supabase as cloudSupabase } from "@/integrations/supabase/client";
+
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ async function invokeSeed<T = unknown>(body: Record<string, unknown>) {
   // Pass the external session token explicitly so the function can validate it.
   const { data: sess } = await userSupabase.auth.getSession();
   const token = sess.session?.access_token;
-  return cloudSupabase.functions.invoke<T>("seed-new-user", {
+  return userSupabase.functions.invoke<T>("seed-new-user", {
     body,
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
