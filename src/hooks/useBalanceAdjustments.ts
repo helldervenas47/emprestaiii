@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwner } from "@/hooks/useDataOwner";
 import { toast } from "sonner";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export interface BalanceAdjustment {
   amount: number;
@@ -72,6 +73,7 @@ export function useBalanceAdjustments() {
 
   const setAdjustment = useCallback(
     async (date: string, amount: number, previousAmount: number, notes?: string) => {
+      assertWritable();
       if (!ownerId) return;
       const prev = map;
       const optimistic: BalanceAdjustment = {
@@ -110,6 +112,7 @@ export function useBalanceAdjustments() {
 
   const clearAdjustment = useCallback(
     async (date: string) => {
+      assertWritable();
       if (!ownerId) return;
       const prev = map;
       setMap((m) => {

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export interface BoletoHistoryItem {
   id: string;
@@ -82,6 +83,7 @@ export function useBoletoHistory() {
   }, [user, fetchItems]);
 
   const addItem = useCallback(async (input: Omit<BoletoHistoryItem, "id" | "parsed_at"> & { parsed_at?: string }) => {
+    assertWritable();
     const parsed_at = input.parsed_at ?? new Date().toISOString();
     if (!user) {
       const local: BoletoHistoryItem = { ...input, id: crypto.randomUUID(), parsed_at };
@@ -116,6 +118,7 @@ export function useBoletoHistory() {
   }, [user, items, fetchItems]);
 
   const clear = useCallback(async () => {
+    assertWritable();
     if (!user) {
       setItems([]);
       saveLocal([]);
@@ -127,6 +130,7 @@ export function useBoletoHistory() {
   }, [user]);
 
   const remove = useCallback(async (id: string) => {
+    assertWritable();
     if (!user) {
       const next = items.filter((i) => i.id !== id);
       setItems(next);

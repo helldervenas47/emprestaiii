@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export interface PersonalBudget {
   id: string;
@@ -105,6 +106,7 @@ export function usePersonalBudgets(enabled = true, month?: string) {
   /** Define/remove um limite SEMPRE para `targetMonth` (nunca altera meses anteriores). */
   const setBudget = useCallback(
     async (category: string, amount: number) => {
+      assertWritable();
       if (!dataOwnerId) return;
       const existing = monthBudgets.find((b) => b.category === category);
 
@@ -152,12 +154,14 @@ export function usePersonalBudgets(enabled = true, month?: string) {
 
   /** Apaga um limite específico do mês alvo (ou herdado, conforme o id). */
   const deleteBudget = useCallback(async (id: string) => {
+    assertWritable();
     setAllBudgets((prev) => prev.filter((b) => b.id !== id));
     await supabase.from("personal_budgets" as any).delete().eq("id", id);
   }, []);
 
   /** Copia os limites do mês `effectiveMonth` para o `targetMonth` (cria registros próprios). */
   const inheritIntoMonth = useCallback(async () => {
+    assertWritable();
     if (!dataOwnerId || !effectiveMonth || effectiveMonth === targetMonth) return;
     const source = allBudgets.filter((b) => b.month === effectiveMonth);
     if (source.length === 0) return;
