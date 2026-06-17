@@ -67,9 +67,11 @@ export function ReadOnlyModeSync() {
       if (!btn) return;
       if (btn.closest("[data-allow-readonly]")) return;
       if (btn.hasAttribute("data-allow-readonly")) return;
-      const isSubmit = btn.tagName === "BUTTON" && (btn as HTMLButtonElement).type === "submit";
+      // Só bloqueia explicitamente botões marcados como mutação.
+      // Submits de formulários já são interceptados pelo listener de 'submit'.
+      // Isso garante que Cancelar/Fechar/X de dialogs continuem funcionando.
       const isMutation = btn.hasAttribute("data-mutation");
-      if (!isSubmit && !isMutation) return;
+      if (!isMutation) return;
       e.preventDefault();
       e.stopPropagation();
       notify();
