@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import type { Employee, SalaryItem } from "@/types/salary";
+import { assertWritable } from "@/lib/readOnlyState";
 
 function rowToEmployee(r: any): Employee {
   return {
@@ -59,6 +60,7 @@ export function useEmployees(enabled = true) {
   }, [user, enabled, fetchAll]);
 
   const addEmployee = useCallback(async (e: Omit<Employee, "id" | "createdAt" | "updatedAt">) => {
+    assertWritable();
     if (!dataOwnerId) return null;
     const payload = {
       user_id: dataOwnerId,
@@ -89,6 +91,7 @@ export function useEmployees(enabled = true) {
   }, [dataOwnerId]);
 
   const updateEmployee = useCallback(async (id: string, patch: Partial<Employee>) => {
+    assertWritable();
     const p: any = {};
     if (patch.name !== undefined) p.name = patch.name;
     if (patch.cpf !== undefined) p.cpf = patch.cpf;
@@ -114,6 +117,7 @@ export function useEmployees(enabled = true) {
   }, []);
 
   const deleteEmployee = useCallback(async (id: string) => {
+    assertWritable();
     await supabase.from("employees" as any).delete().eq("id", id);
   }, []);
 
