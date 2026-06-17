@@ -22,7 +22,7 @@ import {
   Target, Percent, TrendingUp, Banknote, FileText,
   HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus,
   Sparkles, CheckCircle2, AlertCircle, TrendingDown, Lightbulb,
-  BookOpen, Calculator, Database, FlaskConical, Settings2, ArrowUp, ArrowDown, GripVertical, RefreshCw, Lock,
+  BookOpen, Calculator, Database, FlaskConical, Settings2, ArrowUp, ArrowDown, GripVertical, RefreshCw, Lock, BarChart3,
   Pencil, Check, X,
 } from "lucide-react";
 
@@ -203,6 +203,21 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     },
     measurement: "Atingimento = (Média Diária Realizada ÷ Meta Diária) × 100. Quando a média diária ≥ meta diária, exibe 'Meta diária atingida'.",
   },
+  monthly_variation: {
+    formula: "Variação (%) = ((Patrimônio Atual − Patrimônio do Mês Anterior) ÷ Patrimônio do Mês Anterior) × 100",
+    indicators: [
+      "Patrimônio = Saldo em Conta + Pendente de Empréstimos",
+      "Snapshot do mês anterior é travado no último dia de cada mês",
+      "Atingimento = (Variação realizada ÷ Meta) × 100",
+    ],
+    dataSource: ["Saldos da conta", "Empréstimos pendentes (loans)", "Snapshot mensal (localStorage)"],
+    example: {
+      setup: "Patrimônio do mês anterior: R$ 70.000. Patrimônio atual: R$ 80.000.",
+      calc: "((80.000 − 70.000) ÷ 70.000) × 100 = 14,29%",
+      result: "Variação Mensal = +14,29%",
+    },
+    measurement: "Atingimento = (Variação realizada ÷ Meta cadastrada) × 100.",
+  },
 };
 
 type Unit = "%" | "R$" | "qtd";
@@ -220,6 +235,7 @@ const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: Unit; c
   new_clients_count:  { label: "Novos Clientes",                   icon: UserPlus,      unit: "qtd", color: "text-primary",     bgColor: "bg-primary/15",     description: "Clientes cadastrados no período." },
   renegotiation_rate: { label: "Contratos Renegociados",           icon: RefreshCw,     unit: "qtd", color: "text-destructive", bgColor: "bg-destructive/15", description: "Limite máximo de contratos renegociados no mês (meta inversa).", inverse: true },
   daily_received_avg: { label: "Receita Média Diária",           icon: HandCoins,     unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Meta diária com média diária e necessário/dia restante." },
+  monthly_variation:  { label: "Variação Mensal do Patrimônio",   icon: BarChart3,     unit: "%",   color: "text-primary",     bgColor: "bg-primary/15",     description: "Meta de crescimento mensal do patrimônio total (% vs mês anterior)." },
 };
 
 interface Props {
@@ -551,6 +567,37 @@ export function computeActual(
         .filter((p: any) => inMonth(p.date, m))
         .reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
     }
+    case "monthly_variation": {
+      // Variação (%) = ((Patrimônio do mês m − Patrimônio do mês m-1) / Patrimônio do mês m-1) × 100
+      // Mês corrente usa o snapshot "ao vivo" publicado por ConsolidatedBalanceCards.
+      try {
+        const raw = typeof window !== "undefined" ? window.localStorage.getItem("patrimonio.snapshots.v1") : null;
+        const snaps: Record<string, any> = raw ? JSON.parse(raw) : {};
+        const totalFrom = (v: any): number | null => {
+          if (v == null) return null;
+          if (typeof v === "number") return v;
+          if (typeof v === "object" && typeof v.total === "number") return Number(v.total);
+          return null;
+        };
+        const [y, mo] = m.split("-").map(Number);
+        const prevDate = new Date(y, (mo - 1) - 1, 1);
+        const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
+        const todayKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+        let currentTotal: number | null = totalFrom(snaps[m]);
+        if (currentTotal == null && m === todayKey) {
+          const liveRaw = window.localStorage.getItem("patrimonio.current.v1");
+          if (liveRaw) {
+            const live = JSON.parse(liveRaw);
+            if (live?.month === todayKey && typeof live.total === "number") currentTotal = Number(live.total);
+          }
+        }
+        const prevTotal = totalFrom(snaps[prevKey]);
+        if (currentTotal == null || prevTotal == null || prevTotal === 0) return 0;
+        return ((currentTotal - prevTotal) / Math.abs(prevTotal)) * 100;
+      } catch {
+        return 0;
+      }
+    }
     default:
       return 0;
   }
@@ -561,6 +608,7 @@ const ALL_GOAL_TYPES: GoalType[] = [
   "interest_rate", "profit", "loan_volume", "new_loans_count",
   "received_total", "interest_received", "active_capital", "net_profit",
   "max_default_rate", "new_clients_count", "renegotiation_rate", "daily_received_avg",
+  "monthly_variation",
 ];
 
 function loadGoalPrefs(userId: string | null | undefined): { selected: GoalType[]; order: GoalType[] } {

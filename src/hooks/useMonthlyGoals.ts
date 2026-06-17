@@ -15,7 +15,8 @@ export type GoalType =
   | "max_default_rate"
   | "new_clients_count"
   | "renegotiation_rate"
-  | "daily_received_avg";
+  | "daily_received_avg"
+  | "monthly_variation";
 
 export interface MonthlyGoal {
   id: string;
