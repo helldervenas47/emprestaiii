@@ -188,11 +188,21 @@ export function ConsolidatedBalanceCards() {
     return next.getMonth() !== d.getMonth();
   };
 
-  const [prevPatrimonio, setPrevPatrimonio] = useState<number | null>(null);
+  type Snap = { account: number; rua: number; total: number };
+  const normalizeSnap = (v: any): Snap | null => {
+    if (v == null) return null;
+    if (typeof v === "number") return { account: 0, rua: 0, total: v };
+    if (typeof v === "object" && typeof v.total === "number") {
+      return { account: Number(v.account) || 0, rua: Number(v.rua) || 0, total: Number(v.total) };
+    }
+    return null;
+  };
+
+  const [prevSnap, setPrevSnap] = useState<Snap | null>(null);
   useEffect(() => {
     try {
       const raw = localStorage.getItem(PATRIMONIO_SNAP_KEY);
-      const snaps: Record<string, number> = raw ? JSON.parse(raw) : {};
+      const snaps: Record<string, any> = raw ? JSON.parse(raw) : {};
 
       // Seed único: patrimônio do fim do mês passado informado pelo usuário.
       const SEED_FLAG = "patrimonio.snapshots.seed.v1";
@@ -203,16 +213,17 @@ export function ConsolidatedBalanceCards() {
       }
 
       // Trava o snapshot do mês corrente APENAS no último dia do mês.
-      // Meses anteriores nunca são sobrescritos (ficam congelados).
       if (isLastDayOfMonth(now) && snaps[currentKey] == null) {
-        snaps[currentKey] = patrimonioTotal;
+        snaps[currentKey] = { account: contaMaisDinheiro, rua: pendingLoans, total: patrimonioTotal };
         localStorage.setItem(PATRIMONIO_SNAP_KEY, JSON.stringify(snaps));
       }
-      setPrevPatrimonio(typeof snaps[prevKey] === "number" ? snaps[prevKey] : null);
+      setPrevSnap(normalizeSnap(snaps[prevKey]));
     } catch {
-      setPrevPatrimonio(null);
+      setPrevSnap(null);
     }
-  }, [patrimonioTotal, currentKey, prevKey]);
+  }, [patrimonioTotal, contaMaisDinheiro, pendingLoans, currentKey, prevKey]);
+
+  const prevPatrimonio = prevSnap?.total ?? null;
 
   const variacaoPct = useMemo(() => {
     if (prevPatrimonio == null || prevPatrimonio === 0) return null;
