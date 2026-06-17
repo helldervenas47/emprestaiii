@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Wallet, FileText, Lock, Unlock, RefreshCw, Trash2, CheckCircle2, Undo2, History, Pencil } from "lucide-react";
@@ -127,13 +128,28 @@ export function PayrollManager({ readOnly }: Props) {
           <Button variant="outline" size="icon" onClick={() => setMonthOffset((m) => m + 1)}><ChevronRight className="h-4 w-4" /></Button>
         </div>
         {!readOnly && (
-          <div className="flex flex-col items-center gap-2 sm:flex-row sm:absolute sm:right-0">
-            <Button onClick={handleGenerate} variant="outline" size="icon" aria-label="Gerar folha do mês" title="Gerar folha do mês" className="sm:w-auto sm:px-4">
-              <RefreshCw className="h-4 w-4" />
-              <span className="hidden sm:inline sm:ml-2">Gerar folha do mês</span>
-            </Button>
+          <>
+            {/* Desktop inline button */}
+            <div className="hidden sm:flex items-center gap-2 sm:absolute sm:right-0">
+              <Button onClick={handleGenerate} variant="outline">
+                <RefreshCw className="h-4 w-4" /> Gerar folha do mês
+              </Button>
+            </div>
+            {/* Mobile FAB, stacked above the "+" button */}
+            {createPortal(
+              <button
+                type="button"
+                onClick={handleGenerate}
+                aria-label="Gerar folha do mês"
+                title="Gerar folha do mês"
+                className="sm:hidden group fixed z-50 h-11 w-11 rounded-full flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200 hover:scale-105 active:scale-95 bg-background border border-border shadow-[0_8px_24px_-8px_hsl(var(--foreground)/0.3)] right-[calc(env(safe-area-inset-right)+16px)] bottom-[calc(env(safe-area-inset-bottom)+132px)]"
+              >
+                <RefreshCw className="h-5 w-5" strokeWidth={2.5} />
+              </button>,
+              document.body
+            )}
             <ExtraEarningDialog />
-          </div>
+          </>
         )}
       </div>
 
