@@ -203,6 +203,21 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     },
     measurement: "Atingimento = (Média Diária Realizada ÷ Meta Diária) × 100. Quando a média diária ≥ meta diária, exibe 'Meta diária atingida'.",
   },
+  monthly_variation: {
+    formula: "Variação (%) = ((Patrimônio Atual − Patrimônio do Mês Anterior) ÷ Patrimônio do Mês Anterior) × 100",
+    indicators: [
+      "Patrimônio = Saldo em Conta + Pendente de Empréstimos",
+      "Snapshot do mês anterior é travado no último dia de cada mês",
+      "Atingimento = (Variação realizada ÷ Meta) × 100",
+    ],
+    dataSource: ["Saldos da conta", "Empréstimos pendentes (loans)", "Snapshot mensal (localStorage)"],
+    example: {
+      setup: "Patrimônio do mês anterior: R$ 70.000. Patrimônio atual: R$ 80.000.",
+      calc: "((80.000 − 70.000) ÷ 70.000) × 100 = 14,29%",
+      result: "Variação Mensal = +14,29%",
+    },
+    measurement: "Atingimento = (Variação realizada ÷ Meta cadastrada) × 100.",
+  },
 };
 
 type Unit = "%" | "R$" | "qtd";
