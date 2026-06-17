@@ -1,65 +1,55 @@
+# Migração de Edge Functions: Lovable Cloud → Supabase Externo
 
-# Validação e ativação das regras do plano Teste Gratuito
+## Situação atual (verificada)
 
-Hoje a infraestrutura existe (`usePlanEntitlements`, `TrialBanner`, `UpgradeGate`, colunas `trial_days/limits/permissions` em `plans`), mas faltam três peças para garantir o cenário descrito: (1) associar o plano escolhido ao usuário no cadastro, (2) aplicar limites/permissões em todos os fluxos de criação, (3) bloquear o sistema quando o teste expira.
+- **33 edge functions** rodam hoje no Lovable Cloud (usam `Deno.env.get('SUPABASE_URL')` nativo do Cloud).
+- 26 funções já rodam no Cloud mas falam com o externo via `EXTERNAL_SUPABASE_URL` (não fazem parte desta migração).
+- O frontend tem dois clients:
+  - `src/integrations/supabase/client.ts` → Lovable Cloud (chama as 33)
+  - `src/integrations/supabase/userClient.ts` → Supabase externo
+- Secrets necessários já existem no Supabase externo (confirmado).
 
-## 1. Associar o plano no cadastro
+## Funções a migrar (33)
 
-- No `Signup` (`src/pages/Cadastro.tsx` / `Auth.tsx`), ler `?plan=` da URL e gravar em `profiles.trial_plan_name` + `profiles.trial_started_at` no momento do `signUp`.
-- Migration: adicionar em `public.profiles` as colunas `trial_plan_name text` e `trial_started_at timestamptz default now()`.
-- `usePlanEntitlements` passa a resolver o plano por: assinatura ativa → `profiles.trial_plan_name` → primeiro plano ativo (fallback atual).
+Telegram (19): `telegram-accumulated-delinquency-summary`, `telegram-billing-summary`, `telegram-daily-summary`, `telegram-due-today-loans-summary`, `telegram-link-code`, `telegram-manager-weekly-summary`, `telegram-monthly-summary`, `telegram-overdue-loans-summary`, `telegram-poll`, `telegram-process`, `telegram-reports-link-code`, `telegram-reports-poll`, `telegram-set-commands`, `telegram-vencimentos-semana`, `telegram-webhook`, `telegram-webhook-setup`, `telegram-weekly-summary`, `link-telegram-bot`, `validate-telegram-bot`, `debug-telegram`
 
-## 2. Comportamento configurável da expiração
+Outras (14): `add-products-active`, `daily-planning-summary`, `debug-cron-jobs`, `ensure-user-role`, `fix-sales-product-fk`, `generate-income-health-report`, `generate-personal-insights`, `get-paddle-price`, `html-to-image-usage`, `incomes-expenses-summary`, `seed-new-user`, `send-personal-insights-telegram`, `setup-dashboard-prefs`
 
-- Adicionar à tabela `plans` a coluna `expiration_action text` com valores `block_all | readonly | force_upgrade` (default `force_upgrade`).
-- Na UI de admin (`PlanManagement.tsx`), novo `Select` "Ao expirar o teste" com essas três opções.
-- `usePlanEntitlements` expõe `trial.expirationAction`.
+## Estratégia
 
-## 3. Aplicar limites continuamente
+Como as funções já usam `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` nativos, **o código delas não precisa mudar** — basta que sejam re-deployadas no projeto Supabase externo, onde essas envs vão apontar naturalmente para o externo. A migração se concentra no **frontend** e nos **cron jobs**.
 
-Criar um helper `useLimitGuard(key)` que retorna `{ blocked, reason, remaining }` consultando o `count` real (via `supabase.from(table).select('*', { count: 'exact', head: true })`).
+## Etapas
 
-Pontos de uso (envolver o botão "Novo" com `UpgradeGate` + checagem `withinLimit`):
-- Empréstimos (`Loans`/`NewLoan`) → `loans`
-- Clientes (`Clients`/`NewClient`) → `clients`
-- Cobranças (`Billings`) → `billings`
-- Usuários vinculados (gestão de equipe) → `users`
-- Notificações (envio Telegram/WhatsApp) → `notifications`
+### 1. Frontend — apontar invocações para o externo
+Para cada chamada `supabase.functions.invoke('<nome>')` referente a uma das 33 funções:
+- Trocar o import de `@/integrations/supabase/client` por `@/integrations/supabase/userClient`.
+- Arquivos afetados (callsites já mapeados): `useAuth.tsx`, `Welcome.tsx`, `Cadastro.tsx`, `Auth.tsx`, `useExpenses.ts`, `usePersonalInsights.ts`, `AutoBackupCard.tsx`, `DashboardOverview.tsx`, `DailyPlanningReport.tsx`, `UserManagement.tsx`, `PersonalAIInsightsCard.tsx`, `paddle.ts`, `ScheduledReportCard.tsx`, e demais retornados pelo grep.
+- Cada arquivo é editado de forma cirúrgica (sem mexer em lógica), trocando apenas o client usado para invocar essas funções específicas.
 
-Permissões aplicadas nos botões de ação (`loans.delete`, `clients.import/export`, `reports.advanced`, etc.) já via `can()`.
+### 2. Deploy no Supabase externo (você faz)
+Você vai copiar/colar o conteúdo de `supabase/functions/<nome>/index.ts` no projeto externo (via SQL editor / dashboard / CLI). Os arquivos atuais ficam preservados no repositório como fonte da verdade.
 
-## 4. Restrição de abas
+### 3. Cron jobs (pg_cron) — SQL pronto para o externo
+Vou gerar um arquivo `migrations-externo/cron-jobs.sql` com:
+- `cron.unschedule(...)` para os jobs antigos (a serem rodados no Cloud, se quiser desligar lá).
+- `cron.schedule(...)` recriando cada job no externo, com a nova URL `https://<ref-externo>.supabase.co/functions/v1/<nome>` e o anon key do externo.
+- Você cola e roda no SQL editor do projeto externo.
 
-`allowed_tabs jsonb` em `plans` (lista de rotas). No `Layout`/sidebar, esconder itens cujo path não está em `allowedTabs` quando `allowedTabs != null`. Rota acessada manualmente cai em `UpgradeGate`.
+### 4. Limpeza opcional (depois de validar)
+- Deletar as 33 funções do Lovable Cloud com `supabase--delete_edge_functions` para evitar cobrança dupla / execução duplicada.
+- Remover os cron jobs antigos do Cloud.
 
-## 5. Bloqueio global ao expirar
+## Pontos de atenção
 
-Criar `src/components/upgrade/TrialExpiredGate.tsx`:
-- Wrapper no `App.tsx` em volta das rotas autenticadas.
-- Se `trial.expired && !isPaid`:
-  - `block_all` → tela cheia "Período expirado — assine para continuar" com botão para `/pricing` e `logout`. Bloqueia toda navegação.
-  - `readonly` → libera navegação, mas `can()` e `withinLimit()` retornam `false` para qualquer create/update/delete; banners "somente leitura".
-  - `force_upgrade` (default) → redireciona para `/pricing` em qualquer rota que não seja `/pricing`, `/auth`, `/logout`.
-- Dados permanecem intactos no banco (não tocamos em delete).
+- **Telegram webhook URL**: após o deploy no externo, o webhook do bot precisa ser repontado para a nova URL — a função `telegram-webhook-setup` faz isso; rodar uma vez após o deploy resolve.
+- **Paddle / webhooks externos**: `get-paddle-price` é chamado pelo frontend (ok), mas se houver webhook configurado em painel do Paddle ou outro serviço apontando para o Cloud, precisa repointar.
+- **`seed-new-user` / `handle_new_user` trigger**: hoje a trigger `handle_new_user` está no Cloud. Se `seed-new-user` é disparado a partir do Cloud, considerar se faz sentido manter a parte de auth lá ou migrar tudo — recomendo discutir antes de tocar.
+- **Secrets**: vou confirmar com `fetch_secrets` no externo (via lista que você já validou). Se faltar algum (ex.: `LOVABLE_API_KEY`, `GEMINI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `PADDLE_*`), o deploy quebra silenciosamente em runtime.
 
-## 6. Migrations necessárias
+## O que NÃO faço nesta migração
+- Não altero o código das funções (a menos que você peça).
+- Não removo nada do Cloud automaticamente — só depois da sua validação.
+- Não migro as 26 funções que já apontam para o externo.
 
-```sql
-ALTER TABLE public.profiles
-  ADD COLUMN IF NOT EXISTS trial_plan_name text,
-  ADD COLUMN IF NOT EXISTS trial_started_at timestamptz DEFAULT now();
-
-ALTER TABLE public.plans
-  ADD COLUMN IF NOT EXISTS expiration_action text NOT NULL DEFAULT 'force_upgrade',
-  ADD COLUMN IF NOT EXISTS allowed_tabs jsonb;
-```
-
-## Resumo do comportamento entregue
-
-1. Usuário escolhe "Teste Gratuito" em `/pricing` → vai pra `/cadastro?plan=Teste Gratuito` → ao confirmar, `trial_plan_name` e `trial_started_at` são gravados.
-2. `usePlanEntitlements` aplica `limits`/`permissions`/`allowed_tabs` desde o primeiro acesso.
-3. `TrialBanner` mostra dias restantes; criação além do limite abre `UpgradeDialog`.
-4. Após 7 dias, `TrialExpiredGate` aplica a regra configurada no admin (`block_all`/`readonly`/`force_upgrade`).
-5. Dados permanecem; ao assinar um plano pago, `useSubscription` ativa e libera tudo.
-
-Quer que eu implemente esse plano agora (todas as 6 etapas) ou começamos por um subconjunto (ex.: só associação no cadastro + bloqueio na expiração)?
+Confirme que posso seguir e eu executo a etapa 1 (frontend) + gero o SQL da etapa 3 num único passo.
