@@ -56,5 +56,6 @@ export function TelegramBotsHub() {
       {/* Vencimentos da semana — sempre o último */}
       <TelegramWeeklyVencimentosCard />
     </div>
+    </ReadOnlyOverlay>
   );
 }
