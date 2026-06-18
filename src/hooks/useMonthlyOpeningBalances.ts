@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwner } from "@/hooks/useDataOwner";
 import { toast } from "sonner";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export type MonthlyOpeningBalances = Record<string, number>;
 
@@ -27,6 +28,7 @@ export function useMonthlyOpeningBalances() {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
+    assertWritable();
     if (!ownerId) return;
     const { data, error } = await supabase
       .from("monthly_opening_balances")
@@ -68,6 +70,7 @@ export function useMonthlyOpeningBalances() {
 
   const setBalance = useCallback(
     async (month: string, amount: number) => {
+      assertWritable();
       if (!ownerId) return;
       const prev = map;
       setMap((m) => ({ ...m, [month]: amount }));
@@ -87,6 +90,7 @@ export function useMonthlyOpeningBalances() {
 
   const clearBalance = useCallback(
     async (month: string) => {
+      assertWritable();
       if (!ownerId) return;
       const prev = map;
       setMap((m) => {

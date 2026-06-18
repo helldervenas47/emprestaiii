@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { Product, Sale, BusinessType, SalePaymentRecord } from "@/types/loan";
 import { useAuth } from "@/hooks/useAuth";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
+import { assertWritable } from "@/lib/readOnlyState";
 
 
 export function useProducts(enabled = true) {
@@ -120,6 +121,7 @@ export function useProducts(enabled = true) {
   }, [user, enabled]);
 
   const addProduct = useCallback(async (p: Omit<Product, "id" | "createdAt">) => {
+    assertWritable();
     if (!user || !dataOwnerId) return;
     const tempId = crypto.randomUUID();
     setProducts((prev) => [{ ...p, id: tempId, createdAt: new Date().toISOString() }, ...prev]);
@@ -144,6 +146,7 @@ export function useProducts(enabled = true) {
   }, [user, dataOwnerId]);
 
   const updateProduct = useCallback(async (id: string, data: Partial<Omit<Product, "id" | "createdAt">>) => {
+    assertWritable();
     if (!user) return;
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...data } : p)));
     const updateData: Record<string, any> = {};
@@ -159,6 +162,7 @@ export function useProducts(enabled = true) {
   }, [user]);
 
   const deleteProduct = useCallback(async (id: string) => {
+    assertWritable();
     if (!user) return;
     setProducts((prev) => prev.filter((p) => p.id !== id));
     // Mantém as vendas associadas; o FK no banco agora é ON DELETE SET NULL,
@@ -169,6 +173,7 @@ export function useProducts(enabled = true) {
 
 
   const addSale = useCallback(async (s: Omit<Sale, "id">) => {
+    assertWritable();
     if (!user || !dataOwnerId) return;
 
     // Bloqueio: produto sem estoque suficiente
@@ -272,6 +277,7 @@ export function useProducts(enabled = true) {
 
 
   const updateSale = useCallback(async (id: string, data: Partial<Omit<Sale, "id">>) => {
+    assertWritable();
     if (!user) return;
     const sale = sales.find(s => s.id === id);
 
@@ -300,6 +306,7 @@ export function useProducts(enabled = true) {
   }, [user, sales]);
 
   const deleteSale = useCallback(async (id: string) => {
+    assertWritable();
     if (!user) return;
     const sale = sales.find((s) => s.id === id);
     setSales((prev) => prev.filter((s) => s.id !== id));

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export interface CustomPersonalCategory {
   id: string;
@@ -49,6 +50,7 @@ export function usePersonalExpenseCategories() {
 
   const create = useCallback(
     async (input: { name: string; icon: string; color: string }) => {
+      assertWritable();
       if (!user) return null;
       const name = input.name.trim();
       if (!name) return null;
@@ -74,6 +76,7 @@ export function usePersonalExpenseCategories() {
 
   const update = useCallback(
     async (id: string, input: { name: string; icon: string; color: string }) => {
+      assertWritable();
       const name = input.name.trim();
       if (!name) return null;
 
@@ -130,6 +133,7 @@ export function usePersonalExpenseCategories() {
   );
 
   const remove = useCallback(async (id: string) => {
+    assertWritable();
     const { error } = await supabase.from("personal_expense_categories").delete().eq("id", id);
     if (error) {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });

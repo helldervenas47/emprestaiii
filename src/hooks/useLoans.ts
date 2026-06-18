@@ -13,6 +13,7 @@ import {
   enqueueMutation, rewritePendingRecordId,
 } from "@/lib/offline/sync";
 import { isOnline } from "@/lib/offline/status";
+import { assertWritable } from "@/lib/readOnlyState";
 
 async function resolveWalletKind(paymentMethodId: string | null): Promise<"account" | "cash"> {
   if (!paymentMethodId) return "account";
@@ -300,6 +301,7 @@ export function useLoans() {
   }, [user, fetchLoans, fetchPayments, fetchSchedules]);
 
   const saveSchedule = useCallback(async (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => {
+    assertWritable();
     if (!user || !dataOwnerId) {
       console.warn("[saveSchedule] Skipped: missing user or dataOwnerId", { user: !!user, dataOwnerId });
       throw new Error("Usuário não autenticado");
@@ -328,6 +330,7 @@ export function useLoans() {
   }, [user, dataOwnerId, fetchSchedules]);
 
   const addLoan = useCallback(async (loan: Omit<Loan, "id"> & { status?: string; paidInstallments?: number; paymentMethodId?: string | null; paymentSplit?: PaymentSplit | null }): Promise<string | null> => {
+    assertWritable();
     if (!user || !dataOwnerId) return null;
 
     // Check loan limit based on subscription plan
@@ -493,6 +496,7 @@ export function useLoans() {
   }, [user, dataOwnerId]);
 
   const addPayment = useCallback(async (loanId: string, paymentDate?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => {
+    assertWritable();
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     const dateStr = paymentDate || todayInAppTz();
     const loan = loans.find((l) => l.id === loanId);
@@ -668,6 +672,7 @@ export function useLoans() {
   }, [user, dataOwnerId, loans, payments, installmentSchedules, fetchLoans, fetchPayments]);
 
   const addPartialPayment = useCallback(async (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => {
+    assertWritable();
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     if (amount <= 0) throw new Error("Informe um valor de pagamento válido");
     const dateStr = paymentDate || todayInAppTz();
@@ -777,6 +782,7 @@ export function useLoans() {
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
   const payOffLoan = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => {
+    assertWritable();
     if (!user || !dataOwnerId) throw new Error("Usuário não autenticado");
     const dateStr = paymentDate || todayInAppTz();
     const loan = loans.find((l) => l.id === loanId);
@@ -955,6 +961,7 @@ export function useLoans() {
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
   const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null, options?: { partial?: boolean; notes?: string | null }) => {
+    assertWritable();
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) throw new Error("Empréstimo não encontrado");
@@ -1341,6 +1348,7 @@ export function useLoans() {
     paymentMethodId?: string | null,
     paymentSplit?: PaymentSplit | null,
   ) => {
+    assertWritable();
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     if (amortizeAmount == null || isNaN(Number(amortizeAmount)) || Number(amortizeAmount) <= 0) {
       throw new Error("Informe um valor de amortização válido (maior que zero)");
@@ -1558,6 +1566,7 @@ export function useLoans() {
   }, [user, dataOwnerId, loans, payments, installmentSchedules, fetchPayments, fetchLoans, fetchSchedules]);
 
   const updateLoan = useCallback(async (id: string, data: Partial<Omit<Loan, "id">>) => {
+    assertWritable();
     // Auditoria: se algum campo financeiro mudou em contrato com pagamentos,
     // grava snapshot do estado anterior no extrato (category=adjustment, amount=0).
     try {
@@ -1686,6 +1695,7 @@ export function useLoans() {
   }, [loans, fetchLoans]);
 
   const deleteLoan = useCallback(async (id: string) => {
+    assertWritable();
     const loan = loans.find((l) => l.id === id);
     const loanPayments = payments.filter((p) => p.loanId === id);
     setLoans((prev) => prev.filter((l) => l.id !== id));
@@ -1710,6 +1720,7 @@ export function useLoans() {
   }, [loans, payments]);
 
   const deletePayment = useCallback(async (id: string) => {
+    assertWritable();
     const payment = payments.find((p) => p.id === id);
     if (!payment) return;
     const online = isOnline();
@@ -1803,6 +1814,7 @@ export function useLoans() {
       discountNewTotal?: number | null;
     }
   ) => {
+    assertWritable();
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) throw new Error("Empréstimo não encontrado");

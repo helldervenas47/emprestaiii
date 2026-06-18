@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export interface VehicleInfo {
   id: string;
@@ -39,6 +40,7 @@ export function useVehicleRegistry(enabled = true) {
   useEffect(() => { if (enabled) fetch(); }, [fetch, enabled]);
 
   const add = useCallback(async (v: Omit<VehicleInfo, "id">) => {
+    assertWritable();
     if (!user || !dataOwnerId) return;
     const tempId = crypto.randomUUID();
     setVehicles(prev => [{ ...v, id: tempId }, ...prev]);
@@ -57,6 +59,7 @@ export function useVehicleRegistry(enabled = true) {
   }, [user, dataOwnerId]);
 
   const update = useCallback(async (id: string, v: Partial<Omit<VehicleInfo, "id">>) => {
+    assertWritable();
     setVehicles(prev => prev.map(x => x.id === id ? { ...x, ...v } : x));
     await supabase.from("vehicle_registry").update({
       marca_modelo: v.marcaModelo, ano: v.ano, cor: v.cor,
@@ -65,6 +68,7 @@ export function useVehicleRegistry(enabled = true) {
   }, []);
 
   const remove = useCallback(async (id: string) => {
+    assertWritable();
     setVehicles(prev => prev.filter(x => x.id !== id));
     await supabase.from("vehicle_registry").delete().eq("id", id);
   }, []);

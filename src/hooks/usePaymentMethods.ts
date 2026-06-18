@@ -5,6 +5,7 @@ const seededOwners = new Set<string>();
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export type PaymentMethodKind = "account" | "cash";
 
@@ -34,6 +35,7 @@ export function usePaymentMethods(enabled = true) {
   const [loading, setLoading] = useState(true);
 
   const fetchMethods = useCallback(async () => {
+    assertWritable();
     if (!user) return;
     setLoading(true);
     const { data, error } = await supabase
@@ -109,6 +111,7 @@ export function usePaymentMethods(enabled = true) {
 
   const add = useCallback(
     async (name: string, icon?: string, kind: PaymentMethodKind = "account") => {
+      assertWritable();
       if (!user || !dataOwnerId) return;
       const trimmed = name.trim();
       if (!trimmed) return;
@@ -133,6 +136,7 @@ export function usePaymentMethods(enabled = true) {
 
   const update = useCallback(
     async (id: string, patch: Partial<Pick<PaymentMethod, "name" | "icon" | "active" | "sortOrder" | "kind">>) => {
+      assertWritable();
       const updateData: any = {};
       if (patch.name !== undefined) updateData.name = patch.name.trim();
       if (patch.icon !== undefined) updateData.icon = patch.icon || null;
@@ -151,6 +155,7 @@ export function usePaymentMethods(enabled = true) {
 
   const remove = useCallback(
     async (id: string) => {
+      assertWritable();
       const { error } = await supabase.from("payment_methods" as any).delete().eq("id", id);
       if (error) {
         toast.error("Erro ao excluir forma de pagamento");

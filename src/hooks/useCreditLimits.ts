@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { DEFAULT_INITIAL_LIMIT } from "@/lib/creditLimit";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export interface CreditLimit {
   id: string;
@@ -88,6 +89,7 @@ export function useCreditLimits() {
 
   const ensureLimit = useCallback(
     async (clientId: string): Promise<CreditLimit | null> => {
+      assertWritable();
       if (!user || !dataOwnerId) return null;
       const existing = limits.find((l) => l.clientId === clientId);
       if (existing) return existing;
@@ -133,6 +135,7 @@ export function useCreditLimits() {
         metadata?: Record<string, unknown>;
       },
     ) => {
+      assertWritable();
       if (!user || !dataOwnerId) return;
       let existing = limits.find((l) => l.clientId === clientId);
       if (!existing) {
