@@ -57,6 +57,8 @@ interface Props {
   referenceMonth?: string;
   /** Bounding rect of the source mini-card; used to animate from that position into fullscreen. */
   originRect?: DOMRect | null;
+  /** Opens the validated invoice payment panel immediately after entering from the card list. */
+  autoOpenPayment?: boolean;
 }
 
 const fmt = (v: number) =>
@@ -101,8 +103,8 @@ function getCycle(ref: Date, closingDay: number, dueDay: number) {
   return { from: closingPrev, to: closingNext, dueDate };
 }
 
-export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }: Props) {
-  const { expenses, updateExpense, deleteExpense } = useExpenses();
+export function CreditCardInvoice({ card, onClose, referenceMonth, originRect, autoOpenPayment = false }: Props) {
+  const { expenses, payExpense, updateExpense, deleteExpense } = useExpenses();
   const { openings, getOpening, upsertOpening } = useCreditCardOpenings();
   const ownerId = useDataOwner();
   const { mask } = useHideValues();
@@ -140,6 +142,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const [payWallet, setPayWallet] = useState<"account" | "cash">("account");
   const [payMode, setPayMode] = useState<"total" | "partial">("total");
   const [invoiceLedgerPaid, setInvoiceLedgerPaid] = useState(0);
+  const autoOpenedPaymentRef = useRef(false);
 
   const [deletingPayment, setDeletingPayment] = useState<PaidInvoiceEntry | null>(null);
   const [deletingPaymentBusy, setDeletingPaymentBusy] = useState(false);
@@ -304,6 +307,14 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
     0,
     Number((Math.max(remainingTotal, paidTotal - invoiceLedgerPaid, totalRounded - invoiceLedgerPaid)).toFixed(2)),
   );
+
+  useEffect(() => {
+    if (!autoOpenPayment || autoOpenedPaymentRef.current || paymentRemaining <= 0.005) return;
+    autoOpenedPaymentRef.current = true;
+    setPayAmount(paymentRemaining.toFixed(2).replace(".", ","));
+    setPayMode("total");
+    setPayDialogOpen(true);
+  }, [autoOpenPayment, paymentRemaining]);
 
   useEffect(() => {
     let cancelled = false;
@@ -589,7 +600,14 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
       if (isFull) {
         // Marca todos os itens do ciclo como pagos.
         const unpaid = items.filter((e) => !e.paid);
-        for (const e of unpaid) await updateExpense(e.id, { paid: true, paidDate: payDate });
+        for (const e of unpaid) {
+          if (e.isVirtualInstallment) {
+            const realId = String(e.id).split("::virt::")[0];
+            await payExpense(realId, true, payDate, e.amount);
+          } else {
+            await updateExpense(e.id, { paid: true, paidDate: payDate });
+          }
+        }
         // Override de total + paid = amount real informado pelo usuário.
         let notes = writeTotalOverride(cleanedNotes, newInvoiceTotal);
         notes = writePaidOverride(notes, newInvoiceTotal);

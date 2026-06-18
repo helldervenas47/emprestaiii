@@ -1,16 +1,10 @@
 import React, { useState, useMemo } from "react";
-import { todayInAppTz } from "@/lib/timezone";
 import { Plus, CreditCard as CreditCardIcon, Wifi, Pencil, Trash2, Receipt, CheckCircle, EyeOff, RotateCcw } from "lucide-react";
 import { RowActions } from "@/components/ui/row-actions";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useCreditCards, CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOpenings";
@@ -272,21 +266,27 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
   const { cards: allCards, loading, addCard, updateCard, deleteCard } = useCreditCards();
   const cards = useMemo(() => allCards.filter((c) => c.active !== false), [allCards]);
   const inactiveCards = useMemo(() => allCards.filter((c) => c.active === false), [allCards]);
-  const { expenses, payExpense } = useExpenses();
-  const { openings, getOpening, upsertOpening, deleteOpening } = useCreditCardOpenings();
+  const { expenses } = useExpenses();
+  const { openings, getOpening, upsertOpening } = useCreditCardOpenings();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CreditCard | null>(null);
   const [deleting, setDeleting] = useState<CreditCard | null>(null);
   const [invoiceCard, setInvoiceCard] = useState<CreditCard | null>(null);
   const [invoiceOriginRect, setInvoiceOriginRect] = useState<DOMRect | null>(null);
+  const [invoiceAutoOpenPayment, setInvoiceAutoOpenPayment] = useState(false);
   const [openingCard, setOpeningCard] = useState<CreditCard | null>(null);
-  const [payingCard, setPayingCard] = useState<CreditCard | null>(null);
-  const [paying, setPaying] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
   const [showAllMobile, setShowAllMobile] = useState(false);
 
   const openInvoice = (card: CreditCard, rect: DOMRect) => {
     setInvoiceOriginRect(rect);
+    setInvoiceAutoOpenPayment(false);
+    setInvoiceCard(card);
+  };
+
+  const openInvoicePayment = (card: CreditCard) => {
+    setInvoiceOriginRect(null);
+    setInvoiceAutoOpenPayment(true);
     setInvoiceCard(card);
   };
 
@@ -515,7 +515,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                       onEdit={readOnly ? undefined : () => handleEdit(card)}
                       onDelete={readOnly ? undefined : () => setDeleting(card)}
                       onAddOpening={readOnly ? undefined : () => setOpeningCard(card)}
-                      onPayInvoice={readOnly ? undefined : () => setPayingCard(card)}
+                    onPayInvoice={readOnly ? undefined : () => openInvoicePayment(card)}
                       readOnly={readOnly}
                     />
                   );
@@ -574,7 +574,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                 onEdit={readOnly ? undefined : () => handleEdit(card)}
                 onDelete={readOnly ? undefined : () => setDeleting(card)}
                 onAddOpening={readOnly ? undefined : () => setOpeningCard(card)}
-                onPayInvoice={readOnly ? undefined : () => setPayingCard(card)}
+                onPayInvoice={readOnly ? undefined : () => openInvoicePayment(card)}
                 readOnly={readOnly}
               />
             );
@@ -682,8 +682,10 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
           onClose={() => {
             setInvoiceCard(null);
             setInvoiceOriginRect(null);
+            setInvoiceAutoOpenPayment(false);
           }}
           referenceMonth={referenceMonth}
+          autoOpenPayment={invoiceAutoOpenPayment}
         />
       )}
 
@@ -715,55 +717,6 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
           description={`Tem certeza que deseja excluir o cartão ${deleting.nickname || deleting.bank}?`}
         />
       )}
-
-      {payingCard && (() => {
-        const inv = invoiceByCard.get(payingCard.id);
-        const ids = inv?.cycleUnpaidExpenseIds ?? [];
-        const cycleOpening = inv?.hasOpening
-          ? openings.find((o) => o.cardId === payingCard.id && o.cycleKey === inv.cycleKey) ?? null
-          : null;
-        const total = inv?.cyclePendingTotal ?? 0;
-        const itemsCount = ids.length + (cycleOpening ? 1 : 0);
-        const cycleLabel = inv ? format(inv.dueDate, "MMMM/yy", { locale: ptBR }) : "";
-        return (
-          <AlertDialog open={!!payingCard} onOpenChange={(o) => !o && !paying && setPayingCard(null)}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Pagar fatura do mês?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Confirmar o pagamento da fatura de <strong>{cycleLabel}</strong> — {itemsCount} {itemsCount === 1 ? "item" : "itens"} ({fmt(total)}) do cartão {payingCard.nickname || getBank(payingCard.bank).name}. Apenas as despesas e o saldo inicial deste ciclo serão quitados.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={paying}>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  disabled={paying || itemsCount === 0}
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    if (paying) return;
-                    setPaying(true);
-                    try {
-                      const today = todayInAppTz();
-                      for (const id of ids) {
-                        await payExpense(id, false, today);
-                      }
-                      if (cycleOpening) {
-                        await deleteOpening(cycleOpening.id);
-                      }
-                      toast.success(`Fatura de ${cycleLabel} paga (${itemsCount} ${itemsCount === 1 ? "item" : "itens"})`);
-                      setPayingCard(null);
-                    } finally {
-                      setPaying(false);
-                    }
-                  }}
-                >
-                  {paying ? "Pagando..." : "Pagar fatura"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        );
-      })()}
     </div>
   );
 }
