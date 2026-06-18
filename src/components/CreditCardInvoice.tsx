@@ -924,7 +924,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                           onChange={(e) => setPayAmount(e.target.value.replace(/[^0-9.,]/g, ""))}
                         />
                         {(() => {
-                          const parsed = Number(payAmount.replace(",", "."));
+                          const parsed = parseCurrencyInput(payAmount);
                           const valid = Number.isFinite(parsed) && parsed > 0;
                           return (
                             <p
@@ -973,7 +973,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                     <div className="flex gap-2 justify-end">
                       <Button variant="outline" onClick={() => setPayDialogOpen(false)} disabled={paying}>Cancelar</Button>
                       {(() => {
-                        const parsedPay = Number(payAmount.replace(",", "."));
+                        const parsedPay = parseCurrencyInput(payAmount);
                         const invalid =
                           paying ||
                           !payDate ||
