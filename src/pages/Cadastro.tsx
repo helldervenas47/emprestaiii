@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/userClient";
+import { supabase as functionsClient } from "@/integrations/supabase/client";
 
 
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,7 @@ const Cadastro = () => {
   const brandName = branding.brand_name;
 
   const ensureDefaultClienteRole = async (userId: string, userEmail?: string | null, accessToken?: string | null) => {
-    const { data: ensuredRole, error: ensureError } = await supabase.functions.invoke("ensure-user-role", {
+    const { data: ensuredRole, error: ensureError } = await functionsClient.functions.invoke("ensure-user-role", {
       body: { userId, email: userEmail, role: "cliente" },
       ...(accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : {}),
     });
