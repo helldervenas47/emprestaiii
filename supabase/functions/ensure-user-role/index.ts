@@ -40,28 +40,20 @@ Deno.serve(async (req) => {
     let userRes = null;
 
     if (token) {
-      const userClient = getExternalUserClient();
-      const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
-      const userId = claimsData?.claims?.sub;
-
-      if (claimsError || !userId) {
-        console.error("[ensure-user-role] invalid token", claimsError);
-        return new Response(JSON.stringify({ error: "invalid_token" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      const { data: userData, error: userTokenError } = await admin.auth.getUser(token);
+      if (userTokenError || !userData?.user?.id) {
+        console.error("[ensure-user-role] invalid token", userTokenError);
+        // Fallback to public signup resolution (userId+email recent signup)
+        userRes = await resolvePublicSignupUser(admin, body);
+        if (!userRes?.id) {
+          return new Response(JSON.stringify({ error: "invalid_token" }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } else {
+        userRes = userData.user;
       }
-
-      const { data, error: userError } = await admin.auth.admin.getUserById(userId);
-      if (userError || !data?.user?.id) {
-        console.error("[ensure-user-role] user lookup failed", userError);
-        return new Response(JSON.stringify({ error: "user_not_found" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      userRes = data.user;
     } else {
       userRes = await resolvePublicSignupUser(admin, body);
     }
