@@ -17,6 +17,7 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { usePayrolls } from "@/hooks/usePayrolls";
 import { todayInAppTz } from "@/lib/timezone";
 import type { PayrollItems, SalaryItem } from "@/types/salary";
+import { assertWritable } from "@/lib/readOnlyState";
 
 const EARNING_TYPES = [
   { value: "13_salario", label: "13º Salário" },
@@ -68,6 +69,7 @@ export function ExtraEarningDialog() {
   const typeLabel = EARNING_TYPES.find((t) => t.value === type)?.label ?? "Provento";
 
   const handleSubmit = async () => {
+    assertWritable();
     if (submitting) return;
     const v = Number(amount) || 0;
     if (!employeeId) { toast.error("Selecione um funcionário"); return; }
