@@ -192,10 +192,10 @@ export function PayrollManager({ readOnly }: Props) {
                 </div>
                 <div className="flex flex-nowrap gap-1 md:gap-1.5 md:ml-2 justify-end w-full md:w-auto [&>button]:flex-1 md:[&>button]:flex-none">
                   {!readOnly && remaining > 0 && (
-                    <Button size="sm" onClick={() => setPayingId(p.id)}><Wallet className="h-3 w-3" /> <span className="hidden md:inline">Pagar</span></Button>
+                    <Button data-mutation size="sm" onClick={() => setPayingId(p.id)}><Wallet className="h-3 w-3" /> <span className="hidden md:inline">Pagar</span></Button>
                   )}
                   {!readOnly && !p.closed && p.paidAmount <= 0.01 && (
-                    <Button size="sm" variant="outline" onClick={() => setEditingId(p.id)}>
+                    <Button data-mutation size="sm" variant="outline" onClick={() => setEditingId(p.id)}>
                       <Pencil className="h-3 w-3" /> <span className="hidden md:inline">Editar</span>
                     </Button>
                   )}
@@ -321,7 +321,7 @@ function PayDialog({ open, onOpenChange, payroll, onConfirm }: {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>Cancelar</Button>
-          <Button onClick={handleConfirm} disabled={submitting || !Number(amount)}>
+          <Button data-mutation onClick={handleConfirm} disabled={submitting || !Number(amount)}>
             <CheckCircle2 className="h-4 w-4" /> {submitting ? "Processando..." : "Confirmar"}
           </Button>
         </DialogFooter>
@@ -397,7 +397,7 @@ function PaymentsHistoryDialog({ open, onOpenChange, payrollId, readOnly, onReve
                 {r.notes && <div className="text-xs text-muted-foreground truncate">{r.notes}</div>}
               </div>
               {!readOnly && (
-                <Button size="sm" variant="outline" onClick={() => handleReverse(r.id)} disabled={busyId === r.id}>
+                <Button data-mutation size="sm" variant="outline" onClick={() => handleReverse(r.id)} disabled={busyId === r.id}>
                   <Undo2 className="h-3 w-3" /> {busyId === r.id ? "Estornando..." : "Estornar"}
                 </Button>
               )}
@@ -494,7 +494,7 @@ function EditPayrollDialog({ open, onOpenChange, payroll, onSave }: {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+          <Button data-mutation onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

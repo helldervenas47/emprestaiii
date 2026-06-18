@@ -141,7 +141,7 @@ export function StockManager({ readOnly = false }: Props) {
             <Button onClick={() => setEntryOpen(true)} disabled={products.length === 0} className="w-full sm:w-auto">
               <PackagePlus className="h-4 w-4 mr-2" /> Entrada manual
             </Button>
-            <Button onClick={() => setPurchaseOpen(true)} disabled={products.length === 0} variant="outline" className="w-full sm:w-auto">
+            <Button data-mutation onClick={() => setPurchaseOpen(true)} disabled={products.length === 0} variant="outline" className="w-full sm:w-auto">
               <ShoppingBag className="h-4 w-4 mr-2" /> Registrar compra
             </Button>
           </div>
@@ -298,7 +298,7 @@ export function StockManager({ readOnly = false }: Props) {
                             </div>
                             {/* Desktop: inline buttons */}
                             <div className="hidden sm:flex items-center gap-1 justify-end">
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingProduct(p)} aria-label="Editar produto">
+                              <Button data-mutation variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingProduct(p)} aria-label="Editar produto">
                                 <Pencil className="h-4 w-4" />
                               </Button>
                               <Button
@@ -431,13 +431,13 @@ export function StockManager({ readOnly = false }: Props) {
                       </dl>
                       {!readOnly && (
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setEditingProduct(p); }}>
+                          <Button data-mutation size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setEditingProduct(p); }}>
                             <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
                           </Button>
                           <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); updateProduct(p.id, { active: !(p.active !== false) }); }}>
                             {p.active !== false ? <><EyeOff className="h-3.5 w-3.5 mr-1.5" /> Inativar</> : <><Eye className="h-3.5 w-3.5 mr-1.5" /> Ativar</>}
                           </Button>
-                          <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingProduct(p); }}>
+                          <Button data-mutation size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingProduct(p); }}>
                             <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Excluir
                           </Button>
                         </div>
@@ -737,7 +737,7 @@ function ManualEntryDialog({ open, onOpenChange, products, onSubmit }: {
                 </Button>
               </div>
             ))}
-            <Button type="button" variant="outline" size="sm" onClick={addItem}>
+            <Button data-mutation type="button" variant="outline" size="sm" onClick={addItem}>
               <Plus className="h-4 w-4 mr-1" /> Adicionar produto
             </Button>
           </div>
@@ -747,7 +747,7 @@ function ManualEntryDialog({ open, onOpenChange, products, onSubmit }: {
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={busy}>{busy ? "Salvando..." : "Registrar entrada"}</Button>
+            <Button data-mutation type="submit" disabled={busy}>{busy ? "Salvando..." : "Registrar entrada"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -820,7 +820,7 @@ function PurchaseDialog({ open, onOpenChange, products, onSubmit }: {
                 </Button>
               </div>
             ))}
-            <Button type="button" variant="outline" size="sm" onClick={addItem}>
+            <Button data-mutation type="button" variant="outline" size="sm" onClick={addItem}>
               <Plus className="h-4 w-4 mr-1" /> Adicionar produto
             </Button>
           </div>
@@ -834,7 +834,7 @@ function PurchaseDialog({ open, onOpenChange, products, onSubmit }: {
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={busy}>{busy ? "Salvando..." : "Registrar compra"}</Button>
+            <Button data-mutation type="submit" disabled={busy}>{busy ? "Salvando..." : "Registrar compra"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -947,7 +947,7 @@ function AdjustStockDialog({ open, onOpenChange, products, onSubmit }: {
                   </div>
                 );
               })}
-              <Button type="button" variant="outline" size="sm" onClick={addItem}>
+              <Button data-mutation type="button" variant="outline" size="sm" onClick={addItem}>
                 <Plus className="h-4 w-4 mr-1" /> Adicionar produto
               </Button>
             </div>
@@ -1008,7 +1008,7 @@ function AdjustStockDialog({ open, onOpenChange, products, onSubmit }: {
             </div>
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => setConfirming(false)} disabled={busy}>Voltar</Button>
-              <Button type="button" onClick={handleConfirm} disabled={busy}>
+              <Button data-mutation type="button" onClick={handleConfirm} disabled={busy}>
                 {busy ? "Registrando..." : "Confirmar ajuste"}
               </Button>
             </DialogFooter>

@@ -54,7 +54,7 @@ export function WarrantyManager({ sale, products: productsProp, iconOnly }: Prop
   return (
     <>
       {iconOnly ? (
-        <Button
+        <Button data-mutation
           variant="ghost"
           size="icon"
           className="h-8 w-8 text-primary hover:bg-primary/10 relative"
@@ -69,7 +69,7 @@ export function WarrantyManager({ sale, products: productsProp, iconOnly }: Prop
           )}
         </Button>
       ) : (
-        <Button
+        <Button data-mutation
           size="sm"
           variant="outline"
           className="h-8 gap-1.5"
@@ -134,7 +134,7 @@ function WarrantyContent({
             {" · "}Disponível: <span className="font-semibold text-primary tabular-nums">{availableForWarranty}</span>
           </div>
         </div>
-        <Button size="sm" onClick={() => setShowNew(true)} disabled={availableForWarranty <= 0}>
+        <Button data-mutation size="sm" onClick={() => setShowNew(true)} disabled={availableForWarranty <= 0}>
           <Plus className="h-3.5 w-3.5" /> Nova garantia
         </Button>
       </div>
@@ -258,7 +258,7 @@ function CaseDetail({
           <div className="space-y-1.5">
             <Label className="text-xs">Observações</Label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="text-sm" />
-            <Button
+            <Button data-mutation
               size="sm" variant="outline"
               disabled={notes === (caseRow.notes || "") || busy}
               onClick={async () => {
@@ -338,7 +338,7 @@ function CaseDetail({
       </Tabs>
 
       <DialogFooter className="pt-2">
-        <Button
+        <Button data-mutation
           variant="ghost"
           size="sm"
           className="text-destructive"
@@ -445,7 +445,7 @@ function MovementForm({
 
       <Input className="h-8 text-xs" placeholder="Observação (opcional)" value={notes} onChange={(e) => setNotes(e.target.value)} />
       
-      <Button size="sm" onClick={submit} disabled={busy} className="w-full">
+      <Button data-mutation size="sm" onClick={submit} disabled={busy} className="w-full">
         {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : direction === "in" ? <ArrowDownToLine className="h-3.5 w-3.5" /> : <ArrowUpFromLine className="h-3.5 w-3.5" />}
         {direction === "in" ? "Registrar Entrada" : "Registrar Saída"}
       </Button>

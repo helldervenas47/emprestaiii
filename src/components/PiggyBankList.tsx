@@ -281,7 +281,7 @@ export function PiggyBankList({ readOnly = false }: Props) {
           </div>
         </div>
         {!readOnly && (
-          <Button size="sm" variant="outline" className="h-8 text-xs shrink-0" onClick={openCreate}>
+          <Button data-mutation size="sm" variant="outline" className="h-8 text-xs shrink-0" onClick={openCreate}>
             <Plus className="h-3.5 w-3.5 mr-1" /> Novo
           </Button>
         )}
@@ -603,7 +603,7 @@ export function PiggyBankList({ readOnly = false }: Props) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
-            <Button onClick={save} disabled={!draft.name.trim()}>
+            <Button data-mutation onClick={save} disabled={!draft.name.trim()}>
               {editing ? "Salvar" : "Criar cofrinho"}
             </Button>
           </DialogFooter>
@@ -858,7 +858,7 @@ export function PiggyBankList({ readOnly = false }: Props) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDeposit(null)}>Cancelar</Button>
-            <Button onClick={confirmEditDeposit}>Salvar</Button>
+            <Button data-mutation onClick={confirmEditDeposit}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

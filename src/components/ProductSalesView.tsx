@@ -546,7 +546,7 @@ function RegisterSalePaymentDialog({
 
         <DialogFooter className="gap-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={!canSubmit} className="bg-primary hover:bg-primary/90">
+          <Button data-mutation onClick={handleSubmit} disabled={!canSubmit} className="bg-primary hover:bg-primary/90">
             <CheckCircle className="h-4 w-4 mr-1.5" />
             Confirmar {detectedType === "full" ? "pagamento total" : "parcial"}
           </Button>
@@ -844,7 +844,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                     />
                     {!readOnly && (
                       <div className="flex flex-wrap gap-2">
-                        <Button
+                        <Button data-mutation
                           variant="success"
                           size="sm"
                           className="flex-[2] min-w-[140px] h-10 text-xs font-semibold rounded-xl shadow-[0_6px_18px_-8px_hsl(var(--success)/0.6)] hover:shadow-[0_10px_24px_-8px_hsl(var(--success)/0.85)] hover:-translate-y-[1px] transition-all duration-200"
@@ -937,7 +937,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
               {sale.businessType !== "aluguel_veiculo" && <WarrantyManager sale={sale} />}
               {!readOnly && (
                 <>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={onEdit}>
+                  <Button data-mutation size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={onEdit}>
                     <Pencil className="h-4 w-4" />
                   </Button>
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setConfirmDeleteSale(true)}>
@@ -1110,7 +1110,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
           )}
           {!isMobile && sale.businessType !== "aluguel_veiculo" && <WarrantyManager sale={sale} iconOnly />}
           {!readOnly && !isMobile && (
-            <Button
+            <Button data-mutation
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -1187,7 +1187,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
                 )}
               </Button>
 
-              <Button
+              <Button data-mutation
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -1311,7 +1311,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
           <div className="pt-2 border-t border-border/40 grid grid-cols-6 gap-1.5">
             <Popover>
               <PopoverTrigger asChild>
-                <Button
+                <Button data-mutation
                   variant="outline"
                   size="sm"
                   className="col-span-2 h-8 text-[11px] px-2 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground w-full justify-center"
@@ -1357,7 +1357,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
                 <WarrantyManager sale={sale} />
               </div>
             ) : <div className="col-span-2" />}
-            <Button
+            <Button data-mutation
               variant="outline"
               size="sm"
               className="col-span-3 h-8 text-[11px] px-2 border-secondary text-secondary-foreground hover:bg-secondary/80 w-full justify-center"
@@ -1365,7 +1365,7 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
             >
               <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
             </Button>
-            <Button
+            <Button data-mutation
               variant="outline"
               size="sm"
               className="col-span-3 h-8 text-[11px] px-2 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground w-full justify-center"
@@ -2092,7 +2092,7 @@ function VehicleExpenseEditDialog({ expense, open, onOpenChange, onSave, formatC
           )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit">Salvar</Button>
+            <Button data-mutation type="submit">Salvar</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -2314,10 +2314,10 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                 autoFocus
                 onKeyDown={(e) => { if (e.key === "Enter") handleSaveBalance(); if (e.key === "Escape") setEditingBalance(false); }}
               />
-              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleSaveBalance}>
+              <Button data-mutation size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleSaveBalance}>
                 <Check className="h-4 w-4" />
               </Button>
-              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setEditingBalance(false)}>
+              <Button data-mutation size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setEditingBalance(false)}>
                 <XIcon className="h-4 w-4" />
               </Button>
             </div>
@@ -2523,7 +2523,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                 </DialogHeader>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setShowDeleteAllExpenses(false)}>Cancelar</Button>
-                  <Button variant="destructive" onClick={() => {
+                  <Button data-mutation variant="destructive" onClick={() => {
                     allVehicleExpenses.forEach(exp => {
                       if (exp.paid || (exp.paidInstallments && exp.paidInstallments > 0)) {
                         handleVehicleUpdateExpense(exp.id, { paid: false, paidDate: undefined, paidInstallments: 0 });
@@ -2598,13 +2598,13 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                                   </Button>
                                 )}
                                 {!readOnly && !exp.paid && onPayExpense && (
-                                  <Button size="sm" variant="outline" onClick={() => setPayingExpenseId(exp.id)} className="h-8 px-2.5 text-xs flex-1 sm:flex-none min-w-0 text-success border-success/30 hover:bg-success hover:text-success-foreground">
+                                  <Button data-mutation size="sm" variant="outline" onClick={() => setPayingExpenseId(exp.id)} className="h-8 px-2.5 text-xs flex-1 sm:flex-none min-w-0 text-success border-success/30 hover:bg-success hover:text-success-foreground">
                                     <CheckCircle className="h-3.5 w-3.5 sm:mr-1" />
                                     <span className="hidden xs:inline">Pagar</span>
                                   </Button>
                                 )}
                                 {!readOnly && onUpdateExpense && (
-                                  <Button size="sm" variant="ghost" onClick={() => setEditingExpenseId(exp.id)} className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground shrink-0">
+                                  <Button data-mutation size="sm" variant="ghost" onClick={() => setEditingExpenseId(exp.id)} className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground shrink-0">
                                     <Pencil className="h-3.5 w-3.5" />
                                   </Button>
                                 )}

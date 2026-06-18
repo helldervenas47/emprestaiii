@@ -842,7 +842,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                                   </div>
                                   {!readOnly && (
                                     <div className="flex items-center gap-1.5 mt-3">
-                                      <Button
+                                      <Button data-mutation
                                         size="sm"
                                         className="h-7 text-xs flex-1"
                                         onClick={() => setInvoiceCard(x.card)}
@@ -970,25 +970,25 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   {!expense.paid && (
-                                    <Button size="sm" className="h-7 text-xs" onClick={() => openPayDialog(expense.id)}>
+                                    <Button data-mutation size="sm" className="h-7 text-xs" onClick={() => openPayDialog(expense.id)}>
                                       <CheckCircle className="h-3 w-3 mr-1" />
                                       Pagar
                                     </Button>
                                   )}
                                   {expense.paid && onUnpay && (
-                                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setUnpayingId(expense.id)}>
+                                    <Button data-mutation size="sm" variant="outline" className="h-7 text-xs" onClick={() => setUnpayingId(expense.id)}>
                                       <Undo2 className="h-3 w-3 mr-1" />
                                       Estornar
                                     </Button>
                                   )}
                                   {onUpdate && (
-                                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditingExpense(expense)}>
+                                    <Button data-mutation size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditingExpense(expense)}>
                                       <Pencil className="h-3 w-3 mr-1" />
                                       Editar
                                     </Button>
                                   )}
                                   <ExpenseBoletoLinkButton expenseId={expense.id} className="h-7 w-7" />
-                                  <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteId(expense.id)}>
+                                  <Button data-mutation size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteId(expense.id)}>
                                     <Trash2 className="h-3 w-3 mr-1" />
                                     Excluir
                                   </Button>
@@ -1044,7 +1044,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                   Usar para este mês
                 </Button>
               )}
-              <Button
+              <Button data-mutation
                 variant={budgets.length === 0 ? "default" : "outline"}
                 size="sm"
                 className="h-8 text-xs"
@@ -1415,7 +1415,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
           </DialogHeader>
           <div className="space-y-2.5 py-2">
             <div className="flex justify-end">
-              <Button
+              <Button data-mutation
                 size="sm"
                 variant="outline"
                 onClick={() => {
@@ -1501,7 +1501,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBudgetEditOpen(false)}>Cancelar</Button>
-            <Button onClick={saveBudgets}>Salvar</Button>
+            <Button data-mutation onClick={saveBudgets}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
