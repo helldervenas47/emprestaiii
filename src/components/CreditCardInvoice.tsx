@@ -142,6 +142,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect, a
   const [payWallet, setPayWallet] = useState<"account" | "cash">("account");
   const [payMode, setPayMode] = useState<"total" | "partial">("total");
   const [invoiceLedgerPaid, setInvoiceLedgerPaid] = useState(0);
+  const autoOpenedPaymentRef = useRef(false);
 
   const [deletingPayment, setDeletingPayment] = useState<PaidInvoiceEntry | null>(null);
   const [deletingPaymentBusy, setDeletingPaymentBusy] = useState(false);
@@ -308,7 +309,8 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect, a
   );
 
   useEffect(() => {
-    if (!autoOpenPayment || paymentRemaining <= 0.005) return;
+    if (!autoOpenPayment || autoOpenedPaymentRef.current || paymentRemaining <= 0.005) return;
+    autoOpenedPaymentRef.current = true;
     setPayAmount(paymentRemaining.toFixed(2).replace(".", ","));
     setPayMode("total");
     setPayDialogOpen(true);
