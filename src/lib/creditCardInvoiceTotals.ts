@@ -161,8 +161,10 @@ export function getCardInvoiceTotalsForMonth(
     const openingAmount = opening?.openingAmount ?? 0;
     const openingPaidFlag = /\[PAGA\]/i.test(opening?.notes ?? "");
     const override = readPaidOverride(opening?.notes);
+    const totalOverride = readTotalOverride(opening?.notes);
 
-    const total = itemsTotal + openingAmount;
+    const total = totalOverride ?? (itemsTotal + openingAmount);
+
 
     const itemsPaidTotal = items.filter((e) => e.paid).reduce((s, e) => s + installmentValue(e), 0);
     const paidTotal = override ?? Number((itemsPaidTotal + (openingPaidFlag ? openingAmount : 0)).toFixed(2));
