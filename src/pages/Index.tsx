@@ -695,7 +695,7 @@ const Index = () => {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <p className="text-xs font-medium text-foreground truncate">{user?.user_metadata?.display_name || user?.email || "—"}</p>
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/40 text-primary cursor-pointer hover:bg-primary/10" onClick={() => { setSidebarOpen(false); navigate("/pricing"); }}>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/40 text-primary cursor-pointer hover:bg-primary/10" onClick={() => { setSidebarOpen(false); navigate("/planos"); }}>
                             {hasActiveSub && subscription ? (
                               subscription.product_id === "basico_plan" ? "Básico" :
                               subscription.product_id === "profissional_plan" ? "Prof." :
@@ -725,7 +725,7 @@ const Index = () => {
                 <Badge
                   variant="outline"
                   className="text-[10px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors border-primary/40 text-primary"
-                  onClick={() => navigate("/pricing")}
+                  onClick={() => navigate("/planos")}
                 >
                   {hasActiveSub && subscription ? (
                     subscription.product_id === "basico_plan" ? "Básico" :
