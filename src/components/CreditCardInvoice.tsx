@@ -62,6 +62,19 @@ interface Props {
 const fmt = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const parseCurrencyInput = (value: string): number => {
+  const raw = value.trim();
+  if (!raw || !/[0-9]/.test(raw)) return Number.NaN;
+  const lastComma = raw.lastIndexOf(",");
+  const lastDot = raw.lastIndexOf(".");
+  const decimalIndex = Math.max(lastComma, lastDot);
+  if (decimalIndex === -1) return Number(raw.replace(/\D/g, ""));
+  const integerPart = raw.slice(0, decimalIndex).replace(/\D/g, "");
+  const decimalPart = raw.slice(decimalIndex + 1).replace(/\D/g, "");
+  if (!integerPart && !decimalPart) return Number.NaN;
+  return Number(`${integerPart || "0"}.${decimalPart}`);
+};
+
 /**
  * Calculates the closing/due dates of the billing cycle that contains `ref`.
  */
@@ -539,27 +552,8 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   async function handleConfirmInvoicePayment() {
     setPaying(true);
     try {
-      const parsedAmount = Number(payAmount.replace(",", "."));
+      const parsedAmount = parseCurrencyInput(payAmount);
       const amount = Math.max(0, Number(parsedAmount.toFixed(2)));
-      // DEBUG temporário — investigando bug "pagou 2135,29 e ficou parcial 28,27"
-      console.log("[PAY DEBUG] input state", {
-        payAmountRaw: payAmount,
-        parsedAmount,
-        amount,
-        payMode,
-        payDate,
-        payWallet,
-        cardId: card.id,
-        cycleKey,
-        total,
-        paidTotal,
-        openingAmount,
-        remainingTotal,
-        paymentRemaining,
-        invoiceLedgerPaid,
-        itemsCount: items.length,
-        unpaidCount: items.filter((e) => !e.paid).length,
-      });
       if (!Number.isFinite(parsedAmount) || amount <= 0) {
         toast.error("Informe um valor válido");
         setPaying(false);
@@ -577,7 +571,6 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
         : Number((paidTotal + amount).toFixed(2));
       // Em pagamento total o "novo total" da fatura passa a ser o valor pago.
       const newInvoiceTotal = isFull ? Number(amount.toFixed(2)) : total;
-      console.log("[PAY DEBUG] computed", { isFull, newPaidTotal, newInvoiceTotal });
 
       let ledgerPaid = invoiceLedgerPaid;
       if (ownerId) {
@@ -638,13 +631,11 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
         let notes = writeTotalOverride(cleanedNotes, newInvoiceTotal);
         notes = writePaidOverride(notes, newInvoiceTotal);
         notes = `${notes ? notes + " " : ""}[PAGA] [LEDGER] [PAID_DATE:${payDate}]`.trim();
-        console.log("[PAY DEBUG] upsert FULL", { cardId: card.id, cycleKey, openingAmount, notes });
         await upsertOpening(card.id, cycleKey, openingAmount, notes);
       } else {
         // Parcial: mantém o total original, apenas acumula valor pago.
         let notes = writePaidOverride(cleanedNotes, newPaidTotal);
         notes = `${notes ? notes + " " : ""}[LEDGER] [PAID_DATE:${payDate}]`.trim();
-        console.log("[PAY DEBUG] upsert PARTIAL", { cardId: card.id, cycleKey, openingAmount, notes });
         await upsertOpening(card.id, cycleKey, openingAmount, notes);
       }
 

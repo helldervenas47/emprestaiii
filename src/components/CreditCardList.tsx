@@ -393,22 +393,11 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         };
       };
 
-      // Avança para a próxima fatura em aberto a partir do ciclo base.
-      // Se nenhuma futura estiver aberta, mantém o ciclo base (consulta).
+      // Mantém o ciclo consultado. Antes a lista avançava automaticamente para a
+      // próxima fatura em aberto quando a atual era paga; isso fazia o cartão
+      // Nubank parecer ter considerado R$ 28,27 como pagamento parcial, quando
+      // na verdade já estava exibindo outro ciclo.
       let chosen = computeCycle(baseCycle);
-      if (chosen.isPaid) {
-        const baseRef = new Date(baseCycle.dueDate);
-        for (let i = 0; i < 24; i++) {
-          const d = new Date(baseRef);
-          d.setMonth(d.getMonth() + i);
-          const nextCycle = getCycleForRef(d, card.closingDay, card.dueDay);
-          const candidate = computeCycle(nextCycle);
-          if (!candidate.isPaid) {
-            chosen = candidate;
-            break;
-          }
-        }
-      }
 
       map.set(card.id, {
         transactions: chosen.transactions,
