@@ -21,6 +21,22 @@ export function writePaidOverride(notes: string | null | undefined, value: numbe
   return base ? `${base} [PAID:${value.toFixed(2)}]` : `[PAID:${value.toFixed(2)}]`;
 }
 
+/** Lê uma override manual do "Valor total da fatura" gravada como [TOTAL:1234.56].
+ *  Usada quando o pagamento total real difere da prévia estimada — o valor real
+ *  passa a ser o total efetivo da fatura. */
+export function readTotalOverride(notes: string | null | undefined): number | null {
+  const m = /\[TOTAL:([0-9]+(?:\.[0-9]+)?)\]/i.exec(notes ?? "");
+  return m ? Number(m[1]) : null;
+}
+
+/** Atualiza o trecho [TOTAL:xxx] dentro de um notes existente. Passe null para remover. */
+export function writeTotalOverride(notes: string | null | undefined, value: number | null): string {
+  const base = (notes ?? "").replace(/\s*\[TOTAL:[0-9]+(?:\.[0-9]+)?\]/gi, "").trim();
+  if (value === null || !Number.isFinite(value)) return base;
+  return base ? `${base} [TOTAL:${value.toFixed(2)}]` : `[TOTAL:${value.toFixed(2)}]`;
+}
+
+
 /** Lê a data efetiva do pagamento gravada em opening.notes como [PAID_DATE:YYYY-MM-DD]. */
 function readPaidDate(notes: string | null | undefined): string | null {
   const m = /\[PAID_DATE:(\d{4}-\d{2}-\d{2})\]/i.exec(notes ?? "");
