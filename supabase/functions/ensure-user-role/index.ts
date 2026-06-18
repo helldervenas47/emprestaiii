@@ -40,9 +40,9 @@ Deno.serve(async (req) => {
     let userRes = null;
 
     if (token) {
-      const userClient = getExternalUserClient();
-      const { data, error: authError } = await userClient.auth.getUser(token);
+      const { data, error: authError } = await admin.auth.getUser(token);
       if (authError || !data?.user?.id) {
+        console.error("[ensure-user-role] invalid token", authError);
         return new Response(JSON.stringify({ error: "invalid_token" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
