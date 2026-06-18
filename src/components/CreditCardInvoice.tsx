@@ -838,7 +838,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
               <div className="space-y-3">
                 <Button
                   onClick={() => {
-                    setPayAmount(remaining.toFixed(2));
+                    setPayAmount(remaining.toFixed(2).replace(".", ","));
                     setPayMode("total");
 
                     setPayDialogOpen((open) => !open);
@@ -893,7 +893,41 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="space-y-1.5">
                         <Label htmlFor="pay-amount-inline">Valor a pagar (R$)</Label>
-                        <Input id="pay-amount-inline" type="number" step="0.01" min="0.01" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} />
+                        {/*
+                          BUGFIX: antes este input era type="number", que descarta
+                          silenciosamente a vírgula. Como o campo é pré-preenchido
+                          em formato com ponto e o usuário edita em formato BR
+                          (vírgula), isso já causou pagamento de um valor
+                          completamente diferente do digitado, sem qualquer aviso.
+                          Agora aceitamos edição livre (apenas dígitos, vírgula e
+                          ponto) e mostramos abaixo o valor interpretado em BRL
+                          para confirmação visual antes da confirmação.
+                        */}
+                        <Input
+                          id="pay-amount-inline"
+                          type="text"
+                          inputMode="decimal"
+                          value={payAmount}
+                          onChange={(e) => setPayAmount(e.target.value.replace(/[^0-9.,]/g, ""))}
+                        />
+                        {(() => {
+                          const parsed = Number(payAmount.replace(",", "."));
+                          const valid = Number.isFinite(parsed) && parsed > 0;
+                          return (
+                            <p
+                              className={`text-[11px] leading-snug ${
+                                valid ? "text-muted-foreground" : "text-destructive"
+                              }`}
+                            >
+                              {valid
+                                ? `Valor interpretado: ${new Intl.NumberFormat("pt-BR", {
+                                    style: "currency",
+                                    currency: "BRL",
+                                  }).format(parsed)}`
+                                : "Valor inválido"}
+                            </p>
+                          );
+                        })()}
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="pay-date-inline">Data do pagamento</Label>
@@ -925,9 +959,20 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
 
                     <div className="flex gap-2 justify-end">
                       <Button variant="outline" onClick={() => setPayDialogOpen(false)} disabled={paying}>Cancelar</Button>
-                      <Button disabled={paying || !payDate || !payAmount || Number(payAmount) <= 0} onClick={handleConfirmInvoicePayment}>
-                        {paying ? "Pagando..." : "Confirmar pagamento"}
-                      </Button>
+                      {(() => {
+                        const parsedPay = Number(payAmount.replace(",", "."));
+                        const invalid =
+                          paying ||
+                          !payDate ||
+                          !payAmount ||
+                          !Number.isFinite(parsedPay) ||
+                          parsedPay <= 0;
+                        return (
+                          <Button disabled={invalid} onClick={handleConfirmInvoicePayment}>
+                            {paying ? "Pagando..." : "Confirmar pagamento"}
+                          </Button>
+                        );
+                      })()}
                     </div>
                   </div>
                 )}
