@@ -698,7 +698,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
               variant="ghost"
               size="icon"
               className={`h-8 w-8 ${bank.textClass} hover:bg-white/15`}
-              onClick={() => { userOverrideRef.current = true; setCycleOffset((o) => o - 1); }}
+              onClick={() => setCycleOffset((o) => o - 1)}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -712,7 +712,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
               variant="ghost"
               size="icon"
               className={`h-8 w-8 ${bank.textClass} hover:bg-white/15`}
-              onClick={() => { userOverrideRef.current = true; setCycleOffset((o) => o + 1); }}
+              onClick={() => setCycleOffset((o) => o + 1)}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
