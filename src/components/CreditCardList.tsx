@@ -366,7 +366,12 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         const cycleExpensesPending = inCycle
           .filter((e) => !e.paid)
           .reduce((s, e) => s + installmentValue(e), 0);
-        const cyclePendingTotal = cycleExpensesPending + opening;
+        // Pendência real do ciclo = total da fatura − total já pago.
+        // Antes era apenas `cycleExpensesPending + opening`, o que ignorava
+        // o flag [PAGA] / override [PAID:xxx] gravado pelo modal de pagamento
+        // — fazendo o cartão continuar "em aberto" mesmo após o pagamento total.
+        const cyclePendingTotalRaw = (totalOverride ?? (cycleExpensesPending + opening)) - (paidOverride ?? (openingPaidFlag ? opening : 0));
+        const cyclePendingTotal = Math.max(0, Number(cyclePendingTotalRaw.toFixed(2)));
         const itemsPaidTotal = inCycle
           .filter((e) => e.paid)
           .reduce((s, e) => s + installmentValue(e), 0);
