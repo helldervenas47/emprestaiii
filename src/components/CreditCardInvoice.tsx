@@ -37,7 +37,7 @@ import { CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOpenings";
 import { useDataOwner } from "@/hooks/useDataOwner";
-import { readPaidOverride, writePaidOverride, listPaidInvoicesInRange, isCreditCardExpense, type PaidInvoiceEntry } from "@/lib/creditCardInvoiceTotals";
+import { readPaidOverride, writePaidOverride, readTotalOverride, writeTotalOverride, listPaidInvoicesInRange, isCreditCardExpense, type PaidInvoiceEntry } from "@/lib/creditCardInvoiceTotals";
 import { expandCreditCardExpenses, type ExpandedExpense } from "@/lib/creditCardInstallments";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { getBank, brandLabel } from "@/lib/creditCardBanks";
@@ -125,7 +125,9 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const [paying, setPaying] = useState(false);
   const [payAmount, setPayAmount] = useState("");
   const [payWallet, setPayWallet] = useState<"account" | "cash">("account");
+  const [payMode, setPayMode] = useState<"total" | "partial">("total");
   const [invoiceLedgerPaid, setInvoiceLedgerPaid] = useState(0);
+
   const [deletingPayment, setDeletingPayment] = useState<PaidInvoiceEntry | null>(null);
   const [deletingPaymentBusy, setDeletingPaymentBusy] = useState(false);
 
@@ -168,11 +170,13 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
       // Limpa marcadores [PAID:xxx], [PAGA] e [LEDGER]; restaura o saldo inicial.
       const cleaned = (op?.notes ?? "")
         .replace(/\[PAID:[0-9]+(?:\.[0-9]+)?\]/gi, "")
+        .replace(/\[TOTAL:[0-9]+(?:\.[0-9]+)?\]/gi, "")
         .replace(/\[PAID_DATE:\d{4}-\d{2}-\d{2}\]/gi, "")
         .replace(/\[PAGA\]/gi, "")
         .replace(/\[LEDGER\]/gi, "")
         .replace(/\s+/g, " ")
         .trim();
+
       if (op || restoredOpening > 0) {
         await upsertOpening(card.id, entry.cycleKey, restoredOpening, cleaned || undefined);
       }
@@ -274,13 +278,15 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
     }, 0);
 
   const transactionsTotal = sumItems(items);
-  const total = transactionsTotal + openingAmount;
-  const prevTotal = sumItems(prevItems) + (prevOpening?.openingAmount ?? 0);
+  const totalOverride = readTotalOverride(opening?.notes);
+  const total = totalOverride ?? (transactionsTotal + openingAmount);
+  const prevTotal = (readTotalOverride(prevOpening?.notes) ?? (sumItems(prevItems) + (prevOpening?.openingAmount ?? 0)));
   const paidOverride = readPaidOverride(opening?.notes);
   const openingPaidFlag = /\[PAGA\]/i.test(opening?.notes ?? "");
   const paidItemsTotal = sumItems(items.filter((e) => e.paid));
   const paidTotal = paidOverride ?? Number((paidItemsTotal + (openingPaidFlag ? openingAmount : 0)).toFixed(2));
   const remainingTotal = Math.max(0, Number((total - paidTotal).toFixed(2)));
+
   const totalRounded = Number(total.toFixed(2));
   // O saldo da conta deve ser regularizado pelo que já está marcado como pago na fatura,
   // mas ainda não foi efetivamente lançado no extrato. Isso cobre o saldo inicial/anterior.
@@ -540,8 +546,18 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
         setPaying(false);
         return;
       }
-      const newPaidTotal = Number(Math.min(total, paidTotal + amount).toFixed(2));
-      const isFull = newPaidTotal + 0.005 >= total;
+
+      // Regra: o app NÃO infere mais total vs parcial comparando valores com a prévia.
+      // O usuário escolhe explicitamente via `payMode`.
+      const isFull = payMode === "total";
+
+      // Quando "Total", o valor pago redefine o total da fatura (a prévia é substituída
+      // pelo valor real). Quando "Parcial", apenas acumula no já pago.
+      const newPaidTotal = isFull
+        ? Number(amount.toFixed(2))
+        : Number((paidTotal + amount).toFixed(2));
+      // Em pagamento total o "novo total" da fatura passa a ser o valor pago.
+      const newInvoiceTotal = isFull ? Number(amount.toFixed(2)) : total;
 
       let ledgerPaid = invoiceLedgerPaid;
       if (ownerId) {
@@ -557,12 +573,8 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
           })
           .reduce((s, r) => s + (Number(r.amount) || 0), 0);
       }
-      let ledgerAmount = Number(Math.max(0, newPaidTotal - ledgerPaid).toFixed(2));
-      if (ledgerAmount + 0.005 < amount) ledgerAmount = amount;
-      if (isFull && openingAmount > 0 && !openingPaidFlag) {
-        const missingOpening = Number(Math.max(0, openingAmount - Math.max(0, ledgerPaid - paidItemsTotal)).toFixed(2));
-        if (missingOpening > ledgerAmount) ledgerAmount = missingOpening;
-      }
+      // Debita exatamente o valor informado — saldo em conta só desce pelo que foi pago.
+      const ledgerAmount = Number(amount.toFixed(2));
 
       if (ledgerAmount > 0.005) {
         try {
@@ -588,18 +600,30 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
         }
       }
 
+      // Limpa marcadores antigos para reescrever de forma idempotente.
+      const cleanedNotes = (opening?.notes ?? "")
+        .replace(/\[PAGA\]/gi, "")
+        .replace(/\[LEDGER\]/gi, "")
+        .replace(/\[PAID_DATE:\d{4}-\d{2}-\d{2}\]/gi, "")
+        .replace(/\[PAID:[0-9]+(?:\.[0-9]+)?\]/gi, "")
+        .replace(/\[TOTAL:[0-9]+(?:\.[0-9]+)?\]/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
       if (isFull) {
+        // Marca todos os itens do ciclo como pagos.
         const unpaid = items.filter((e) => !e.paid);
         for (const e of unpaid) await updateExpense(e.id, { paid: true, paidDate: payDate });
-        const baseNotes = writePaidOverride(
-          (opening?.notes ?? "").replace(/\[PAGA\]/gi, "").replace(/\[LEDGER\]/gi, "").replace(/\[PAID_DATE:\d{4}-\d{2}-\d{2}\]/gi, "").trim(),
-          Number(total.toFixed(2)),
-        );
-        await upsertOpening(card.id, cycleKey, openingAmount, `${baseNotes ? baseNotes + " " : ""}[PAGA] [LEDGER] [PAID_DATE:${payDate}]`.trim());
+        // Override de total + paid = amount real informado pelo usuário.
+        let notes = writeTotalOverride(cleanedNotes, newInvoiceTotal);
+        notes = writePaidOverride(notes, newInvoiceTotal);
+        notes = `${notes ? notes + " " : ""}[PAGA] [LEDGER] [PAID_DATE:${payDate}]`.trim();
+        await upsertOpening(card.id, cycleKey, openingAmount, notes);
       } else {
-        const cleaned = (opening?.notes ?? "").replace(/\[PAGA\]/gi, "").replace(/\[LEDGER\]/gi, "").replace(/\[PAID_DATE:\d{4}-\d{2}-\d{2}\]/gi, "").trim();
-        const baseNotes = writePaidOverride(cleaned, newPaidTotal);
-        await upsertOpening(card.id, cycleKey, openingAmount, `${baseNotes ? baseNotes + " " : ""}[LEDGER] [PAID_DATE:${payDate}]`.trim());
+        // Parcial: mantém o total original, apenas acumula valor pago.
+        let notes = writePaidOverride(cleanedNotes, newPaidTotal);
+        notes = `${notes ? notes + " " : ""}[LEDGER] [PAID_DATE:${payDate}]`.trim();
+        await upsertOpening(card.id, cycleKey, openingAmount, notes);
       }
 
       toast.success(isFull ? `Fatura paga · ${mask(fmt(amount))}` : `Pagamento parcial registrado · ${mask(fmt(amount))}`);
@@ -610,6 +634,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
       setPaying(false);
     }
   }
+
 
   const content = (
     <div
@@ -814,6 +839,8 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                 <Button
                   onClick={() => {
                     setPayAmount(remaining.toFixed(2));
+                    setPayMode("total");
+
                     setPayDialogOpen((open) => !open);
                   }}
                   className="w-full h-11 text-sm font-semibold shadow-md"
@@ -875,12 +902,26 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                     </div>
 
                     <div className="space-y-1.5">
+                      <Label>Tipo de pagamento</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button type="button" variant={payMode === "total" ? "default" : "outline"} size="sm" onClick={() => setPayMode("total")} className="h-9">Total</Button>
+                        <Button type="button" variant={payMode === "partial" ? "default" : "outline"} size="sm" onClick={() => setPayMode("partial")} className="h-9">Parcial</Button>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-snug">
+                        {payMode === "total"
+                          ? "Quita a fatura. O valor informado passa a ser o total real (substitui a prévia)."
+                          : "Acumula como pagamento parcial. A fatura continua em aberto pelo restante."}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1.5">
                       <Label>Conta de origem</Label>
                       <div className="grid grid-cols-2 gap-2">
                         <Button type="button" variant={payWallet === "account" ? "default" : "outline"} size="sm" onClick={() => setPayWallet("account")} className="h-9">Conta</Button>
                         <Button type="button" variant={payWallet === "cash" ? "default" : "outline"} size="sm" onClick={() => setPayWallet("cash")} className="h-9">Dinheiro</Button>
                       </div>
                     </div>
+
 
                     <div className="flex gap-2 justify-end">
                       <Button variant="outline" onClick={() => setPayDialogOpen(false)} disabled={paying}>Cancelar</Button>
