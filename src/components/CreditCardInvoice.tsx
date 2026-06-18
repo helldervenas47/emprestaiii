@@ -900,12 +900,26 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                     </div>
 
                     <div className="space-y-1.5">
+                      <Label>Tipo de pagamento</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button type="button" variant={payMode === "total" ? "default" : "outline"} size="sm" onClick={() => setPayMode("total")} className="h-9">Total</Button>
+                        <Button type="button" variant={payMode === "partial" ? "default" : "outline"} size="sm" onClick={() => setPayMode("partial")} className="h-9">Parcial</Button>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-snug">
+                        {payMode === "total"
+                          ? "Quita a fatura. O valor informado passa a ser o total real (substitui a prévia)."
+                          : "Acumula como pagamento parcial. A fatura continua em aberto pelo restante."}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1.5">
                       <Label>Conta de origem</Label>
                       <div className="grid grid-cols-2 gap-2">
                         <Button type="button" variant={payWallet === "account" ? "default" : "outline"} size="sm" onClick={() => setPayWallet("account")} className="h-9">Conta</Button>
                         <Button type="button" variant={payWallet === "cash" ? "default" : "outline"} size="sm" onClick={() => setPayWallet("cash")} className="h-9">Dinheiro</Button>
                       </div>
                     </div>
+
 
                     <div className="flex gap-2 justify-end">
                       <Button variant="outline" onClick={() => setPayDialogOpen(false)} disabled={paying}>Cancelar</Button>
