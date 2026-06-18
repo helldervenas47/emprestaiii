@@ -276,13 +276,15 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
     }, 0);
 
   const transactionsTotal = sumItems(items);
-  const total = transactionsTotal + openingAmount;
-  const prevTotal = sumItems(prevItems) + (prevOpening?.openingAmount ?? 0);
+  const totalOverride = readTotalOverride(opening?.notes);
+  const total = totalOverride ?? (transactionsTotal + openingAmount);
+  const prevTotal = (readTotalOverride(prevOpening?.notes) ?? (sumItems(prevItems) + (prevOpening?.openingAmount ?? 0)));
   const paidOverride = readPaidOverride(opening?.notes);
   const openingPaidFlag = /\[PAGA\]/i.test(opening?.notes ?? "");
   const paidItemsTotal = sumItems(items.filter((e) => e.paid));
   const paidTotal = paidOverride ?? Number((paidItemsTotal + (openingPaidFlag ? openingAmount : 0)).toFixed(2));
   const remainingTotal = Math.max(0, Number((total - paidTotal).toFixed(2)));
+
   const totalRounded = Number(total.toFixed(2));
   // O saldo da conta deve ser regularizado pelo que já está marcado como pago na fatura,
   // mas ainda não foi efetivamente lançado no extrato. Isso cobre o saldo inicial/anterior.
