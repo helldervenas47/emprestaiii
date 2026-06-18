@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwner } from "@/hooks/useDataOwner";
 import { toast } from "sonner";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export interface InvoiceOpening {
   id: string;
@@ -69,6 +70,7 @@ export function useCreditCardOpenings() {
     amount: number,
     notes?: string
   ) => {
+    assertWritable();
     if (!ownerId) return;
     const { data, error } = await supabase
       .from("credit_card_invoice_openings")
@@ -104,6 +106,7 @@ export function useCreditCardOpenings() {
   };
 
   const deleteOpening = async (id: string) => {
+    assertWritable();
     const { error } = await supabase
       .from("credit_card_invoice_openings")
       .delete()

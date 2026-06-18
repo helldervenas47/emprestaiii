@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwner } from "@/hooks/useDataOwner";
 import type { GoalType } from "@/hooks/useMonthlyGoals";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export interface GoalSnapshot {
   id: string;
@@ -64,6 +65,7 @@ export function useGoalSnapshots() {
     targetValue: number | null,
     attainmentPct: number | null,
   ) => {
+    assertWritable();
     if (!ownerId) return;
     // Se já está finalizado, não tenta sobrescrever
     const existing = snapshots.find((s) => s.goalType === goalType && s.month === month);
