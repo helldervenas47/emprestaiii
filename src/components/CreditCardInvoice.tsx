@@ -839,6 +839,8 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                 <Button
                   onClick={() => {
                     setPayAmount(remaining.toFixed(2));
+                    setPayMode("total");
+
                     setPayDialogOpen((open) => !open);
                   }}
                   className="w-full h-11 text-sm font-semibold shadow-md"
