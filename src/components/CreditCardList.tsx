@@ -14,7 +14,7 @@ import {
 import { useCreditCards, CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOpenings";
-import { readPaidOverride } from "@/lib/creditCardInvoiceTotals";
+import { readPaidOverride, readTotalOverride } from "@/lib/creditCardInvoiceTotals";
 import { expandCreditCardExpenses } from "@/lib/creditCardInstallments";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { getBank, brandLabel } from "@/lib/creditCardBanks";
@@ -371,9 +371,10 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
           .filter((e) => e.paid)
           .reduce((s, e) => s + installmentValue(e), 0);
         const paidOverride = readPaidOverride(op?.notes);
+        const totalOverride = readTotalOverride(op?.notes);
         const openingPaidFlag = /\[PAGA\]/i.test(op?.notes ?? "");
         const paidTotal = paidOverride ?? Number((itemsPaidTotal + (openingPaidFlag ? opening : 0)).toFixed(2));
-        const total = transactions + opening;
+        const total = totalOverride ?? (transactions + opening);
         const remaining = Math.max(0, Number((total - paidTotal).toFixed(2)));
         const everHadValue = inCycle.length > 0 || opening > 0 || openingPaidFlag || paidOverride !== null;
         const isPaid = everHadValue && remaining <= 0.005;
