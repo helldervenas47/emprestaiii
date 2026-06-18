@@ -31,6 +31,24 @@ export function cycleKeyFromDate(closingTo: Date): string {
   return `${y}-${m}`;
 }
 
+// BUGFIX: useCreditCardOpenings() é chamado de forma independente em ~11
+// componentes (CreditCardInvoice, CreditCardList, IncomeBalanceCard, etc),
+// cada um com seu próprio useState<openings>. Antes desta correção, um
+// upsertOpening()/deleteOpening() feito em uma instância (ex: dentro do
+// modal de pagamento) não tinha como avisar as outras instâncias (ex: a
+// lista de cartões), que continuavam exibindo dados antigos até um reload
+// manual da página — mesmo com o pagamento já gravado no banco.
+//
+// Solução: seguir o mesmo padrão de invalidação por evento global que já
+// existe para o extrato (`ledger:changed` / `balance:changed`). Toda
+// escrita dispara `openings:changed`; todas as instâncias do hook escutam
+// esse evento e recarregam.
+const OPENINGS_CHANGED_EVENT = "openings:changed";
+
+function notifyOpeningsChanged() {
+  window.dispatchEvent(new Event(OPENINGS_CHANGED_EVENT));
+}
+
 export function useCreditCardOpenings() {
   const { user } = useAuth();
   const ownerId = useDataOwner();
@@ -39,9 +57,7 @@ export function useCreditCardOpenings() {
 
   const load = useCallback(async () => {
     if (!ownerId) return;
-    const { data, error } = await supabase
-      .from("credit_card_invoice_openings")
-      .select("*");
+    const { data, error } = await supabase.from("credit_card_invoice_openings").select("*");
     if (error) {
       toast.error("Erro ao carregar faturas iniciais");
       setLoading(false);
@@ -55,21 +71,25 @@ export function useCreditCardOpenings() {
     if (user && ownerId) load();
   }, [user, ownerId, load]);
 
+  // Re-sincroniza esta instância sempre que QUALQUER outra instância do
+  // hook (em qualquer componente) gravar uma alteração.
+  useEffect(() => {
+    if (!user || !ownerId) return;
+    const handler = () => load();
+    window.addEventListener(OPENINGS_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(OPENINGS_CHANGED_EVENT, handler);
+  }, [user, ownerId, load]);
+
   /** Get the opening for a specific card+cycle, or null. */
   const getOpening = useCallback(
     (cardId: string, cycleKey: string): InvoiceOpening | null => {
       return openings.find((o) => o.cardId === cardId && o.cycleKey === cycleKey) ?? null;
     },
-    [openings]
+    [openings],
   );
 
   /** Insert or update an opening for a given card+cycle. */
-  const upsertOpening = async (
-    cardId: string,
-    cycleKey: string,
-    amount: number,
-    notes?: string
-  ) => {
+  const upsertOpening = async (cardId: string, cycleKey: string, amount: number, notes?: string) => {
     assertWritable();
     if (!ownerId) return;
     const { data, error } = await supabase
@@ -85,7 +105,7 @@ export function useCreditCardOpenings() {
           opening_balance: amount,
           notes: notes ?? null,
         },
-        { onConflict: "card_id,cycle_key" }
+        { onConflict: "card_id,cycle_key" },
       )
       .select()
       .single();
@@ -96,27 +116,26 @@ export function useCreditCardOpenings() {
     setOpenings((prev) => {
       const exists = prev.some((o) => o.cardId === cardId && o.cycleKey === cycleKey);
       if (exists) {
-        return prev.map((o) =>
-          o.cardId === cardId && o.cycleKey === cycleKey ? fromRow(data) : o
-        );
+        return prev.map((o) => (o.cardId === cardId && o.cycleKey === cycleKey ? fromRow(data) : o));
       }
       return [...prev, fromRow(data)];
     });
     toast.success("Fatura inicial registrada");
+    // Avisa todas as outras instâncias do hook (outras telas/componentes)
+    // para recarregarem e refletirem este pagamento/atualização.
+    notifyOpeningsChanged();
   };
 
   const deleteOpening = async (id: string) => {
     assertWritable();
-    const { error } = await supabase
-      .from("credit_card_invoice_openings")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("credit_card_invoice_openings").delete().eq("id", id);
     if (error) {
       toast.error("Erro ao remover fatura inicial");
       return;
     }
     setOpenings((prev) => prev.filter((o) => o.id !== id));
     toast.success("Fatura inicial removida");
+    notifyOpeningsChanged();
   };
 
   return { openings, loading, getOpening, upsertOpening, deleteOpening };
