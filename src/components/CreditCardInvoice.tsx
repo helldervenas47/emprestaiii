@@ -62,6 +62,19 @@ interface Props {
 const fmt = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const parseCurrencyInput = (value: string): number => {
+  const raw = value.trim();
+  if (!raw || !/[0-9]/.test(raw)) return Number.NaN;
+  const lastComma = raw.lastIndexOf(",");
+  const lastDot = raw.lastIndexOf(".");
+  const decimalIndex = Math.max(lastComma, lastDot);
+  if (decimalIndex === -1) return Number(raw.replace(/\D/g, ""));
+  const integerPart = raw.slice(0, decimalIndex).replace(/\D/g, "");
+  const decimalPart = raw.slice(decimalIndex + 1).replace(/\D/g, "");
+  if (!integerPart && !decimalPart) return Number.NaN;
+  return Number(`${integerPart || "0"}.${decimalPart}`);
+};
+
 /**
  * Calculates the closing/due dates of the billing cycle that contains `ref`.
  */
@@ -207,10 +220,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
     }
   };
 
-  const userOverrideRef = useRef(false);
-
   useEffect(() => {
-    userOverrideRef.current = false;
     setCycleOffset(initialOffset);
   }, [initialOffset]);
 
@@ -324,46 +334,12 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
     };
   }, [ownerId, card.id, cycleKey]);
 
-  // Auto-avança a fatura exibida: se a fatura do mês filtrado já está paga,
-  // pula para a próxima em aberto. Se nenhuma futura está aberta, mantém a última.
-  // Respeita navegação manual (botões prev/next).
+  // Mantém a fatura do ciclo selecionado mesmo após o pagamento. Antes o modal
+  // avançava automaticamente para a próxima fatura em aberto e isso fazia um
+  // pagamento total recém-registrado parecer ter virado parcial de outro ciclo.
   useEffect(() => {
-    if (userOverrideRef.current) return;
-    const isCyclePaidAt = (offset: number): { paid: boolean; hasData: boolean } => {
-      const d = new Date();
-      d.setMonth(d.getMonth() + offset);
-      const c = getCycle(d, card.closingDay, card.dueDay);
-      const ck = cycleKeyFromDate(c.to);
-      const op = getOpening(card.id, ck);
-      const openingAmt = op?.openingAmount ?? 0;
-      const cItems = filterCardExpenses(c.from, c.to);
-      const sum = (list: ExpandedExpense[]) =>
-        list.reduce((s, e) => {
-          const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
-          return s + (isRec ? e.amount / e.installments! : e.amount);
-        }, 0);
-      const itemsTotal = sum(cItems);
-      const total = itemsTotal + openingAmt;
-      const paidOv = readPaidOverride(op?.notes);
-      const opPaidFlag = /\[PAGA\]/i.test(op?.notes ?? "");
-      const paidT = paidOv ?? Number((sum(cItems.filter((e) => e.paid)) + (opPaidFlag ? openingAmt : 0)).toFixed(2));
-      const remaining = Math.max(0, Number((total - paidT).toFixed(2)));
-      const everHadValue = cItems.length > 0 || openingAmt > 0 || opPaidFlag || paidOv !== null;
-      return { paid: everHadValue && remaining <= 0.005, hasData: everHadValue };
-    };
-    // Estratégia: começa no mês filtrado. Se estiver paga, avança até achar
-    // uma fatura em aberto. Se nenhuma futura está aberta, mantém o ciclo filtrado.
-    let target = initialOffset;
-    for (let i = 0; i < 24; i++) {
-      const candidate = initialOffset + i;
-      const { paid } = isCyclePaidAt(candidate);
-      if (!paid) {
-        target = candidate;
-        break;
-      }
-    }
-    setCycleOffset(target);
-  }, [initialOffset, expandedExpenses, openings, card.id, card.closingDay, card.dueDay, cardTag]);
+    setCycleOffset(initialOffset);
+  }, [initialOffset]);
 
 
 
@@ -539,27 +515,8 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   async function handleConfirmInvoicePayment() {
     setPaying(true);
     try {
-      const parsedAmount = Number(payAmount.replace(",", "."));
+      const parsedAmount = parseCurrencyInput(payAmount);
       const amount = Math.max(0, Number(parsedAmount.toFixed(2)));
-      // DEBUG temporário — investigando bug "pagou 2135,29 e ficou parcial 28,27"
-      console.log("[PAY DEBUG] input state", {
-        payAmountRaw: payAmount,
-        parsedAmount,
-        amount,
-        payMode,
-        payDate,
-        payWallet,
-        cardId: card.id,
-        cycleKey,
-        total,
-        paidTotal,
-        openingAmount,
-        remainingTotal,
-        paymentRemaining,
-        invoiceLedgerPaid,
-        itemsCount: items.length,
-        unpaidCount: items.filter((e) => !e.paid).length,
-      });
       if (!Number.isFinite(parsedAmount) || amount <= 0) {
         toast.error("Informe um valor válido");
         setPaying(false);
@@ -577,7 +534,6 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
         : Number((paidTotal + amount).toFixed(2));
       // Em pagamento total o "novo total" da fatura passa a ser o valor pago.
       const newInvoiceTotal = isFull ? Number(amount.toFixed(2)) : total;
-      console.log("[PAY DEBUG] computed", { isFull, newPaidTotal, newInvoiceTotal });
 
       let ledgerPaid = invoiceLedgerPaid;
       if (ownerId) {
@@ -638,13 +594,11 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
         let notes = writeTotalOverride(cleanedNotes, newInvoiceTotal);
         notes = writePaidOverride(notes, newInvoiceTotal);
         notes = `${notes ? notes + " " : ""}[PAGA] [LEDGER] [PAID_DATE:${payDate}]`.trim();
-        console.log("[PAY DEBUG] upsert FULL", { cardId: card.id, cycleKey, openingAmount, notes });
         await upsertOpening(card.id, cycleKey, openingAmount, notes);
       } else {
         // Parcial: mantém o total original, apenas acumula valor pago.
         let notes = writePaidOverride(cleanedNotes, newPaidTotal);
         notes = `${notes ? notes + " " : ""}[LEDGER] [PAID_DATE:${payDate}]`.trim();
-        console.log("[PAY DEBUG] upsert PARTIAL", { cardId: card.id, cycleKey, openingAmount, notes });
         await upsertOpening(card.id, cycleKey, openingAmount, notes);
       }
 
@@ -744,7 +698,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
               variant="ghost"
               size="icon"
               className={`h-8 w-8 ${bank.textClass} hover:bg-white/15`}
-              onClick={() => { userOverrideRef.current = true; setCycleOffset((o) => o - 1); }}
+              onClick={() => setCycleOffset((o) => o - 1)}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -758,7 +712,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
               variant="ghost"
               size="icon"
               className={`h-8 w-8 ${bank.textClass} hover:bg-white/15`}
-              onClick={() => { userOverrideRef.current = true; setCycleOffset((o) => o + 1); }}
+              onClick={() => setCycleOffset((o) => o + 1)}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -933,7 +887,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                           onChange={(e) => setPayAmount(e.target.value.replace(/[^0-9.,]/g, ""))}
                         />
                         {(() => {
-                          const parsed = Number(payAmount.replace(",", "."));
+                          const parsed = parseCurrencyInput(payAmount);
                           const valid = Number.isFinite(parsed) && parsed > 0;
                           return (
                             <p
@@ -982,7 +936,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                     <div className="flex gap-2 justify-end">
                       <Button variant="outline" onClick={() => setPayDialogOpen(false)} disabled={paying}>Cancelar</Button>
                       {(() => {
-                        const parsedPay = Number(payAmount.replace(",", "."));
+                        const parsedPay = parseCurrencyInput(payAmount);
                         const invalid =
                           paying ||
                           !payDate ||

@@ -14,7 +14,7 @@ import {
 import { useCreditCards, CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOpenings";
-import { readPaidOverride } from "@/lib/creditCardInvoiceTotals";
+import { readPaidOverride, readTotalOverride } from "@/lib/creditCardInvoiceTotals";
 import { expandCreditCardExpenses } from "@/lib/creditCardInstallments";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { getBank, brandLabel } from "@/lib/creditCardBanks";
@@ -371,9 +371,10 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
           .filter((e) => e.paid)
           .reduce((s, e) => s + installmentValue(e), 0);
         const paidOverride = readPaidOverride(op?.notes);
+        const totalOverride = readTotalOverride(op?.notes);
         const openingPaidFlag = /\[PAGA\]/i.test(op?.notes ?? "");
         const paidTotal = paidOverride ?? Number((itemsPaidTotal + (openingPaidFlag ? opening : 0)).toFixed(2));
-        const total = transactions + opening;
+        const total = totalOverride ?? (transactions + opening);
         const remaining = Math.max(0, Number((total - paidTotal).toFixed(2)));
         const everHadValue = inCycle.length > 0 || opening > 0 || openingPaidFlag || paidOverride !== null;
         const isPaid = everHadValue && remaining <= 0.005;
@@ -392,22 +393,11 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         };
       };
 
-      // Avança para a próxima fatura em aberto a partir do ciclo base.
-      // Se nenhuma futura estiver aberta, mantém o ciclo base (consulta).
+      // Mantém o ciclo consultado. Antes a lista avançava automaticamente para a
+      // próxima fatura em aberto quando a atual era paga; isso fazia o cartão
+      // Nubank parecer ter considerado R$ 28,27 como pagamento parcial, quando
+      // na verdade já estava exibindo outro ciclo.
       let chosen = computeCycle(baseCycle);
-      if (chosen.isPaid) {
-        const baseRef = new Date(baseCycle.dueDate);
-        for (let i = 0; i < 24; i++) {
-          const d = new Date(baseRef);
-          d.setMonth(d.getMonth() + i);
-          const nextCycle = getCycleForRef(d, card.closingDay, card.dueDay);
-          const candidate = computeCycle(nextCycle);
-          if (!candidate.isPaid) {
-            chosen = candidate;
-            break;
-          }
-        }
-      }
 
       map.set(card.id, {
         transactions: chosen.transactions,
