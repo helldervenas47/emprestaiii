@@ -638,11 +638,13 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
         let notes = writeTotalOverride(cleanedNotes, newInvoiceTotal);
         notes = writePaidOverride(notes, newInvoiceTotal);
         notes = `${notes ? notes + " " : ""}[PAGA] [LEDGER] [PAID_DATE:${payDate}]`.trim();
+        console.log("[PAY DEBUG] upsert FULL", { cardId: card.id, cycleKey, openingAmount, notes });
         await upsertOpening(card.id, cycleKey, openingAmount, notes);
       } else {
         // Parcial: mantém o total original, apenas acumula valor pago.
         let notes = writePaidOverride(cleanedNotes, newPaidTotal);
         notes = `${notes ? notes + " " : ""}[LEDGER] [PAID_DATE:${payDate}]`.trim();
+        console.log("[PAY DEBUG] upsert PARTIAL", { cardId: card.id, cycleKey, openingAmount, notes });
         await upsertOpening(card.id, cycleKey, openingAmount, notes);
       }
 
