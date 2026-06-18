@@ -13,8 +13,10 @@ import {
   enqueueMutation, rewritePendingRecordId,
 } from "@/lib/offline/sync";
 import { isOnline } from "@/lib/offline/status";
+import { assertWritable } from "@/lib/readOnlyState";
 
 async function syncLinkedBoletoPaid(expenseId: string, paid: boolean, paidDate: string | null, amount: number) {
+  assertWritable();
   try {
     // Resolve all expense ids in this chain (parent + all its children).
     // Boletos may be linked to either the parent expense or a specific installment child.
@@ -105,6 +107,7 @@ async function createLinkedIncome(opts: {
   date: string;
   parentExpenseId?: string | null;
 }): Promise<string | null> {
+  assertWritable();
   const marker = `[FromExpense:${opts.expenseId}]`;
   // Dedup: já existe?
   const { data: existing } = await supabase
@@ -136,6 +139,7 @@ async function createLinkedIncome(opts: {
 }
 
 async function deleteLinkedIncomeFor(ownerId: string, expenseId: string): Promise<void> {
+  assertWritable();
   const marker = `[FromExpense:${expenseId}]`;
   await supabase
     .from("incomes" as any)
@@ -157,6 +161,7 @@ async function syncPayrollOnExpensePaid(opts: {
   amount: number;
   paymentMethodId: string | null;
 }) {
+  assertWritable();
   const { data: payroll } = await supabase
     .from("payrolls" as any)
     .select("id, net_salary")
@@ -243,6 +248,7 @@ export function useExpenses(enabled = true) {
   }, [fetchExpenses]);
 
   const addExpense = useCallback(async (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">): Promise<string | null> => {
+    assertWritable();
     if (!user || !dataOwnerId) return null;
     const tempId = crypto.randomUUID();
     const optimistic: Expense = {
@@ -295,6 +301,7 @@ export function useExpenses(enabled = true) {
   }, [user, dataOwnerId]);
 
   const payExpense = useCallback(async (id: string, skipBalanceAdjust = false, payDate?: string, paidAmount?: number) => {
+    assertWritable();
     if (!dataOwnerId) return;
     const expense = expenses.find((e) => e.id === id);
     if (!expense || expense.paid) return;
@@ -490,6 +497,7 @@ export function useExpenses(enabled = true) {
   }, [expenses, dataOwnerId]);
 
   const unpayExpense = useCallback(async (id: string) => {
+    assertWritable();
     const expense = expenses.find((e) => e.id === id);
     if (!expense) return;
 
@@ -623,6 +631,7 @@ export function useExpenses(enabled = true) {
   }, [expenses, dataOwnerId]);
 
   const deleteExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
+    assertWritable();
     const expense = expenses.find((e) => e.id === id);
     setExpenses((prev) => prev.filter((e) => e.id !== id));
     await removeCachedRow("expenses", id);
@@ -652,6 +661,7 @@ export function useExpenses(enabled = true) {
   }, [expenses, dataOwnerId]);
 
   const updateExpense = useCallback(async (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => {
+    assertWritable();
     setExpenses((prev) => prev.map((e) => e.id === id ? { ...e, ...data } : e));
     const updatePayload: any = {
       description: data.description, amount: data.amount, type: data.type,

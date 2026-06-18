@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export type AssistantNumber = {
   id: string;
@@ -30,6 +31,7 @@ export function useWhatsappAssistant() {
   useEffect(() => { reload(); /* eslint-disable-next-line */ }, [user?.id]);
 
   const addNumber = async (phone: string, label?: string) => {
+    assertWritable();
     if (!dataOwnerId) return { error: "no owner" };
     const digits = phone.replace(/\D/g, "");
     const normalized = digits.startsWith("55") ? digits : `55${digits}`;
@@ -41,6 +43,7 @@ export function useWhatsappAssistant() {
   };
 
   const toggleNumber = async (id: string, enabled: boolean) => {
+    assertWritable();
     const { error } = await supabase
       .from("whatsapp_assistant_authorized").update({ enabled }).eq("id", id);
     if (!error) await reload();
@@ -48,6 +51,7 @@ export function useWhatsappAssistant() {
   };
 
   const removeNumber = async (id: string) => {
+    assertWritable();
     const { error } = await supabase
       .from("whatsapp_assistant_authorized").delete().eq("id", id);
     if (!error) await reload();

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { displayIncomeCategory, incomeCategoryKey } from "@/lib/incomeCategory";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export interface CustomIncomeCategory {
   id: string;
@@ -56,6 +57,7 @@ export function useIncomeCategories() {
 
   const create = useCallback(
     async (input: { name: string; icon: string; color: string }) => {
+      assertWritable();
       if (!user) return null;
       const rawName = input.name.trim();
       if (!rawName) return null;
@@ -85,6 +87,7 @@ export function useIncomeCategories() {
 
   const update = useCallback(
     async (id: string, input: { name: string; icon: string; color: string }) => {
+      assertWritable();
       if (!user) return null;
       const rawName = input.name.trim();
       if (!rawName) return null;
@@ -115,6 +118,7 @@ export function useIncomeCategories() {
 
   const remove = useCallback(
     async (id: string) => {
+      assertWritable();
       if (!user) return;
       const { error } = await supabase.from("income_categories" as any).delete().eq("id", id);
       if (error) {

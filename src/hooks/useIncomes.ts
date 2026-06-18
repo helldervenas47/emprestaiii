@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { displayIncomeCategory } from "@/lib/incomeCategory";
 import { todayInAppTz } from "@/lib/timezone";
+import { assertWritable } from "@/lib/readOnlyState";
 
 export type IncomeStatus = "pending" | "received" | "overdue";
 export type IncomeRecurrence = "once" | "weekly" | "biweekly" | "monthly" | "yearly";
@@ -82,6 +83,7 @@ export function useIncomes(enabled = true) {
   const insertSingle = useCallback(async (
     input: Omit<Income, "id" | "createdAt">,
   ): Promise<Income | null> => {
+    assertWritable();
     if (!dataOwnerId) return null;
     const payload: any = {
       user_id: dataOwnerId,
@@ -198,6 +200,7 @@ export function useIncomes(enabled = true) {
   }, [dataOwnerId, insertSingle]);
 
   const updateIncome = useCallback(async (id: string, patch: Partial<Income>) => {
+    assertWritable();
     const updatePayload: any = {};
     if (patch.description !== undefined) updatePayload.description = patch.description;
     if (patch.amount !== undefined) updatePayload.amount = patch.amount;
@@ -216,6 +219,7 @@ export function useIncomes(enabled = true) {
   }, []);
 
   const deleteIncome = useCallback(async (id: string, scope: "single" | "pending" | "all" = "single") => {
+    assertWritable();
     const target = incomes.find((i) => i.id === id);
     const rootId = target?.parentId ?? id;
 
@@ -280,6 +284,7 @@ export function useIncomes(enabled = true) {
     parents.forEach((p) => processingRef.current.add(p.id));
     let cancelled = false;
     (async () => {
+      assertWritable();
       for (const p of parents) {
         if (cancelled) return;
         // 1) Marca o pai como [Expanded] ANTES de inserir filhos para fechar a janela de corrida.
