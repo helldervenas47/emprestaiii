@@ -48,6 +48,7 @@ import { Expense } from "@/types/loan";
 import { toast } from "sonner";
 import { recordLedger } from "@/lib/ledger";
 import { supabase } from "@/integrations/supabase/userClient";
+import { assertWritable } from "@/lib/readOnlyState";
 
 interface Props {
   card: CreditCard;
@@ -129,6 +130,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const [deletingPaymentBusy, setDeletingPaymentBusy] = useState(false);
 
   const handleDeleteInvoicePayment = async (entry: PaidInvoiceEntry) => {
+    assertWritable();
     setDeletingPaymentBusy(true);
     try {
       const op = openings.find((o) => o.cardId === card.id && o.cycleKey === entry.cycleKey);
