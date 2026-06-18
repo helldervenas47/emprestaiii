@@ -529,7 +529,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                       <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
                         <X className="w-[25px] h-[25px] mr-1" /> Cancelar
                       </Button>
-                      <Button size="sm" onClick={() => saveEdit(client.id)}>
+                      <Button data-mutation size="sm" onClick={() => saveEdit(client.id)}>
                         <Check className="w-[25px] h-[25px] mr-1" /> Salvar
                       </Button>
                     </div>

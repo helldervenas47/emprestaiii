@@ -406,7 +406,7 @@ export function MyBoletosSection({ readOnly }: Props) {
             <FileText className="h-8 w-8 mx-auto opacity-50" />
             <p>Nenhum boleto encontrado.</p>
             {!readOnly && (
-              <Button size="sm" variant="outline" onClick={openNew}>
+              <Button data-mutation size="sm" variant="outline" onClick={openNew}>
                 <Plus className="h-4 w-4" /> Cadastrar primeiro boleto
               </Button>
             )}
@@ -655,7 +655,7 @@ function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, 
           </Button>
         )}
         {!readOnly && b.status !== "pago" && (
-          <Button size="sm" variant="ghost" className="h-8 px-1.5 sm:px-2 text-xs gap-1 text-emerald-600 hover:text-emerald-700 shrink-0" onClick={onPay} title="Pagar" aria-label="Pagar">
+          <Button data-mutation size="sm" variant="ghost" className="h-8 px-1.5 sm:px-2 text-xs gap-1 text-emerald-600 hover:text-emerald-700 shrink-0" onClick={onPay} title="Pagar" aria-label="Pagar">
             <CheckCircle2 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Pagar</span>
           </Button>
         )}
@@ -667,10 +667,10 @@ function BoletoCard({ b, readOnly, compact, onPay, onEdit, onDelete, onHistory, 
         )}
         {!readOnly && (
           <div className="flex items-center gap-0.5 sm:gap-1 ml-auto shrink-0">
-            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={onEdit} title="Editar" aria-label="Editar">
+            <Button data-mutation size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={onEdit} title="Editar" aria-label="Editar">
               <Pencil className="h-3.5 w-3.5" />
             </Button>
-            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={onDelete} title="Excluir" aria-label="Excluir">
+            <Button data-mutation size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={onDelete} title="Excluir" aria-label="Excluir">
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>

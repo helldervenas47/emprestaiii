@@ -43,7 +43,7 @@ export function EmployeeManager({ readOnly }: Props) {
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar funcionário..." className="pl-9" />
         </div>
         {!readOnly && (
-          <Button onClick={handleNew}><Plus className="h-4 w-4" /> Novo Funcionário</Button>
+          <Button data-mutation onClick={handleNew}><Plus className="h-4 w-4" /> Novo Funcionário</Button>
         )}
       </div>
 
@@ -72,7 +72,7 @@ export function EmployeeManager({ readOnly }: Props) {
               <div className="text-xs text-muted-foreground capitalize">Pagamento: {e.paymentType}</div>
               {!readOnly && (
                 <div className="flex gap-2 pt-1">
-                  <Button size="sm" variant="outline" className="flex-1" onClick={() => handleEdit(e)}><Pencil className="h-3 w-3" /> Editar</Button>
+                  <Button data-mutation size="sm" variant="outline" className="flex-1" onClick={() => handleEdit(e)}><Pencil className="h-3 w-3" /> Editar</Button>
                   <Button size="sm" variant="ghost" onClick={() => setToDelete(e)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                 </div>
               )}
@@ -252,7 +252,7 @@ function EmployeeFormDialog({ open, onOpenChange, initial, onSave }: {
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit">Salvar</Button>
+            <Button data-mutation type="submit">Salvar</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -274,7 +274,7 @@ function ItemListEditor({ title, items, setItems }: { title: string; items: Sala
       <div className="flex flex-col sm:flex-row gap-2">
         <Input placeholder="Descrição" value={label} onChange={(e) => setLabel(e.target.value)} />
         <MoneyInput value={amount} onChange={setAmount} placeholder="0,00" />
-        <Button type="button" variant="outline" onClick={add}>Adicionar</Button>
+        <Button data-mutation type="button" variant="outline" onClick={add}>Adicionar</Button>
       </div>
       {items.length > 0 && (
         <div className="space-y-1">

@@ -394,7 +394,7 @@ export function IncomeList({ readOnly }: Props) {
                             <span className="hidden md:inline">Data</span>
                           </Button>
                           {i.status !== "received" && (
-                            <Button
+                            <Button data-mutation
                               variant="outline"
                               onClick={() => {
                                 setPayTarget(i);
@@ -410,15 +410,15 @@ export function IncomeList({ readOnly }: Props) {
                             </Button>
                           )}
                           {/* Desktop: ações inline */}
-                          <Button variant="ghost" onClick={() => { setEditing(i); setFormOpen(true); }} className="hidden md:flex h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Editar" aria-label="Editar">
+                          <Button data-mutation variant="ghost" onClick={() => { setEditing(i); setFormOpen(true); }} className="hidden md:flex h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Editar" aria-label="Editar">
                             <Pencil className="h-4 w-4" />
                             <span className="hidden md:inline">Editar</span>
                           </Button>
-                          <Button variant="ghost" onClick={() => duplicateIncome(i.id)} className="hidden md:flex h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Duplicar" aria-label="Duplicar">
+                          <Button data-mutation variant="ghost" onClick={() => duplicateIncome(i.id)} className="hidden md:flex h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Duplicar" aria-label="Duplicar">
                             <Copy className="h-4 w-4" />
                             <span className="hidden md:inline">Duplicar</span>
                           </Button>
-                          <Button variant="ghost" onClick={() => { setDeleteTarget(i); setDeleteScope("single"); }} className="hidden md:flex h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0 text-destructive hover:text-destructive" title="Excluir" aria-label="Excluir">
+                          <Button data-mutation variant="ghost" onClick={() => { setDeleteTarget(i); setDeleteScope("single"); }} className="hidden md:flex h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0 text-destructive hover:text-destructive" title="Excluir" aria-label="Excluir">
                             <Trash2 className="h-4 w-4" />
                             <span className="hidden md:inline">Excluir</span>
                           </Button>
@@ -620,7 +620,7 @@ export function IncomeList({ readOnly }: Props) {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
-                <Button
+                <Button data-mutation
                   variant="destructive"
                   onClick={async () => {
                     await deleteIncome(deleteTarget.id, deleteScope);
@@ -654,7 +654,7 @@ export function IncomeList({ readOnly }: Props) {
                         <DatePickerField value={editPayDateValue} onChange={setEditPayDateValue} />
                         <div className="flex gap-2 justify-end">
                           <Button size="sm" variant="ghost" onClick={() => setEditingPayDate(false)}>Cancelar</Button>
-                          <Button
+                          <Button data-mutation
                             size="sm"
                             disabled={savingPayDate || !editPayDateValue}
                             onClick={async () => {
@@ -679,7 +679,7 @@ export function IncomeList({ readOnly }: Props) {
                             { locale: ptBR },
                           )}
                         </p>
-                        <Button
+                        <Button data-mutation
                           size="icon"
                           variant="ghost"
                           className="h-7 w-7"

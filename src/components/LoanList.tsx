@@ -327,7 +327,7 @@ function PaymentHistoryItem({
             </Button>
           )}
           {!readOnly && onDelete && (
-            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDelete(payment.id)} title="Excluir pagamento">
+            <Button data-mutation size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDelete(payment.id)} title="Excluir pagamento">
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           )}
@@ -1786,7 +1786,7 @@ function LoanCardView({
           {!readOnly && loan.status !== "paid" && (
             <DropdownMenu open={payMenuOpen} onOpenChange={setPayMenuOpen}>
               <DropdownMenuTrigger asChild>
-                <Button className="w-full h-10 text-sm font-semibold gap-2">
+                <Button data-mutation className="w-full h-10 text-sm font-semibold gap-2">
                   <DollarSign className="h-4 w-4" /> Pagar
                 </Button>
               </DropdownMenuTrigger>
@@ -1879,7 +1879,7 @@ function LoanCardView({
           {!readOnly && loan.status !== "paid" && (
             <div className="flex gap-2">
               {onRenegotiate && (
-                <Button
+                <Button data-mutation
                   variant="outline"
                   size="sm"
                   className="flex-1 h-9 text-xs gap-1.5 border-warning text-warning"
@@ -1939,13 +1939,13 @@ function LoanCardView({
                 className="h-8 text-sm"
               />
               <div className="flex gap-2">
-                <Button size="sm" className="flex-1 h-8 text-xs" onClick={() => {
+                <Button data-mutation size="sm" className="flex-1 h-8 text-xs" onClick={() => {
                   const val = parseFloat(lateInterestValue) || 0;
                   onUpdate({ lateInterestType, lateInterestValue: val > 0 ? val : null });
                   setShowLateInterest(false);
                 }}>Salvar</Button>
                 {loan.lateInterestValue != null && (
-                  <Button size="sm" variant="ghost" className="h-8 text-xs text-destructive" onClick={() => {
+                  <Button data-mutation size="sm" variant="ghost" className="h-8 text-xs text-destructive" onClick={() => {
                     onUpdate({ lateInterestType: null, lateInterestValue: null });
                     setLateInterestValue("");
                     setShowLateInterest(false);
@@ -1966,13 +1966,13 @@ function LoanCardView({
                 className="h-8 text-sm"
               />
               <div className="flex gap-2">
-                <Button size="sm" className="flex-1 h-8 text-xs" onClick={() => {
+                <Button data-mutation size="sm" className="flex-1 h-8 text-xs" onClick={() => {
                   const val = parseFloat(penaltyValue) || 0;
                   onUpdate({ penaltyValue: val > 0 ? val : null });
                   setShowPenalty(false);
                 }}>Salvar</Button>
                 {loan.penaltyValue != null && (
-                  <Button size="sm" variant="ghost" className="h-8 text-xs text-destructive" onClick={() => {
+                  <Button data-mutation size="sm" variant="ghost" className="h-8 text-xs text-destructive" onClick={() => {
                     onUpdate({ penaltyValue: null });
                     setPenaltyValue("");
                     setShowPenalty(false);
@@ -3461,7 +3461,7 @@ function LoanRowView({
               {!readOnly && loan.status !== "paid" && (
                 <DropdownMenu open={payMenuOpen} onOpenChange={setPayMenuOpen}>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="default" className="w-full h-10 text-sm gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Button data-mutation variant="default" className="w-full h-10 text-sm gap-2" onClick={(e) => e.stopPropagation()}>
                       <DollarSign className="h-4 w-4" /> Pagar
                     </Button>
                   </DropdownMenuTrigger>
@@ -3554,7 +3554,7 @@ function LoanRowView({
               {!readOnly && loan.status !== "paid" && (
                 <div className="flex gap-2 w-full" onClick={(e) => e.stopPropagation()}>
                   {onRenegotiate && (
-                    <Button
+                    <Button data-mutation
                       variant="outline"
                       size="sm"
                       className="flex-1 h-9 text-xs gap-1.5 border-warning text-warning"
@@ -3588,10 +3588,10 @@ function LoanRowView({
               )}
               {!readOnly && loan.status !== "paid" && (
                 <div className="flex gap-2 w-full" onClick={(e) => e.stopPropagation()}>
-                  <Button variant="outline" size="sm" className="flex-1 h-9 text-xs gap-1.5 border-warning text-warning" onClick={(e) => { e.stopPropagation(); setShowLateInterest((v) => !v); }}>
+                  <Button data-mutation variant="outline" size="sm" className="flex-1 h-9 text-xs gap-1.5 border-warning text-warning" onClick={(e) => { e.stopPropagation(); setShowLateInterest((v) => !v); }}>
                     <Percent className="h-3.5 w-3.5" /> Adicionar Juros
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1 h-9 text-xs gap-1.5 border-destructive text-destructive" onClick={(e) => { e.stopPropagation(); setShowPenalty((v) => !v); }}>
+                  <Button data-mutation variant="outline" size="sm" className="flex-1 h-9 text-xs gap-1.5 border-destructive text-destructive" onClick={(e) => { e.stopPropagation(); setShowPenalty((v) => !v); }}>
                     <DollarSign className="h-3.5 w-3.5" /> Adicionar Multa
                   </Button>
                 </div>
@@ -3611,13 +3611,13 @@ function LoanRowView({
                     className="h-8 text-sm"
                   />
                   <div className="flex gap-2">
-                    <Button size="sm" className="flex-1 h-8 text-xs" onClick={() => {
+                    <Button data-mutation size="sm" className="flex-1 h-8 text-xs" onClick={() => {
                       const val = parseFloat(lateInterestValue) || 0;
                       onUpdate({ lateInterestType, lateInterestValue: val > 0 ? val : null });
                       setShowLateInterest(false);
                     }}>Salvar</Button>
                     {loan.lateInterestValue != null && (
-                      <Button size="sm" variant="ghost" className="h-8 text-xs text-destructive" onClick={() => {
+                      <Button data-mutation size="sm" variant="ghost" className="h-8 text-xs text-destructive" onClick={() => {
                         onUpdate({ lateInterestType: null, lateInterestValue: null });
                         setLateInterestValue("");
                         setShowLateInterest(false);
@@ -3638,13 +3638,13 @@ function LoanRowView({
                     className="h-8 text-sm"
                   />
                   <div className="flex gap-2">
-                    <Button size="sm" className="flex-1 h-8 text-xs" onClick={() => {
+                    <Button data-mutation size="sm" className="flex-1 h-8 text-xs" onClick={() => {
                       const val = parseFloat(penaltyValue) || 0;
                       onUpdate({ penaltyValue: val > 0 ? val : null });
                       setShowPenalty(false);
                     }}>Salvar</Button>
                     {loan.penaltyValue != null && (
-                      <Button size="sm" variant="ghost" className="h-8 text-xs text-destructive" onClick={() => {
+                      <Button data-mutation size="sm" variant="ghost" className="h-8 text-xs text-destructive" onClick={() => {
                         onUpdate({ penaltyValue: null });
                         setPenaltyValue("");
                         setShowPenalty(false);
@@ -3686,10 +3686,10 @@ function LoanRowView({
                 </Button>
                 {!readOnly && (
                   <>
-                    <Button variant="ghost" className="flex-1 h-9 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); startEdit(); }}>
+                    <Button data-mutation variant="ghost" className="flex-1 h-9 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); startEdit(); }}>
                       <Pencil className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Editar</span>
                     </Button>
-                    <Button variant="ghost" className="flex-1 h-9 text-xs gap-1.5 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}>
+                    <Button data-mutation variant="ghost" className="flex-1 h-9 text-xs gap-1.5 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}>
                       <Trash2 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Excluir</span>
                     </Button>
                   </>

@@ -238,7 +238,7 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
           )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit">Salvar</Button>
+            <Button data-mutation type="submit">Salvar</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -570,7 +570,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                             </Button>
                           )}
                           {!readOnly && !expense.paid && (
-                            <Button variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Pagar" aria-label="Pagar" onClick={() => {
+                            <Button data-mutation variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Pagar" aria-label="Pagar" onClick={() => {
                               setPayDate(todayInAppTz());
                               setPaidAmountInput("");
                               setPayingExpenseId(expense.id);
@@ -580,7 +580,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                             </Button>
                           )}
                           {!readOnly && onUpdate && (
-                            <Button variant="ghost" onClick={() => setEditingExpenseId(expense.id)} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0 text-muted-foreground hover:text-foreground" title="Editar" aria-label="Editar">
+                            <Button data-mutation variant="ghost" onClick={() => setEditingExpenseId(expense.id)} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0 text-muted-foreground hover:text-foreground" title="Editar" aria-label="Editar">
                               <Pencil className="h-4 w-4" />
                               <span className="hidden md:inline">Editar</span>
                             </Button>
@@ -589,7 +589,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                             <ExpenseBoletoLinkButton expenseId={expense.id} className="h-9 w-9 flex-1 md:flex-none min-h-0" />
                           )}
                           {!readOnly && (
-                          <Button variant="ghost" className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0 text-destructive hover:bg-destructive hover:text-destructive-foreground" title="Excluir" aria-label="Excluir" onClick={() => setDeleteExpenseId(expense.id)}>
+                          <Button data-mutation variant="ghost" className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0 text-destructive hover:bg-destructive hover:text-destructive-foreground" title="Excluir" aria-label="Excluir" onClick={() => setDeleteExpenseId(expense.id)}>
                             <Trash2 className="h-4 w-4" />
                             <span className="hidden md:inline">Excluir</span>
                           </Button>
@@ -812,7 +812,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                           <DatePickerField value={editPaidDateValue} onChange={setEditPaidDateValue} />
                           <div className="flex gap-2 justify-end">
                             <Button size="sm" variant="ghost" onClick={() => setEditingPaidDate(false)}>Cancelar</Button>
-                            <Button
+                            <Button data-mutation
                               size="sm"
                               disabled={!editPaidDateValue || !onUpdate}
                               onClick={() => {
@@ -832,7 +832,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                             {format(new Date(exp.paidDate + "T00:00:00"), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                           </p>
                           {onUpdate && (
-                            <Button
+                            <Button data-mutation
                               size="icon"
                               variant="ghost"
                               className="h-7 w-7"

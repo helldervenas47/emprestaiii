@@ -233,7 +233,7 @@ const MiniCreditCard = React.forwardRef<HTMLDivElement, MiniCardProps>(({
 
           {!readOnly && (
             <div className="space-y-1 mt-1">
-              <Button
+              <Button data-mutation
                 variant="default"
                 size="sm"
                 className="w-full h-7 text-[11px]"
@@ -246,7 +246,7 @@ const MiniCreditCard = React.forwardRef<HTMLDivElement, MiniCardProps>(({
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Pagar fatura do mês
               </Button>
-              <Button
+              <Button data-mutation
                 variant="outline"
                 size="sm"
                 className="w-full h-7 text-[11px]"
@@ -462,7 +462,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
             </Button>
           )}
           {!readOnly && (
-            <Button onClick={handleNew} size="sm">
+            <Button data-mutation onClick={handleNew} size="sm">
               <Plus className="h-4 w-4 mr-1" /> Novo Cartão
             </Button>
           )}
@@ -476,7 +476,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
           <CreditCardIcon className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
           <p className="text-muted-foreground mb-4">Nenhum cartão cadastrado</p>
           {!readOnly && (
-            <Button onClick={handleNew} variant="outline">
+            <Button data-mutation onClick={handleNew} variant="outline">
               <Plus className="h-4 w-4 mr-1" /> Cadastrar primeiro cartão
             </Button>
           )}
@@ -653,7 +653,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                             <RotateCcw className="h-3 w-3 mr-1" />
                             Reativar
                           </Button>
-                          <Button
+                          <Button data-mutation
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-destructive hover:text-destructive"

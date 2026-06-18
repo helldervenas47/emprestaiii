@@ -231,7 +231,7 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
             </div>
           </div>
           <div className="flex gap-2">
-            <Button onClick={handleSave} disabled={!value}>
+            <Button data-mutation onClick={handleSave} disabled={!value}>
               <Plus className="h-4 w-4" /> {editId ? "Salvar" : "Criar Meta"}
             </Button>
             {editId && <Button variant="outline" onClick={reset}>Cancelar</Button>}

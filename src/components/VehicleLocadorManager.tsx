@@ -126,7 +126,7 @@ export function VehicleLocadorManager({
                         <X className="w-[25px] h-[25px] mr-1" /> Cancelar
                       </Button>
                     )}
-                    <Button size="sm" onClick={handleSaveLocador}>
+                    <Button data-mutation size="sm" onClick={handleSaveLocador}>
                       <Check className="w-[25px] h-[25px] mr-1" /> Salvar
                     </Button>
                   </div>
@@ -143,7 +143,7 @@ export function VehicleLocadorManager({
                   <p><span className="text-muted-foreground">Endereço:</span> {[locador.endereco, locador.cidade].filter(Boolean).join(", ") || "—"}</p>
                 </div>
                 {!readOnly && (
-                  <Button size="sm" variant="outline" onClick={() => { setLocadorForm(locador); setEditingLocador(true); }}>
+                  <Button data-mutation size="sm" variant="outline" onClick={() => { setLocadorForm(locador); setEditingLocador(true); }}>
                     <Pencil className="w-[25px] h-[25px] mr-1" /> Editar
                   </Button>
                 )}
@@ -201,7 +201,7 @@ export function VehicleLocadorManager({
                         <Button size="sm" variant="ghost" onClick={() => setEditingVehicleId(null)}>
                           <X className="w-[25px] h-[25px] mr-1" /> Cancelar
                         </Button>
-                        <Button size="sm" onClick={() => saveEditVehicle(v.id)}>
+                        <Button data-mutation size="sm" onClick={() => saveEditVehicle(v.id)}>
                           <Check className="w-[25px] h-[25px] mr-1" /> Salvar
                         </Button>
                       </div>
@@ -262,7 +262,7 @@ export function VehicleLocadorManager({
                     <Button size="sm" variant="ghost" onClick={() => setAddingVehicle(false)}>
                       <X className="w-[25px] h-[25px] mr-1" /> Cancelar
                     </Button>
-                    <Button size="sm" onClick={handleAddVehicle}>
+                    <Button data-mutation size="sm" onClick={handleAddVehicle}>
                       <Check className="w-[25px] h-[25px] mr-1" /> Cadastrar
                     </Button>
                   </div>
@@ -270,7 +270,7 @@ export function VehicleLocadorManager({
               </Card>
             ) : (
               !readOnly && (
-                <Button variant="outline" className="w-full" onClick={() => setAddingVehicle(true)}>
+                <Button data-mutation variant="outline" className="w-full" onClick={() => setAddingVehicle(true)}>
                   <Plus className="h-4 w-4 mr-2" /> Novo Veículo
                 </Button>
               )
