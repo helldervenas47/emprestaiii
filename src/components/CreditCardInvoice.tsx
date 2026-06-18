@@ -541,6 +541,25 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
     try {
       const parsedAmount = Number(payAmount.replace(",", "."));
       const amount = Math.max(0, Number(parsedAmount.toFixed(2)));
+      // DEBUG temporário — investigando bug "pagou 2135,29 e ficou parcial 28,27"
+      console.log("[PAY DEBUG] input state", {
+        payAmountRaw: payAmount,
+        parsedAmount,
+        amount,
+        payMode,
+        payDate,
+        payWallet,
+        cardId: card.id,
+        cycleKey,
+        total,
+        paidTotal,
+        openingAmount,
+        remainingTotal,
+        paymentRemaining,
+        invoiceLedgerPaid,
+        itemsCount: items.length,
+        unpaidCount: items.filter((e) => !e.paid).length,
+      });
       if (!Number.isFinite(parsedAmount) || amount <= 0) {
         toast.error("Informe um valor válido");
         setPaying(false);
@@ -558,6 +577,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
         : Number((paidTotal + amount).toFixed(2));
       // Em pagamento total o "novo total" da fatura passa a ser o valor pago.
       const newInvoiceTotal = isFull ? Number(amount.toFixed(2)) : total;
+      console.log("[PAY DEBUG] computed", { isFull, newPaidTotal, newInvoiceTotal });
 
       let ledgerPaid = invoiceLedgerPaid;
       if (ownerId) {
