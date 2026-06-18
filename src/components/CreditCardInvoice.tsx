@@ -170,11 +170,13 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
       // Limpa marcadores [PAID:xxx], [PAGA] e [LEDGER]; restaura o saldo inicial.
       const cleaned = (op?.notes ?? "")
         .replace(/\[PAID:[0-9]+(?:\.[0-9]+)?\]/gi, "")
+        .replace(/\[TOTAL:[0-9]+(?:\.[0-9]+)?\]/gi, "")
         .replace(/\[PAID_DATE:\d{4}-\d{2}-\d{2}\]/gi, "")
         .replace(/\[PAGA\]/gi, "")
         .replace(/\[LEDGER\]/gi, "")
         .replace(/\s+/g, " ")
         .trim();
+
       if (op || restoredOpening > 0) {
         await upsertOpening(card.id, entry.cycleKey, restoredOpening, cleaned || undefined);
       }
