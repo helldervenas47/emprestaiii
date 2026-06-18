@@ -18,6 +18,7 @@ import { Loan, Payment, Expense, Client, InstallmentSchedule, LoanRenegotiation 
 import { todayInAppTz } from "@/lib/timezone";
 import { useActiveCapitalSnapshots } from "@/hooks/useActiveCapitalSnapshots";
 import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
+import { assertWritable } from "@/lib/readOnlyState";
 import {
   Target, Percent, TrendingUp, Banknote, FileText,
   HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus,
@@ -678,6 +679,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         } else {
           // Sem registro no backend: faz upload do que estiver no cache local (primeira sincronização)
           const local = loadGoalPrefs(user.id);
+          assertWritable();
           await supabase.from("user_goal_prefs").upsert(
             { user_id: user.id, selected: local.selected, order_list: local.order },
             { onConflict: "user_id" },
@@ -697,6 +699,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
     }
     if (user?.id) {
       // Persiste no backend (fire-and-forget; cache local já foi atualizado)
+      assertWritable();
       supabase
         .from("user_goal_prefs")
         .upsert(
