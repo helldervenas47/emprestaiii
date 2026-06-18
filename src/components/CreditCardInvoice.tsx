@@ -546,8 +546,18 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
         setPaying(false);
         return;
       }
-      const newPaidTotal = Number(Math.min(total, paidTotal + amount).toFixed(2));
-      const isFull = newPaidTotal + 0.005 >= total;
+
+      // Regra: o app NÃO infere mais total vs parcial comparando valores com a prévia.
+      // O usuário escolhe explicitamente via `payMode`.
+      const isFull = payMode === "total";
+
+      // Quando "Total", o valor pago redefine o total da fatura (a prévia é substituída
+      // pelo valor real). Quando "Parcial", apenas acumula no já pago.
+      const newPaidTotal = isFull
+        ? Number(amount.toFixed(2))
+        : Number((paidTotal + amount).toFixed(2));
+      // Em pagamento total o "novo total" da fatura passa a ser o valor pago.
+      const newInvoiceTotal = isFull ? Number(amount.toFixed(2)) : total;
 
       let ledgerPaid = invoiceLedgerPaid;
       if (ownerId) {
@@ -563,12 +573,8 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
           })
           .reduce((s, r) => s + (Number(r.amount) || 0), 0);
       }
-      let ledgerAmount = Number(Math.max(0, newPaidTotal - ledgerPaid).toFixed(2));
-      if (ledgerAmount + 0.005 < amount) ledgerAmount = amount;
-      if (isFull && openingAmount > 0 && !openingPaidFlag) {
-        const missingOpening = Number(Math.max(0, openingAmount - Math.max(0, ledgerPaid - paidItemsTotal)).toFixed(2));
-        if (missingOpening > ledgerAmount) ledgerAmount = missingOpening;
-      }
+      // Debita exatamente o valor informado — saldo em conta só desce pelo que foi pago.
+      const ledgerAmount = Number(amount.toFixed(2));
 
       if (ledgerAmount > 0.005) {
         try {
@@ -594,18 +600,30 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
         }
       }
 
+      // Limpa marcadores antigos para reescrever de forma idempotente.
+      const cleanedNotes = (opening?.notes ?? "")
+        .replace(/\[PAGA\]/gi, "")
+        .replace(/\[LEDGER\]/gi, "")
+        .replace(/\[PAID_DATE:\d{4}-\d{2}-\d{2}\]/gi, "")
+        .replace(/\[PAID:[0-9]+(?:\.[0-9]+)?\]/gi, "")
+        .replace(/\[TOTAL:[0-9]+(?:\.[0-9]+)?\]/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
       if (isFull) {
+        // Marca todos os itens do ciclo como pagos.
         const unpaid = items.filter((e) => !e.paid);
         for (const e of unpaid) await updateExpense(e.id, { paid: true, paidDate: payDate });
-        const baseNotes = writePaidOverride(
-          (opening?.notes ?? "").replace(/\[PAGA\]/gi, "").replace(/\[LEDGER\]/gi, "").replace(/\[PAID_DATE:\d{4}-\d{2}-\d{2}\]/gi, "").trim(),
-          Number(total.toFixed(2)),
-        );
-        await upsertOpening(card.id, cycleKey, openingAmount, `${baseNotes ? baseNotes + " " : ""}[PAGA] [LEDGER] [PAID_DATE:${payDate}]`.trim());
+        // Override de total + paid = amount real informado pelo usuário.
+        let notes = writeTotalOverride(cleanedNotes, newInvoiceTotal);
+        notes = writePaidOverride(notes, newInvoiceTotal);
+        notes = `${notes ? notes + " " : ""}[PAGA] [LEDGER] [PAID_DATE:${payDate}]`.trim();
+        await upsertOpening(card.id, cycleKey, openingAmount, notes);
       } else {
-        const cleaned = (opening?.notes ?? "").replace(/\[PAGA\]/gi, "").replace(/\[LEDGER\]/gi, "").replace(/\[PAID_DATE:\d{4}-\d{2}-\d{2}\]/gi, "").trim();
-        const baseNotes = writePaidOverride(cleaned, newPaidTotal);
-        await upsertOpening(card.id, cycleKey, openingAmount, `${baseNotes ? baseNotes + " " : ""}[LEDGER] [PAID_DATE:${payDate}]`.trim());
+        // Parcial: mantém o total original, apenas acumula valor pago.
+        let notes = writePaidOverride(cleanedNotes, newPaidTotal);
+        notes = `${notes ? notes + " " : ""}[LEDGER] [PAID_DATE:${payDate}]`.trim();
+        await upsertOpening(card.id, cycleKey, openingAmount, notes);
       }
 
       toast.success(isFull ? `Fatura paga · ${mask(fmt(amount))}` : `Pagamento parcial registrado · ${mask(fmt(amount))}`);
@@ -616,6 +634,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
       setPaying(false);
     }
   }
+
 
   const content = (
     <div
