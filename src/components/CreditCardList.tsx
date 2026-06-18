@@ -1,16 +1,10 @@
 import React, { useState, useMemo } from "react";
-import { todayInAppTz } from "@/lib/timezone";
 import { Plus, CreditCard as CreditCardIcon, Wifi, Pencil, Trash2, Receipt, CheckCircle, EyeOff, RotateCcw } from "lucide-react";
 import { RowActions } from "@/components/ui/row-actions";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useCreditCards, CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOpenings";
@@ -272,21 +266,27 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
   const { cards: allCards, loading, addCard, updateCard, deleteCard } = useCreditCards();
   const cards = useMemo(() => allCards.filter((c) => c.active !== false), [allCards]);
   const inactiveCards = useMemo(() => allCards.filter((c) => c.active === false), [allCards]);
-  const { expenses, payExpense } = useExpenses();
-  const { openings, getOpening, upsertOpening, deleteOpening } = useCreditCardOpenings();
+  const { expenses } = useExpenses();
+  const { openings, getOpening, upsertOpening } = useCreditCardOpenings();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CreditCard | null>(null);
   const [deleting, setDeleting] = useState<CreditCard | null>(null);
   const [invoiceCard, setInvoiceCard] = useState<CreditCard | null>(null);
   const [invoiceOriginRect, setInvoiceOriginRect] = useState<DOMRect | null>(null);
+  const [invoiceAutoOpenPayment, setInvoiceAutoOpenPayment] = useState(false);
   const [openingCard, setOpeningCard] = useState<CreditCard | null>(null);
-  const [payingCard, setPayingCard] = useState<CreditCard | null>(null);
-  const [paying, setPaying] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
   const [showAllMobile, setShowAllMobile] = useState(false);
 
   const openInvoice = (card: CreditCard, rect: DOMRect) => {
     setInvoiceOriginRect(rect);
+    setInvoiceAutoOpenPayment(false);
+    setInvoiceCard(card);
+  };
+
+  const openInvoicePayment = (card: CreditCard) => {
+    setInvoiceOriginRect(null);
+    setInvoiceAutoOpenPayment(true);
     setInvoiceCard(card);
   };
 
