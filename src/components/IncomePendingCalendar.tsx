@@ -11,7 +11,7 @@ import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, Trendi
 import type { Income } from "@/hooks/useIncomes";
 import type { Expense, Sale } from "@/types/loan";
 import { useProducts } from "@/hooks/useProducts";
-import { usePiggyBanks } from "@/hooks/usePiggyBanks";
+import { isPiggyExpense, usePiggyBanks } from "@/hooks/usePiggyBanks";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
@@ -19,6 +19,7 @@ import { useBalanceAdjustments } from "@/hooks/useBalanceAdjustments";
 import { useUnifiedAccountBalance } from "@/hooks/useUnifiedAccountBalance";
 import { todayDateInAppTz } from "@/lib/timezone";
 import { calculateIncomeProjectedSummary } from "@/lib/incomeProjectedSummary";
+import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
 import { MoneyInput } from "@/components/ui/money-input";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { toast } from "sonner";
