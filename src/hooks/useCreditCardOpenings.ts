@@ -65,7 +65,7 @@ export function cycleKeyFromDate(closingTo: Date): string {
 // escrita dispara `openings:changed`; todas as instâncias do hook escutam
 // esse evento e recarregam.
 const OPENINGS_CHANGED_EVENT = "openings:changed";
-type LedgerPaymentMeta = { amount: number; paidDate: string };
+type LedgerPaymentMeta = { amount: number; paidDate: string; isFull: boolean };
 
 function notifyOpeningsChanged() {
   window.dispatchEvent(new Event(OPENINGS_CHANGED_EVENT));
@@ -103,7 +103,8 @@ export function useCreditCardOpenings() {
         const previous = ledgerByCycle[key];
         const amount = Number(((previous?.amount ?? 0) + (Number(r.amount) || 0)).toFixed(2));
         const paidDate = String(r.occurred_on || previous?.paidDate || new Date().toISOString().slice(0, 10));
-        ledgerByCycle[key] = { amount, paidDate };
+        const isFull = previous?.isFull || meta.pay_mode === "total" || meta.full_payment === true;
+        ledgerByCycle[key] = { amount, paidDate, isFull };
       }
     }
     setLedgerPayments(ledgerByCycle);
@@ -118,7 +119,7 @@ export function useCreditCardOpenings() {
       if (currentPaid >= paid - 0.005) return opening;
       return {
         ...opening,
-        notes: buildLedgerNotes(opening.notes, paid, ledgerPayment?.paidDate ?? new Date().toISOString().slice(0, 10), true),
+        notes: buildLedgerNotes(opening.notes, paid, ledgerPayment?.paidDate ?? new Date().toISOString().slice(0, 10), !!ledgerPayment?.isFull),
       };
     });
     const existingKeys = new Set(normalized.map((o) => ledgerKey(o.cardId, o.cycleKey)));
@@ -133,7 +134,7 @@ export function useCreditCardOpenings() {
           cardId,
           cycleKey,
           openingAmount: 0,
-          notes: buildLedgerNotes(null, payment.amount, payment.paidDate, true),
+          notes: buildLedgerNotes(null, payment.amount, payment.paidDate, payment.isFull),
         };
       });
     setOpenings([...normalized, ...syntheticFromLedger]);
@@ -174,7 +175,7 @@ export function useCreditCardOpenings() {
         cardId,
         cycleKey,
         openingAmount: opening?.openingAmount ?? 0,
-        notes: buildLedgerNotes(opening?.notes, ledgerPaid, ledgerPayment?.paidDate ?? new Date().toISOString().slice(0, 10), true),
+        notes: buildLedgerNotes(opening?.notes, ledgerPaid, ledgerPayment?.paidDate ?? new Date().toISOString().slice(0, 10), !!ledgerPayment?.isFull),
       };
     },
     [openings, ledgerPayments],
