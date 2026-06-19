@@ -189,7 +189,7 @@ export function useCreditCardOpenings() {
       .from("credit_card_invoice_openings")
       .upsert(
         {
-          user_id: user?.id || ownerId,
+          user_id: ownerId,
           card_id: cardId,
           credit_card_id: cardId,
           cycle_key: cycleKey,
