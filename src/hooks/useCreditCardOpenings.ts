@@ -108,7 +108,9 @@ export function useCreditCardOpenings() {
     const syntheticFromLedger = Object.entries(ledgerByCycle)
       .filter(([key, paid]) => paid > 0.005 && !existingKeys.has(key))
       .map(([key, paid]) => {
-        const [cardId, cycleKey] = key.split("::");
+        const sep = key.lastIndexOf("::");
+        const cardId = key.slice(0, sep);
+        const cycleKey = key.slice(sep + 2);
         return {
           id: `ledger-${key}`,
           cardId,
