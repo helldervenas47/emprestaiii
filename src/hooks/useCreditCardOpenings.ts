@@ -65,6 +65,7 @@ export function cycleKeyFromDate(closingTo: Date): string {
 // escrita dispara `openings:changed`; todas as instâncias do hook escutam
 // esse evento e recarregam.
 const OPENINGS_CHANGED_EVENT = "openings:changed";
+type LedgerPaymentMeta = { amount: number; paidDate: string };
 
 function notifyOpeningsChanged() {
   window.dispatchEvent(new Event(OPENINGS_CHANGED_EVENT));
@@ -75,7 +76,7 @@ export function useCreditCardOpenings() {
   const ownerId = useDataOwner();
   const [openings, setOpenings] = useState<InvoiceOpening[]>([]);
   const [loading, setLoading] = useState(true);
-  const [ledgerPayments, setLedgerPayments] = useState<Record<string, number>>({});
+  const [ledgerPayments, setLedgerPayments] = useState<Record<string, LedgerPaymentMeta>>({});
 
   const load = useCallback(async () => {
     if (!ownerId) return;
@@ -83,7 +84,7 @@ export function useCreditCardOpenings() {
       supabase.from("credit_card_invoice_openings").select("*"),
       supabase
         .from("account_ledger")
-        .select("amount, metadata")
+        .select("amount, occurred_on, metadata")
         .eq("user_id", ownerId)
         .eq("direction", "out")
         .eq("metadata->>kind", "credit_card_invoice_payment"),
@@ -93,7 +94,7 @@ export function useCreditCardOpenings() {
       setLoading(false);
       return;
     }
-    const ledgerByCycle: Record<string, number> = {};
+    const ledgerByCycle: Record<string, LedgerPaymentMeta> = {};
     if (!ledgerError) {
       for (const r of ((ledgerRows as any[]) ?? [])) {
         const meta = r.metadata ?? {};
