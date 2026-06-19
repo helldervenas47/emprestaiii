@@ -15,11 +15,32 @@ export interface InvoiceOpening {
 
 const fromRow = (r: any): InvoiceOpening => ({
   id: r.id,
-  cardId: r.card_id,
-  cycleKey: r.cycle_key,
-  openingAmount: Number(r.opening_amount ?? 0),
+  cardId: r.card_id ?? r.credit_card_id,
+  cycleKey: r.cycle_key ?? r.month_label,
+  openingAmount: Number(r.opening_amount ?? r.opening_balance ?? 0),
   notes: r.notes ?? null,
 });
+
+const ledgerKey = (cardId: string, cycleKey: string) => `${cardId}::${cycleKey}`;
+
+function buildLedgerNotes(base: string | null | undefined, paid: number, paidDate: string, isFull: boolean) {
+  const cleaned = (base ?? "")
+    .replace(/\[PAGA\]/gi, "")
+    .replace(/\[LEDGER\]/gi, "")
+    .replace(/\[PAID_DATE:\d{4}-\d{2}-\d{2}\]/gi, "")
+    .replace(/\[PAID:[0-9]+(?:\.[0-9]+)?\]/gi, "")
+    .replace(/\[TOTAL:[0-9]+(?:\.[0-9]+)?\]/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const markers = [
+    isFull ? `[TOTAL:${paid.toFixed(2)}]` : null,
+    `[PAID:${paid.toFixed(2)}]`,
+    isFull ? "[PAGA]" : null,
+    "[LEDGER]",
+    `[PAID_DATE:${paidDate}]`,
+  ].filter(Boolean).join(" ");
+  return `${cleaned ? `${cleaned} ` : ""}${markers}`.trim();
+}
 
 /**
  * Builds a stable cycle key from a "to" closing date (end of cycle).
