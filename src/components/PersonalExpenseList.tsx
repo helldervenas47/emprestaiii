@@ -148,22 +148,14 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const isRecurringMonthly = (e: Expense) =>
     e.type === "recorrente" && !!e.installments && e.installments > 1;
 
-  /** True se a despesa parcelada/fixa "ocorre" no mês YYYY-MM informado.
-   *  IMPORTANTE: a cada pagamento, `dueDate` é avançado em 1 mês e `paidInstallments`
-   *  é incrementado. Por isso o intervalo de exibição precisa considerar apenas as
-   *  parcelas restantes a partir do `dueDate` atual — caso contrário a recorrência
-   *  se estenderia além da última parcela contratada (ex.: Uniasselvi 10x).
+  /** True se a despesa "ocorre" no mês YYYY-MM informado.
+   *  Despesas pendentes (inclusive parceladas/fixas) aparecem EXCLUSIVAMENTE no
+   *  mês do seu `dueDate` atual — não são projetadas para meses futuros. A cada
+   *  pagamento, `dueDate` avança 1 mês, então a próxima parcela passa a aparecer
+   *  no mês correspondente naturalmente.
    */
   const occursInMonth = useCallback((e: Expense, yyyymm: string) => {
-    if (!isRecurringMonthly(e)) return e.dueDate.startsWith(yyyymm);
-    const remaining = (e.installments ?? 0) - (e.paidInstallments ?? 0);
-    if (remaining <= 0) return false;
-    const [sY, sM] = yyyymm.split("-").map(Number);
-    const [dY, dM] = e.dueDate.split("-").map(Number);
-    const start = dY * 12 + dM;
-    const sel = sY * 12 + sM;
-    const end = start + remaining - 1;
-    return sel >= start && sel <= end;
+    return e.dueDate.startsWith(yyyymm);
   }, []);
 
   // Monthly evolution per category — last N months
