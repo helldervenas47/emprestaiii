@@ -103,7 +103,7 @@ export function useCreditCardOpenings() {
         const previous = ledgerByCycle[key];
         const amount = Number(((previous?.amount ?? 0) + (Number(r.amount) || 0)).toFixed(2));
         const paidDate = String(r.occurred_on || previous?.paidDate || new Date().toISOString().slice(0, 10));
-        const isFull = previous?.isFull || meta.pay_mode === "total" || meta.full_payment === true;
+        const isFull = previous?.isFull || meta.full_payment === true || meta.pay_mode !== "partial";
         ledgerByCycle[key] = { amount, paidDate, isFull };
       }
     }
