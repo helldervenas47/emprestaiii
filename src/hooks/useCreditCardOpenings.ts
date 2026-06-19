@@ -103,7 +103,19 @@ export function useCreditCardOpenings() {
       }
     }
     setLedgerPayments(ledgerByCycle);
-    const normalized = (data ?? []).map(fromRow);
+    const normalized = (data ?? []).map(fromRow).map((opening) => {
+      const paid = ledgerByCycle[ledgerKey(opening.cardId, opening.cycleKey)] ?? 0;
+      if (paid <= 0.005) return opening;
+      const currentPaid = (() => {
+        const match = /\[PAID:([0-9]+(?:\.[0-9]+)?)\]/i.exec(opening.notes ?? "");
+        return match ? Number(match[1]) : 0;
+      })();
+      if (currentPaid >= paid - 0.005) return opening;
+      return {
+        ...opening,
+        notes: buildLedgerNotes(opening.notes, paid, new Date().toISOString().slice(0, 10), true),
+      };
+    });
     const existingKeys = new Set(normalized.map((o) => ledgerKey(o.cardId, o.cycleKey)));
     const syntheticFromLedger = Object.entries(ledgerByCycle)
       .filter(([key, paid]) => paid > 0.005 && !existingKeys.has(key))
