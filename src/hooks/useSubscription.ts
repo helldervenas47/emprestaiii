@@ -2,11 +2,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 
-const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN;
-
-const createSubscriptionChannelName = (userId: string) =>
-  `sub-${userId}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
-
 export interface Subscription {
   id: string;
   product_id: string;
@@ -15,9 +10,9 @@ export interface Subscription {
   current_period_end: string | null;
   cancel_at_period_end: boolean;
   environment: string;
+  asaas_subscription_id?: string | null;
 }
 
-// Map product IDs to plan tiers (higher = more features)
 const PLAN_TIERS: Record<string, number> = {
   free_plan: 0,
   basico_plan: 1,
@@ -31,25 +26,20 @@ const PLAN_LIMITS: Record<string, { maxLoans: number; maxUsers: number }> = {
   empresarial_plan: { maxLoans: 9999, maxUsers: 5 },
 };
 
+const createChannelName = (userId: string) =>
+  `sub-${userId}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
+
 export function useSubscription() {
   const { user, dataOwnerId, loading: authLoading } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const environment = clientToken?.startsWith("test_") ? "sandbox" : "live";
+  const environment = import.meta.env.VITE_ASAAS_ENVIRONMENT === "production" ? "live" : "sandbox";
   const effectiveUserId = dataOwnerId ?? user?.id ?? null;
 
   useEffect(() => {
-    if (authLoading) {
-      setLoading(true);
-      return;
-    }
-
-    if (!effectiveUserId) {
-      setSubscription(null);
-      setLoading(false);
-      return;
-    }
+    if (authLoading) { setLoading(true); return; }
+    if (!effectiveUserId) { setSubscription(null); setLoading(false); return; }
 
     let cancelled = false;
 
@@ -60,36 +50,20 @@ export function useSubscription() {
         .eq("user_id", effectiveUserId)
         .eq("environment", environment)
         .maybeSingle();
-
-      if (!cancelled) {
-        setSubscription(data);
-        setLoading(false);
-      }
+      if (!cancelled) { setSubscription(data); setLoading(false); }
     };
 
     fetchSubscription();
 
-    const channelName = createSubscriptionChannelName(effectiveUserId);
     const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "subscriptions",
-          filter: `user_id=eq.${effectiveUserId}`,
-        },
-        () => {
-          if (!cancelled) fetchSubscription();
-        }
-      )
+      .channel(createChannelName(effectiveUserId))
+      .on("postgres_changes", {
+        event: "*", schema: "public", table: "subscriptions",
+        filter: `user_id=eq.${effectiveUserId}`,
+      }, () => { if (!cancelled) fetchSubscription(); })
       .subscribe();
 
-    return () => {
-      cancelled = true;
-      supabase.removeChannel(channel);
-    };
+    return () => { cancelled = true; supabase.removeChannel(channel); };
   }, [user?.id, effectiveUserId, environment, authLoading]);
 
   const isActive = Boolean(
@@ -100,16 +74,7 @@ export function useSubscription() {
 
   const planTier = subscription ? (PLAN_TIERS[subscription.product_id] || 0) : 0;
   const planLimits = subscription ? PLAN_LIMITS[subscription.product_id] : null;
-
   const hasFeature = (requiredTier: number) => isActive && planTier >= requiredTier;
 
-  return {
-    subscription,
-    loading,
-    isActive,
-    planTier,
-    planLimits,
-    hasFeature,
-    environment,
-  };
+  return { subscription, loading, isActive, planTier, planLimits, hasFeature, environment };
 }
