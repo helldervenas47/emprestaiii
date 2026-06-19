@@ -345,6 +345,7 @@ export function IncomePendingCalendar({
           const e = ensure(ds);
           e.expenses.push({ ...ex, amount: installmentAmount, dueDate: ds });
           e.totalExpense += installmentAmount;
+          e.projectedExpense += installmentAmount;
         }
         continue;
       }
@@ -353,6 +354,7 @@ export function IncomePendingCalendar({
       const e = ensure(ex.dueDate);
       e.expenses.push(ex);
       e.totalExpense += Number(ex.amount) || 0;
+      e.projectedExpense += Number(ex.amount) || 0;
     }
 
     // Faturas de cartão de crédito — uma entrada por cartão por mês,
@@ -411,6 +413,7 @@ export function IncomePendingCalendar({
         // Espelha o card de resumo: só faturas ainda pendentes entram no saldo previsto.
         if (t.total > 0 && !t.paid && !t.hasPaidOverride) {
           e.totalExpense += t.total;
+          e.projectedExpense += t.total;
         }
       }
     }
@@ -472,7 +475,7 @@ export function IncomePendingCalendar({
     setMonth(d.getMonth());
   };
 
-  const emptyDay: DayInfo = { incomes: [], expenses: [], cardInvoices: [], piggyMovements: [], totalIncome: 0, totalExpense: 0 };
+  const emptyDay: DayInfo = { incomes: [], expenses: [], cardInvoices: [], piggyMovements: [], totalIncome: 0, totalExpense: 0, projectedIncome: 0, projectedExpense: 0 };
   const selectedInfo: DayInfo = selectedDate ? (dayMap[selectedDate] ?? emptyDay) : emptyDay;
   // Saldo previsto acumulado dia a dia.
   // Cobre tanto o mês expandido quanto a semana atual.
@@ -505,7 +508,7 @@ export function IncomePendingCalendar({
         running = adj.amount;
       }
       const info = dayMap[ds];
-      running += (info?.totalIncome ?? 0) - (info?.totalExpense ?? 0);
+      running += (info?.projectedIncome ?? 0) - (info?.projectedExpense ?? 0);
       map[ds] = running;
       cursor.setDate(cursor.getDate() + 1);
     }
