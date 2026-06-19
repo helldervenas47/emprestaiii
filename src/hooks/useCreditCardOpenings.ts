@@ -75,15 +75,34 @@ export function useCreditCardOpenings() {
   const ownerId = useDataOwner();
   const [openings, setOpenings] = useState<InvoiceOpening[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ledgerPayments, setLedgerPayments] = useState<Record<string, number>>({});
 
   const load = useCallback(async () => {
     if (!ownerId) return;
-    const { data, error } = await supabase.from("credit_card_invoice_openings").select("*");
+    const [{ data, error }, { data: ledgerRows, error: ledgerError }] = await Promise.all([
+      supabase.from("credit_card_invoice_openings").select("*"),
+      supabase
+        .from("account_ledger")
+        .select("amount, metadata")
+        .eq("user_id", ownerId)
+        .eq("direction", "out")
+        .eq("metadata->>kind", "credit_card_invoice_payment"),
+    ]);
     if (error) {
       toast.error("Erro ao carregar faturas iniciais");
       setLoading(false);
       return;
     }
+    const ledgerByCycle: Record<string, number> = {};
+    if (!ledgerError) {
+      for (const r of ((ledgerRows as any[]) ?? [])) {
+        const meta = r.metadata ?? {};
+        if (!meta.credit_card_id || !meta.cycle_key) continue;
+        const key = ledgerKey(String(meta.credit_card_id), String(meta.cycle_key));
+        ledgerByCycle[key] = Number(((ledgerByCycle[key] ?? 0) + (Number(r.amount) || 0)).toFixed(2));
+      }
+    }
+    setLedgerPayments(ledgerByCycle);
     setOpenings((data ?? []).map(fromRow));
     setLoading(false);
   }, [ownerId]);
@@ -98,6 +117,7 @@ export function useCreditCardOpenings() {
     if (!user || !ownerId) return;
     const handler = () => load();
     window.addEventListener(OPENINGS_CHANGED_EVENT, handler);
+    window.addEventListener("ledger:changed", handler);
     return () => window.removeEventListener(OPENINGS_CHANGED_EVENT, handler);
   }, [user, ownerId, load]);
 
