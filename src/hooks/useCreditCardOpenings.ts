@@ -15,11 +15,32 @@ export interface InvoiceOpening {
 
 const fromRow = (r: any): InvoiceOpening => ({
   id: r.id,
-  cardId: r.card_id,
-  cycleKey: r.cycle_key,
-  openingAmount: Number(r.opening_amount ?? 0),
+  cardId: r.card_id ?? r.credit_card_id,
+  cycleKey: r.cycle_key ?? r.month_label,
+  openingAmount: Number(r.opening_amount ?? r.opening_balance ?? 0),
   notes: r.notes ?? null,
 });
+
+const ledgerKey = (cardId: string, cycleKey: string) => `${cardId}::${cycleKey}`;
+
+function buildLedgerNotes(base: string | null | undefined, paid: number, paidDate: string, isFull: boolean) {
+  const cleaned = (base ?? "")
+    .replace(/\[PAGA\]/gi, "")
+    .replace(/\[LEDGER\]/gi, "")
+    .replace(/\[PAID_DATE:\d{4}-\d{2}-\d{2}\]/gi, "")
+    .replace(/\[PAID:[0-9]+(?:\.[0-9]+)?\]/gi, "")
+    .replace(/\[TOTAL:[0-9]+(?:\.[0-9]+)?\]/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const markers = [
+    isFull ? `[TOTAL:${paid.toFixed(2)}]` : null,
+    `[PAID:${paid.toFixed(2)}]`,
+    isFull ? "[PAGA]" : null,
+    "[LEDGER]",
+    `[PAID_DATE:${paidDate}]`,
+  ].filter(Boolean).join(" ");
+  return `${cleaned ? `${cleaned} ` : ""}${markers}`.trim();
+}
 
 /**
  * Builds a stable cycle key from a "to" closing date (end of cycle).
@@ -44,6 +65,7 @@ export function cycleKeyFromDate(closingTo: Date): string {
 // escrita dispara `openings:changed`; todas as instâncias do hook escutam
 // esse evento e recarregam.
 const OPENINGS_CHANGED_EVENT = "openings:changed";
+type LedgerPaymentMeta = { amount: number; paidDate: string; isFull: boolean };
 
 function notifyOpeningsChanged() {
   window.dispatchEvent(new Event(OPENINGS_CHANGED_EVENT));
@@ -54,16 +76,68 @@ export function useCreditCardOpenings() {
   const ownerId = useDataOwner();
   const [openings, setOpenings] = useState<InvoiceOpening[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ledgerPayments, setLedgerPayments] = useState<Record<string, LedgerPaymentMeta>>({});
 
   const load = useCallback(async () => {
     if (!ownerId) return;
-    const { data, error } = await supabase.from("credit_card_invoice_openings").select("*");
+    const [{ data, error }, { data: ledgerRows, error: ledgerError }] = await Promise.all([
+      supabase.from("credit_card_invoice_openings").select("*"),
+      supabase
+        .from("account_ledger")
+        .select("amount, occurred_on, metadata")
+        .eq("user_id", ownerId)
+        .eq("direction", "out")
+        .eq("metadata->>kind", "credit_card_invoice_payment"),
+    ]);
     if (error) {
       toast.error("Erro ao carregar faturas iniciais");
       setLoading(false);
       return;
     }
-    setOpenings((data ?? []).map(fromRow));
+    const ledgerByCycle: Record<string, LedgerPaymentMeta> = {};
+    if (!ledgerError) {
+      for (const r of ((ledgerRows as any[]) ?? [])) {
+        const meta = r.metadata ?? {};
+        if (!meta.credit_card_id || !meta.cycle_key) continue;
+        const key = ledgerKey(String(meta.credit_card_id), String(meta.cycle_key));
+        const previous = ledgerByCycle[key];
+        const amount = Number(((previous?.amount ?? 0) + (Number(r.amount) || 0)).toFixed(2));
+        const paidDate = String(r.occurred_on || previous?.paidDate || new Date().toISOString().slice(0, 10));
+        const isFull = previous?.isFull || meta.full_payment === true || meta.pay_mode !== "partial";
+        ledgerByCycle[key] = { amount, paidDate, isFull };
+      }
+    }
+    setLedgerPayments(ledgerByCycle);
+    const normalized = (data ?? []).map(fromRow).map((opening) => {
+      const ledgerPayment = ledgerByCycle[ledgerKey(opening.cardId, opening.cycleKey)];
+      const paid = ledgerPayment?.amount ?? 0;
+      if (paid <= 0.005) return opening;
+      const currentPaid = (() => {
+        const match = /\[PAID:([0-9]+(?:\.[0-9]+)?)\]/i.exec(opening.notes ?? "");
+        return match ? Number(match[1]) : 0;
+      })();
+      if (currentPaid >= paid - 0.005) return opening;
+      return {
+        ...opening,
+        notes: buildLedgerNotes(opening.notes, paid, ledgerPayment?.paidDate ?? new Date().toISOString().slice(0, 10), !!ledgerPayment?.isFull),
+      };
+    });
+    const existingKeys = new Set(normalized.map((o) => ledgerKey(o.cardId, o.cycleKey)));
+    const syntheticFromLedger = Object.entries(ledgerByCycle)
+      .filter(([key, payment]) => payment.amount > 0.005 && !existingKeys.has(key))
+      .map(([key, payment]) => {
+        const sep = key.lastIndexOf("::");
+        const cardId = key.slice(0, sep);
+        const cycleKey = key.slice(sep + 2);
+        return {
+          id: `ledger-${key}`,
+          cardId,
+          cycleKey,
+          openingAmount: 0,
+          notes: buildLedgerNotes(null, payment.amount, payment.paidDate, payment.isFull),
+        };
+      });
+    setOpenings([...normalized, ...syntheticFromLedger]);
     setLoading(false);
   }, [ownerId]);
 
@@ -77,15 +151,34 @@ export function useCreditCardOpenings() {
     if (!user || !ownerId) return;
     const handler = () => load();
     window.addEventListener(OPENINGS_CHANGED_EVENT, handler);
-    return () => window.removeEventListener(OPENINGS_CHANGED_EVENT, handler);
+    window.addEventListener("ledger:changed", handler);
+    return () => {
+      window.removeEventListener(OPENINGS_CHANGED_EVENT, handler);
+      window.removeEventListener("ledger:changed", handler);
+    };
   }, [user, ownerId, load]);
 
   /** Get the opening for a specific card+cycle, or null. */
   const getOpening = useCallback(
     (cardId: string, cycleKey: string): InvoiceOpening | null => {
-      return openings.find((o) => o.cardId === cardId && o.cycleKey === cycleKey) ?? null;
+      const opening = openings.find((o) => o.cardId === cardId && o.cycleKey === cycleKey) ?? null;
+      const ledgerPayment = ledgerPayments[ledgerKey(cardId, cycleKey)];
+      const ledgerPaid = ledgerPayment?.amount ?? 0;
+      if (ledgerPaid <= 0.005) return opening;
+      const currentPaid = (() => {
+        const match = /\[PAID:([0-9]+(?:\.[0-9]+)?)\]/i.exec(opening?.notes ?? "");
+        return match ? Number(match[1]) : 0;
+      })();
+      if (opening && currentPaid >= ledgerPaid - 0.005) return opening;
+      return {
+        id: opening?.id ?? `ledger-${cardId}-${cycleKey}`,
+        cardId,
+        cycleKey,
+        openingAmount: opening?.openingAmount ?? 0,
+        notes: buildLedgerNotes(opening?.notes, ledgerPaid, ledgerPayment?.paidDate ?? new Date().toISOString().slice(0, 10), !!ledgerPayment?.isFull),
+      };
     },
-    [openings],
+    [openings, ledgerPayments],
   );
 
   /** Insert or update an opening for a given card+cycle. */
@@ -96,7 +189,7 @@ export function useCreditCardOpenings() {
       .from("credit_card_invoice_openings")
       .upsert(
         {
-          user_id: user?.id || ownerId,
+          user_id: ownerId,
           card_id: cardId,
           credit_card_id: cardId,
           cycle_key: cycleKey,

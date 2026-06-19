@@ -114,7 +114,11 @@ export function LedgerView({ readOnly = false }: Props) {
   useEffect(() => {
     const onChange = () => { reload(); };
     window.addEventListener("balance:changed", onChange);
-    return () => window.removeEventListener("balance:changed", onChange);
+    window.addEventListener("ledger:changed", onChange);
+    return () => {
+      window.removeEventListener("balance:changed", onChange);
+      window.removeEventListener("ledger:changed", onChange);
+    };
   }, [reload]);
 
   // Backfill: payment_method_id da tabela `payments` para ledger antigos

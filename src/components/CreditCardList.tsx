@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useCreditCards, CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOpenings";
-import { readPaidOverride, readTotalOverride } from "@/lib/creditCardInvoiceTotals";
+import { cycleKeyForDate, readPaidOverride, readTotalOverride } from "@/lib/creditCardInvoiceTotals";
 import { expandCreditCardExpenses } from "@/lib/creditCardInstallments";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { getBank, brandLabel } from "@/lib/creditCardBanks";
@@ -339,9 +339,14 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         .filter((e) => e.scope === "personal")
         .filter((e) => /\[\s*cr[eé]dito\s*\]/i.test(e.notes ?? ""))
         .filter(matchesCard);
+      const paidCycleKeys = new Set(
+        openings
+          .filter((o) => o.cardId === card.id && /\[PAGA\]/i.test(o.notes ?? ""))
+          .map((o) => o.cycleKey),
+      );
 
       const expensesPending = cardExpenses
-        .filter((e) => !e.paid)
+        .filter((e) => !e.paid && !paidCycleKeys.has(cycleKeyForDate(e.dueDate, card.closingDay)))
         .reduce((s, e) => s + installmentValue(e), 0);
       const openingsPending = openings
         .filter((o) => o.cardId === card.id)
