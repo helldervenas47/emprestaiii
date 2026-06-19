@@ -573,7 +573,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect, a
             occurred_on: payDate,
             source: "auto",
             wallet: payWallet,
-            metadata: { credit_card_id: card.id, cycle_key: cycleKey, kind: "credit_card_invoice_payment" },
+            metadata: { credit_card_id: card.id, cycle_key: cycleKey, kind: "credit_card_invoice_payment", pay_mode: isFull ? "total" : "partial", full_payment: isFull },
             // O pagamento de fatura deve debitar APENAS o "Saldo em Conta" da aba Receitas
             // (que lê este lançamento do extrato). Não tocar no saldo do Dashboard
             // para evitar duplo débito no Total em Mãos.
