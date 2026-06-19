@@ -53,7 +53,7 @@ const PrivacyPolicy = () => {
         <p>Seus dados podem ser compartilhados com:</p>
         <ul>
           <li><strong>Provedores de infraestrutura:</strong> serviços de hospedagem, banco de dados e análise necessários para operar o Serviço;</li>
-          <li><strong>Paddle (Merchant of Record):</strong> para processamento de pagamentos, gestão de assinaturas, conformidade fiscal e emissão de faturas;</li>
+          <li><strong>Asaas:</strong> para processamento de pagamentos (cartão, Pix e boleto), gestão de assinaturas recorrentes e emissão de faturas;</li>
           <li><strong>Assessores profissionais:</strong> consultores jurídicos e contábeis, quando necessário;</li>
           <li><strong>Autoridades públicas:</strong> quando exigido por lei ou ordem judicial.</li>
         </ul>
