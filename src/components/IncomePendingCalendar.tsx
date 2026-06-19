@@ -18,6 +18,7 @@ import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditC
 import { useBalanceAdjustments } from "@/hooks/useBalanceAdjustments";
 import { useUnifiedAccountBalance } from "@/hooks/useUnifiedAccountBalance";
 import { todayDateInAppTz } from "@/lib/timezone";
+import { calculateIncomeProjectedSummary } from "@/lib/incomeProjectedSummary";
 import { MoneyInput } from "@/components/ui/money-input";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { toast } from "sonner";
@@ -510,12 +511,18 @@ export function IncomePendingCalendar({
     return map;
   }, [dayMap, baseBalance, year, month, weekDays, adjustments]);
 
-  // Saldo Previsto do último dia do mês selecionado — espelhado em "Saldo mês".
+  // Saldo Previsto do mês selecionado — usa a mesma regra do card de resumo.
   const monthEndProjectedBalance = useMemo(() => {
-    const lastDay = new Date(year, month + 1, 0);
-    const ds = formatLocalDate(lastDay);
-    return runningBalanceMap[ds] ?? baseBalance;
-  }, [runningBalanceMap, year, month, baseBalance]);
+    const currentMonthKey = `${year}-${String(month + 1).padStart(2, "0")}`;
+    return calculateIncomeProjectedSummary({
+      baseBalance,
+      incomes,
+      expenses,
+      cards,
+      openings,
+      monthKey: currentMonthKey,
+    }).projected;
+  }, [baseBalance, incomes, expenses, cards, openings, year, month]);
 
   const selectedHasMovement = selectedInfo.totalIncome > 0 || selectedInfo.totalExpense > 0;
   const selectedBalance = selectedDate
