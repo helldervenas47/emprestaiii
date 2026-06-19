@@ -200,7 +200,11 @@ export function IncomePendingCalendar({
 
   const personalExpenses = useMemo(
     () => expenses.filter(
-      (e) => (e.scope ?? "business") === "personal" && !isCreditCardExpense(e),
+      (e) =>
+        (e.scope ?? "business") === "personal" &&
+        !isCreditCardExpense(e) &&
+        !isPiggyExpense(e.notes) &&
+        !isVehicleExpenseForVehicles(e),
     ),
     [expenses]
   );
