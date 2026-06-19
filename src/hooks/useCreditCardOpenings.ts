@@ -103,7 +103,21 @@ export function useCreditCardOpenings() {
       }
     }
     setLedgerPayments(ledgerByCycle);
-    setOpenings((data ?? []).map(fromRow));
+    const normalized = (data ?? []).map(fromRow);
+    const existingKeys = new Set(normalized.map((o) => ledgerKey(o.cardId, o.cycleKey)));
+    const syntheticFromLedger = Object.entries(ledgerByCycle)
+      .filter(([key, paid]) => paid > 0.005 && !existingKeys.has(key))
+      .map(([key, paid]) => {
+        const [cardId, cycleKey] = key.split("::");
+        return {
+          id: `ledger-${key}`,
+          cardId,
+          cycleKey,
+          openingAmount: 0,
+          notes: buildLedgerNotes(null, paid, new Date().toISOString().slice(0, 10), true),
+        };
+      });
+    setOpenings([...normalized, ...syntheticFromLedger]);
     setLoading(false);
   }, [ownerId]);
 
@@ -118,7 +132,10 @@ export function useCreditCardOpenings() {
     const handler = () => load();
     window.addEventListener(OPENINGS_CHANGED_EVENT, handler);
     window.addEventListener("ledger:changed", handler);
-    return () => window.removeEventListener(OPENINGS_CHANGED_EVENT, handler);
+    return () => {
+      window.removeEventListener(OPENINGS_CHANGED_EVENT, handler);
+      window.removeEventListener("ledger:changed", handler);
+    };
   }, [user, ownerId, load]);
 
   /** Get the opening for a specific card+cycle, or null. */
