@@ -89,14 +89,13 @@ export function useBalanceAdjustments() {
         .from("balance_adjustments")
         .upsert(
           {
-            user_id: user?.id || ownerId,
             owner_id: ownerId,
             adjustment_date: date,
             amount,
             previous_amount: previousAmount,
             adjusted_by: user?.id ?? null,
             notes: notes ?? null,
-          },
+          } as never,
           { onConflict: "owner_id,adjustment_date" },
         );
       if (error) {
