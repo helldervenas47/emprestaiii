@@ -161,7 +161,8 @@ export function useCreditCardOpenings() {
   const getOpening = useCallback(
     (cardId: string, cycleKey: string): InvoiceOpening | null => {
       const opening = openings.find((o) => o.cardId === cardId && o.cycleKey === cycleKey) ?? null;
-      const ledgerPaid = ledgerPayments[ledgerKey(cardId, cycleKey)] ?? 0;
+      const ledgerPayment = ledgerPayments[ledgerKey(cardId, cycleKey)];
+      const ledgerPaid = ledgerPayment?.amount ?? 0;
       if (ledgerPaid <= 0.005) return opening;
       const currentPaid = (() => {
         const match = /\[PAID:([0-9]+(?:\.[0-9]+)?)\]/i.exec(opening?.notes ?? "");
@@ -173,7 +174,7 @@ export function useCreditCardOpenings() {
         cardId,
         cycleKey,
         openingAmount: opening?.openingAmount ?? 0,
-        notes: buildLedgerNotes(opening?.notes, ledgerPaid, new Date().toISOString().slice(0, 10), true),
+        notes: buildLedgerNotes(opening?.notes, ledgerPaid, ledgerPayment?.paidDate ?? new Date().toISOString().slice(0, 10), true),
       };
     },
     [openings, ledgerPayments],
