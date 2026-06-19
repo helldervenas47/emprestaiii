@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { todayInAppTz } from "@/lib/timezone";
 import { SuccessAnimation } from "@/components/SuccessAnimation";
 import { DatePickerField } from "@/components/ui/date-picker-field";
@@ -52,6 +52,29 @@ function getNextDate(base: Date, frequency: string, periods: number): Date {
 }
 
 export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payments, installmentSchedules, existingTags = [], prefill }: Props) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!window.visualViewport) return;
+
+    const handleViewportChange = () => {
+      const vv = window.visualViewport!;
+      if (overlayRef.current) {
+        overlayRef.current.style.transform = vv.offsetTop > 0
+          ? `translateY(${vv.offsetTop}px)`
+          : "";
+      }
+    };
+
+    window.visualViewport.addEventListener("resize", handleViewportChange);
+    window.visualViewport.addEventListener("scroll", handleViewportChange);
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", handleViewportChange);
+      window.visualViewport?.removeEventListener("scroll", handleViewportChange);
+    };
+  }, []);
+
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
@@ -312,7 +335,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
     setForm((prev) => ({ ...prev, [field]: value }));
 
   return (
-    <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-stretch justify-center p-0 md:items-center md:p-4">
+    <div ref={overlayRef} className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-stretch justify-center p-0 md:items-center md:p-4">
       <SuccessAnimation show={showSuccess} onComplete={onClose} message="Empréstimo registrado!" />
       <Card className="!bg-card !backdrop-blur-none supports-[backdrop-filter]:!bg-card dark:!bg-card w-full h-[100dvh] max-h-[100dvh] rounded-none border-0 overflow-y-auto pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] md:h-auto md:max-h-[92svh] md:w-full md:max-w-[880px] md:rounded-2xl md:border md:pt-0 md:pb-0">
         <CardHeader className="flex flex-row items-center justify-between pb-2 md:pb-6">
