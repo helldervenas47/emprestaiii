@@ -224,9 +224,8 @@ export function IncomePendingCalendar({
       if (!d) continue;
       const e = ensure(d);
       e.incomes.push(i);
-      // Soma tanto recebidas quanto pendentes para o total previsto do dia
-      // (mesma lógica das despesas, que contam mesmo quando ainda não pagas).
-      e.totalIncome += Number(i.amount) || 0;
+      // O saldo base atual já contém receitas recebidas; projetar apenas o que segue em aberto.
+      if (i.status !== "received") e.totalIncome += Number(i.amount) || 0;
     }
 
     // Vendas recebidas: cada pagamento (paymentHistory) aparece no calendário no dia
@@ -264,7 +263,6 @@ export function IncomePendingCalendar({
           createdAt: date,
         };
         e.incomes.push(synth);
-        e.totalIncome += amt;
       });
 
       const missing = legacyTotal - historyTotal;
@@ -287,7 +285,6 @@ export function IncomePendingCalendar({
           createdAt: s.date,
         };
         e.incomes.push(synth);
-        e.totalIncome += missing;
       }
     }
     // Determina o intervalo (em meses) que precisa ser projetado, considerando o mês
@@ -319,7 +316,6 @@ export function IncomePendingCalendar({
       if (ex.paid && ex.paidDate) {
         const e = ensure(ex.paidDate);
         e.expenses.push(ex);
-        e.totalExpense += Number(ex.amount) || 0;
         continue;
       }
 
@@ -429,11 +425,6 @@ export function IncomePendingCalendar({
         piggyName: piggyNameById.get(d.piggyBankId),
         amount: amt,
       });
-      if (amt >= 0) {
-        e.totalExpense += amt;
-      } else {
-        e.totalIncome += -amt;
-      }
     }
     return map;
   }, [incomes, personalExpenses, expenses, cards, openings, year, month, weekDays, piggyDeposits, piggyBanks, sales]);
