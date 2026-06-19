@@ -78,16 +78,17 @@ const Terms = () => {
 
         <h2>8. Pagamentos e Assinaturas</h2>
         <p>
-          Nosso processo de compra é conduzido pelo nosso revendedor online Paddle.com. O Paddle.com é o
-          Merchant of Record para todos os nossos pedidos. O Paddle fornece todo o atendimento ao cliente
-          relacionado a pagamentos e gerencia devoluções.
+          Nosso processo de cobrança é conduzido pelo nosso provedor de pagamentos Asaas. O Asaas
+          processa pagamentos, gerencia assinaturas recorrentes, emite faturas e suporta múltiplos
+          métodos (cartão de crédito, Pix e boleto bancário).
         </p>
         <p>
-          Para mais detalhes sobre pagamentos, faturamento, impostos, cancelamentos e reembolsos, consulte
-          os{" "}
-          <a href="https://www.paddle.com/legal/checkout-buyer-terms" target="_blank" rel="noopener noreferrer">
-            Termos do Comprador do Paddle
-          </a>.
+          Para mais detalhes sobre pagamentos, faturamento, impostos, cancelamentos e reembolsos,
+          consulte os{" "}
+          <a href="https://www.asaas.com/termos-de-uso" target="_blank" rel="noopener noreferrer">
+            Termos de Uso do Asaas
+          </a>{" "}
+          ou entre em contato com nosso suporte.
         </p>
 
         <h2>9. Nível de Serviço</h2>

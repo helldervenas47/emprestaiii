@@ -33,25 +33,16 @@ const RefundPolicy = () => {
 
         <h2>Como solicitar um reembolso</h2>
         <p>
-          Os reembolsos são processados pelo nosso provedor de pagamentos, Paddle. Para solicitar um
-          reembolso:
+          Os reembolsos são processados pelo nosso provedor de pagamentos, Asaas. Para solicitar
+          um reembolso, entre em contato com nossa equipe de suporte pelo Serviço informando o
+          e-mail usado na compra e o motivo do pedido.
         </p>
-        <ul>
-          <li>
-            Acesse{" "}
-            <a href="https://paddle.net" target="_blank" rel="noopener noreferrer">
-              paddle.net
-            </a>{" "}
-            e localize seu pedido;
-          </li>
-          <li>Ou entre em contato com nossa equipe de suporte pelo Serviço.</li>
-        </ul>
 
         <h2>Processamento</h2>
         <p>
-          Após a aprovação, o reembolso será processado pelo Paddle e o valor será devolvido ao método de
-          pagamento original. O prazo para o crédito aparecer pode variar conforme o banco ou operadora do
-          cartão.
+          Após a aprovação, o reembolso será processado pelo Asaas e o valor será devolvido ao
+          método de pagamento original (cartão, Pix ou boleto). O prazo para o crédito aparecer
+          pode variar conforme o banco ou operadora do cartão.
         </p>
 
         <h2>Após o período de 7 dias</h2>
