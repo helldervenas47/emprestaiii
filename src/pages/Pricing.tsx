@@ -16,7 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
-import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
+import { useAsaasCheckout } from "@/hooks/useAsaasCheckout";
 import logoIcon from "@/assets/logo-icon.png";
 
 interface Plan {
@@ -106,7 +106,7 @@ const Pricing = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [cycle, setCycle] = useState<Cycle>("monthly");
-  const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
+  const { openCheckout, loading: checkoutLoading } = useAsaasCheckout();
   const [checkoutPlan, setCheckoutPlan] = useState<string | null>(null);
 
   useEffect(() => {
