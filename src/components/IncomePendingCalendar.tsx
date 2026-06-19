@@ -320,13 +320,13 @@ export function IncomePendingCalendar({
       if (isRecurringParent) {
         const installmentAmount =
           (Number(ex.amount) || 0) / (ex.installments as number);
-        const remaining =
-          (ex.installments as number) - (ex.paidInstallments ?? 0);
+        const paidCount = ex.paidInstallments ?? 0;
+        const remaining = (ex.installments as number) - paidCount;
         if (remaining <= 0 || !ex.dueDate) continue;
         const start = new Date(ex.dueDate + "T00:00:00");
         for (let i = 0; i < remaining; i++) {
           const occ = new Date(start);
-          occ.setMonth(start.getMonth() + i);
+          occ.setMonth(start.getMonth() + paidCount + i);
           if (occ > projEnd) break;
           const lastDay = new Date(
             occ.getFullYear(),
@@ -401,9 +401,8 @@ export function IncomePendingCalendar({
           remaining,
           paid: t.paid,
         });
-        // Faturas de cartão entram no cálculo do saldo de despesas do dia
-        // pelo valor total da fatura, independente de já estarem pagas ou em aberto.
-        if (t.total > 0) {
+        // Espelha o card de resumo: só faturas ainda pendentes entram no saldo previsto.
+        if (t.total > 0 && !t.paid && !t.hasPaidOverride) {
           e.totalExpense += t.total;
         }
       }
@@ -477,18 +476,21 @@ export function IncomePendingCalendar({
   // Cobre tanto o mês expandido quanto a semana atual.
   const runningBalanceMap = useMemo(() => {
     const map: Record<string, number> = {};
-    // Determinar período: união do mês visível, da semana atual e do mês corrente.
-    // Anchorar em "hoje" (onde baseBalance é válido) garante que meses futuros
-    // herdem o saldo do último dia do mês anterior em vez de reiniciar em baseBalance.
+    // Determinar período: união do mês visível e da semana atual.
+    // O saldo base já reflete as movimentações até hoje; por isso a projeção
+    // começa amanhã para não somar novamente receitas/despesas já realizadas.
     const monthStart = new Date(year, month, 1);
     const monthEnd = new Date(year, month + 1, 0);
     const weekStart = weekDays[0];
     const weekEnd = weekDays[weekDays.length - 1];
     const todayRef = todayDateInAppTz();
-    const todayMonthStart = new Date(todayRef.getFullYear(), todayRef.getMonth(), 1);
+    const tomorrow = new Date(todayRef);
+    tomorrow.setDate(todayRef.getDate() + 1);
     let start = monthStart < weekStart ? monthStart : weekStart;
-    if (todayMonthStart < start) start = todayMonthStart;
+    if (start < tomorrow) start = tomorrow;
     const end = monthEnd > weekEnd ? monthEnd : weekEnd;
+
+    if (start > end) return map;
 
     let running = baseBalance;
     const cursor = new Date(start);
