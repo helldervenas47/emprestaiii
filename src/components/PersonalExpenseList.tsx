@@ -201,11 +201,11 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     return isRec ? e.amount / e.installments! : e.amount;
   }, []);
 
+  // Filtra exclusivamente pela data de vencimento (dueDate). Despesas pagas em
+  // outro mês mas cujo vencimento cai no mês selecionado continuam aparecendo;
+  // pagas neste mês com vencimento em outro mês NÃO entram aqui.
   const monthFiltered = useMemo(() => {
-    return expenses.filter((e) => {
-      if (e.paid && e.paidDate && e.paidDate.startsWith(selectedMonth)) return true;
-      return occursInMonth(e, selectedMonth);
-    });
+    return expenses.filter((e) => occursInMonth(e, selectedMonth));
   }, [expenses, selectedMonth, occursInMonth]);
 
   const isRecFullyPaid = (e: Expense) =>
