@@ -141,9 +141,23 @@ export function useCreditCardOpenings() {
   /** Get the opening for a specific card+cycle, or null. */
   const getOpening = useCallback(
     (cardId: string, cycleKey: string): InvoiceOpening | null => {
-      return openings.find((o) => o.cardId === cardId && o.cycleKey === cycleKey) ?? null;
+      const opening = openings.find((o) => o.cardId === cardId && o.cycleKey === cycleKey) ?? null;
+      const ledgerPaid = ledgerPayments[ledgerKey(cardId, cycleKey)] ?? 0;
+      if (ledgerPaid <= 0.005) return opening;
+      const currentPaid = (() => {
+        const match = /\[PAID:([0-9]+(?:\.[0-9]+)?)\]/i.exec(opening?.notes ?? "");
+        return match ? Number(match[1]) : 0;
+      })();
+      if (opening && currentPaid >= ledgerPaid - 0.005) return opening;
+      return {
+        id: opening?.id ?? `ledger-${cardId}-${cycleKey}`,
+        cardId,
+        cycleKey,
+        openingAmount: opening?.openingAmount ?? 0,
+        notes: buildLedgerNotes(opening?.notes, ledgerPaid, new Date().toISOString().slice(0, 10), true),
+      };
     },
-    [openings],
+    [openings, ledgerPayments],
   );
 
   /** Insert or update an opening for a given card+cycle. */
