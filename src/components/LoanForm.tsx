@@ -52,6 +52,29 @@ function getNextDate(base: Date, frequency: string, periods: number): Date {
 }
 
 export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payments, installmentSchedules, existingTags = [], prefill }: Props) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!window.visualViewport) return;
+
+    const handleViewportChange = () => {
+      const vv = window.visualViewport!;
+      if (overlayRef.current) {
+        overlayRef.current.style.transform = vv.offsetTop > 0
+          ? `translateY(${vv.offsetTop}px)`
+          : "";
+      }
+    };
+
+    window.visualViewport.addEventListener("resize", handleViewportChange);
+    window.visualViewport.addEventListener("scroll", handleViewportChange);
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", handleViewportChange);
+      window.visualViewport?.removeEventListener("scroll", handleViewportChange);
+    };
+  }, []);
+
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
