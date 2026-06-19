@@ -11,13 +11,15 @@ import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, Trendi
 import type { Income } from "@/hooks/useIncomes";
 import type { Expense, Sale } from "@/types/loan";
 import { useProducts } from "@/hooks/useProducts";
-import { usePiggyBanks } from "@/hooks/usePiggyBanks";
+import { isPiggyExpense, usePiggyBanks } from "@/hooks/usePiggyBanks";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
 import { useBalanceAdjustments } from "@/hooks/useBalanceAdjustments";
 import { useUnifiedAccountBalance } from "@/hooks/useUnifiedAccountBalance";
 import { todayDateInAppTz } from "@/lib/timezone";
+import { calculateIncomeProjectedSummary } from "@/lib/incomeProjectedSummary";
+import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
 import { MoneyInput } from "@/components/ui/money-input";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { toast } from "sonner";
@@ -92,6 +94,8 @@ type DayInfo = {
   piggyMovements: PiggyMovementEntry[];
   totalIncome: number;
   totalExpense: number;
+  projectedIncome: number;
+  projectedExpense: number;
 };
 
 /**
@@ -198,7 +202,11 @@ export function IncomePendingCalendar({
 
   const personalExpenses = useMemo(
     () => expenses.filter(
-      (e) => (e.scope ?? "business") === "personal" && !isCreditCardExpense(e),
+      (e) =>
+        (e.scope ?? "business") === "personal" &&
+        !isCreditCardExpense(e) &&
+        !isPiggyExpense(e.notes) &&
+        !isVehicleExpenseForVehicles(e),
     ),
     [expenses]
   );
@@ -209,7 +217,7 @@ export function IncomePendingCalendar({
   const dayMap = useMemo(() => {
     const map: Record<string, DayInfo> = {};
     const ensure = (d: string) => {
-      if (!map[d]) map[d] = { incomes: [], expenses: [], cardInvoices: [], piggyMovements: [], totalIncome: 0, totalExpense: 0 };
+      if (!map[d]) map[d] = { incomes: [], expenses: [], cardInvoices: [], piggyMovements: [], totalIncome: 0, totalExpense: 0, projectedIncome: 0, projectedExpense: 0 };
       return map[d];
     };
     for (const i of incomes) {
@@ -218,9 +226,8 @@ export function IncomePendingCalendar({
       if (!d) continue;
       const e = ensure(d);
       e.incomes.push(i);
-      // Soma tanto recebidas quanto pendentes para o total previsto do dia
-      // (mesma lógica das despesas, que contam mesmo quando ainda não pagas).
       e.totalIncome += Number(i.amount) || 0;
+      if (i.status !== "received") e.projectedIncome += Number(i.amount) || 0;
     }
 
     // Vendas recebidas: cada pagamento (paymentHistory) aparece no calendário no dia
@@ -320,13 +327,13 @@ export function IncomePendingCalendar({
       if (isRecurringParent) {
         const installmentAmount =
           (Number(ex.amount) || 0) / (ex.installments as number);
-        const remaining =
-          (ex.installments as number) - (ex.paidInstallments ?? 0);
+        const paidCount = ex.paidInstallments ?? 0;
+        const remaining = (ex.installments as number) - paidCount;
         if (remaining <= 0 || !ex.dueDate) continue;
         const start = new Date(ex.dueDate + "T00:00:00");
         for (let i = 0; i < remaining; i++) {
           const occ = new Date(start);
-          occ.setMonth(start.getMonth() + i);
+          occ.setMonth(start.getMonth() + paidCount + i);
           if (occ > projEnd) break;
           const lastDay = new Date(
             occ.getFullYear(),
@@ -338,6 +345,7 @@ export function IncomePendingCalendar({
           const e = ensure(ds);
           e.expenses.push({ ...ex, amount: installmentAmount, dueDate: ds });
           e.totalExpense += installmentAmount;
+          e.projectedExpense += installmentAmount;
         }
         continue;
       }
@@ -346,6 +354,7 @@ export function IncomePendingCalendar({
       const e = ensure(ex.dueDate);
       e.expenses.push(ex);
       e.totalExpense += Number(ex.amount) || 0;
+      e.projectedExpense += Number(ex.amount) || 0;
     }
 
     // Faturas de cartão de crédito — uma entrada por cartão por mês,
@@ -401,10 +410,10 @@ export function IncomePendingCalendar({
           remaining,
           paid: t.paid,
         });
-        // Faturas de cartão entram no cálculo do saldo de despesas do dia
-        // pelo valor total da fatura, independente de já estarem pagas ou em aberto.
-        if (t.total > 0) {
+        // Espelha o card de resumo: só faturas ainda pendentes entram no saldo previsto.
+        if (t.total > 0 && !t.paid && !t.hasPaidOverride) {
           e.totalExpense += t.total;
+          e.projectedExpense += t.total;
         }
       }
     }
@@ -424,11 +433,6 @@ export function IncomePendingCalendar({
         piggyName: piggyNameById.get(d.piggyBankId),
         amount: amt,
       });
-      if (amt >= 0) {
-        e.totalExpense += amt;
-      } else {
-        e.totalIncome += -amt;
-      }
     }
     return map;
   }, [incomes, personalExpenses, expenses, cards, openings, year, month, weekDays, piggyDeposits, piggyBanks, sales]);
@@ -471,24 +475,27 @@ export function IncomePendingCalendar({
     setMonth(d.getMonth());
   };
 
-  const emptyDay: DayInfo = { incomes: [], expenses: [], cardInvoices: [], piggyMovements: [], totalIncome: 0, totalExpense: 0 };
+  const emptyDay: DayInfo = { incomes: [], expenses: [], cardInvoices: [], piggyMovements: [], totalIncome: 0, totalExpense: 0, projectedIncome: 0, projectedExpense: 0 };
   const selectedInfo: DayInfo = selectedDate ? (dayMap[selectedDate] ?? emptyDay) : emptyDay;
   // Saldo previsto acumulado dia a dia.
   // Cobre tanto o mês expandido quanto a semana atual.
   const runningBalanceMap = useMemo(() => {
     const map: Record<string, number> = {};
-    // Determinar período: união do mês visível, da semana atual e do mês corrente.
-    // Anchorar em "hoje" (onde baseBalance é válido) garante que meses futuros
-    // herdem o saldo do último dia do mês anterior em vez de reiniciar em baseBalance.
+    // Determinar período: união do mês visível e da semana atual.
+    // O saldo base já reflete as movimentações até hoje; por isso a projeção
+    // começa amanhã para não somar novamente receitas/despesas já realizadas.
     const monthStart = new Date(year, month, 1);
     const monthEnd = new Date(year, month + 1, 0);
     const weekStart = weekDays[0];
     const weekEnd = weekDays[weekDays.length - 1];
     const todayRef = todayDateInAppTz();
-    const todayMonthStart = new Date(todayRef.getFullYear(), todayRef.getMonth(), 1);
+    const tomorrow = new Date(todayRef);
+    tomorrow.setDate(todayRef.getDate() + 1);
     let start = monthStart < weekStart ? monthStart : weekStart;
-    if (todayMonthStart < start) start = todayMonthStart;
+    if (start < tomorrow) start = tomorrow;
     const end = monthEnd > weekEnd ? monthEnd : weekEnd;
+
+    if (start > end) return map;
 
     let running = baseBalance;
     const cursor = new Date(start);
@@ -501,19 +508,25 @@ export function IncomePendingCalendar({
         running = adj.amount;
       }
       const info = dayMap[ds];
-      running += (info?.totalIncome ?? 0) - (info?.totalExpense ?? 0);
+      running += (info?.projectedIncome ?? 0) - (info?.projectedExpense ?? 0);
       map[ds] = running;
       cursor.setDate(cursor.getDate() + 1);
     }
     return map;
   }, [dayMap, baseBalance, year, month, weekDays, adjustments]);
 
-  // Saldo Previsto do último dia do mês selecionado — espelhado em "Saldo mês".
+  // Saldo Previsto do mês selecionado — usa a mesma regra do card de resumo.
   const monthEndProjectedBalance = useMemo(() => {
-    const lastDay = new Date(year, month + 1, 0);
-    const ds = formatLocalDate(lastDay);
-    return runningBalanceMap[ds] ?? baseBalance;
-  }, [runningBalanceMap, year, month, baseBalance]);
+    const currentMonthKey = `${year}-${String(month + 1).padStart(2, "0")}`;
+    return calculateIncomeProjectedSummary({
+      baseBalance,
+      incomes,
+      expenses,
+      cards,
+      openings,
+      monthKey: currentMonthKey,
+    }).projected;
+  }, [baseBalance, incomes, expenses, cards, openings, year, month]);
 
   const selectedHasMovement = selectedInfo.totalIncome > 0 || selectedInfo.totalExpense > 0;
   const selectedBalance = selectedDate
