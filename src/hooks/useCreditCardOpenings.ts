@@ -100,12 +100,16 @@ export function useCreditCardOpenings() {
         const meta = r.metadata ?? {};
         if (!meta.credit_card_id || !meta.cycle_key) continue;
         const key = ledgerKey(String(meta.credit_card_id), String(meta.cycle_key));
-        ledgerByCycle[key] = Number(((ledgerByCycle[key] ?? 0) + (Number(r.amount) || 0)).toFixed(2));
+        const previous = ledgerByCycle[key];
+        const amount = Number(((previous?.amount ?? 0) + (Number(r.amount) || 0)).toFixed(2));
+        const paidDate = String(r.occurred_on || previous?.paidDate || new Date().toISOString().slice(0, 10));
+        ledgerByCycle[key] = { amount, paidDate };
       }
     }
     setLedgerPayments(ledgerByCycle);
     const normalized = (data ?? []).map(fromRow).map((opening) => {
-      const paid = ledgerByCycle[ledgerKey(opening.cardId, opening.cycleKey)] ?? 0;
+      const ledgerPayment = ledgerByCycle[ledgerKey(opening.cardId, opening.cycleKey)];
+      const paid = ledgerPayment?.amount ?? 0;
       if (paid <= 0.005) return opening;
       const currentPaid = (() => {
         const match = /\[PAID:([0-9]+(?:\.[0-9]+)?)\]/i.exec(opening.notes ?? "");
@@ -114,13 +118,13 @@ export function useCreditCardOpenings() {
       if (currentPaid >= paid - 0.005) return opening;
       return {
         ...opening,
-        notes: buildLedgerNotes(opening.notes, paid, new Date().toISOString().slice(0, 10), true),
+        notes: buildLedgerNotes(opening.notes, paid, ledgerPayment?.paidDate ?? new Date().toISOString().slice(0, 10), true),
       };
     });
     const existingKeys = new Set(normalized.map((o) => ledgerKey(o.cardId, o.cycleKey)));
     const syntheticFromLedger = Object.entries(ledgerByCycle)
-      .filter(([key, paid]) => paid > 0.005 && !existingKeys.has(key))
-      .map(([key, paid]) => {
+      .filter(([key, payment]) => payment.amount > 0.005 && !existingKeys.has(key))
+      .map(([key, payment]) => {
         const sep = key.lastIndexOf("::");
         const cardId = key.slice(0, sep);
         const cycleKey = key.slice(sep + 2);
@@ -129,7 +133,7 @@ export function useCreditCardOpenings() {
           cardId,
           cycleKey,
           openingAmount: 0,
-          notes: buildLedgerNotes(null, paid, new Date().toISOString().slice(0, 10), true),
+          notes: buildLedgerNotes(null, payment.amount, payment.paidDate, true),
         };
       });
     setOpenings([...normalized, ...syntheticFromLedger]);
