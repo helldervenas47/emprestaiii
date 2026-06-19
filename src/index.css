@@ -249,6 +249,14 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 
+  /* Touch-action: only on clickable elements; inputs keep default behavior */
+  button, [role="button"], a {
+    touch-action: manipulation;
+  }
+  input, textarea, select {
+    touch-action: auto;
+  }
+
   /* Translucent bar behind iOS status bar — matches background, blurs scrolled content */
   body::before {
     content: '';
