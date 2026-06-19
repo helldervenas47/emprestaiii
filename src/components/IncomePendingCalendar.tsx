@@ -94,6 +94,8 @@ type DayInfo = {
   piggyMovements: PiggyMovementEntry[];
   totalIncome: number;
   totalExpense: number;
+  projectedIncome: number;
+  projectedExpense: number;
 };
 
 /**
@@ -215,7 +217,7 @@ export function IncomePendingCalendar({
   const dayMap = useMemo(() => {
     const map: Record<string, DayInfo> = {};
     const ensure = (d: string) => {
-      if (!map[d]) map[d] = { incomes: [], expenses: [], cardInvoices: [], piggyMovements: [], totalIncome: 0, totalExpense: 0 };
+      if (!map[d]) map[d] = { incomes: [], expenses: [], cardInvoices: [], piggyMovements: [], totalIncome: 0, totalExpense: 0, projectedIncome: 0, projectedExpense: 0 };
       return map[d];
     };
     for (const i of incomes) {
@@ -224,8 +226,8 @@ export function IncomePendingCalendar({
       if (!d) continue;
       const e = ensure(d);
       e.incomes.push(i);
-      // O saldo base atual já contém receitas recebidas; projetar apenas o que segue em aberto.
-      if (i.status !== "received") e.totalIncome += Number(i.amount) || 0;
+      e.totalIncome += Number(i.amount) || 0;
+      if (i.status !== "received") e.projectedIncome += Number(i.amount) || 0;
     }
 
     // Vendas recebidas: cada pagamento (paymentHistory) aparece no calendário no dia
@@ -263,6 +265,7 @@ export function IncomePendingCalendar({
           createdAt: date,
         };
         e.incomes.push(synth);
+        e.totalIncome += amt;
       });
 
       const missing = legacyTotal - historyTotal;
@@ -285,6 +288,7 @@ export function IncomePendingCalendar({
           createdAt: s.date,
         };
         e.incomes.push(synth);
+        e.totalIncome += missing;
       }
     }
     // Determina o intervalo (em meses) que precisa ser projetado, considerando o mês
@@ -316,6 +320,7 @@ export function IncomePendingCalendar({
       if (ex.paid && ex.paidDate) {
         const e = ensure(ex.paidDate);
         e.expenses.push(ex);
+        e.totalExpense += Number(ex.amount) || 0;
         continue;
       }
 
