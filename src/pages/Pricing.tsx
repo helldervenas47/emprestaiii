@@ -15,8 +15,8 @@ import {
   ChevronDown,
   Loader2,
 } from "lucide-react";
-import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { useAsaasCheckout } from "@/hooks/useAsaasCheckout";
+import { useAuth } from "@/hooks/useAuth";
 import logoIcon from "@/assets/logo-icon.png";
 
 interface Plan {
@@ -107,6 +107,7 @@ const Pricing = () => {
   const [loading, setLoading] = useState(true);
   const [cycle, setCycle] = useState<Cycle>("monthly");
   const { openCheckout, loading: checkoutLoading } = useAsaasCheckout();
+  const { user } = useAuth();
   const [checkoutPlan, setCheckoutPlan] = useState<string | null>(null);
 
   useEffect(() => {
@@ -146,13 +147,22 @@ const Pricing = () => {
     document.getElementById("planos")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleSubscribe = (plan: Plan) => {
-    navigate(`/cadastro?plan=${encodeURIComponent(plan.name)}`);
+  const handleSubscribe = async (plan: Plan) => {
+    if (!user) { navigate("/auth"); return; }
+    setCheckoutPlan(plan.name);
+    await openCheckout({
+      planName: plan.name,
+      cycle,
+      userId: user.id,
+      userEmail: user.email ?? "",
+    });
+    setCheckoutPlan(null);
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <PaymentTestModeBanner />
+
+
 
       {/* Header */}
       <header className="border-b border-border/30 backdrop-blur-sm bg-background/80 sticky top-0 z-50 pt-safe">
