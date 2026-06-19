@@ -16,6 +16,7 @@ import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
 import { useBalanceAdjustments } from "@/hooks/useBalanceAdjustments";
+import { useUnifiedAccountBalance } from "@/hooks/useUnifiedAccountBalance";
 import { todayDateInAppTz } from "@/lib/timezone";
 import { MoneyInput } from "@/components/ui/money-input";
 import { DatePickerField } from "@/components/ui/date-picker-field";
@@ -147,24 +148,13 @@ export function IncomePendingCalendar({
   );
   const { deposits: piggyDeposits, piggyBanks } = usePiggyBanks();
 
-  // Saldo em conta (mesma fórmula do IncomeBalanceCard)
-  const computedBalance = useMemo(() => {
-    const incSrc = allIncomes ?? incomes;
-    const expSrc = allExpenses ?? expenses;
-    const totalIncomeReceived = incSrc
-      .filter((i) => i.status === "received")
-      .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-    const totalSalesReceived = (sales || []).reduce((s, sale) => s + saleReceivedTotal(sale), 0);
-    const totalExpensePaid = expSrc
-      .filter((e) => e.paid)
-      .reduce((s, e) => s + (Number(e.amount) || 0), 0);
-    const totalPiggyManualDeposits = (piggyDeposits || [])
-      .filter((d) => !d.expenseId)
-      .reduce((s, d) => s + (Number(d.amount) || 0), 0);
-    return totalIncomeReceived + totalSalesReceived - totalExpensePaid - totalPiggyManualDeposits;
-  }, [allIncomes, allExpenses, incomes, expenses, sales, piggyDeposits]);
-
-  const baseBalance = accountBalance ?? computedBalance;
+  // Saldo em conta — usa o hook unificado para garantir IDENTIDADE com o
+  // card "Saldo em Conta" (IncomeBalanceCard). Antes, este componente
+  // recomputava a base com uma fórmula divergente (subtraía TODAS as
+  // despesas pagas, sem filtrar escopo/cartão/veículo), o que fazia o
+  // "Saldo previsto" do calendário ficar diferente do card dos resumos.
+  const unifiedBalance = useUnifiedAccountBalance();
+  const baseBalance = accountBalance ?? unifiedBalance;
 
   // Status do dia para colorir o calendário:
   // - "paid": todos os lançamentos do dia (receitas, despesas e faturas) estão pagos/recebidos
