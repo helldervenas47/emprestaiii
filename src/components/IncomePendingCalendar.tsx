@@ -333,7 +333,10 @@ export function IncomePendingCalendar({
         const start = new Date(ex.dueDate + "T00:00:00");
         for (let i = 0; i < remaining; i++) {
           const occ = new Date(start);
-          occ.setMonth(start.getMonth() + paidCount + i);
+          // `ex.dueDate` já é avançado a cada parcela paga (vide useExpenses.payExpense),
+          // portanto NÃO somamos `paidCount` aqui — isso pularia as parcelas pendentes
+          // e fazia as despesas pendentes desaparecerem do calendário.
+          occ.setMonth(start.getMonth() + i);
           if (occ > projEnd) break;
           const lastDay = new Date(
             occ.getFullYear(),
