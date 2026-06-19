@@ -131,6 +131,18 @@
     @apply border-border;
   }
 
+  /* Evita zoom automático do iOS Safari ao focar inputs:
+     em telas mobile, todo controle de formulário deve ter font-size >= 16px. */
+  @media (max-width: 767px) {
+    input,
+    textarea,
+    select,
+    [role="combobox"] {
+      font-size: 16px !important;
+    }
+  }
+
+
   /* Transição suave ao alternar tema (claro/escuro).
      Anima apenas propriedades de cor/sombra para não interferir em layout,
      hover de scale, drawers etc. A classe .theme-transitioning é aplicada
