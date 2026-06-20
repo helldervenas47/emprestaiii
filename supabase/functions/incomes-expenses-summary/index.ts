@@ -1,4 +1,4 @@
-import { getExternalAdmin, getExternalUserClient } from "../_shared/external-supabase.ts";
+import { getExternalAdmin, getExternalUserClient, getExternalAnonKey } from "../_shared/external-supabase.ts";
 import { sendReportsMessage, getReportsLinkForUser, sendReportsAsImage } from "../_shared/reports-bot.ts";
 import { dueSlotKeys } from "../_shared/schedule.ts";
 
@@ -270,10 +270,16 @@ Deno.serve(async (req) => {
 
   const { date: today, tomorrow, hhmm } = nowInTZ();
   const authHeader = req.headers.get("Authorization") ?? "";
-  const token = authHeader.replace(/^Bearer\s+/i, "");
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const anonKeys = new Set([
+    getExternalAnonKey(),
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "",
+  ].filter(Boolean));
+  const hasUserJwt = Boolean(token) && !anonKeys.has(token);
 
   // Manual on-demand send — valida o JWT contra o Supabase EXTERNO (onde o usuário está logado)
-  if (token && req.method === "POST") {
+  if (hasUserJwt && req.method === "POST") {
     const userClient = getExternalUserClient();
     const { data: { user }, error: userErr } = await userClient.auth.getUser(token);
     if (userErr || !user) {
