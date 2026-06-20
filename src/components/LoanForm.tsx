@@ -57,7 +57,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   useEffect(() => {
     if (!window.visualViewport) return;
 
-    const handleViewportChange = () => {
+    const correctOffset = () => {
       const vv = window.visualViewport!;
       if (overlayRef.current) {
         overlayRef.current.style.transform = vv.offsetTop > 0
@@ -66,12 +66,26 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
       }
     };
 
+    const handleViewportChange = () => correctOffset();
+
+    const handleFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT") {
+        setTimeout(correctOffset, 50);
+        setTimeout(correctOffset, 150);
+        setTimeout(correctOffset, 300);
+      }
+    };
+
+    const overlayEl = overlayRef.current;
     window.visualViewport.addEventListener("resize", handleViewportChange);
     window.visualViewport.addEventListener("scroll", handleViewportChange);
+    overlayEl?.addEventListener("focusin", handleFocusIn);
 
     return () => {
       window.visualViewport?.removeEventListener("resize", handleViewportChange);
       window.visualViewport?.removeEventListener("scroll", handleViewportChange);
+      overlayEl?.removeEventListener("focusin", handleFocusIn);
     };
   }, []);
 
