@@ -1,4 +1,4 @@
-import { getExternalAdmin, getExternalUserClient } from "../_shared/external-supabase.ts";
+import { getExternalAdmin, getExternalUserClient, getExternalAnonKey } from "../_shared/external-supabase.ts";
 import { sendReportsMessage, getReportsLinkForUser, sendReportsAsImage } from "../_shared/reports-bot.ts";
 import { dueSlotKeys } from "../_shared/schedule.ts";
 
@@ -12,6 +12,16 @@ function fmtBRL(n: number) {
 }
 function fmtDateBR(iso: string) {
   return iso.split("-").reverse().join("/");
+}
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")));
+  } catch (_) {
+    return null;
+  }
 }
 function nowInTZ(tz = "America/Sao_Paulo") {
   const fmt = new Intl.DateTimeFormat("en-CA", {
@@ -270,10 +280,17 @@ Deno.serve(async (req) => {
 
   const { date: today, tomorrow, hhmm } = nowInTZ();
   const authHeader = req.headers.get("Authorization") ?? "";
-  const token = authHeader.replace(/^Bearer\s+/i, "");
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const anonKeys = new Set([
+    getExternalAnonKey(),
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "",
+  ].filter(Boolean));
+  const jwtPayload = decodeJwtPayload(token);
+  const hasUserJwt = Boolean(token) && !anonKeys.has(token) && typeof jwtPayload?.sub === "string";
 
   // Manual on-demand send — valida o JWT contra o Supabase EXTERNO (onde o usuário está logado)
-  if (token && req.method === "POST") {
+  if (hasUserJwt && req.method === "POST") {
     const userClient = getExternalUserClient();
     const { data: { user }, error: userErr } = await userClient.auth.getUser(token);
     if (userErr || !user) {
