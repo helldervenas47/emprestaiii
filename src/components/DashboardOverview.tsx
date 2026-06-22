@@ -2775,16 +2775,24 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   </div>
                   {pendingRecs.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-3">
-                      {isOverdueView ? "Nenhum juros vencido." : "Nenhum juros pendente neste período."}
+                      {isContractOverdueView
+                        ? "Nenhum contrato vencido com juros em aberto."
+                        : isOverdueView
+                        ? "Nenhum juros vencido."
+                        : "Nenhum juros pendente neste período."}
                     </p>
                   ) : (
                     <>
                       {pendingRecs.map((rec, i) => {
                         const isOverdue = rec.dueDate < today;
-                        const rowBg = isOverdueView || isOverdue ? "bg-destructive/5 border-destructive/30" : "bg-warning/5 border-warning/30";
-                        const badgeBg = isOverdueView || isOverdue ? "bg-destructive/20 text-destructive" : "bg-warning/20 text-warning";
-                        const valueColor = isOverdueView || isOverdue ? "text-destructive" : "text-warning";
-                        const badgeLabel = isOverdueView || isOverdue ? "Vencido" : "Pendente";
+                        const contractExpired = !!rec.loanDueDate && rec.loanDueDate < today;
+                        const useRed = isContractOverdueView || isOverdueView || isOverdue || contractExpired;
+                        const rowBg = useRed ? "bg-destructive/5 border-destructive/30" : "bg-warning/5 border-warning/30";
+                        const badgeBg = useRed ? "bg-destructive/20 text-destructive" : "bg-warning/20 text-warning";
+                        const valueColor = useRed ? "text-destructive" : "text-warning";
+                        const badgeLabel = isContractOverdueView || contractExpired
+                          ? "Contrato vencido"
+                          : (isOverdueView || isOverdue ? "Vencido" : "Pendente");
                         return (
                         <div key={`p-${i}`} className={`flex items-center justify-between p-3 rounded-lg border ${rowBg}`}>
                           <div className="flex-1 min-w-0">
@@ -2799,6 +2807,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                               </div>
                             <p className="text-xs text-muted-foreground mt-0.5">
                               {new Date(rec.dueDate + "T00:00:00").toLocaleDateString("pt-BR")} — Parcela {rec.installmentNumber}/{rec.totalInstallments}
+                              {rec.loanDueDate ? ` · Contrato venc. ${new Date(rec.loanDueDate + "T00:00:00").toLocaleDateString("pt-BR")}` : ""}
                             </p>
                           </div>
                           <div className="text-right ml-3">
@@ -2821,8 +2830,11 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   <p className="text-sm font-semibold">
                     {showReceived
                       ? "Total (Recebidos + Pendentes)"
+                      : isContractOverdueView
+                      ? "Total Contratos Vencidos"
                       : isOverdueView
                       ? "Total Vencidos"
+
                       : "Total Pendente"}
                   </p>
                   <p className="text-base font-bold text-foreground">{formatCurrency(grandTotal)}</p>
