@@ -1902,20 +1902,28 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         // Interest metrics based on selected period filter (installment due dates)
         // Use interestExpectedRecords como fonte única para garantir consistência com o detalhamento
         const interestReceivedInPeriod = data.periodProfitRealized;
-        const interestPendingInPeriod = data.periodProfitExpected;
-        const interestDueInPeriod = interestReceivedInPeriod + interestPendingInPeriod;
+        const today = todayInAppTz();
+        const pendingRecsAll = data.interestExpectedRecords.filter((r) => !r.paid);
+        const interestOverdueInPeriod = pendingRecsAll
+          .filter((r) => r.dueDate < today)
+          .reduce((s, r) => s + r.interestPortion, 0);
+        const interestPendingNotOverdue = pendingRecsAll
+          .filter((r) => r.dueDate >= today)
+          .reduce((s, r) => s + r.interestPortion, 0);
+        const interestDueInPeriod = interestReceivedInPeriod + interestOverdueInPeriod + interestPendingNotOverdue;
 
         const items: Array<{ label: string; value: string; color: string; iconBg: string; iconColor: string; onClick?: () => void; tooltip?: string }> = [
           { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", tooltip: "Principal proporcional ainda em aberto: para cada contrato ativo, valor emprestado × (parcelas restantes ÷ total de parcelas). Diminui conforme as parcelas são pagas." },
           { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Valor restante a receber de todos os contratos de empréstimos ativos." },
           { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Total de juros previstos a receber considerando todos os contratos ativos até o final dos seus ciclos. É o lucro projetado se todos pagarem conforme o combinado." },
-          { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: () => { setInterestExpectedFilter("all"); setShowInterestExpectedDetail(true); }, tooltip: "Soma dos 'Juros Recebidos no Mês' + 'Juros Pendentes do Mês'. Representa o total de juros do período: o que já entrou somado ao que ainda falta receber. Clique para ver o detalhamento." },
+          { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: () => { setInterestExpectedFilter("all"); setShowInterestExpectedDetail(true); }, tooltip: "Soma dos 'Juros Recebidos' + 'Juros Pendentes' + 'Juros Vencidos' do mês. Clique para ver o detalhamento." },
           { label: "Juros Recebidos", value: formatCurrency(interestReceivedInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => setShowInterestDetail(true), tooltip: "Critério: DATA DE PAGAMENTO + contabilidade JUROS PRIMEIRO. Cada pagamento amortiza antes o juros pendente do contrato; juros avulsos (sem parcela) contam 100% como juros; na quitação, todo o lucro residual (incl. acordos com bônus ou desconto) é alocado ao último pagamento. Clique para ver o detalhamento." },
-          { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => { setInterestExpectedFilter("pending"); setShowInterestExpectedDetail(true); }, tooltip: "Diferença entre 'Juros a Receber no Mês' (vencimento) e 'Juros Recebidos no Mês' (pagamento). Clique para ver o detalhamento do que está pendente de recebimento." },
+          { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingNotOverdue), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => { setInterestExpectedFilter("pending"); setShowInterestExpectedDetail(true); }, tooltip: "Juros ainda não recebidos cujo vencimento ainda não chegou. Clique para ver o detalhamento." },
+          { label: "Juros Vencidos do Mês", value: formatCurrency(interestOverdueInPeriod), color: "text-destructive", iconBg: "bg-destructive/10", iconColor: "text-destructive", onClick: () => { setInterestExpectedFilter("overdue"); setShowInterestExpectedDetail(true); }, tooltip: "Juros cujo vencimento já passou e que ainda não foram recebidos. Clique para ver o detalhamento." },
         ];
 
         return (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
             {items.map((item) => (
               <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
                 <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center relative">
@@ -2647,7 +2655,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               .slice()
               .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
             const overdueRecs = allPending.filter((r) => r.dueDate < today);
-            const pendingRecs = interestExpectedFilter === "overdue" ? overdueRecs : allPending;
+            const notOverdueRecs = allPending.filter((r) => r.dueDate >= today);
+            const pendingRecs = interestExpectedFilter === "overdue"
+              ? overdueRecs
+              : interestExpectedFilter === "pending"
+              ? notOverdueRecs
+              : allPending;
             const pendingTotal = pendingRecs.reduce((s, r) => s + r.interestPortion, 0);
             const overdueTotal = overdueRecs.reduce((s, r) => s + r.interestPortion, 0);
             const receivedRecs = data.interestDetailRecords
@@ -2681,7 +2694,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     onClick={() => setInterestExpectedFilter("pending")}
                     className="h-8 text-xs"
                   >
-                    Pendentes ({allPending.length})
+                    Pendentes ({notOverdueRecs.length})
                   </Button>
                   <Button
                     size="sm"
