@@ -486,7 +486,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
           if (isInRange(dStr, range.start, range.end)) {
             acc += interestPerInstallment;
-            interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: dStr, installmentNumber: i + 1, totalInstallments: loan.installments, installmentAmount, interestPortion: interestPerInstallment, loanStatus: loan.status, paid: isInstallmentPaid(i + 1), tags: loan.tags || [] });
+            interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: dStr, installmentNumber: i + 1, totalInstallments: loan.installments, installmentAmount, interestPortion: interestPerInstallment, loanStatus: loan.status, paid: isInstallmentPaid(i + 1), tags: loan.tags || [], loanId: loan.id, loanDueDate: loan.dueDate });
           }
         }
         return sum + acc;
