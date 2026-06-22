@@ -2643,6 +2643,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 ? "Juros Pendentes do Mês"
                 : interestExpectedFilter === "overdue"
                 ? "Juros Vencidos"
+                : interestExpectedFilter === "contract_overdue"
+                ? "Contratos Vencidos"
                 : "Juros a Receber no Mês"} — {range.label}
             </SheetTitle>
           </SheetHeader>
@@ -2655,7 +2657,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               .slice()
               .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
             const overdueRecs = allPending.filter((r) => r.dueDate < today);
-            const pendingRecs = interestExpectedFilter === "overdue" ? overdueRecs : allPending;
+            const contractOverdueRecs = allPending.filter((r) => !!r.loanDueDate && r.loanDueDate < today);
+            const pendingRecs =
+              interestExpectedFilter === "overdue"
+                ? overdueRecs
+                : interestExpectedFilter === "contract_overdue"
+                ? contractOverdueRecs
+                : allPending;
             const pendingTotal = pendingRecs.reduce((s, r) => s + r.interestPortion, 0);
             const overdueTotal = overdueRecs.reduce((s, r) => s + r.interestPortion, 0);
             const receivedRecs = data.interestDetailRecords
@@ -2665,11 +2673,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             const receivedTotal = receivedRecs.reduce((s, r) => s + r.interestPortion, 0);
             const showReceived = interestExpectedFilter === "all";
             const isOverdueView = interestExpectedFilter === "overdue";
-            const pendingLabel = isOverdueView ? "Vencidos" : "Pendentes";
-            const pendingColor = isOverdueView ? "text-destructive" : "text-warning";
-            const pendingBg = isOverdueView ? "bg-destructive/5 border-destructive/30" : "bg-warning/5 border-warning/30";
-            const pendingBadgeBg = isOverdueView ? "bg-destructive/20 text-destructive" : "bg-warning/20 text-warning";
-            const pendingValueColor = isOverdueView ? "text-destructive" : "text-warning";
+            const isContractOverdueView = interestExpectedFilter === "contract_overdue";
+            const useDestructive = isOverdueView || isContractOverdueView;
+            const pendingLabel = isContractOverdueView ? "Contratos Vencidos" : isOverdueView ? "Vencidos" : "Pendentes";
+            const pendingColor = useDestructive ? "text-destructive" : "text-warning";
+            const pendingBg = useDestructive ? "bg-destructive/5 border-destructive/30" : "bg-warning/5 border-warning/30";
+            const pendingBadgeBg = useDestructive ? "bg-destructive/20 text-destructive" : "bg-warning/20 text-warning";
+            const pendingValueColor = useDestructive ? "text-destructive" : "text-warning";
             const grandTotal = pendingTotal + (showReceived ? receivedTotal : 0);
             return (
               <div className="mt-4 space-y-4">
@@ -2699,7 +2709,16 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   >
                     Vencidos ({overdueRecs.length})
                   </Button>
+                  <Button
+                    size="sm"
+                    variant={interestExpectedFilter === "contract_overdue" ? "default" : "outline"}
+                    onClick={() => setInterestExpectedFilter("contract_overdue")}
+                    className="h-8 text-xs"
+                  >
+                    Contratos Vencidos ({contractOverdueRecs.length})
+                  </Button>
                 </div>
+
                 <Input
                   placeholder="Buscar por nome do cliente..."
                   value={interestExpectedSearch}
