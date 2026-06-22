@@ -2694,7 +2694,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     onClick={() => setInterestExpectedFilter("pending")}
                     className="h-8 text-xs"
                   >
-                    Pendentes ({allPending.length})
+                    Pendentes ({notOverdueRecs.length})
                   </Button>
                   <Button
                     size="sm"
