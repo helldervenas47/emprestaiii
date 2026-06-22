@@ -2655,7 +2655,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               .slice()
               .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
             const overdueRecs = allPending.filter((r) => r.dueDate < today);
-            const pendingRecs = interestExpectedFilter === "overdue" ? overdueRecs : allPending;
+            const notOverdueRecs = allPending.filter((r) => r.dueDate >= today);
+            const pendingRecs = interestExpectedFilter === "overdue"
+              ? overdueRecs
+              : interestExpectedFilter === "pending"
+              ? notOverdueRecs
+              : allPending;
             const pendingTotal = pendingRecs.reduce((s, r) => s + r.interestPortion, 0);
             const overdueTotal = overdueRecs.reduce((s, r) => s + r.interestPortion, 0);
             const receivedRecs = data.interestDetailRecords
