@@ -266,7 +266,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [showInterestDetail, setShowInterestDetail] = useState(false);
   const [receivedDetailMethodId, setReceivedDetailMethodId] = useState<string | null>(null);
   const [showInterestExpectedDetail, setShowInterestExpectedDetail] = useState(false);
-  const [interestExpectedFilter, setInterestExpectedFilter] = useState<"all" | "pending" | "overdue">("all");
+  const [interestExpectedFilter, setInterestExpectedFilter] = useState<"all" | "pending" | "overdue" | "contract_overdue">("all");
   const [interestReceivedSearch, setInterestReceivedSearch] = useState("");
   const [interestExpectedSearch, setInterestExpectedSearch] = useState("");
   const [showHealthInfo, setShowHealthInfo] = useState(false);
@@ -454,7 +454,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
     // Juros previstos do período — porção de juros das parcelas com vencimento no período
     // Inclui TODOS os contratos (ativos, atrasados E quitados) — bruto, sem subtrair pagamentos.
-    const interestExpectedRecords: { borrowerName: string; dueDate: string; installmentNumber: number; totalInstallments: number; installmentAmount: number; interestPortion: number; loanStatus: string; paid: boolean; tags: string[] }[] = [];
+    const interestExpectedRecords: { borrowerName: string; dueDate: string; installmentNumber: number; totalInstallments: number; installmentAmount: number; interestPortion: number; loanStatus: string; paid: boolean; tags: string[]; loanId: string; loanDueDate: string }[] = [];
     const periodProfitExpected = loans.reduce((sum, loan) => {
       const totalWithInterest = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
       const totalInterest = Math.max(0, totalWithInterest - loan.amount);
@@ -472,7 +472,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             .forEach((sc) => {
               const interest = sc.amount * interestRatio;
               acc += interest;
-              interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: sc.dueDate, installmentNumber: sc.installmentNumber, totalInstallments: loan.installments, installmentAmount: sc.amount, interestPortion: interest, loanStatus: loan.status, paid: isInstallmentPaid(sc.installmentNumber), tags: loan.tags || [] });
+              interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: sc.dueDate, installmentNumber: sc.installmentNumber, totalInstallments: loan.installments, installmentAmount: sc.amount, interestPortion: interest, loanStatus: loan.status, paid: isInstallmentPaid(sc.installmentNumber), tags: loan.tags || [], loanId: loan.id, loanDueDate: loan.dueDate });
             });
           return sum + acc;
         }
@@ -486,14 +486,14 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
           if (isInRange(dStr, range.start, range.end)) {
             acc += interestPerInstallment;
-            interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: dStr, installmentNumber: i + 1, totalInstallments: loan.installments, installmentAmount, interestPortion: interestPerInstallment, loanStatus: loan.status, paid: isInstallmentPaid(i + 1), tags: loan.tags || [] });
+            interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: dStr, installmentNumber: i + 1, totalInstallments: loan.installments, installmentAmount, interestPortion: interestPerInstallment, loanStatus: loan.status, paid: isInstallmentPaid(i + 1), tags: loan.tags || [], loanId: loan.id, loanDueDate: loan.dueDate });
           }
         }
         return sum + acc;
       }
       // Parcela única
       if (loan.dueDate && isInRange(loan.dueDate, range.start, range.end)) {
-        interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: loan.dueDate, installmentNumber: 1, totalInstallments: 1, installmentAmount: totalWithInterest, interestPortion: totalInterest, loanStatus: loan.status, paid: isInstallmentPaid(1), tags: loan.tags || [] });
+        interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: loan.dueDate, installmentNumber: 1, totalInstallments: 1, installmentAmount: totalWithInterest, interestPortion: totalInterest, loanStatus: loan.status, paid: isInstallmentPaid(1), tags: loan.tags || [], loanId: loan.id, loanDueDate: loan.dueDate });
         return sum + totalInterest;
       }
       return sum;
@@ -1905,6 +1905,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         const interestPendingInPeriod = data.periodProfitExpected;
         const interestDueInPeriod = interestReceivedInPeriod + interestPendingInPeriod;
 
+        // Juros vinculados a contratos com data de vencimento já expirada e ainda em aberto
+        const todayStr = todayInAppTz();
+        const contractOverdueInterest = data.interestExpectedRecords
+          .filter((r) => !r.paid && !!r.loanDueDate && r.loanDueDate < todayStr)
+          .reduce((s, r) => s + r.interestPortion, 0);
+
         const items: Array<{ label: string; value: string; color: string; iconBg: string; iconColor: string; onClick?: () => void; tooltip?: string }> = [
           { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", tooltip: "Principal proporcional ainda em aberto: para cada contrato ativo, valor emprestado × (parcelas restantes ÷ total de parcelas). Diminui conforme as parcelas são pagas." },
           { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Valor restante a receber de todos os contratos de empréstimos ativos." },
@@ -1912,10 +1918,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: () => { setInterestExpectedFilter("all"); setShowInterestExpectedDetail(true); }, tooltip: "Soma dos 'Juros Recebidos no Mês' + 'Juros Pendentes do Mês'. Representa o total de juros do período: o que já entrou somado ao que ainda falta receber. Clique para ver o detalhamento." },
           { label: "Juros Recebidos", value: formatCurrency(interestReceivedInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => setShowInterestDetail(true), tooltip: "Critério: DATA DE PAGAMENTO + contabilidade JUROS PRIMEIRO. Cada pagamento amortiza antes o juros pendente do contrato; juros avulsos (sem parcela) contam 100% como juros; na quitação, todo o lucro residual (incl. acordos com bônus ou desconto) é alocado ao último pagamento. Clique para ver o detalhamento." },
           { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => { setInterestExpectedFilter("pending"); setShowInterestExpectedDetail(true); }, tooltip: "Diferença entre 'Juros a Receber no Mês' (vencimento) e 'Juros Recebidos no Mês' (pagamento). Clique para ver o detalhamento do que está pendente de recebimento." },
+          { label: "Contratos Vencidos", value: formatCurrency(contractOverdueInterest), color: "text-destructive", iconBg: "bg-destructive/10", iconColor: "text-destructive", onClick: () => { setInterestExpectedFilter("contract_overdue"); setShowInterestExpectedDetail(true); }, tooltip: "Soma dos juros associados a contratos cujo prazo de vigência já expirou (data de vencimento do contrato < hoje) e que ainda possuem valores em aberto. Clique para ver o detalhamento." },
         ];
 
         return (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+
             {items.map((item) => (
               <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
                 <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center relative">
@@ -2635,6 +2643,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 ? "Juros Pendentes do Mês"
                 : interestExpectedFilter === "overdue"
                 ? "Juros Vencidos"
+                : interestExpectedFilter === "contract_overdue"
+                ? "Contratos Vencidos"
                 : "Juros a Receber no Mês"} — {range.label}
             </SheetTitle>
           </SheetHeader>
@@ -2647,7 +2657,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               .slice()
               .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
             const overdueRecs = allPending.filter((r) => r.dueDate < today);
-            const pendingRecs = interestExpectedFilter === "overdue" ? overdueRecs : allPending;
+            const contractOverdueRecs = allPending.filter((r) => !!r.loanDueDate && r.loanDueDate < today);
+            const pendingRecs =
+              interestExpectedFilter === "overdue"
+                ? overdueRecs
+                : interestExpectedFilter === "contract_overdue"
+                ? contractOverdueRecs
+                : allPending;
             const pendingTotal = pendingRecs.reduce((s, r) => s + r.interestPortion, 0);
             const overdueTotal = overdueRecs.reduce((s, r) => s + r.interestPortion, 0);
             const receivedRecs = data.interestDetailRecords
@@ -2657,11 +2673,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             const receivedTotal = receivedRecs.reduce((s, r) => s + r.interestPortion, 0);
             const showReceived = interestExpectedFilter === "all";
             const isOverdueView = interestExpectedFilter === "overdue";
-            const pendingLabel = isOverdueView ? "Vencidos" : "Pendentes";
-            const pendingColor = isOverdueView ? "text-destructive" : "text-warning";
-            const pendingBg = isOverdueView ? "bg-destructive/5 border-destructive/30" : "bg-warning/5 border-warning/30";
-            const pendingBadgeBg = isOverdueView ? "bg-destructive/20 text-destructive" : "bg-warning/20 text-warning";
-            const pendingValueColor = isOverdueView ? "text-destructive" : "text-warning";
+            const isContractOverdueView = interestExpectedFilter === "contract_overdue";
+            const useDestructive = isOverdueView || isContractOverdueView;
+            const pendingLabel = isContractOverdueView ? "Contratos Vencidos" : isOverdueView ? "Vencidos" : "Pendentes";
+            const pendingColor = useDestructive ? "text-destructive" : "text-warning";
+            const pendingBg = useDestructive ? "bg-destructive/5 border-destructive/30" : "bg-warning/5 border-warning/30";
+            const pendingBadgeBg = useDestructive ? "bg-destructive/20 text-destructive" : "bg-warning/20 text-warning";
+            const pendingValueColor = useDestructive ? "text-destructive" : "text-warning";
             const grandTotal = pendingTotal + (showReceived ? receivedTotal : 0);
             return (
               <div className="mt-4 space-y-4">
@@ -2691,7 +2709,16 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   >
                     Vencidos ({overdueRecs.length})
                   </Button>
+                  <Button
+                    size="sm"
+                    variant={interestExpectedFilter === "contract_overdue" ? "default" : "outline"}
+                    onClick={() => setInterestExpectedFilter("contract_overdue")}
+                    className="h-8 text-xs"
+                  >
+                    Contratos Vencidos ({contractOverdueRecs.length})
+                  </Button>
                 </div>
+
                 <Input
                   placeholder="Buscar por nome do cliente..."
                   value={interestExpectedSearch}
@@ -2748,16 +2775,24 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   </div>
                   {pendingRecs.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-3">
-                      {isOverdueView ? "Nenhum juros vencido." : "Nenhum juros pendente neste período."}
+                      {isContractOverdueView
+                        ? "Nenhum contrato vencido com juros em aberto."
+                        : isOverdueView
+                        ? "Nenhum juros vencido."
+                        : "Nenhum juros pendente neste período."}
                     </p>
                   ) : (
                     <>
                       {pendingRecs.map((rec, i) => {
                         const isOverdue = rec.dueDate < today;
-                        const rowBg = isOverdueView || isOverdue ? "bg-destructive/5 border-destructive/30" : "bg-warning/5 border-warning/30";
-                        const badgeBg = isOverdueView || isOverdue ? "bg-destructive/20 text-destructive" : "bg-warning/20 text-warning";
-                        const valueColor = isOverdueView || isOverdue ? "text-destructive" : "text-warning";
-                        const badgeLabel = isOverdueView || isOverdue ? "Vencido" : "Pendente";
+                        const contractExpired = !!rec.loanDueDate && rec.loanDueDate < today;
+                        const useRed = isContractOverdueView || isOverdueView || isOverdue || contractExpired;
+                        const rowBg = useRed ? "bg-destructive/5 border-destructive/30" : "bg-warning/5 border-warning/30";
+                        const badgeBg = useRed ? "bg-destructive/20 text-destructive" : "bg-warning/20 text-warning";
+                        const valueColor = useRed ? "text-destructive" : "text-warning";
+                        const badgeLabel = isContractOverdueView || contractExpired
+                          ? "Contrato vencido"
+                          : (isOverdueView || isOverdue ? "Vencido" : "Pendente");
                         return (
                         <div key={`p-${i}`} className={`flex items-center justify-between p-3 rounded-lg border ${rowBg}`}>
                           <div className="flex-1 min-w-0">
@@ -2772,6 +2807,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                               </div>
                             <p className="text-xs text-muted-foreground mt-0.5">
                               {new Date(rec.dueDate + "T00:00:00").toLocaleDateString("pt-BR")} — Parcela {rec.installmentNumber}/{rec.totalInstallments}
+                              {rec.loanDueDate ? ` · Contrato venc. ${new Date(rec.loanDueDate + "T00:00:00").toLocaleDateString("pt-BR")}` : ""}
                             </p>
                           </div>
                           <div className="text-right ml-3">
@@ -2794,8 +2830,11 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   <p className="text-sm font-semibold">
                     {showReceived
                       ? "Total (Recebidos + Pendentes)"
+                      : isContractOverdueView
+                      ? "Total Contratos Vencidos"
                       : isOverdueView
                       ? "Total Vencidos"
+
                       : "Total Pendente"}
                   </p>
                   <p className="text-base font-bold text-foreground">{formatCurrency(grandTotal)}</p>
