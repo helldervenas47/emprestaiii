@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
-import { supabase as functionsClient } from "@/integrations/supabase/client";
+import { USER_SUPABASE_PUBLISHABLE_KEY, USER_SUPABASE_URL } from "@/integrations/supabase/userClient";
 
 import type { User, Session } from "@supabase/supabase-js";
 
@@ -12,6 +12,24 @@ const ROLE_PRIORITY: Record<string, number> = {
   gerente: 3,
   cliente: 2,
   visualizador: 1,
+};
+
+const invokeExternalFunction = async <T,>(functionName: string, token: string, body: Record<string, unknown>) => {
+  const response = await fetch(`${USER_SUPABASE_URL}/functions/v1/${functionName}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: USER_SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(`Edge function returned ${response.status}: ${payload ? JSON.stringify(payload) : response.statusText}`);
+  }
+  return payload as T;
 };
 
 interface AuthContextType {
@@ -46,11 +64,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (roles.length === 0) {
       const token = accessToken ?? (await supabase.auth.getSession()).data.session?.access_token;
       if (token) {
-        const { data: ensuredRole, error: ensureRoleError } = await functionsClient.functions.invoke("ensure-user-role", {
-          body: { role: "cliente" },
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (ensureRoleError) {
+        let ensuredRole: { role?: string } | null = null;
+        try {
+          ensuredRole = await invokeExternalFunction<{ role?: string }>("ensure-user-role", token, { role: "cliente" });
+        } catch (ensureRoleError) {
           console.error("[useAuth] ensure-user-role error:", ensureRoleError);
         }
         const retry = await supabase
