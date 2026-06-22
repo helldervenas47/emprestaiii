@@ -493,7 +493,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       }
       // Parcela única
       if (loan.dueDate && isInRange(loan.dueDate, range.start, range.end)) {
-        interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: loan.dueDate, installmentNumber: 1, totalInstallments: 1, installmentAmount: totalWithInterest, interestPortion: totalInterest, loanStatus: loan.status, paid: isInstallmentPaid(1), tags: loan.tags || [] });
+        interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: loan.dueDate, installmentNumber: 1, totalInstallments: 1, installmentAmount: totalWithInterest, interestPortion: totalInterest, loanStatus: loan.status, paid: isInstallmentPaid(1), tags: loan.tags || [], loanId: loan.id, loanDueDate: loan.dueDate });
         return sum + totalInterest;
       }
       return sum;
