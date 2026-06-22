@@ -1905,6 +1905,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         const interestPendingInPeriod = data.periodProfitExpected;
         const interestDueInPeriod = interestReceivedInPeriod + interestPendingInPeriod;
 
+        // Juros vinculados a contratos com data de vencimento já expirada e ainda em aberto
+        const todayStr = todayInAppTz();
+        const contractOverdueInterest = data.interestExpectedRecords
+          .filter((r) => !r.paid && !!r.loanDueDate && r.loanDueDate < todayStr)
+          .reduce((s, r) => s + r.interestPortion, 0);
+
         const items: Array<{ label: string; value: string; color: string; iconBg: string; iconColor: string; onClick?: () => void; tooltip?: string }> = [
           { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", tooltip: "Principal proporcional ainda em aberto: para cada contrato ativo, valor emprestado × (parcelas restantes ÷ total de parcelas). Diminui conforme as parcelas são pagas." },
           { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Valor restante a receber de todos os contratos de empréstimos ativos." },
@@ -1912,10 +1918,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: () => { setInterestExpectedFilter("all"); setShowInterestExpectedDetail(true); }, tooltip: "Soma dos 'Juros Recebidos no Mês' + 'Juros Pendentes do Mês'. Representa o total de juros do período: o que já entrou somado ao que ainda falta receber. Clique para ver o detalhamento." },
           { label: "Juros Recebidos", value: formatCurrency(interestReceivedInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => setShowInterestDetail(true), tooltip: "Critério: DATA DE PAGAMENTO + contabilidade JUROS PRIMEIRO. Cada pagamento amortiza antes o juros pendente do contrato; juros avulsos (sem parcela) contam 100% como juros; na quitação, todo o lucro residual (incl. acordos com bônus ou desconto) é alocado ao último pagamento. Clique para ver o detalhamento." },
           { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => { setInterestExpectedFilter("pending"); setShowInterestExpectedDetail(true); }, tooltip: "Diferença entre 'Juros a Receber no Mês' (vencimento) e 'Juros Recebidos no Mês' (pagamento). Clique para ver o detalhamento do que está pendente de recebimento." },
+          { label: "Contratos Vencidos", value: formatCurrency(contractOverdueInterest), color: "text-destructive", iconBg: "bg-destructive/10", iconColor: "text-destructive", onClick: () => { setInterestExpectedFilter("contract_overdue"); setShowInterestExpectedDetail(true); }, tooltip: "Soma dos juros associados a contratos cujo prazo de vigência já expirou (data de vencimento do contrato < hoje) e que ainda possuem valores em aberto. Clique para ver o detalhamento." },
         ];
 
         return (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+
             {items.map((item) => (
               <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
                 <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center relative">
