@@ -2630,25 +2630,68 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       <Sheet open={showInterestExpectedDetail} onOpenChange={setShowInterestExpectedDetail}>
         <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
           <SheetHeader>
-            <SheetTitle>{interestExpectedFilter === "pending" ? "Juros Pendentes do Mês" : "Juros a Receber no Mês"} — {range.label}</SheetTitle>
+            <SheetTitle>
+              {interestExpectedFilter === "pending"
+                ? "Juros Pendentes do Mês"
+                : interestExpectedFilter === "overdue"
+                ? "Juros Vencidos"
+                : "Juros a Receber no Mês"} — {range.label}
+            </SheetTitle>
           </SheetHeader>
           {(() => {
             const q = interestExpectedSearch.trim().toLowerCase();
             const matches = (name: string) => !q || name.toLowerCase().includes(q);
-            const pendingRecs = data.interestExpectedRecords
+            const today = todayInAppTz();
+            const allPending = data.interestExpectedRecords
               .filter((r) => !r.paid && matches(r.borrowerName))
               .slice()
               .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+            const overdueRecs = allPending.filter((r) => r.dueDate < today);
+            const pendingRecs = interestExpectedFilter === "overdue" ? overdueRecs : allPending;
             const pendingTotal = pendingRecs.reduce((s, r) => s + r.interestPortion, 0);
+            const overdueTotal = overdueRecs.reduce((s, r) => s + r.interestPortion, 0);
             const receivedRecs = data.interestDetailRecords
               .filter((r) => matches(r.borrowerName))
               .slice()
               .sort((a, b) => a.date.localeCompare(b.date));
             const receivedTotal = receivedRecs.reduce((s, r) => s + r.interestPortion, 0);
             const showReceived = interestExpectedFilter === "all";
+            const isOverdueView = interestExpectedFilter === "overdue";
+            const pendingLabel = isOverdueView ? "Vencidos" : "Pendentes";
+            const pendingColor = isOverdueView ? "text-destructive" : "text-warning";
+            const pendingBg = isOverdueView ? "bg-destructive/5 border-destructive/30" : "bg-warning/5 border-warning/30";
+            const pendingBadgeBg = isOverdueView ? "bg-destructive/20 text-destructive" : "bg-warning/20 text-warning";
+            const pendingValueColor = isOverdueView ? "text-destructive" : "text-warning";
             const grandTotal = pendingTotal + (showReceived ? receivedTotal : 0);
             return (
               <div className="mt-4 space-y-4">
+                {/* Filtros */}
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    size="sm"
+                    variant={interestExpectedFilter === "all" ? "default" : "outline"}
+                    onClick={() => setInterestExpectedFilter("all")}
+                    className="h-8 text-xs"
+                  >
+                    Todos
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={interestExpectedFilter === "pending" ? "default" : "outline"}
+                    onClick={() => setInterestExpectedFilter("pending")}
+                    className="h-8 text-xs"
+                  >
+                    Pendentes ({allPending.length})
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={interestExpectedFilter === "overdue" ? "default" : "outline"}
+                    onClick={() => setInterestExpectedFilter("overdue")}
+                    className="h-8 text-xs"
+                  >
+                    Vencidos ({overdueRecs.length})
+                  </Button>
+                </div>
                 <Input
                   placeholder="Buscar por nome do cliente..."
                   value={interestExpectedSearch}
@@ -2697,21 +2740,29 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   </div>
                 )}
 
-                {/* Pendentes */}
+                {/* Pendentes / Vencidos */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-warning">Pendentes</p>
+                    <p className={`text-xs font-semibold uppercase tracking-wider ${pendingColor}`}>{pendingLabel}</p>
                     <p className="text-xs text-muted-foreground">{pendingRecs.length} registro(s)</p>
                   </div>
                   {pendingRecs.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-3">Nenhum juros pendente neste período.</p>
+                    <p className="text-sm text-muted-foreground text-center py-3">
+                      {isOverdueView ? "Nenhum juros vencido." : "Nenhum juros pendente neste período."}
+                    </p>
                   ) : (
                     <>
-                      {pendingRecs.map((rec, i) => (
-                        <div key={`p-${i}`} className="flex items-center justify-between p-3 rounded-lg bg-warning/5 border border-warning/30">
+                      {pendingRecs.map((rec, i) => {
+                        const isOverdue = rec.dueDate < today;
+                        const rowBg = isOverdueView || isOverdue ? "bg-destructive/5 border-destructive/30" : "bg-warning/5 border-warning/30";
+                        const badgeBg = isOverdueView || isOverdue ? "bg-destructive/20 text-destructive" : "bg-warning/20 text-warning";
+                        const valueColor = isOverdueView || isOverdue ? "text-destructive" : "text-warning";
+                        const badgeLabel = isOverdueView || isOverdue ? "Vencido" : "Pendente";
+                        return (
+                        <div key={`p-${i}`} className={`flex items-center justify-between p-3 rounded-lg border ${rowBg}`}>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                                <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-warning/20 text-warning">Pendente</span>
+                                <span className={`text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded ${badgeBg}`}>{badgeLabel}</span>
                                 <p className="text-sm font-medium truncate">{rec.borrowerName}</p>
                                 {rec.tags && rec.tags.length > 0 && rec.tags.map((t, idx) => (
                                   <Badge key={idx} variant="outline" className="text-[9px] h-4 py-0 px-1 border-primary/40 text-primary bg-primary/5">
@@ -2724,14 +2775,15 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                             </p>
                           </div>
                           <div className="text-right ml-3">
-                            <p className="text-sm font-bold text-warning">{formatCurrency(rec.interestPortion)}</p>
+                            <p className={`text-sm font-bold ${valueColor}`}>{formatCurrency(rec.interestPortion)}</p>
                             <p className="text-[10px] text-muted-foreground">de {formatCurrency(rec.installmentAmount)}</p>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                       <div className="flex items-center justify-between pt-2 border-t border-border/60">
-                        <p className="text-xs font-semibold">Subtotal Pendente</p>
-                        <p className="text-sm font-bold text-warning">{formatCurrency(pendingTotal)}</p>
+                        <p className="text-xs font-semibold">Subtotal {pendingLabel}</p>
+                        <p className={`text-sm font-bold ${pendingValueColor}`}>{formatCurrency(pendingTotal)}</p>
                       </div>
                     </>
                   )}
@@ -2739,7 +2791,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
                 {/* Total */}
                 <div className="flex items-center justify-between pt-3 border-t-2 border-border">
-                  <p className="text-sm font-semibold">{showReceived ? "Total (Recebidos + Pendentes)" : "Total Pendente"}</p>
+                  <p className="text-sm font-semibold">
+                    {showReceived
+                      ? "Total (Recebidos + Pendentes)"
+                      : isOverdueView
+                      ? "Total Vencidos"
+                      : "Total Pendente"}
+                  </p>
                   <p className="text-base font-bold text-foreground">{formatCurrency(grandTotal)}</p>
                 </div>
               </div>
@@ -2747,6 +2805,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           })()}
         </SheetContent>
       </Sheet>
+
 
       {isMobile ? (
         <Sheet open={riskAiOpen} onOpenChange={setRiskAiOpen}>
