@@ -472,7 +472,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             .forEach((sc) => {
               const interest = sc.amount * interestRatio;
               acc += interest;
-              interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: sc.dueDate, installmentNumber: sc.installmentNumber, totalInstallments: loan.installments, installmentAmount: sc.amount, interestPortion: interest, loanStatus: loan.status, paid: isInstallmentPaid(sc.installmentNumber), tags: loan.tags || [] });
+              interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: sc.dueDate, installmentNumber: sc.installmentNumber, totalInstallments: loan.installments, installmentAmount: sc.amount, interestPortion: interest, loanStatus: loan.status, paid: isInstallmentPaid(sc.installmentNumber), tags: loan.tags || [], loanId: loan.id, loanDueDate: loan.dueDate });
             });
           return sum + acc;
         }
