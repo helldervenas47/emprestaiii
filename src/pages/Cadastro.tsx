@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/userClient";
-import { supabase as functionsClient } from "@/integrations/supabase/client";
+import { supabase, USER_SUPABASE_PUBLISHABLE_KEY, USER_SUPABASE_URL } from "@/integrations/supabase/userClient";
 
 
 import { Button } from "@/components/ui/button";
@@ -34,13 +33,19 @@ const Cadastro = () => {
   const brandName = branding.brand_name;
 
   const ensureDefaultClienteRole = async (userId: string, userEmail?: string | null, accessToken?: string | null) => {
-    const { data: ensuredRole, error: ensureError } = await functionsClient.functions.invoke("ensure-user-role", {
-      body: { userId, email: userEmail, role: "cliente" },
-      ...(accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : {}),
+    const response = await fetch(`${USER_SUPABASE_URL}/functions/v1/ensure-user-role`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: USER_SUPABASE_PUBLISHABLE_KEY,
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify({ userId, email: userEmail, role: "cliente" }),
     });
+    const ensuredRole = await response.json().catch(() => null);
 
-    if (ensureError || ensuredRole?.error) {
-      console.error("[cadastro] ensure-user-role failed", ensureError ?? ensuredRole?.error);
+    if (!response.ok || ensuredRole?.error) {
+      console.error("[cadastro] ensure-user-role failed", ensuredRole?.error ?? response.statusText);
       toast.error("Cadastro criado, mas a função padrão não foi atribuída. Faça login novamente para reaplicar.");
       return false;
     }
