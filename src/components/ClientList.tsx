@@ -32,6 +32,45 @@ function DocumentsTabTrigger({ clientId }: { clientId: string }) {
   );
 }
 
+function DocsQuickButton({ clientId, onOpen }: { clientId: string; onOpen: () => void }) {
+  const { documents } = useClientDocuments(clientId);
+  const count = documents.length;
+  const hasDocs = count > 0;
+
+  const button = (
+    <button
+      type="button"
+      onClick={hasDocs ? onOpen : undefined}
+      disabled={!hasDocs}
+      aria-label={hasDocs ? `Abrir documentos (${count})` : "Nenhum documento anexado"}
+      className={`relative inline-flex h-7 w-7 items-center justify-center rounded-md border transition-colors ${
+        hasDocs
+          ? "border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"
+          : "border-border/50 bg-muted/30 text-muted-foreground/50 opacity-60 cursor-not-allowed"
+      }`}
+    >
+      <FileText className="h-3.5 w-3.5" />
+      {hasDocs && (
+        <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center leading-none">
+          {count > 99 ? "99+" : count}
+        </span>
+      )}
+    </button>
+  );
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipContent side="top">
+          {hasDocs ? `${count} documento${count > 1 ? "s" : ""} anexado${count > 1 ? "s" : ""}` : "Nenhum documento anexado"}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+
 
 interface Props {
   clients: Client[];
