@@ -231,11 +231,24 @@ export function ClientForm({ onAdd, onClose }: Props) {
               </p>
             </div>
 
-            <Button type="submit" className="w-full h-11 sm:h-11">
-              <Plus className="h-4 w-4 mr-2" />
-              Cadastrar Cliente
-            </Button>
+            <ClientDocuments
+              clientId={createdId}
+              disabledHint="Cadastre o cliente para começar a anexar documentos."
+            />
+
+            {createdId ? (
+              <Button type="button" className="w-full h-11" onClick={onClose}>
+                <Check className="h-4 w-4 mr-2" />
+                Concluir
+              </Button>
+            ) : (
+              <Button type="submit" className="w-full h-11" disabled={saving}>
+                <Plus className="h-4 w-4 mr-2" />
+                {saving ? "Salvando…" : "Cadastrar Cliente"}
+              </Button>
+            )}
           </form>
+
         </CardContent>
       </Card>
     </div>
