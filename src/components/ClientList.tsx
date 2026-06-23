@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, Clock, CalendarDays, TrendingUp, AlertTriangle, ShieldCheck, Wallet, Sparkles, Shield, SlidersHorizontal } from "lucide-react";
+import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, Clock, CalendarDays, TrendingUp, AlertTriangle, ShieldCheck, Wallet, Sparkles, Shield, SlidersHorizontal, FileText } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { RowActions } from "@/components/ui/row-actions";
 import { ClientDetailDialog } from "@/components/ClientDetailDialog";
@@ -30,6 +31,45 @@ function DocumentsTabTrigger({ clientId }: { clientId: string }) {
     </TabsTrigger>
   );
 }
+
+function DocsQuickButton({ clientId, onOpen }: { clientId: string; onOpen: () => void }) {
+  const { documents } = useClientDocuments(clientId);
+  const count = documents.length;
+  const hasDocs = count > 0;
+
+  const button = (
+    <button
+      type="button"
+      onClick={hasDocs ? onOpen : undefined}
+      disabled={!hasDocs}
+      aria-label={hasDocs ? `Abrir documentos (${count})` : "Nenhum documento anexado"}
+      className={`relative inline-flex h-7 w-7 items-center justify-center rounded-md border transition-colors ${
+        hasDocs
+          ? "border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"
+          : "border-border/50 bg-muted/30 text-muted-foreground/50 opacity-60 cursor-not-allowed"
+      }`}
+    >
+      <FileText className="h-3.5 w-3.5" />
+      {hasDocs && (
+        <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center leading-none">
+          {count > 99 ? "99+" : count}
+        </span>
+      )}
+    </button>
+  );
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipContent side="top">
+          {hasDocs ? `${count} documento${count > 1 ? "s" : ""} anexado${count > 1 ? "s" : ""}` : "Nenhum documento anexado"}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 
 
 interface Props {
@@ -141,6 +181,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTab, setEditingTab] = useState<"data" | "docs">("data");
   const [editForm, setEditForm] = useState<Record<string, any>>({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "", isVehicleRental: false, nacionalidade: "", estadoCivil: "", profissao: "", bairro: "", isManager: false, defaultInterestRate: "", creditLimit: "", autoBillingEnabled: true });
   const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -197,8 +238,9 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
   const inactiveCount = clients.filter((c) => c.active === false).length;
   const overLimitCount = overLimitClientIds.size;
 
-  const startEdit = (client: Client) => {
+  const startEdit = (client: Client, tab: "data" | "docs" = "data") => {
     setEditingId(client.id);
+    setEditingTab(tab);
     const cl = getLimitForClient(client.id);
     setEditForm({ name: client.name, phone: client.phone, email: client.email, cpf: client.cpf, cnpj: client.cnpj || "", rg: client.rg || "", address: client.address, city: client.city || "", state: client.state || "", score: client.score || "", notes: client.notes || "", isVehicleRental: client.isVehicleRental || false, nacionalidade: client.nacionalidade || "", estadoCivil: client.estadoCivil || "", profissao: client.profissao || "", bairro: client.bairro || "", isManager: client.isManager || false, defaultInterestRate: client.defaultInterestRate != null ? String(client.defaultInterestRate) : "", creditLimit: cl?.currentLimit != null ? String(cl.currentLimit) : "", autoBillingEnabled: client.autoBillingEnabled ?? true });
   };
@@ -387,7 +429,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
               <CardContent className="p-3 sm:p-5">
                 {editingId === client.id ? (
                   <div className="space-y-3">
-                    <Tabs defaultValue="data" className="w-full">
+                    <Tabs value={editingTab} onValueChange={(v) => setEditingTab(v as "data" | "docs")} className="w-full">
                       <TabsList className="w-full">
                         <TabsTrigger value="data" className="flex-1">Dados do Cliente</TabsTrigger>
                         <DocumentsTabTrigger clientId={client.id} />
@@ -573,6 +615,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                               <Badge variant="outline" className={client.active ? "bg-success/10 text-success border-success/20 text-xs" : "bg-muted text-muted-foreground border-border text-xs"}>
                                 {client.active ? "Ativo" : "Inativo"}
                               </Badge>
+                              <DocsQuickButton clientId={client.id} onOpen={() => startEdit(client, "docs")} />
                             </div>
                             {client.cpf && <p className="text-xs text-muted-foreground break-words">CPF: {client.cpf}</p>}
                             {client.phone && (
