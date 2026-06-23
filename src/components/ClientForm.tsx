@@ -37,19 +37,31 @@ export function ClientForm({ onAdd, onClose }: Props) {
     defaultInterestRate: "",
     autoBillingEnabled: true,
   });
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name) return;
+    if (!form.name || saving) return;
     const { defaultInterestRate, ...rest } = form;
     const parsedRate = defaultInterestRate.trim() === "" ? null : parseFloat(defaultInterestRate);
-    onAdd({
-      ...rest,
-      active: true,
-      defaultInterestRate: parsedRate !== null && !isNaN(parsedRate) ? parsedRate : null,
-    });
-    onClose();
+    setSaving(true);
+    try {
+      const result = await onAdd({
+        ...rest,
+        active: true,
+        defaultInterestRate: parsedRate !== null && !isNaN(parsedRate) ? parsedRate : null,
+      });
+      if (typeof result === "string" && result) {
+        setCreatedId(result);
+      } else {
+        onClose();
+      }
+    } finally {
+      setSaving(false);
+    }
   };
+
 
   const update = (field: string, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
