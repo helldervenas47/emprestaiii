@@ -631,11 +631,10 @@ export default function PiggyBankDetail() {
             </div>
             <div>
               <Label htmlFor="dep-date">Data</Label>
-              <Input
+              <DatePickerField
                 id="dep-date"
-                type="date"
                 value={editDepositDraft.depositDate}
-                onChange={(e) => setEditDepositDraft((p) => ({ ...p, depositDate: e.target.value }))}
+                onChange={(v) => setEditDepositDraft((p) => ({ ...p, depositDate: v }))}
               />
             </div>
           </div>
