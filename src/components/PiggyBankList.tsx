@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -515,12 +516,7 @@ export function PiggyBankList({ readOnly = false }: Props) {
               </div>
               <div>
                 <Label htmlFor="pb-target-date">Data prevista (opcional)</Label>
-                <Input
-                  id="pb-target-date"
-                  type="date"
-                  value={draft.targetDate}
-                  onChange={(e) => setDraft((p) => ({ ...p, targetDate: e.target.value }))}
-                />
+                <DatePickerField value={draft.targetDate} onChange={(v) => setDraft((p) => ({ ...p, targetDate: v }))} id="pb-target-date" />
               </div>
             </div>
             <div>
@@ -848,11 +844,10 @@ export function PiggyBankList({ readOnly = false }: Props) {
             </div>
             <div>
               <Label htmlFor="dep-date">Data</Label>
-              <Input
+              <DatePickerField
                 id="dep-date"
-                type="date"
                 value={editDepositDraft.depositDate}
-                onChange={(e) => setEditDepositDraft((p) => ({ ...p, depositDate: e.target.value }))}
+                onChange={(v) => setEditDepositDraft((p) => ({ ...p, depositDate: v }))}
               />
             </div>
           </div>

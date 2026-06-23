@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
@@ -714,11 +715,10 @@ export function RenegotiateLoanDialog({
               <Label className="text-xs flex items-center gap-1.5">
                 <CalendarDays className="h-3.5 w-3.5" /> 1ª parcela
               </Label>
-              <Input
-                type="date"
+              <DatePickerField
                 value={firstDueDate}
-                onChange={(e) => { setFirstDueDate(e.target.value); setCustomDates({}); setConfirming(false); }}
-                className="h-11 text-sm w-full min-w-0 px-3 text-center [&::-webkit-date-and-time-value]:text-center [&::-webkit-date-and-time-value]:w-full [&::-webkit-datetime-edit]:w-full [&::-webkit-datetime-edit]:text-center [&::-webkit-datetime-edit-fields-wrapper]:w-full [&::-webkit-datetime-edit-fields-wrapper]:justify-center [&::-webkit-calendar-picker-indicator]:ml-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 relative"
+                onChange={(v) => { setFirstDueDate(v); setCustomDates({}); setConfirming(false); }}
+                className="h-11 text-sm w-full"
               />
             </div>
             <div className="space-y-1.5">
@@ -884,11 +884,9 @@ export function RenegotiateLoanDialog({
                             </td>
                             <td className="px-1 py-1.5 text-muted-foreground truncate">
                               {row.isNew && row.newIndex !== undefined ? (
-                                <Input
-                                  type="date"
+                                <DatePickerField
                                   value={row.dueDate}
-                                  onChange={(e) => {
-                                    const v = e.target.value;
+                                  onChange={(v) => {
                                     setCustomDates((prev) => ({ ...prev, [row.newIndex as number]: v }));
                                     setConfirming(false);
                                   }}

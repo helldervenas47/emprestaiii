@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback, Fragment } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -770,7 +771,7 @@ function AdjustBalanceDialog({ open, onOpenChange, balances, onSaved }: { open: 
           )}
           <div>
             <Label>Data</Label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <DatePickerField value={date} onChange={setDate} />
           </div>
           <div>
             <Label>Descrição</Label>
@@ -848,7 +849,7 @@ function TransferDialog({ open, onOpenChange, balances, onSaved }: { open: boole
           </div>
           <div>
             <Label>Data</Label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <DatePickerField value={date} onChange={setDate} />
           </div>
           <div>
             <Label>Observação (opcional)</Label>
@@ -957,7 +958,7 @@ function EditLedgerDialog({ entry, onOpenChange, onSaved }: { entry: LedgerEntry
           <PaymentMethodPicker value={paymentMethodId} onChange={setPaymentMethodId} label="Forma de pagamento" />
           <div>
             <Label>Data</Label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <DatePickerField value={date} onChange={setDate} />
           </div>
           <div>
             <Label>Descrição</Label>

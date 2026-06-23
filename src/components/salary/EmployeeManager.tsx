@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, Search, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -201,7 +202,7 @@ function EmployeeFormDialog({ open, onOpenChange, initial, onSave }: {
             <div><Label>Cargo</Label><Input value={role} onChange={(e) => setRole(e.target.value)} /></div>
             <div><Label>Setor</Label><Input value={department} onChange={(e) => setDepartment(e.target.value)} /></div>
             <div><Label>Matrícula</Label><Input value={registration} onChange={(e) => setRegistration(e.target.value)} /></div>
-            <div><Label>Admissão</Label><Input type="date" value={hireDate ?? ""} onChange={(e) => setHireDate(e.target.value)} /></div>
+            <div><Label>Admissão</Label><DatePickerField value={hireDate ?? ""} onChange={setHireDate} /></div>
             <div>
               <Label>Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as any)}>

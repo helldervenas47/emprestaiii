@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Upload, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -264,8 +265,8 @@ export function BoletoFormDialog({
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Vencimento</Label>
-              <Input type="date" value={draft.dueDate}
-                onChange={(e) => setDraft((d) => ({ ...d, dueDate: e.target.value }))} />
+              <DatePickerField value={draft.dueDate}
+                onChange={(v) => setDraft((d) => ({ ...d, dueDate: v }))} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -289,8 +290,8 @@ export function BoletoFormDialog({
             {draft.status === "pago" && (
               <div className="space-y-1.5">
                 <Label className="text-xs">Pago em</Label>
-                <Input type="date" value={draft.paidAt}
-                  onChange={(e) => setDraft((d) => ({ ...d, paidAt: e.target.value }))} />
+                <DatePickerField value={draft.paidAt}
+                  onChange={(v) => setDraft((d) => ({ ...d, paidAt: v }))} />
               </div>
             )}
           </div>

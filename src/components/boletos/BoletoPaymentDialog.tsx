@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -79,7 +80,7 @@ export function BoletoPaymentDialog({ boleto, open, onOpenChange, onConfirm }: P
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Data do pagamento</Label>
-                <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
+                <DatePickerField value={paidAt} onChange={setPaidAt} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Valor pago (R$)</Label>

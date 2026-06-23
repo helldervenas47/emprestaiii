@@ -2,6 +2,7 @@ import { useState } from "react";
 // Card removed: this component is embedded inside TelegramReportsConnectCard.
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -205,12 +206,7 @@ export function TelegramManagerWeeklyCard() {
                 <CalendarIcon className="h-3 w-3" /> Data de referência (simulação)
               </Label>
               <div className="flex items-center gap-2">
-                <Input
-                  type="date"
-                  value={referenceDate}
-                  onChange={(e) => setReferenceDate(e.target.value)}
-                  className="h-9 text-xs w-[180px]"
-                />
+                <DatePickerField value={referenceDate} onChange={setReferenceDate} className="h-9 text-xs w-[180px]" />
                 {referenceDate && (
                   <Button size="sm" variant="ghost" onClick={() => { setReferenceDate(""); setPreviewWindow(null); }}>
                     Usar hoje
