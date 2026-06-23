@@ -18,6 +18,8 @@ import { RecentLimitAdjustmentsDialog } from "@/components/RecentLimitAdjustment
 import { MaxCreditLimitDialog } from "@/components/MaxCreditLimitDialog";
 import { useCreditLimits } from "@/hooks/useCreditLimits";
 import { computeAvailableLimit, computeUsedLimit, formatBRL } from "@/lib/creditLimit";
+import { ClientDocuments } from "@/components/ClientDocuments";
+
 
 interface Props {
   clients: Client[];
