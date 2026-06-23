@@ -18,6 +18,8 @@ import { RecentLimitAdjustmentsDialog } from "@/components/RecentLimitAdjustment
 import { MaxCreditLimitDialog } from "@/components/MaxCreditLimitDialog";
 import { useCreditLimits } from "@/hooks/useCreditLimits";
 import { computeAvailableLimit, computeUsedLimit, formatBRL } from "@/lib/creditLimit";
+import { ClientDocuments } from "@/components/ClientDocuments";
+
 
 interface Props {
   clients: Client[];
@@ -525,6 +527,8 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                         </div>
                       )}
                     </div>
+                    <ClientDocuments clientId={client.id} />
+
                     <div className="flex gap-2 justify-end">
                       <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
                         <X className="w-[25px] h-[25px] mr-1" /> Cancelar

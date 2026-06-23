@@ -5,13 +5,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Check } from "lucide-react";
 import { Client } from "@/types/loan";
+import { ClientDocuments } from "@/components/ClientDocuments";
 
 interface Props {
-  onAdd: (client: Omit<Client, "id" | "createdAt">) => void;
+  onAdd: (client: Omit<Client, "id" | "createdAt">) => Promise<string | null> | string | null | void;
   onClose: () => void;
 }
+
 
 export function ClientForm({ onAdd, onClose }: Props) {
   const [form, setForm] = useState({
@@ -35,19 +37,31 @@ export function ClientForm({ onAdd, onClose }: Props) {
     defaultInterestRate: "",
     autoBillingEnabled: true,
   });
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name) return;
+    if (!form.name || saving) return;
     const { defaultInterestRate, ...rest } = form;
     const parsedRate = defaultInterestRate.trim() === "" ? null : parseFloat(defaultInterestRate);
-    onAdd({
-      ...rest,
-      active: true,
-      defaultInterestRate: parsedRate !== null && !isNaN(parsedRate) ? parsedRate : null,
-    });
-    onClose();
+    setSaving(true);
+    try {
+      const result = await onAdd({
+        ...rest,
+        active: true,
+        defaultInterestRate: parsedRate !== null && !isNaN(parsedRate) ? parsedRate : null,
+      });
+      if (typeof result === "string" && result) {
+        setCreatedId(result);
+      } else {
+        onClose();
+      }
+    } finally {
+      setSaving(false);
+    }
   };
+
 
   const update = (field: string, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -217,11 +231,24 @@ export function ClientForm({ onAdd, onClose }: Props) {
               </p>
             </div>
 
-            <Button type="submit" className="w-full h-11 sm:h-11">
-              <Plus className="h-4 w-4 mr-2" />
-              Cadastrar Cliente
-            </Button>
+            <ClientDocuments
+              clientId={createdId}
+              disabledHint="Cadastre o cliente para começar a anexar documentos."
+            />
+
+            {createdId ? (
+              <Button type="button" className="w-full h-11" onClick={onClose}>
+                <Check className="h-4 w-4 mr-2" />
+                Concluir
+              </Button>
+            ) : (
+              <Button type="submit" className="w-full h-11" disabled={saving}>
+                <Plus className="h-4 w-4 mr-2" />
+                {saving ? "Salvando…" : "Cadastrar Cliente"}
+              </Button>
+            )}
           </form>
+
         </CardContent>
       </Card>
     </div>
