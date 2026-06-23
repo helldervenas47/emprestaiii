@@ -19,6 +19,17 @@ import { MaxCreditLimitDialog } from "@/components/MaxCreditLimitDialog";
 import { useCreditLimits } from "@/hooks/useCreditLimits";
 import { computeAvailableLimit, computeUsedLimit, formatBRL } from "@/lib/creditLimit";
 import { ClientDocuments } from "@/components/ClientDocuments";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useClientDocuments } from "@/hooks/useClientDocuments";
+
+function DocumentsTabTrigger({ clientId }: { clientId: string }) {
+  const { documents } = useClientDocuments(clientId);
+  return (
+    <TabsTrigger value="docs" className="flex-1">
+      Documentos{documents.length > 0 ? ` (${documents.length})` : ""}
+    </TabsTrigger>
+  );
+}
 
 
 interface Props {
@@ -376,6 +387,12 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
               <CardContent className="p-3 sm:p-5">
                 {editingId === client.id ? (
                   <div className="space-y-3">
+                    <Tabs defaultValue="data" className="w-full">
+                      <TabsList className="w-full">
+                        <TabsTrigger value="data" className="flex-1">Dados do Cliente</TabsTrigger>
+                        <DocumentsTabTrigger clientId={client.id} />
+                      </TabsList>
+                      <TabsContent value="data" className="space-y-3 mt-3">
                     <div>
                       <Label className="text-xs">Nome</Label>
                       <Input value={editForm.name} onChange={(e) => updateField("name", e.target.value)} />
@@ -527,7 +544,11 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                         </div>
                       )}
                     </div>
-                    <ClientDocuments clientId={client.id} />
+                      </TabsContent>
+                      <TabsContent value="docs" className="mt-3">
+                        <ClientDocuments clientId={client.id} />
+                      </TabsContent>
+                    </Tabs>
 
                     <div className="flex gap-2 justify-end">
                       <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
