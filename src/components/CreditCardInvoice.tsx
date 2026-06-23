@@ -28,6 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -930,7 +931,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect, a
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="pay-date-inline">Data do pagamento</Label>
-                        <Input id="pay-date-inline" type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} />
+                        <DatePickerField value={payDate} onChange={setPayDate} id="pay-date-inline" />
                       </div>
                     </div>
 

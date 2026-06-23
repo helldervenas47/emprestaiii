@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -539,7 +540,7 @@ export default function PiggyBankDetail() {
               </div>
               <div>
                 <Label htmlFor="ed-date">Data prevista</Label>
-                <Input id="ed-date" type="date" value={draft.targetDate} onChange={(e) => setDraft((p) => ({ ...p, targetDate: e.target.value }))} />
+                <DatePickerField value={draft.targetDate} onChange={(v) => setDraft((p) => ({ ...p, targetDate: v }))} id="ed-date" />
               </div>
             </div>
             <div>

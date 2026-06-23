@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/ui/money-input";
 import { Input } from "@/components/ui/input";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useEmployees } from "@/hooks/useEmployees";
@@ -317,7 +318,7 @@ function PayDialog({ open, onOpenChange, payroll, onConfirm }: {
         <div className="space-y-3">
           <div className="text-sm">Restante: <span className="font-semibold">{BRL(remaining)}</span></div>
           <div><Label>Valor</Label><MoneyInput value={amount} onChange={setAmount} /></div>
-          <div><Label>Data</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+          <div><Label>Data</Label><DatePickerField value={date} onChange={setDate} /></div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>Cancelar</Button>
@@ -463,7 +464,7 @@ function EditPayrollDialog({ open, onOpenChange, payroll, onSave }: {
         <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
           <div>
             <Label>Data de vencimento</Label>
-            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            <DatePickerField value={dueDate} onChange={setDueDate} />
           </div>
           {items.earnings.length > 0 && (
             <div className="space-y-2">

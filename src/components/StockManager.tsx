@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MoneyInput } from "@/components/ui/money-input";
@@ -954,7 +955,7 @@ function AdjustStockDialog({ open, onOpenChange, products, onSubmit }: {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div>
                 <Label className="text-xs">Data</Label>
-                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                <DatePickerField value={date} onChange={setDate} />
               </div>
               <div>
                 <Label className="text-xs">Motivo do ajuste</Label>
