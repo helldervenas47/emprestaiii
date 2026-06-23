@@ -5,13 +5,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Check } from "lucide-react";
 import { Client } from "@/types/loan";
+import { ClientDocuments } from "@/components/ClientDocuments";
 
 interface Props {
-  onAdd: (client: Omit<Client, "id" | "createdAt">) => void;
+  onAdd: (client: Omit<Client, "id" | "createdAt">) => Promise<string | null> | string | null | void;
   onClose: () => void;
 }
+
 
 export function ClientForm({ onAdd, onClose }: Props) {
   const [form, setForm] = useState({
