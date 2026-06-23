@@ -429,11 +429,23 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
               <CardContent className="p-3 sm:p-5">
                 {editingId === client.id ? (
                   <div className="space-y-3">
+                    <div className="flex justify-end">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setEditingId(null)}
+                        aria-label="Cancelar"
+                        title="Cancelar"
+                      >
+                        <X className="w-5 h-5" />
+                      </Button>
+                    </div>
                     <Tabs value={editingTab} onValueChange={(v) => setEditingTab(v as "data" | "docs")} className="w-full">
                       <TabsList className="w-full">
                         <TabsTrigger value="data" className="flex-1">Dados do Cliente</TabsTrigger>
                         <DocumentsTabTrigger clientId={client.id} />
                       </TabsList>
+
                       <TabsContent value="data" className="space-y-3 mt-3">
                     <div>
                       <Label className="text-xs">Nome</Label>
@@ -593,13 +605,11 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                     </Tabs>
 
                     <div className="flex gap-2 justify-end">
-                      <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
-                        <X className="w-[25px] h-[25px] mr-1" /> Cancelar
-                      </Button>
                       <Button data-mutation size="sm" onClick={() => saveEdit(client.id)}>
                         <Check className="w-[25px] h-[25px] mr-1" /> Salvar
                       </Button>
                     </div>
+
                   </div>
                 ) : (
                   <>
