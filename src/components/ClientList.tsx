@@ -181,6 +181,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTab, setEditingTab] = useState<"data" | "docs">("data");
   const [editForm, setEditForm] = useState<Record<string, any>>({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "", isVehicleRental: false, nacionalidade: "", estadoCivil: "", profissao: "", bairro: "", isManager: false, defaultInterestRate: "", creditLimit: "", autoBillingEnabled: true });
   const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
