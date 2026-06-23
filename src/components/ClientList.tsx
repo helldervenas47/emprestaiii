@@ -615,6 +615,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                               <Badge variant="outline" className={client.active ? "bg-success/10 text-success border-success/20 text-xs" : "bg-muted text-muted-foreground border-border text-xs"}>
                                 {client.active ? "Ativo" : "Inativo"}
                               </Badge>
+                              <DocsQuickButton clientId={client.id} onOpen={() => startEdit(client, "docs")} />
                             </div>
                             {client.cpf && <p className="text-xs text-muted-foreground break-words">CPF: {client.cpf}</p>}
                             {client.phone && (
