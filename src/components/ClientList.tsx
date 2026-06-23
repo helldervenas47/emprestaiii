@@ -544,7 +544,11 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                         </div>
                       )}
                     </div>
-                    <ClientDocuments clientId={client.id} />
+                      </TabsContent>
+                      <TabsContent value="docs" className="mt-3">
+                        <ClientDocuments clientId={client.id} />
+                      </TabsContent>
+                    </Tabs>
 
                     <div className="flex gap-2 justify-end">
                       <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
