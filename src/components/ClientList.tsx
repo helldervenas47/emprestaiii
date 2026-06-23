@@ -429,7 +429,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
               <CardContent className="p-3 sm:p-5">
                 {editingId === client.id ? (
                   <div className="space-y-3">
-                    <Tabs defaultValue="data" className="w-full">
+                    <Tabs value={editingTab} onValueChange={(v) => setEditingTab(v as "data" | "docs")} className="w-full">
                       <TabsList className="w-full">
                         <TabsTrigger value="data" className="flex-1">Dados do Cliente</TabsTrigger>
                         <DocumentsTabTrigger clientId={client.id} />
