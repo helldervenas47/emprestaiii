@@ -238,8 +238,9 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
   const inactiveCount = clients.filter((c) => c.active === false).length;
   const overLimitCount = overLimitClientIds.size;
 
-  const startEdit = (client: Client) => {
+  const startEdit = (client: Client, tab: "data" | "docs" = "data") => {
     setEditingId(client.id);
+    setEditingTab(tab);
     const cl = getLimitForClient(client.id);
     setEditForm({ name: client.name, phone: client.phone, email: client.email, cpf: client.cpf, cnpj: client.cnpj || "", rg: client.rg || "", address: client.address, city: client.city || "", state: client.state || "", score: client.score || "", notes: client.notes || "", isVehicleRental: client.isVehicleRental || false, nacionalidade: client.nacionalidade || "", estadoCivil: client.estadoCivil || "", profissao: client.profissao || "", bairro: client.bairro || "", isManager: client.isManager || false, defaultInterestRate: client.defaultInterestRate != null ? String(client.defaultInterestRate) : "", creditLimit: cl?.currentLimit != null ? String(cl.currentLimit) : "", autoBillingEnabled: client.autoBillingEnabled ?? true });
   };
