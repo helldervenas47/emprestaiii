@@ -605,13 +605,11 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                     </Tabs>
 
                     <div className="flex gap-2 justify-end">
-                      <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
-                        <X className="w-[25px] h-[25px] mr-1" /> Cancelar
-                      </Button>
                       <Button data-mutation size="sm" onClick={() => saveEdit(client.id)}>
                         <Check className="w-[25px] h-[25px] mr-1" /> Salvar
                       </Button>
                     </div>
+
                   </div>
                 ) : (
                   <>
