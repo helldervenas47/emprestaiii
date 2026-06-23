@@ -19,6 +19,17 @@ import { MaxCreditLimitDialog } from "@/components/MaxCreditLimitDialog";
 import { useCreditLimits } from "@/hooks/useCreditLimits";
 import { computeAvailableLimit, computeUsedLimit, formatBRL } from "@/lib/creditLimit";
 import { ClientDocuments } from "@/components/ClientDocuments";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useClientDocuments } from "@/hooks/useClientDocuments";
+
+function DocumentsTabTrigger({ clientId }: { clientId: string }) {
+  const { documents } = useClientDocuments(clientId);
+  return (
+    <TabsTrigger value="docs" className="flex-1">
+      Documentos{documents.length > 0 ? ` (${documents.length})` : ""}
+    </TabsTrigger>
+  );
+}
 
 
 interface Props {
