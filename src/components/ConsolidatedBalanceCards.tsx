@@ -14,6 +14,7 @@ import { getBalances } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useDashboardPrefs, DEFAULT_EXTRA as PREFS_DEFAULT_EXTRA, DEFAULT_VIS as PREFS_DEFAULT_VIS } from "@/hooks/useDashboardPrefs";
 import type { Sale } from "@/types/loan";
+import { PiggyBanksBreakdownDialog } from "./PiggyBanksBreakdownDialog";
 
 type MaosVisibility = {
   account: boolean;
@@ -85,7 +86,7 @@ function isSalePaid(s: Sale): boolean {
 export function ConsolidatedBalanceCards() {
   const { loans, installmentSchedules } = useLoans();
   const { sales, products } = useProducts(true);
-  const { piggyBanks, balances: piggyBalances } = usePiggyBanks();
+  const { piggyBanks, deposits: piggyDeposits, balances: piggyBalances } = usePiggyBanks();
 
   // Espelha EXATAMENTE o "Saldo em Conta" da aba Receitas (IncomeBalanceCard)
   // via hook unificado — mantém os dois cards sempre sincronizados.
@@ -104,6 +105,7 @@ export function ConsolidatedBalanceCards() {
   const [openPatrimonio, setOpenPatrimonio] = useState(false);
   const [openVariacao, setOpenVariacao] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
+  const [openPiggyBreakdown, setOpenPiggyBreakdown] = useState(false);
   const { extraCards, visibility, setExtraCards, setVisibility, toggleExtra, toggleVis } = useDashboardPrefs();
 
 
@@ -471,26 +473,46 @@ export function ConsolidatedBalanceCards() {
                 hint,
                 value,
                 tint,
+                onClick,
               }: {
                 icon: typeof Wallet;
                 label: string;
                 hint?: string;
                 value: number;
                 tint: string;
-              }) => (
-                <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm p-3 shadow-sm hover:bg-card/80 transition-colors">
-                  <div className={`shrink-0 h-9 w-9 rounded-full flex items-center justify-center ${tint}`}>
-                    <Icon className="h-4 w-4" />
+                onClick?: () => void;
+              }) => {
+                const inner = (
+                  <>
+                    <div className={`shrink-0 h-9 w-9 rounded-full flex items-center justify-center ${tint}`}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground truncate">{label}</p>
+                      {hint && <p className="text-[10px] text-muted-foreground truncate">{hint}</p>}
+                    </div>
+                    <span className={`text-sm font-bold tabular-nums ${value < 0 ? "text-destructive" : "text-foreground"}`}>
+                      {formatBRL(value)}
+                    </span>
+                  </>
+                );
+                if (onClick) {
+                  return (
+                    <button
+                      type="button"
+                      onClick={onClick}
+                      className="w-full flex items-center gap-3 rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm p-3 shadow-sm hover:bg-card/80 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-ring/40"
+                    >
+                      {inner}
+                    </button>
+                  );
+                }
+                return (
+                  <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm p-3 shadow-sm hover:bg-card/80 transition-colors">
+                    {inner}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground truncate">{label}</p>
-                    {hint && <p className="text-[10px] text-muted-foreground truncate">{hint}</p>}
-                  </div>
-                  <span className={`text-sm font-bold tabular-nums ${value < 0 ? "text-destructive" : "text-foreground"}`}>
-                    {formatBRL(value)}
-                  </span>
-                </div>
-              );
+                );
+              };
 
               const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
                 <div className="space-y-2">
@@ -512,7 +534,7 @@ export function ConsolidatedBalanceCards() {
               ].filter(Boolean);
               const reservasItems = [
                 visibility.piggy && (
-                  <Item key="piggy" icon={PiggyBank} label="Total dos Cofrinhos" hint={`${piggyBanks.length} ${piggyBanks.length === 1 ? "cofrinho" : "cofrinhos"}`} value={piggyTotal} tint="bg-pink-500/15 text-pink-500" />
+                  <Item key="piggy" icon={PiggyBank} label="Total dos Cofrinhos" hint={`${piggyBanks.length} ${piggyBanks.length === 1 ? "cofrinho" : "cofrinhos"}`} value={piggyTotal} tint="bg-pink-500/15 text-pink-500" onClick={() => setOpenPiggyBreakdown(true)} />
                 ),
                 visibility.vehicle && (
                   <Item key="vehicle" icon={Car} label="Saldo de Veículos" hint="Reserva vinculada a veículos" value={vehicleBalance} tint="bg-blue-500/15 text-blue-500" />
@@ -918,6 +940,13 @@ export function ConsolidatedBalanceCards() {
           </div>
         </DialogContent>
       </Dialog>
+      <PiggyBanksBreakdownDialog
+        open={openPiggyBreakdown}
+        onOpenChange={setOpenPiggyBreakdown}
+        piggyBanks={piggyBanks}
+        deposits={piggyDeposits}
+        balances={piggyBalances}
+      />
     </>
 
   );
