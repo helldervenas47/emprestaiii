@@ -473,26 +473,46 @@ export function ConsolidatedBalanceCards() {
                 hint,
                 value,
                 tint,
+                onClick,
               }: {
                 icon: typeof Wallet;
                 label: string;
                 hint?: string;
                 value: number;
                 tint: string;
-              }) => (
-                <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm p-3 shadow-sm hover:bg-card/80 transition-colors">
-                  <div className={`shrink-0 h-9 w-9 rounded-full flex items-center justify-center ${tint}`}>
-                    <Icon className="h-4 w-4" />
+                onClick?: () => void;
+              }) => {
+                const inner = (
+                  <>
+                    <div className={`shrink-0 h-9 w-9 rounded-full flex items-center justify-center ${tint}`}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground truncate">{label}</p>
+                      {hint && <p className="text-[10px] text-muted-foreground truncate">{hint}</p>}
+                    </div>
+                    <span className={`text-sm font-bold tabular-nums ${value < 0 ? "text-destructive" : "text-foreground"}`}>
+                      {formatBRL(value)}
+                    </span>
+                  </>
+                );
+                if (onClick) {
+                  return (
+                    <button
+                      type="button"
+                      onClick={onClick}
+                      className="w-full flex items-center gap-3 rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm p-3 shadow-sm hover:bg-card/80 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-ring/40"
+                    >
+                      {inner}
+                    </button>
+                  );
+                }
+                return (
+                  <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm p-3 shadow-sm hover:bg-card/80 transition-colors">
+                    {inner}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground truncate">{label}</p>
-                    {hint && <p className="text-[10px] text-muted-foreground truncate">{hint}</p>}
-                  </div>
-                  <span className={`text-sm font-bold tabular-nums ${value < 0 ? "text-destructive" : "text-foreground"}`}>
-                    {formatBRL(value)}
-                  </span>
-                </div>
-              );
+                );
+              };
 
               const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
                 <div className="space-y-2">
