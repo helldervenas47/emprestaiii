@@ -14,6 +14,7 @@ import { getBalances } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useDashboardPrefs, DEFAULT_EXTRA as PREFS_DEFAULT_EXTRA, DEFAULT_VIS as PREFS_DEFAULT_VIS } from "@/hooks/useDashboardPrefs";
 import type { Sale } from "@/types/loan";
+import { PiggyBanksBreakdownDialog } from "./PiggyBanksBreakdownDialog";
 
 type MaosVisibility = {
   account: boolean;
