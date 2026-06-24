@@ -434,8 +434,12 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
               <div>
                 <Label htmlFor="interestRate">Juros (%)</Label>
                 <Input
-                  id="interestRate" type="number" step="0.1" min="0"
-                  value={form.interestRate} onChange={(e) => update("interestRate", e.target.value)}
+                  id="interestRate" type="text" inputMode="decimal"
+                  value={form.interestRate}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".");
+                    if (v === "" || /^\d*\.?\d*$/.test(v)) update("interestRate", v);
+                  }}
                   placeholder="0" required
                 />
                 {installments > 0 && rate > 0 && (
