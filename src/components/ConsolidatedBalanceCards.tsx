@@ -86,7 +86,7 @@ function isSalePaid(s: Sale): boolean {
 export function ConsolidatedBalanceCards() {
   const { loans, installmentSchedules } = useLoans();
   const { sales, products } = useProducts(true);
-  const { piggyBanks, balances: piggyBalances } = usePiggyBanks();
+  const { piggyBanks, deposits: piggyDeposits, balances: piggyBalances } = usePiggyBanks();
 
   // Espelha EXATAMENTE o "Saldo em Conta" da aba Receitas (IncomeBalanceCard)
   // via hook unificado — mantém os dois cards sempre sincronizados.
