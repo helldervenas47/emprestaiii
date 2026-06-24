@@ -940,6 +940,13 @@ export function ConsolidatedBalanceCards() {
           </div>
         </DialogContent>
       </Dialog>
+      <PiggyBanksBreakdownDialog
+        open={openPiggyBreakdown}
+        onOpenChange={setOpenPiggyBreakdown}
+        piggyBanks={piggyBanks}
+        deposits={piggyDeposits}
+        balances={piggyBalances}
+      />
     </>
 
   );
