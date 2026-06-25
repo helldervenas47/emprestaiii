@@ -949,6 +949,11 @@ export function ConsolidatedBalanceCards() {
         deposits={piggyDeposits}
         balances={piggyBalances}
       />
+      <StockBreakdownDialog
+        open={openStockBreakdown}
+        onOpenChange={setOpenStockBreakdown}
+        products={products}
+      />
     </>
 
   );
