@@ -1012,18 +1012,18 @@ const Index = () => {
 
           {!isMobileOrTablet && (
             <div className="max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-8 pb-2">
-              <nav className="flex gap-1 overflow-x-auto scrollbar-hide bg-muted/40 p-1 rounded-lg border border-border/50">
+              <nav className="flex gap-1 overflow-x-auto scrollbar-hide bg-muted/60 p-1 rounded-xl border border-border/50">
                 {visibleTabs.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => setTab(t.id)}
-                    className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-semibold rounded-md transition-all whitespace-nowrap uppercase tracking-wide ${
+                    className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-semibold rounded-lg transition-all whitespace-nowrap uppercase tracking-wide ${
                       tab === t.id
-                        ? "bg-card text-primary shadow-sm ring-1 ring-border"
-                        : "text-muted-foreground hover:text-foreground hover:bg-card/50"
+                        ? "bg-background !text-primary shadow-sm"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                     }`}
                   >
-                    <t.icon className="h-3.5 w-3.5 shrink-0" />
+                    <t.icon className={`h-3.5 w-3.5 shrink-0 ${tab === t.id ? "!text-primary" : ""}`} />
                     <span className="hidden xs:inline">{t.label}</span>
                   </button>
                 ))}
