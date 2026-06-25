@@ -291,7 +291,7 @@ export function LoanPaymentHistoryDialog({
                     </TableCell>
                   </TableRow>
                 )}
-                {data.rows.map((r, idx) => {
+                {visibleRows.map(({ row: r, originalIdx: idx }) => {
                   const st = statusBadge(r.installmentNumber, idx);
                   return (
                     <TableRow key={r.id}>
@@ -329,6 +329,7 @@ export function LoanPaymentHistoryDialog({
                     </TableRow>
                   );
                 })}
+
               </TableBody>
             </Table>
           </div>
