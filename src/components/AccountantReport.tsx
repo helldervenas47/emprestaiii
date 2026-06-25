@@ -96,6 +96,9 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       kind: Kind;
       kindLabel: string;
       reason: string;
+      paymentMethodId: string;
+      paymentMethodName: string;
+      description: string;
     };
     const breakdown: Breakdown[] = [];
 
@@ -181,6 +184,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     let totalReceived = 0;
     let interestRevenue = 0;
 
+    const methodNameById = new Map(paymentMethods.map((m: any) => [m.id, m.name] as const));
     periodPaymentList.forEach((p) => {
       const loanId = p.loanId ?? (p as any).loan_id ?? null;
       const amt = Number(p.amount) || 0;
@@ -190,6 +194,9 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       const inst = Number(p.installmentNumber ?? (p as any).installment_number ?? 0);
       const interest = interestByPaymentId.get(p.id) ?? 0;
       interestRevenue += interest;
+      const pmId = p.paymentMethodId ?? (p as any).payment_method_id ?? null;
+      const pmName = pmId ? (methodNameById.get(pmId) ?? "Não informado") : "Não informado";
+      const description = p.description ?? (p as any).notes ?? "";
 
       const isLastOfPaid = loanId && paidLoanIds.has(loanId) && lastPaymentByLoanId.get(loanId) === p.id;
       let kind: Kind;
@@ -224,7 +231,6 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
         sem_vinculo: "Sem vínculo",
         split: "Split explícito",
       } as Record<Kind, string>)[kind];
-
       breakdown.push({
         id: p.id,
         date: p.date,
@@ -236,6 +242,9 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
         kind,
         kindLabel,
         reason,
+        paymentMethodId: pmId ?? "__unset__",
+        paymentMethodName: pmName,
+        description,
       });
     });
 
@@ -1535,8 +1544,87 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                   )}
                 </CollapsibleContent>
               </Collapsible>
+
+              {/* Por forma de pagamento */}
+              {(() => {
+                const groups = new Map<string, { id: string; name: string; items: any[]; amount: number; interest: number; principal: number }>();
+                (dre as any).breakdown.forEach((b: any) => {
+                  const id = b.paymentMethodId || "__unset__";
+                  if (!groups.has(id)) groups.set(id, { id, name: b.paymentMethodName || "Não informado", items: [], amount: 0, interest: 0, principal: 0 });
+                  const g = groups.get(id)!;
+                  g.items.push(b);
+                  g.amount += b.amount;
+                  g.interest += b.interest;
+                  g.principal += b.principal;
+                });
+                const rows = Array.from(groups.values()).sort((a, b) => b.amount - a.amount);
+                if (rows.length === 0) return null;
+                return (
+                  <div className="pt-2 border-t">
+                    <p className="text-xs font-semibold mb-2">Por forma de pagamento</p>
+                    <div className="space-y-2">
+                      {rows.map((g) => {
+                        const open = expandedMethod === `juros-${g.id}`;
+                        return (
+                          <Collapsible key={g.id} open={open} onOpenChange={(o) => setExpandedMethod(o ? `juros-${g.id}` : null)}>
+                            <CollapsibleTrigger className="w-full flex items-center justify-between gap-2 rounded-lg border bg-muted/30 hover:bg-muted/50 px-3 py-2 text-left">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <ChevronRight className={`h-3 w-3 shrink-0 transition-transform ${open ? "rotate-90" : ""}`} />
+                                <span className="text-xs font-medium truncate">{g.name}</span>
+                                <span className="text-[10px] text-muted-foreground shrink-0">({g.items.length})</span>
+                              </div>
+                              <div className="flex items-center gap-3 text-[11px] tabular-nums shrink-0">
+                                <span className="text-success">{fmt(g.interest, hidden)}</span>
+                                <span className="text-muted-foreground">/</span>
+                                <span>{fmt(g.principal, hidden)}</span>
+                                <span className="font-semibold">{fmt(g.amount, hidden)}</span>
+                              </div>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2">
+                              <div className="overflow-x-auto rounded-lg border">
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="text-left text-muted-foreground border-b bg-muted/20">
+                                      <th className="py-1.5 px-2">Data</th>
+                                      <th className="py-1.5 px-2">Descrição</th>
+                                      <th className="py-1.5 px-2 text-right">Principal</th>
+                                      <th className="py-1.5 px-2 text-right">Juros</th>
+                                      <th className="py-1.5 px-2 text-right">Total</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {g.items.map((b: any) => (
+                                      <tr key={b.id} className="border-b last:border-0 align-top">
+                                        <td className="py-1.5 px-2 whitespace-nowrap">{b.date ? new Date(b.date + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</td>
+                                        <td className="py-1.5 px-2">
+                                          <p className="truncate max-w-[260px]">{b.description || b.borrowerName}</p>
+                                          <p className="text-[10px] text-muted-foreground">{b.borrowerName} · {b.kindLabel}</p>
+                                        </td>
+                                        <td className="py-1.5 px-2 text-right tabular-nums">{fmt(b.principal, hidden)}</td>
+                                        <td className="py-1.5 px-2 text-right tabular-nums text-success">{fmt(b.interest, hidden)}</td>
+                                        <td className="py-1.5 px-2 text-right tabular-nums font-medium">{fmt(b.amount, hidden)}</td>
+                                      </tr>
+                                    ))}
+                                    <tr className="font-semibold bg-muted/30">
+                                      <td className="py-1.5 px-2" colSpan={2}>Total</td>
+                                      <td className="py-1.5 px-2 text-right tabular-nums">{fmt(g.principal, hidden)}</td>
+                                      <td className="py-1.5 px-2 text-right tabular-nums text-success">{fmt(g.interest, hidden)}</td>
+                                      <td className="py-1.5 px-2 text-right tabular-nums">{fmt(g.amount, hidden)}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
+
         </TabsContent>
 
         {/* Impostos */}
