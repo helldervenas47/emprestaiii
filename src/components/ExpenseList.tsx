@@ -755,7 +755,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                 const paidAmount = paidAmountInput.trim() && !isNaN(parsed) && parsed > 0 ? parsed : undefined;
                 const exp = expenses.find((e) => e.id === payingExpenseId);
                 onPay(payingExpenseId, undefined, payDate, paidAmount);
-                celebrate({ kind: "expense", message: "Despesa quitada!", amount: paidAmount ?? exp?.amount });
+                celebrate({ kind: "expense", message: "Despesa quitada!", amount: paidAmount ?? (exp ? getInstallmentAmount(exp) : undefined) });
                 setPayingExpenseId(null);
                 setPaidAmountInput("");
               }
