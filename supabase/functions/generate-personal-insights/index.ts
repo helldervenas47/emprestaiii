@@ -368,9 +368,38 @@ Deno.serve(async (req) => {
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
     console.error("[generate-personal-insights] error:", e);
-    return new Response(JSON.stringify({ error: e.message }), {
-      status: 500,
+    const msg = String(e?.message || e);
+    // Detect billing / credits exhaustion (402) from upstream AI provider
+    if (/\b402\b/.test(msg) || /payment_required/i.test(msg) || /Not enough credits/i.test(msg)) {
+      return new Response(JSON.stringify({
+        error: "AI_CREDITS_EXHAUSTED",
+        message: "Créditos de IA esgotados. Verifique seu plano e tente novamente em alguns minutos.",
+        fallback: true,
+        content: "## ⚠️ Análise indisponível\n\nO serviço de IA está temporariamente indisponível por falta de créditos. Tente novamente mais tarde.",
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (/\b429\b/.test(msg) || /rate.?limit/i.test(msg)) {
+      return new Response(JSON.stringify({
+        error: "AI_RATE_LIMITED",
+        message: "Muitas requisições à IA. Aguarde alguns segundos e tente novamente.",
+        fallback: true,
+        content: "## ⏳ Limite de uso atingido\n\nMuitas análises foram solicitadas em sequência. Tente novamente em instantes.",
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    return new Response(JSON.stringify({
+      error: msg,
+      fallback: true,
+      content: "## ❌ Erro na análise\n\nNão foi possível gerar a análise neste momento. Tente novamente em alguns instantes.",
+    }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
+
