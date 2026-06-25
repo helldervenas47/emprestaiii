@@ -200,7 +200,7 @@ export function LoanPaymentHistoryDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-2 -mr-2">
+        <ScrollArea className="flex-1 min-h-0 pr-2 -mr-2 [&>[data-radix-scroll-area-viewport]]:max-h-[calc(90vh-8rem)]">
           {/* Resumo */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
             <Card>
