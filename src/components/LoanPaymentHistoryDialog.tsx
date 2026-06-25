@@ -1,4 +1,7 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+
+const PAGE_SIZE = 20;
 import {
   Dialog,
   DialogContent,
@@ -59,6 +62,11 @@ export function LoanPaymentHistoryDialog({
   const { methods } = usePaymentMethods(open);
   const { hidden } = useHideValues();
   const mask = (v: string) => (hidden ? "•••" : v);
+
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  useEffect(() => {
+    if (open) setVisibleCount(PAGE_SIZE);
+  }, [open, loan?.id]);
 
   const methodById = useMemo(() => {
     const map: Record<string, string> = {};
@@ -175,6 +183,14 @@ export function LoanPaymentHistoryDialog({
     };
   };
 
+  const totalRows = data.rows.length;
+  const startIdx = Math.max(0, totalRows - visibleCount);
+  const visibleRows = data.rows
+    .slice(startIdx)
+    .map((r, i) => ({ row: r, originalIdx: startIdx + i }))
+    .reverse();
+  const hasMore = startIdx > 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
@@ -275,7 +291,7 @@ export function LoanPaymentHistoryDialog({
                     </TableCell>
                   </TableRow>
                 )}
-                {data.rows.map((r, idx) => {
+                {visibleRows.map(({ row: r, originalIdx: idx }) => {
                   const st = statusBadge(r.installmentNumber, idx);
                   return (
                     <TableRow key={r.id}>
@@ -313,6 +329,7 @@ export function LoanPaymentHistoryDialog({
                     </TableRow>
                   );
                 })}
+
               </TableBody>
             </Table>
           </div>
@@ -324,7 +341,7 @@ export function LoanPaymentHistoryDialog({
                 Nenhum pagamento registrado.
               </p>
             )}
-            {data.rows.map((r, idx) => {
+            {visibleRows.map(({ row: r, originalIdx: idx }) => {
               const st = statusBadge(r.installmentNumber, idx);
               return (
                 <div
@@ -384,6 +401,27 @@ export function LoanPaymentHistoryDialog({
               );
             })}
           </div>
+
+          {/* Carregar mais / contador */}
+          {totalRows > 0 && (
+            <div className="flex flex-col items-center gap-1 mt-3 mb-1">
+              <div className="text-[11px] text-muted-foreground">
+                Exibindo {totalRows - startIdx} de {totalRows} pagamentos
+              </div>
+              {hasMore && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setVisibleCount((c) => Math.min(totalRows, c + PAGE_SIZE))
+                  }
+                >
+                  Carregar mais
+                </Button>
+              )}
+            </div>
+          )}
+
         </ScrollArea>
       </DialogContent>
     </Dialog>
