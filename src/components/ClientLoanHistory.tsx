@@ -759,7 +759,7 @@ function ClientLoansList({ loans, payments, paymentsByLoan, lastPaymentDateByLoa
                   </div>
                 )}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
