@@ -341,7 +341,7 @@ export function LoanPaymentHistoryDialog({
                 Nenhum pagamento registrado.
               </p>
             )}
-            {data.rows.map((r, idx) => {
+            {visibleRows.map(({ row: r, originalIdx: idx }) => {
               const st = statusBadge(r.installmentNumber, idx);
               return (
                 <div
@@ -401,6 +401,27 @@ export function LoanPaymentHistoryDialog({
               );
             })}
           </div>
+
+          {/* Carregar mais / contador */}
+          {totalRows > 0 && (
+            <div className="flex flex-col items-center gap-1 mt-3 mb-1">
+              <div className="text-[11px] text-muted-foreground">
+                Exibindo {totalRows - startIdx} de {totalRows} pagamentos
+              </div>
+              {hasMore && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setVisibleCount((c) => Math.min(totalRows, c + PAGE_SIZE))
+                  }
+                >
+                  Carregar mais
+                </Button>
+              )}
+            </div>
+          )}
+
         </ScrollArea>
       </DialogContent>
     </Dialog>
