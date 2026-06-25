@@ -156,14 +156,15 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const body = (await req.json().catch(() => ({}))) as { metrics?: Metrics };
-    if (!body?.metrics) {
+    const body = (await req.json().catch(() => ({}))) as { metrics?: any };
+    if (!body || typeof body !== "object" || !body.metrics) {
       return new Response(JSON.stringify({ error: "metrics ausente" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userPrompt = buildPrompt(body.metrics);
+    const metrics = normalizeMetrics(body.metrics);
+    const userPrompt = buildPrompt(metrics);
     const content = await callAI(userPrompt);
     return new Response(JSON.stringify({ content }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
