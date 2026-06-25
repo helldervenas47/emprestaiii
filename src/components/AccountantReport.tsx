@@ -1480,165 +1480,120 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                 );
               })()}
 
-              {/* Lista por pagamento */}
-              <Collapsible>
-                <CollapsibleTrigger className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
-                  <ChevronRight className="h-3 w-3 transition-transform data-[state=open]:rotate-90" />
-                  Ver detalhamento por pagamento ({(dre as any).breakdown.length})
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-3">
-                  {(dre as any).breakdown.length === 0 ? (
-                    <p className="text-xs text-muted-foreground py-3 text-center">Nenhum pagamento no período.</p>
-                  ) : (
-                    <>
-                      {/* Tabela em ≥sm */}
-                      <div className="hidden sm:block overflow-x-auto">
-                        <table className="w-full text-xs">
-                          <thead>
-                            <tr className="text-left text-muted-foreground border-b">
-                              <th className="py-2 pr-2">Data</th>
-                              <th className="py-2 pr-2">Cliente</th>
-                              <th className="py-2 pr-2">Tipo</th>
-                              <th className="py-2 pr-2 text-right">Valor</th>
-                              <th className="py-2 pr-2 text-right">Juros</th>
-                              <th className="py-2 text-right">Principal</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(dre as any).breakdown.map((b: any) => (
-                              <tr key={b.id} className="border-b align-top">
-                                <td className="py-1.5 pr-2 whitespace-nowrap">
-                                  {b.date ? new Date(b.date + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
-                                </td>
-                                <td className="py-1.5 pr-2">{b.borrowerName}</td>
-                                <td className="py-1.5 pr-2">
-                                  <span className="inline-block px-1.5 py-0.5 rounded bg-muted text-[10px]">{b.kindLabel}</span>
-                                  <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[260px]">{b.reason}</p>
-                                </td>
-                                <td className="py-1.5 pr-2 text-right">{fmt(b.amount, hidden)}</td>
-                                <td className="py-1.5 pr-2 text-right text-success">{fmt(b.interest, hidden)}</td>
-                                <td className="py-1.5 text-right">{fmt(b.principal, hidden)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* Cards em mobile */}
-                      <div className="sm:hidden space-y-2">
-                        {(dre as any).breakdown.map((b: any) => (
-                          <div key={b.id} className="rounded-lg border bg-card p-3 space-y-2">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0 flex-1">
-                                <p className="text-xs font-semibold truncate">{b.borrowerName}</p>
-                                <p className="text-[10px] text-muted-foreground">
-                                  {b.date ? new Date(b.date + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
-                                </p>
-                              </div>
-                              <span className="shrink-0 inline-block px-1.5 py-0.5 rounded bg-muted text-[10px] font-medium">
-                                {b.kindLabel}
-                              </span>
-                            </div>
-                            <p className="text-[10px] text-muted-foreground italic leading-snug">{b.reason}</p>
-                            <div className="grid grid-cols-3 gap-1.5 text-[11px] pt-1 border-t">
-                              <div>
-                                <p className="text-[10px] text-muted-foreground">Valor</p>
-                                <p className="font-medium tabular-nums">{fmt(b.amount, hidden)}</p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] text-muted-foreground">Juros</p>
-                                <p className="font-medium text-success tabular-nums">{fmt(b.interest, hidden)}</p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] text-muted-foreground">Principal</p>
-                                <p className="font-medium tabular-nums">{fmt(b.principal, hidden)}</p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </CollapsibleContent>
-              </Collapsible>
-
-              {/* Por forma de pagamento */}
-              {(() => {
-                const groups = new Map<string, { id: string; name: string; items: any[]; amount: number; interest: number; principal: number }>();
-                (dre as any).breakdown.forEach((b: any) => {
-                  const id = b.paymentMethodId || "__unset__";
-                  if (!groups.has(id)) groups.set(id, { id, name: b.paymentMethodName || "Não informado", items: [], amount: 0, interest: 0, principal: 0 });
-                  const g = groups.get(id)!;
-                  g.items.push(b);
-                  g.amount += b.amount;
-                  g.interest += b.interest;
-                  g.principal += b.principal;
-                });
-                const rows = Array.from(groups.values()).sort((a, b) => b.amount - a.amount);
-                if (rows.length === 0) return null;
-                return (
-                  <div className="pt-2 border-t">
-                    <p className="text-xs font-semibold mb-2">Por forma de pagamento</p>
-                    <div className="space-y-2">
-                      {rows.map((g) => {
-                        const open = expandedMethod === `juros-${g.id}`;
-                        return (
-                          <Collapsible key={g.id} open={open} onOpenChange={(o) => setExpandedMethod(o ? `juros-${g.id}` : null)}>
-                            <CollapsibleTrigger className="w-full flex items-center justify-between gap-2 rounded-lg border bg-muted/30 hover:bg-muted/50 px-3 py-2 text-left">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <ChevronRight className={`h-3 w-3 shrink-0 transition-transform ${open ? "rotate-90" : ""}`} />
-                                <span className="text-xs font-medium truncate">{g.name}</span>
-                                <span className="text-[10px] text-muted-foreground shrink-0">({g.items.length})</span>
-                              </div>
-                              <div className="flex items-center gap-3 text-[11px] tabular-nums shrink-0">
-                                <span className="text-success">{fmt(g.interest, hidden)}</span>
-                                <span className="text-muted-foreground">/</span>
-                                <span>{fmt(g.principal, hidden)}</span>
-                                <span className="font-semibold">{fmt(g.amount, hidden)}</span>
-                              </div>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent className="mt-2">
-                              <div className="overflow-x-auto rounded-lg border">
-                                <table className="w-full text-xs">
-                                  <thead>
-                                    <tr className="text-left text-muted-foreground border-b bg-muted/20">
-                                      <th className="py-1.5 px-2">Data</th>
-                                      <th className="py-1.5 px-2">Descrição</th>
-                                      <th className="py-1.5 px-2 text-right">Principal</th>
-                                      <th className="py-1.5 px-2 text-right">Juros</th>
-                                      <th className="py-1.5 px-2 text-right">Total</th>
+              {/* Dialog de detalhamento por tipo (acionado pelo clique nos cards/linhas acima) */}
+              <Dialog open={kindFilter !== null} onOpenChange={(o) => !o && setKindFilter(null)}>
+                <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+                  {(() => {
+                    if (!kindFilter) return null;
+                    const labels: Record<string, string> = {
+                      juros_puro: "Juros puro",
+                      parcela: "Parcela",
+                      quitacao: "Quitação",
+                      amortizacao: "Amortização",
+                      split: "Split explícito",
+                      sem_vinculo: "Sem vínculo",
+                      __all__: "Total",
+                    };
+                    const items = (dre as any).breakdown.filter((b: any) =>
+                      kindFilter === "__all__" ? true : b.kind === kindFilter
+                    );
+                    const tAmount = items.reduce((s: number, b: any) => s + b.amount, 0);
+                    const tInterest = items.reduce((s: number, b: any) => s + b.interest, 0);
+                    const tPrincipal = items.reduce((s: number, b: any) => s + b.principal, 0);
+                    return (
+                      <>
+                        <DialogHeader>
+                          <DialogTitle>{labels[kindFilter]}</DialogTitle>
+                          <DialogDescription>
+                            {items.length} pagamento(s) · PAGO {fmt(tAmount, hidden)} · Juros{" "}
+                            <span className="text-success">{fmt(tInterest, hidden)}</span> · Principal {fmt(tPrincipal, hidden)}
+                          </DialogDescription>
+                        </DialogHeader>
+                        {items.length === 0 ? (
+                          <p className="text-xs text-muted-foreground py-6 text-center">Nenhum pagamento.</p>
+                        ) : (
+                          <>
+                            {/* Tabela em ≥sm */}
+                            <div className="hidden sm:block overflow-x-auto">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="text-left text-muted-foreground border-b">
+                                    <th className="py-2 pr-2">Data</th>
+                                    <th className="py-2 pr-2">Descrição</th>
+                                    <th className="py-2 pr-2 text-right">Valor</th>
+                                    <th className="py-2 pr-2 text-right">Juros</th>
+                                    <th className="py-2 text-right">Principal</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {items.map((b: any) => (
+                                    <tr key={b.id} className="border-b align-top">
+                                      <td className="py-1.5 pr-2 whitespace-nowrap">
+                                        {b.date ? new Date(b.date + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
+                                      </td>
+                                      <td className="py-1.5 pr-2">
+                                        <p className="truncate max-w-[280px]">{b.description || b.borrowerName}</p>
+                                        <p className="text-[10px] text-muted-foreground">
+                                          {b.borrowerName} · {b.kindLabel}
+                                          {b.paymentMethodName ? ` · ${b.paymentMethodName}` : ""}
+                                        </p>
+                                      </td>
+                                      <td className="py-1.5 pr-2 text-right tabular-nums">{fmt(b.amount, hidden)}</td>
+                                      <td className="py-1.5 pr-2 text-right tabular-nums text-success">{fmt(b.interest, hidden)}</td>
+                                      <td className="py-1.5 text-right tabular-nums">{fmt(b.principal, hidden)}</td>
                                     </tr>
-                                  </thead>
-                                  <tbody>
-                                    {g.items.map((b: any) => (
-                                      <tr key={b.id} className="border-b last:border-0 align-top">
-                                        <td className="py-1.5 px-2 whitespace-nowrap">{b.date ? new Date(b.date + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</td>
-                                        <td className="py-1.5 px-2">
-                                          <p className="truncate max-w-[260px]">{b.description || b.borrowerName}</p>
-                                          <p className="text-[10px] text-muted-foreground">{b.borrowerName} · {b.kindLabel}</p>
-                                        </td>
-                                        <td className="py-1.5 px-2 text-right tabular-nums">{fmt(b.principal, hidden)}</td>
-                                        <td className="py-1.5 px-2 text-right tabular-nums text-success">{fmt(b.interest, hidden)}</td>
-                                        <td className="py-1.5 px-2 text-right tabular-nums font-medium">{fmt(b.amount, hidden)}</td>
-                                      </tr>
-                                    ))}
-                                    <tr className="font-semibold bg-muted/30">
-                                      <td className="py-1.5 px-2" colSpan={2}>Total</td>
-                                      <td className="py-1.5 px-2 text-right tabular-nums">{fmt(g.principal, hidden)}</td>
-                                      <td className="py-1.5 px-2 text-right tabular-nums text-success">{fmt(g.interest, hidden)}</td>
-                                      <td className="py-1.5 px-2 text-right tabular-nums">{fmt(g.amount, hidden)}</td>
-                                    </tr>
-                                  </tbody>
-                                </table>
-                              </div>
-                            </CollapsibleContent>
-                          </Collapsible>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })()}
+                                  ))}
+                                  <tr className="font-semibold bg-muted/30">
+                                    <td className="py-1.5 pr-2" colSpan={2}>Total</td>
+                                    <td className="py-1.5 pr-2 text-right tabular-nums">{fmt(tAmount, hidden)}</td>
+                                    <td className="py-1.5 pr-2 text-right tabular-nums text-success">{fmt(tInterest, hidden)}</td>
+                                    <td className="py-1.5 text-right tabular-nums">{fmt(tPrincipal, hidden)}</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+
+                            {/* Cards em mobile */}
+                            <div className="sm:hidden space-y-2">
+                              {items.map((b: any) => (
+                                <div key={b.id} className="rounded-lg border bg-card p-3 space-y-2">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-xs font-semibold truncate">{b.description || b.borrowerName}</p>
+                                      <p className="text-[10px] text-muted-foreground">
+                                        {b.date ? new Date(b.date + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
+                                        {b.paymentMethodName ? ` · ${b.paymentMethodName}` : ""}
+                                      </p>
+                                    </div>
+                                    <span className="shrink-0 inline-block px-1.5 py-0.5 rounded bg-muted text-[10px] font-medium">
+                                      {b.kindLabel}
+                                    </span>
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-1.5 text-[11px] pt-1 border-t">
+                                    <div>
+                                      <p className="text-[10px] text-muted-foreground">Valor</p>
+                                      <p className="font-medium tabular-nums">{fmt(b.amount, hidden)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-[10px] text-muted-foreground">Juros</p>
+                                      <p className="font-medium text-success tabular-nums">{fmt(b.interest, hidden)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-[10px] text-muted-foreground">Principal</p>
+                                      <p className="font-medium tabular-nums">{fmt(b.principal, hidden)}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </>
+                    );
+                  })()}
+                </DialogContent>
+              </Dialog>
+
             </CardContent>
           </Card>
 
