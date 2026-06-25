@@ -1541,8 +1541,87 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                   )}
                 </CollapsibleContent>
               </Collapsible>
+
+              {/* Por forma de pagamento */}
+              {(() => {
+                const groups = new Map<string, { id: string; name: string; items: any[]; amount: number; interest: number; principal: number }>();
+                (dre as any).breakdown.forEach((b: any) => {
+                  const id = b.paymentMethodId || "__unset__";
+                  if (!groups.has(id)) groups.set(id, { id, name: b.paymentMethodName || "Não informado", items: [], amount: 0, interest: 0, principal: 0 });
+                  const g = groups.get(id)!;
+                  g.items.push(b);
+                  g.amount += b.amount;
+                  g.interest += b.interest;
+                  g.principal += b.principal;
+                });
+                const rows = Array.from(groups.values()).sort((a, b) => b.amount - a.amount);
+                if (rows.length === 0) return null;
+                return (
+                  <div className="pt-2 border-t">
+                    <p className="text-xs font-semibold mb-2">Por forma de pagamento</p>
+                    <div className="space-y-2">
+                      {rows.map((g) => {
+                        const open = expandedMethod === `juros-${g.id}`;
+                        return (
+                          <Collapsible key={g.id} open={open} onOpenChange={(o) => setExpandedMethod(o ? `juros-${g.id}` : null)}>
+                            <CollapsibleTrigger className="w-full flex items-center justify-between gap-2 rounded-lg border bg-muted/30 hover:bg-muted/50 px-3 py-2 text-left">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <ChevronRight className={`h-3 w-3 shrink-0 transition-transform ${open ? "rotate-90" : ""}`} />
+                                <span className="text-xs font-medium truncate">{g.name}</span>
+                                <span className="text-[10px] text-muted-foreground shrink-0">({g.items.length})</span>
+                              </div>
+                              <div className="flex items-center gap-3 text-[11px] tabular-nums shrink-0">
+                                <span className="text-success">{fmt(g.interest, hidden)}</span>
+                                <span className="text-muted-foreground">/</span>
+                                <span>{fmt(g.principal, hidden)}</span>
+                                <span className="font-semibold">{fmt(g.amount, hidden)}</span>
+                              </div>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2">
+                              <div className="overflow-x-auto rounded-lg border">
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="text-left text-muted-foreground border-b bg-muted/20">
+                                      <th className="py-1.5 px-2">Data</th>
+                                      <th className="py-1.5 px-2">Descrição</th>
+                                      <th className="py-1.5 px-2 text-right">Principal</th>
+                                      <th className="py-1.5 px-2 text-right">Juros</th>
+                                      <th className="py-1.5 px-2 text-right">Total</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {g.items.map((b: any) => (
+                                      <tr key={b.id} className="border-b last:border-0 align-top">
+                                        <td className="py-1.5 px-2 whitespace-nowrap">{b.date ? new Date(b.date + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</td>
+                                        <td className="py-1.5 px-2">
+                                          <p className="truncate max-w-[260px]">{b.description || b.borrowerName}</p>
+                                          <p className="text-[10px] text-muted-foreground">{b.borrowerName} · {b.kindLabel}</p>
+                                        </td>
+                                        <td className="py-1.5 px-2 text-right tabular-nums">{fmt(b.principal, hidden)}</td>
+                                        <td className="py-1.5 px-2 text-right tabular-nums text-success">{fmt(b.interest, hidden)}</td>
+                                        <td className="py-1.5 px-2 text-right tabular-nums font-medium">{fmt(b.amount, hidden)}</td>
+                                      </tr>
+                                    ))}
+                                    <tr className="font-semibold bg-muted/30">
+                                      <td className="py-1.5 px-2" colSpan={2}>Total</td>
+                                      <td className="py-1.5 px-2 text-right tabular-nums">{fmt(g.principal, hidden)}</td>
+                                      <td className="py-1.5 px-2 text-right tabular-nums text-success">{fmt(g.interest, hidden)}</td>
+                                      <td className="py-1.5 px-2 text-right tabular-nums">{fmt(g.amount, hidden)}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
+
         </TabsContent>
 
         {/* Impostos */}
