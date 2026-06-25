@@ -703,9 +703,11 @@ function ClientLoansList({ loans, payments, paymentsByLoan, lastPaymentDateByLoa
           const settlementDate = lastPaymentDateByLoan[l.id];
           const isSettled = l.status === "paid" && remaining === 0 && !!settlementDate;
           return (
-            <div
+            <button
+              type="button"
               key={l.id}
-              className="rounded-lg border border-border/50 bg-card/40 p-3 space-y-2"
+              onClick={() => setSelectedLoan(l)}
+              className="w-full text-left rounded-lg border border-border/50 bg-card/40 p-3 space-y-2 hover:bg-muted/40 transition-colors"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[11px] text-muted-foreground">
