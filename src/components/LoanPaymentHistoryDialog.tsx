@@ -183,6 +183,14 @@ export function LoanPaymentHistoryDialog({
     };
   };
 
+  const totalRows = data.rows.length;
+  const startIdx = Math.max(0, totalRows - visibleCount);
+  const visibleRows = data.rows
+    .slice(startIdx)
+    .map((r, i) => ({ row: r, originalIdx: startIdx + i }))
+    .reverse();
+  const hasMore = startIdx > 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
