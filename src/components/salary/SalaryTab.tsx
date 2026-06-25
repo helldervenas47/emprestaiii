@@ -32,15 +32,17 @@ export function SalaryTab({ readOnly }: Props) {
   return (
     <div className="space-y-4">
       <div className="overflow-x-auto -mx-1 px-1">
-        <div className="inline-flex gap-1 bg-muted/40 rounded-xl p-1 min-w-full">
+        <div className="inline-flex gap-1 bg-muted/60 border border-border/50 rounded-xl p-1 min-w-full">
           {subTabs.map((t) => {
             const active = sub === t.id;
             return (
               <button
                 key={t.id}
                 onClick={() => setSub(t.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
-                  active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+                  active
+                    ? "bg-background !text-primary shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <t.icon className="h-4 w-4" />
@@ -50,6 +52,7 @@ export function SalaryTab({ readOnly }: Props) {
           })}
         </div>
       </div>
+
 
       {sub === "dashboard" && <SalaryDashboard />}
       {sub === "employees" && <EmployeeManager readOnly={readOnly} />}
