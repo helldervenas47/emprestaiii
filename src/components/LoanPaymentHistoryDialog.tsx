@@ -299,7 +299,7 @@ export function LoanPaymentHistoryDialog({
                         {formatDate(r.date)}
                       </TableCell>
                       <TableCell className="text-center tabular-nums">
-                        {r.installmentNumber === 0
+                        {r.installmentNumber <= 0
                           ? "—"
                           : `${r.installmentNumber}/${loan.installments}`}
                       </TableCell>
@@ -363,7 +363,7 @@ export function LoanPaymentHistoryDialog({
                     <div>
                       <div className="text-muted-foreground">Parcela</div>
                       <div className="tabular-nums font-medium">
-                        {r.installmentNumber === 0
+                        {r.installmentNumber <= 0
                           ? "—"
                           : `${r.installmentNumber}/${loan.installments}`}
                       </div>
