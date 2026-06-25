@@ -171,7 +171,7 @@ export function LoanPaymentHistoryDialog({
         className: "bg-primary/15 text-primary border-primary/30",
       };
     }
-    if (installmentNumber === 0) {
+    if (installmentNumber <= 0) {
       return {
         label: "Juros",
         className: "bg-warning/15 text-warning border-warning/30",
