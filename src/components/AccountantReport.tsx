@@ -120,7 +120,12 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       if (!loan) return;
       const allPays = payments.filter((pp) => (pp.loanId ?? (pp as any).loan_id) === loanId);
       const totalPaid = allPays.reduce((s, pp) => s + (Number(pp.amount) || 0), 0);
-      const profit = Math.max(0, totalPaid - (Number(loan.amount) || 0));
+      // Usa o PRINCIPAL ORIGINAL quando disponível (mesma regra do Dashboard)
+      // para evitar superestimar o lucro em contratos com amortizações.
+      const principalRef = Number(loan.originalAmount ?? loan.original_amount) > 0
+        ? Number(loan.originalAmount ?? loan.original_amount)
+        : (Number(loan.amount) || 0);
+      const profit = Math.max(0, totalPaid - principalRef);
       const lastPay = allPays.reduce((acc, pp) => (pp.date > acc.date ? pp : acc), allPays[0]);
       const borrowerName = loan?.borrowerName ?? loan?.borrower_name ?? "Sem contrato";
       interestRevenue += profit;
@@ -134,7 +139,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
         principal: Math.max(0, totalPaid - profit),
         kind: "quitacao",
         kindLabel: "Quitação",
-        reason: `Contrato quitado no período: lucro = total pago (${totalPaid.toFixed(2)}) − principal (${(Number(loan.amount) || 0).toFixed(2)})`,
+        reason: `Contrato quitado no período: lucro = total pago (${totalPaid.toFixed(2)}) − principal (${principalRef.toFixed(2)})`,
       });
     });
 
@@ -160,10 +165,12 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
         reason = `Split explícito no pagamento: juros = ${splitInterest.toFixed(2)}`;
       } else {
         const inst = Number(p.installmentNumber ?? (p as any).installment_number ?? 0);
-        if (inst === 0) {
+        if (inst === 0 || inst === -2) {
           interest = amt;
           kind = "juros_puro";
-          reason = "Pagamento de juros puro (installmentNumber = 0) → 100% juros";
+          reason = inst === -2
+            ? "Multa/encargos (installmentNumber = -2) → 100% juros"
+            : "Pagamento de juros puro (installmentNumber = 0) → 100% juros";
         } else if (inst === -3) {
           interest = 0;
           kind = "amortizacao";
