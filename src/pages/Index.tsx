@@ -1011,22 +1011,21 @@ const Index = () => {
           </div>
 
           {!isMobileOrTablet && (
-            <div className="max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-8">
-              <nav className="flex gap-0.5 -mb-px overflow-x-auto scrollbar-hide pb-0">
+            <div className="max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-8 pb-2">
+              <nav className="flex gap-1 overflow-x-auto scrollbar-hide bg-muted/40 p-1 rounded-lg border border-border/50">
                 {visibleTabs.map((t) => (
-                  <React.Fragment key={t.id}>
-                    <button
-                      onClick={() => setTab(t.id)}
-                      className={`flex items-center gap-1.5 px-2.5 sm:px-4 py-2 sm:py-2.5 text-[10px] sm:text-xs font-medium border-b-2 transition-all whitespace-nowrap uppercase tracking-wide ${
-                        tab === t.id
-                          ? "border-primary text-primary"
-                          : "border-transparent text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <t.icon className="h-3.5 w-3.5" />
-                      <span className="hidden xs:inline">{t.label}</span>
-                    </button>
-                  </React.Fragment>
+                  <button
+                    key={t.id}
+                    onClick={() => setTab(t.id)}
+                    className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-semibold rounded-md transition-all whitespace-nowrap uppercase tracking-wide ${
+                      tab === t.id
+                        ? "bg-card text-primary shadow-sm ring-1 ring-border"
+                        : "text-muted-foreground hover:text-foreground hover:bg-card/50"
+                    }`}
+                  >
+                    <t.icon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="hidden xs:inline">{t.label}</span>
+                  </button>
                 ))}
               </nav>
             </div>
