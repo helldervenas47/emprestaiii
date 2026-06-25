@@ -96,6 +96,9 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       kind: Kind;
       kindLabel: string;
       reason: string;
+      paymentMethodId: string;
+      paymentMethodName: string;
+      description: string;
     };
     const breakdown: Breakdown[] = [];
 
