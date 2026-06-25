@@ -1298,7 +1298,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                 const paidAmount = paidAmountInput.trim() && !isNaN(parsed) && parsed > 0 ? parsed : undefined;
                 const exp = expenses.find((e) => e.id === payingId);
                 onPay(payingId, false, payDate, paidAmount);
-                celebrate({ kind: "expense", message: "Despesa quitada!", amount: paidAmount ?? exp?.amount });
+                celebrate({ kind: "expense", message: "Despesa quitada!", amount: paidAmount ?? (exp ? getInstallmentAmount(exp) : undefined) });
               }
               setPayingId(null);
               setPaidAmountInput("");
