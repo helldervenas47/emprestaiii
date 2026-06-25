@@ -1156,26 +1156,30 @@ const Index = () => {
                 )}
                 {tab === "clients" && (
                   <div>
-                    <div className="grid grid-cols-2 gap-2 mb-4 sm:flex sm:gap-2">
-                      <Button
-                        variant={clientSubTab === "clientes" ? "default" : "outline"}
-                        size="sm"
+                    <nav className="flex gap-1 mb-4 bg-muted/60 p-1 rounded-xl border border-border/50 overflow-x-auto scrollbar-hide">
+                      <button
                         onClick={() => setClientSubTab("clientes")}
-                        className="w-full sm:w-auto"
+                        className={`flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all whitespace-nowrap flex-1 sm:flex-none ${
+                          clientSubTab === "clientes"
+                            ? "bg-background !text-primary shadow-sm"
+                            : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                        }`}
                       >
-                        <Users className="h-4 w-4 mr-1" /> Cadastro
-                      </Button>
+                        <Users className={`h-4 w-4 shrink-0 ${clientSubTab === "clientes" ? "!text-primary" : ""}`} /> Cadastro
+                      </button>
                       {!isReadOnly && (
-                        <Button
-                          variant={clientSubTab === "veiculos" ? "default" : "outline"}
-                          size="sm"
+                        <button
                           onClick={() => setClientSubTab("veiculos")}
-                          className="w-full sm:w-auto"
+                          className={`flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all whitespace-nowrap flex-1 sm:flex-none ${
+                            clientSubTab === "veiculos"
+                              ? "bg-background !text-primary shadow-sm"
+                              : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                          }`}
                         >
-                          <Car className="h-4 w-4 mr-1" /> Veículos
-                        </Button>
+                          <Car className={`h-4 w-4 shrink-0 ${clientSubTab === "veiculos" ? "!text-primary" : ""}`} /> Veículos
+                        </button>
                       )}
-                    </div>
+                    </nav>
                     {clientSubTab === "clientes" && (
                       <ClientList
                         clients={filteredClients}
@@ -1189,24 +1193,29 @@ const Index = () => {
                     )}
                     {clientSubTab === "veiculos" && !isReadOnly && (
                       <>
-                        <div className="grid grid-cols-2 gap-2 mb-4 sm:flex sm:gap-2">
-                          <Button
-                            variant={vehicleSubTab === "veiculos" ? "default" : "outline"}
-                            size="sm"
+                        <nav className="flex gap-1 mb-4 bg-muted/60 p-1 rounded-xl border border-border/50 overflow-x-auto scrollbar-hide">
+                          <button
                             onClick={() => setVehicleSubTab("veiculos")}
-                            className="w-full sm:w-auto"
+                            className={`flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all whitespace-nowrap flex-1 sm:flex-none ${
+                              vehicleSubTab === "veiculos"
+                                ? "bg-background !text-primary shadow-sm"
+                                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                            }`}
                           >
-                            <Car className="h-4 w-4 mr-1" /> Veículos
-                          </Button>
-                          <Button
-                            variant={vehicleSubTab === "locadores" ? "default" : "outline"}
-                            size="sm"
+                            <Car className={`h-4 w-4 shrink-0 ${vehicleSubTab === "veiculos" ? "!text-primary" : ""}`} /> Veículos
+                          </button>
+                          <button
                             onClick={() => setVehicleSubTab("locadores")}
-                            className="w-full sm:w-auto"
+                            className={`flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all whitespace-nowrap flex-1 sm:flex-none ${
+                              vehicleSubTab === "locadores"
+                                ? "bg-background !text-primary shadow-sm"
+                                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                            }`}
                           >
-                            <User className="h-4 w-4 mr-1" /> Dados do Locador
-                          </Button>
-                        </div>
+                            <User className={`h-4 w-4 shrink-0 ${vehicleSubTab === "locadores" ? "!text-primary" : ""}`} /> Dados do Locador
+                          </button>
+                        </nav>
+
                         {vehicleSubTab === "veiculos" && (
                           <>
                             <h2 className="text-lg font-semibold text-foreground mb-4">
