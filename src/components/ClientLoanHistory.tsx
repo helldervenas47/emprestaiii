@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { LoanPaymentHistoryDialog } from "@/components/LoanPaymentHistoryDialog";
 
 interface Props {
   loans: Loan[];
@@ -369,6 +370,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           <CardContent className="p-3 sm:p-4">
             <ClientLoansList
               loans={clientLoans}
+              payments={payments}
               paymentsByLoan={paymentsByLoan}
               lastPaymentDateByLoan={lastPaymentDateByLoan}
               hidden={hidden}
@@ -597,12 +599,14 @@ function formatDate(d?: string): string {
 
 interface ClientLoansListProps {
   loans: Loan[];
+  payments: Payment[];
   paymentsByLoan: Record<string, number>;
   lastPaymentDateByLoan: Record<string, string | undefined>;
   hidden: boolean;
 }
 
-function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden }: ClientLoansListProps) {
+function ClientLoansList({ loans, payments, paymentsByLoan, lastPaymentDateByLoan, hidden }: ClientLoansListProps) {
+  const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
   const mask = (v: string) => (hidden ? "•••" : v);
 
   if (loans.length === 0) {
@@ -699,9 +703,11 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
           const settlementDate = lastPaymentDateByLoan[l.id];
           const isSettled = l.status === "paid" && remaining === 0 && !!settlementDate;
           return (
-            <div
+            <button
+              type="button"
               key={l.id}
-              className="rounded-lg border border-border/50 bg-card/40 p-3 space-y-2"
+              onClick={() => setSelectedLoan(l)}
+              className="w-full text-left rounded-lg border border-border/50 bg-card/40 p-3 space-y-2 hover:bg-muted/40 transition-colors"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[11px] text-muted-foreground">
@@ -753,7 +759,7 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
                   </div>
                 )}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -781,7 +787,11 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
               const settlementDate = lastPaymentDateByLoan[l.id];
               const isSettled = l.status === "paid" && remaining === 0 && !!settlementDate;
               return (
-                <tr key={l.id} className="border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors">
+                <tr
+                  key={l.id}
+                  onClick={() => setSelectedLoan(l)}
+                  className="border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
+                >
                   <td className="py-2 px-2 tabular-nums whitespace-nowrap text-center">{formatDate(l.startDate)}</td>
                   <td className="py-2 px-2 tabular-nums whitespace-nowrap text-center">{formatDate(l.dueDate)}</td>
                   <td className="py-2 px-2 tabular-nums whitespace-nowrap font-medium text-primary text-center">
@@ -813,6 +823,13 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
           </tbody>
         </table>
       </div>
+
+      <LoanPaymentHistoryDialog
+        loan={selectedLoan}
+        payments={payments}
+        open={selectedLoan !== null}
+        onOpenChange={(o) => !o && setSelectedLoan(null)}
+      />
     </>
   );
 }
