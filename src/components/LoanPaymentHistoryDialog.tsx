@@ -107,8 +107,8 @@ export function LoanPaymentHistoryDialog({
 
       let principalPart = 0;
       let interestPart = 0;
-      if (p.installmentNumber === 0) {
-        // Pagamento de juros (juros-only)
+      if ((p.installmentNumber ?? 0) <= 0) {
+        // Pagamento de juros / parcial (sem amortização de parcela)
         interestPart = amount;
       } else {
         principalPart = amount * principalRatio;
