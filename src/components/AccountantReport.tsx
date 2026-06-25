@@ -1002,7 +1002,17 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <Select value={monthFilter} onValueChange={setMonthFilter}>
-                  <SelectTrigger className="w-[180px] h-9"><SelectValue>{formatDate(monthFilter)}</SelectValue></SelectTrigger>
+                  <SelectTrigger
+                    className="w-[180px] h-9"
+                    onPointerDown={(e) => {
+                      if (monthFilter !== currentMonth) {
+                        e.preventDefault();
+                        setMonthFilter(currentMonth);
+                      }
+                    }}
+                  >
+                    <SelectValue>{formatDate(monthFilter)}</SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
                     {(months.includes(monthFilter) ? months : [monthFilter, ...months]).map((m) => (
                       <SelectItem key={m} value={m}>{formatDate(m)}</SelectItem>
