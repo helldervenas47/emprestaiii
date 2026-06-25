@@ -43,6 +43,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
   const { hidden } = useHideValues();
   const { methods: paymentMethods } = usePaymentMethods();
   const [expandedMethod, setExpandedMethod] = useState<string | null>(null);
+  const [kindFilter, setKindFilter] = useState<null | "juros_puro" | "parcela" | "quitacao" | "amortizacao" | "split" | "sem_vinculo" | "__all__">(null);
   const [drillDown, setDrillDown] = useState<null | "in" | "out" | "net">(null);
   const [dreCategory, setDreCategory] = useState<null | "interest" | "sales" | "expenses">(null);
   const now = new Date();
