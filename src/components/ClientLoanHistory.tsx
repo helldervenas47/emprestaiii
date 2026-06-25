@@ -598,12 +598,14 @@ function formatDate(d?: string): string {
 
 interface ClientLoansListProps {
   loans: Loan[];
+  payments: Payment[];
   paymentsByLoan: Record<string, number>;
   lastPaymentDateByLoan: Record<string, string | undefined>;
   hidden: boolean;
 }
 
-function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden }: ClientLoansListProps) {
+function ClientLoansList({ loans, payments, paymentsByLoan, lastPaymentDateByLoan, hidden }: ClientLoansListProps) {
+  const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
   const mask = (v: string) => (hidden ? "•••" : v);
 
   if (loans.length === 0) {
