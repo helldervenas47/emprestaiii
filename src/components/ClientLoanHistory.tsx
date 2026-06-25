@@ -787,7 +787,11 @@ function ClientLoansList({ loans, payments, paymentsByLoan, lastPaymentDateByLoa
               const settlementDate = lastPaymentDateByLoan[l.id];
               const isSettled = l.status === "paid" && remaining === 0 && !!settlementDate;
               return (
-                <tr key={l.id} className="border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors">
+                <tr
+                  key={l.id}
+                  onClick={() => setSelectedLoan(l)}
+                  className="border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
+                >
                   <td className="py-2 px-2 tabular-nums whitespace-nowrap text-center">{formatDate(l.startDate)}</td>
                   <td className="py-2 px-2 tabular-nums whitespace-nowrap text-center">{formatDate(l.dueDate)}</td>
                   <td className="py-2 px-2 tabular-nums whitespace-nowrap font-medium text-primary text-center">
