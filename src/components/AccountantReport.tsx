@@ -181,6 +181,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     let totalReceived = 0;
     let interestRevenue = 0;
 
+    const methodNameById = new Map(paymentMethods.map((m: any) => [m.id, m.name] as const));
     periodPaymentList.forEach((p) => {
       const loanId = p.loanId ?? (p as any).loan_id ?? null;
       const amt = Number(p.amount) || 0;
@@ -190,41 +191,10 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       const inst = Number(p.installmentNumber ?? (p as any).installment_number ?? 0);
       const interest = interestByPaymentId.get(p.id) ?? 0;
       interestRevenue += interest;
-
-      const isLastOfPaid = loanId && paidLoanIds.has(loanId) && lastPaymentByLoanId.get(loanId) === p.id;
-      let kind: Kind;
-      let reason: string;
-      if (isLastOfPaid) {
-        kind = "quitacao";
-        reason = `Quitação do contrato: juros alocado (juros-primeiro + ajuste de quitação) = ${interest.toFixed(2)}`;
-      } else if (inst === 0 || inst === -2) {
-        kind = "juros_puro";
-        reason = inst === -2
-          ? "Multa/encargos (installmentNumber = -2) → 100% juros"
-          : "Pagamento de juros puro (installmentNumber = 0) → 100% juros";
-      } else if (inst === -3) {
-        kind = "amortizacao";
-        reason = "Amortização de principal (installmentNumber = -3) → 0% juros";
-      } else if (!loan) {
-        kind = "sem_vinculo";
-        reason = "Pagamento sem empréstimo vinculado → assume 100% juros";
-      } else if (inst === -1) {
-        kind = "quitacao";
-        reason = `Pagamento parcial: juros alocado via juros-primeiro = ${interest.toFixed(2)}`;
-      } else {
-        kind = "parcela";
-        reason = `Parcela ${inst}: juros alocado via juros-primeiro = ${interest.toFixed(2)}`;
-      }
-
-      const kindLabel = ({
-        juros_puro: "Juros puro",
-        amortizacao: "Amortização",
-        quitacao: "Quitação",
-        parcela: "Parcela",
-        sem_vinculo: "Sem vínculo",
-        split: "Split explícito",
-      } as Record<Kind, string>)[kind];
-
+      const pmId = p.paymentMethodId ?? (p as any).payment_method_id ?? null;
+      const pmName = pmId ? (methodNameById.get(pmId) ?? "Não informado") : "Não informado";
+      const description = p.description ?? (p as any).notes ?? "";
+...
       breakdown.push({
         id: p.id,
         date: p.date,
@@ -236,6 +206,9 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
         kind,
         kindLabel,
         reason,
+        paymentMethodId: pmId ?? "__unset__",
+        paymentMethodName: pmName,
+        description,
       });
     });
 
