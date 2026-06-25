@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, TrendingUp, TrendingDown, Receipt, Wallet, FileBarChart, Sparkles, Download, DollarSign, CreditCard, ChevronDown, ChevronRight } from "lucide-react";
+import { Calculator, TrendingUp, TrendingDown, Receipt, Wallet, FileBarChart, Sparkles, Download, DollarSign, CreditCard, ChevronDown, ChevronRight, ChevronLeft } from "lucide-react";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Button } from "@/components/ui/button";
 import jsPDF from "jspdf";
