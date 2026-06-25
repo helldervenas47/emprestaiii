@@ -330,15 +330,14 @@ async function callAI(
   history: ChatMsg[],
   apiKey: string,
 ): Promise<{ ok: true; reply: string } | { ok: false; status: number; text: string }> {
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const resp = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
     method: "POST",
     headers: {
-      "Lovable-API-Key": apiKey,
-      "X-Lovable-AIG-SDK": "edge-function-fetch",
+      "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       messages: [{ role: "system", content: systemContent }, ...history],
     }),
   });
@@ -361,9 +360,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY missing" }), {
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
+      return new Response(JSON.stringify({ error: "GEMINI_API_KEY missing" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -401,7 +400,7 @@ Se a ação que o usuário quer NÃO puder ser explicada com esses elementos, di
 
     const systemContent = SYSTEM_PROMPT + manifestNote + botsContext + knowledgeContext;
 
-    let attempt = await callAI(systemContent, trimmed, LOVABLE_API_KEY);
+    let attempt = await callAI(systemContent, trimmed, GEMINI_API_KEY);
     if (!attempt.ok) {
       const status = attempt.status === 429 || attempt.status === 402 ? attempt.status : 500;
       const msg =
@@ -434,7 +433,7 @@ Se a ação que o usuário quer NÃO puder ser explicada com esses elementos, di
             `Se a ação não puder ser executada com esses elementos, diga honestamente que essa função não existe no app. Envie só a resposta corrigida.`,
         },
       ];
-      const fix = await callAI(systemContent, correctionHistory, LOVABLE_API_KEY);
+      const fix = await callAI(systemContent, correctionHistory, GEMINI_API_KEY);
       if (fix.ok) {
         const fixValidation = validateReply(fix.reply);
         if (fixValidation.ok || fixValidation.issues.length < validation.issues.length) {

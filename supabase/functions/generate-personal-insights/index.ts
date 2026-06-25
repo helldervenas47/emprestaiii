@@ -139,34 +139,17 @@ function buildPrompt(ctx: any) {
 }
 
 async function callAI(systemPrompt: string, userPrompt: string) {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
-    // Fallback to GEMINI_API_KEY if available
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (GEMINI_API_KEY) {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\nUser Data:\n${userPrompt}` }] }],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 1000 },
-        }),
-      });
-      if (!response.ok) throw new Error(`Gemini API error ${response.status}: ${await response.text()}`);
-      const data = await response.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text as string;
-    }
-    throw new Error("Neither LOVABLE_API_KEY nor GEMINI_API_KEY is configured.");
-  }
-  
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured.");
+
+  const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+      "Authorization": `Bearer ${GEMINI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "gemini-2.5-flash",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: `User Data:\n${userPrompt}` },
@@ -175,13 +158,13 @@ async function callAI(systemPrompt: string, userPrompt: string) {
       max_tokens: 1000,
     }),
   });
-  
+
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`AI Gateway error ${response.status}:`, errorText);
-    throw new Error(`AI gateway error ${response.status}: ${errorText}`);
+    console.error(`Gemini API error ${response.status}:`, errorText);
+    throw new Error(`Gemini API error ${response.status}: ${errorText}`);
   }
-  
+
   const data = await response.json();
   return data.choices?.[0]?.message?.content as string;
 }
