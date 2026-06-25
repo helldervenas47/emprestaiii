@@ -1001,24 +1001,14 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <Select value={monthFilter} onValueChange={setMonthFilter}>
-                  <SelectTrigger
-                    className="w-[180px] h-9"
-                    onPointerDown={(e) => {
-                      if (monthFilter !== currentMonth) {
-                        e.preventDefault();
-                        setMonthFilter(currentMonth);
-                      }
-                    }}
-                  >
-                    <SelectValue>{formatDate(monthFilter)}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(months.includes(monthFilter) ? months : [monthFilter, ...months]).map((m) => (
-                      <SelectItem key={m} value={m}>{formatDate(m)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Button
+                  variant="outline"
+                  className="w-[180px] h-9 justify-center font-normal capitalize"
+                  onClick={() => setMonthFilter(currentMonth)}
+                  title="Voltar para o mês atual"
+                >
+                  {formatDate(monthFilter)}
+                </Button>
                 <Button
                   variant="outline"
                   size="icon"
@@ -1044,22 +1034,14 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <Select value={yearFilter} onValueChange={setYearFilter}>
-                  <SelectTrigger
-                    className="w-[120px] h-9"
-                    onPointerDown={(e) => {
-                      if (yearFilter !== currentYear) {
-                        e.preventDefault();
-                        setYearFilter(currentYear);
-                      }
-                    }}
-                  >
-                    <SelectValue>{yearFilter}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(years.includes(yearFilter) ? years : [yearFilter, ...years]).map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <Button
+                  variant="outline"
+                  className="w-[120px] h-9 justify-center font-normal"
+                  onClick={() => setYearFilter(currentYear)}
+                  title="Voltar para o ano atual"
+                >
+                  {yearFilter}
+                </Button>
                 <Button
                   variant="outline"
                   size="icon"
