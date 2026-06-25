@@ -1182,12 +1182,42 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       })()}
 
       <Tabs defaultValue="dre" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="dre" className="text-xs sm:text-sm"><FileBarChart className="h-4 w-4 mr-1 hidden sm:inline" /> DRE</TabsTrigger>
-          <TabsTrigger value="taxes" className="text-xs sm:text-sm"><Receipt className="h-4 w-4 mr-1 hidden sm:inline" /> Impostos</TabsTrigger>
-          <TabsTrigger value="simulation" className="text-xs sm:text-sm"><Sparkles className="h-4 w-4 mr-1 hidden sm:inline" /> Simulação</TabsTrigger>
-          <TabsTrigger value="cashflow" className="text-xs sm:text-sm"><Wallet className="h-4 w-4 mr-1 hidden sm:inline" /> Fluxo</TabsTrigger>
-          <TabsTrigger value="methods" className="text-xs sm:text-sm"><CreditCard className="h-4 w-4 mr-1 hidden sm:inline" /> Formas</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-5 h-auto p-1 gap-1 bg-muted/60 rounded-xl">
+          <TabsTrigger
+            value="dre"
+            className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-2 text-[11px] sm:text-sm font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all"
+          >
+            <FileBarChart className="h-4 w-4 shrink-0" />
+            <span className="truncate">DRE</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="taxes"
+            className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-2 text-[11px] sm:text-sm font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all"
+          >
+            <Receipt className="h-4 w-4 shrink-0" />
+            <span className="truncate">Impostos</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="simulation"
+            className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-2 text-[11px] sm:text-sm font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all"
+          >
+            <Sparkles className="h-4 w-4 shrink-0" />
+            <span className="truncate">Simulação</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="cashflow"
+            className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-2 text-[11px] sm:text-sm font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all"
+          >
+            <Wallet className="h-4 w-4 shrink-0" />
+            <span className="truncate">Fluxo</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="methods"
+            className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-3 py-2 text-[11px] sm:text-sm font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all"
+          >
+            <CreditCard className="h-4 w-4 shrink-0" />
+            <span className="truncate">Formas</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* DRE */}
