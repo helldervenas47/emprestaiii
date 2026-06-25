@@ -63,6 +63,11 @@ export function LoanPaymentHistoryDialog({
   const { hidden } = useHideValues();
   const mask = (v: string) => (hidden ? "•••" : v);
 
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  useEffect(() => {
+    if (open) setVisibleCount(PAGE_SIZE);
+  }, [open, loan?.id]);
+
   const methodById = useMemo(() => {
     const map: Record<string, string> = {};
     methods.forEach((m) => {
