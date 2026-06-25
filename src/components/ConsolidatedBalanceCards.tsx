@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { useDashboardPrefs, DEFAULT_EXTRA as PREFS_DEFAULT_EXTRA, DEFAULT_VIS as PREFS_DEFAULT_VIS } from "@/hooks/useDashboardPrefs";
 import type { Sale } from "@/types/loan";
 import { PiggyBanksBreakdownDialog } from "./PiggyBanksBreakdownDialog";
+import { StockBreakdownDialog } from "./StockBreakdownDialog";
 
 type MaosVisibility = {
   account: boolean;
@@ -106,6 +107,7 @@ export function ConsolidatedBalanceCards() {
   const [openVariacao, setOpenVariacao] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
   const [openPiggyBreakdown, setOpenPiggyBreakdown] = useState(false);
+  const [openStockBreakdown, setOpenStockBreakdown] = useState(false);
   const { extraCards, visibility, setExtraCards, setVisibility, toggleExtra, toggleVis } = useDashboardPrefs();
 
 
@@ -291,7 +293,7 @@ export function ConsolidatedBalanceCards() {
             </p>
           </CardContent>
         </Card>
-        <Card no3d>
+        <Card no3d className="cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => setOpenStockBreakdown(true)}>
           <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
             <div className="flex items-center justify-center gap-1.5">
               <PiggyBank className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
@@ -946,6 +948,11 @@ export function ConsolidatedBalanceCards() {
         piggyBanks={piggyBanks}
         deposits={piggyDeposits}
         balances={piggyBalances}
+      />
+      <StockBreakdownDialog
+        open={openStockBreakdown}
+        onOpenChange={setOpenStockBreakdown}
+        products={products}
       />
     </>
 
