@@ -107,8 +107,8 @@ export function LoanPaymentHistoryDialog({
 
       let principalPart = 0;
       let interestPart = 0;
-      if (p.installmentNumber === 0) {
-        // Pagamento de juros (juros-only)
+      if ((p.installmentNumber ?? 0) <= 0) {
+        // Pagamento de juros / parcial (sem amortização de parcela)
         interestPart = amount;
       } else {
         principalPart = amount * principalRatio;
@@ -171,7 +171,7 @@ export function LoanPaymentHistoryDialog({
         className: "bg-primary/15 text-primary border-primary/30",
       };
     }
-    if (installmentNumber === 0) {
+    if (installmentNumber <= 0) {
       return {
         label: "Juros",
         className: "bg-warning/15 text-warning border-warning/30",
@@ -299,7 +299,7 @@ export function LoanPaymentHistoryDialog({
                         {formatDate(r.date)}
                       </TableCell>
                       <TableCell className="text-center tabular-nums">
-                        {r.installmentNumber === 0
+                        {r.installmentNumber <= 0
                           ? "—"
                           : `${r.installmentNumber}/${loan.installments}`}
                       </TableCell>
@@ -363,7 +363,7 @@ export function LoanPaymentHistoryDialog({
                     <div>
                       <div className="text-muted-foreground">Parcela</div>
                       <div className="tabular-nums font-medium">
-                        {r.installmentNumber === 0
+                        {r.installmentNumber <= 0
                           ? "—"
                           : `${r.installmentNumber}/${loan.installments}`}
                       </div>
