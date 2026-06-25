@@ -99,94 +99,121 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     };
     const breakdown: Breakdown[] = [];
 
-    // Identifica contratos quitados no período (mesma lógica do Dashboard):
-    // status === "paid" e o último pagamento do contrato cai no período selecionado.
-    const quitadoLoanIds = new Set<string>();
-    loans.forEach((l: any) => {
-      if ((l.status ?? l.status) !== "paid") return;
-      const loanPays = payments.filter((pp) => (pp.loanId ?? (pp as any).loan_id) === l.id);
-      if (loanPays.length === 0) return;
-      const lastPayDate = loanPays.reduce((max, pp) => (pp.date > max ? pp.date : max), loanPays[0].date);
-      if (matchPeriod(lastPayDate)) quitadoLoanIds.add(l.id);
+    // ===== Alocação "juros-primeiro" (paridade exata com Dashboard) =====
+    // Processa TODOS os pagamentos cronologicamente, alocando juros por contrato.
+    const paymentsSorted = [...payments].sort((a, b) => {
+      const d = (a.date || "").localeCompare(b.date || "");
+      if (d !== 0) return d;
+      return ((a.createdAt ?? (a as any).created_at) ?? "").localeCompare(
+        ((b.createdAt ?? (b as any).created_at) ?? "")
+      );
     });
 
+    const interestByPaymentId = new Map<string, number>();
+    const loanInterestRemaining = new Map<string, number>();
+    loans.forEach((l: any) => {
+      const principal = Number(l.amount) || 0;
+      const rate = Number(l.interestRate ?? l.interest_rate) || 0;
+      const installments = Number(l.installments) || 1;
+      const total = calculateTotalWithInterest(principal, rate, installments);
+      loanInterestRemaining.set(l.id, Math.max(0, total - principal));
+    });
+
+    paymentsSorted.forEach((p) => {
+      const amt = Number(p.amount) || 0;
+      const loanId = p.loanId ?? (p as any).loan_id ?? null;
+      const inst = Number(p.installmentNumber ?? (p as any).installment_number ?? 0);
+      if (amt <= 0) { interestByPaymentId.set(p.id, 0); return; }
+
+      if (inst === 0 || inst === -2) {
+        interestByPaymentId.set(p.id, amt);
+        const rem = loanInterestRemaining.get(loanId) ?? 0;
+        loanInterestRemaining.set(loanId, Math.max(0, rem - amt));
+        return;
+      }
+      if (inst === -3) { interestByPaymentId.set(p.id, 0); return; }
+
+      const loan: any = loans.find((l) => l.id === loanId);
+      if (!loan) { interestByPaymentId.set(p.id, amt); return; }
+      const principal = Number(loan.amount) || 0;
+      const totalWithInterest = calculateTotalWithInterest(
+        principal,
+        Number(loan.interestRate ?? loan.interest_rate) || 0,
+        Number(loan.installments) || 1,
+      );
+      const ratio = totalWithInterest > 0 ? Math.max(0, 1 - principal / totalWithInterest) : 0;
+      const rem = loanInterestRemaining.get(loanId) ?? 0;
+      const interest = Math.min(rem, Math.max(0, amt * ratio));
+      interestByPaymentId.set(p.id, interest);
+      loanInterestRemaining.set(loanId, Math.max(0, rem - interest));
+    });
+
+    // Ajuste de quitação: aloca lucro/desconto residual ao último pagamento.
+    const lastPaymentByLoanId = new Map<string, string>();
+    paymentsSorted.forEach((p) => {
+      const lid = p.loanId ?? (p as any).loan_id;
+      if (lid) lastPaymentByLoanId.set(lid, p.id);
+    });
+    const paidLoanIds = new Set<string>(
+      loans.filter((l: any) => (l.status) === "paid").map((l: any) => l.id)
+    );
+    loans.forEach((l: any) => {
+      if (l.status !== "paid") return;
+      const lastId = lastPaymentByLoanId.get(l.id);
+      if (!lastId) return;
+      const loanPays = payments.filter((pp) => (pp.loanId ?? (pp as any).loan_id) === l.id);
+      const totalPaid = loanPays.reduce((s, pp) => s + (Number(pp.amount) || 0), 0);
+      const principalRef = Number(l.originalAmount ?? l.original_amount) > 0
+        ? Number(l.originalAmount ?? l.original_amount)
+        : (Number(l.amount) || 0);
+      const allocatedInterest = loanPays.reduce(
+        (s, pp) => s + (interestByPaymentId.get(pp.id) ?? 0), 0
+      );
+      const realProfit = totalPaid - principalRef;
+      const diff = realProfit - allocatedInterest;
+      if (Math.abs(diff) < 0.005) return;
+      const cur = interestByPaymentId.get(lastId) ?? 0;
+      interestByPaymentId.set(lastId, Math.max(0, cur + diff));
+    });
+
+    // ===== Monta breakdown do período usando o juros alocado =====
+    const periodPaymentList = periodPayments;
     let totalReceived = 0;
     let interestRevenue = 0;
 
-    // 1) Juros de contratos quitados no período: lucro total = totalPago − principal,
-    //    atribuído ao período em que o contrato foi quitado.
-    quitadoLoanIds.forEach((loanId) => {
-      const loan: any = loans.find((l) => l.id === loanId);
-      if (!loan) return;
-      const allPays = payments.filter((pp) => (pp.loanId ?? (pp as any).loan_id) === loanId);
-      const totalPaid = allPays.reduce((s, pp) => s + (Number(pp.amount) || 0), 0);
-      // Usa o PRINCIPAL ORIGINAL quando disponível (mesma regra do Dashboard)
-      // para evitar superestimar o lucro em contratos com amortizações.
-      const principalRef = Number(loan.originalAmount ?? loan.original_amount) > 0
-        ? Number(loan.originalAmount ?? loan.original_amount)
-        : (Number(loan.amount) || 0);
-      const profit = Math.max(0, totalPaid - principalRef);
-      const lastPay = allPays.reduce((acc, pp) => (pp.date > acc.date ? pp : acc), allPays[0]);
-      const borrowerName = loan?.borrowerName ?? loan?.borrower_name ?? "Sem contrato";
-      interestRevenue += profit;
-      breakdown.push({
-        id: lastPay.id,
-        date: lastPay.date,
-        loanId,
-        borrowerName,
-        amount: totalPaid,
-        interest: profit,
-        principal: Math.max(0, totalPaid - profit),
-        kind: "quitacao",
-        kindLabel: "Quitação",
-        reason: `Contrato quitado no período: lucro = total pago (${totalPaid.toFixed(2)}) − principal (${principalRef.toFixed(2)})`,
-      });
-    });
-
-    // 2) Demais pagamentos do período (excluindo os de contratos quitados, já contados acima)
-    periodPayments.forEach((p) => {
+    periodPaymentList.forEach((p) => {
       const loanId = p.loanId ?? (p as any).loan_id ?? null;
       const amt = Number(p.amount) || 0;
       totalReceived += amt;
-      if (loanId && quitadoLoanIds.has(loanId)) return; // já incluído via quitação
-
       const loan: any = loans.find((l) => l.id === loanId);
       const borrowerName = loan?.borrowerName ?? loan?.borrower_name ?? "Sem contrato";
-      const meta: any = (p as any).metadata || {};
-      const splitInterest = Number(meta?.split?.interest ?? meta?.interest_amount);
+      const inst = Number(p.installmentNumber ?? (p as any).installment_number ?? 0);
+      const interest = interestByPaymentId.get(p.id) ?? 0;
+      interestRevenue += interest;
 
-      let interest = 0;
-      let kind: Kind = "parcela";
-      let reason = "";
-
-      if (Number.isFinite(splitInterest) && splitInterest > 0) {
-        interest = Math.min(amt, splitInterest);
-        kind = "split";
-        reason = `Split explícito no pagamento: juros = ${splitInterest.toFixed(2)}`;
+      const isLastOfPaid = loanId && paidLoanIds.has(loanId) && lastPaymentByLoanId.get(loanId) === p.id;
+      let kind: Kind;
+      let reason: string;
+      if (isLastOfPaid) {
+        kind = "quitacao";
+        reason = `Quitação do contrato: juros alocado (juros-primeiro + ajuste de quitação) = ${interest.toFixed(2)}`;
+      } else if (inst === 0 || inst === -2) {
+        kind = "juros_puro";
+        reason = inst === -2
+          ? "Multa/encargos (installmentNumber = -2) → 100% juros"
+          : "Pagamento de juros puro (installmentNumber = 0) → 100% juros";
+      } else if (inst === -3) {
+        kind = "amortizacao";
+        reason = "Amortização de principal (installmentNumber = -3) → 0% juros";
+      } else if (!loan) {
+        kind = "sem_vinculo";
+        reason = "Pagamento sem empréstimo vinculado → assume 100% juros";
+      } else if (inst === -1) {
+        kind = "quitacao";
+        reason = `Pagamento parcial: juros alocado via juros-primeiro = ${interest.toFixed(2)}`;
       } else {
-        const inst = Number(p.installmentNumber ?? (p as any).installment_number ?? 0);
-        if (inst === 0 || inst === -2) {
-          interest = amt;
-          kind = "juros_puro";
-          reason = inst === -2
-            ? "Multa/encargos (installmentNumber = -2) → 100% juros"
-            : "Pagamento de juros puro (installmentNumber = 0) → 100% juros";
-        } else if (inst === -3) {
-          interest = 0;
-          kind = "amortizacao";
-          reason = "Amortização de principal (installmentNumber = -3) → 0% juros";
-        } else if (!loan) {
-          interest = amt;
-          kind = "sem_vinculo";
-          reason = "Pagamento sem empréstimo vinculado → assume 100% juros";
-        } else {
-          const principal = Number(loan.amount) || 0;
-          const totalWithInterest = calculateTotalWithInterest(principal, Number(loan.interestRate) || 0, Number(loan.installments) || 1);
-          const interestRatio = totalWithInterest > 0 ? 1 - principal / totalWithInterest : 0;
-          interest = Math.max(0, amt * interestRatio);
-          kind = inst === -1 ? "quitacao" : "parcela";
-          reason = `${kind === "quitacao" ? "Pagamento parcial" : `Parcela ${inst}`}: juros = pagamento × proporção do contrato (${(interestRatio * 100).toFixed(2)}%)`;
-        }
+        kind = "parcela";
+        reason = `Parcela ${inst}: juros alocado via juros-primeiro = ${interest.toFixed(2)}`;
       }
 
       const kindLabel = ({
@@ -198,7 +225,6 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
         split: "Split explícito",
       } as Record<Kind, string>)[kind];
 
-      interestRevenue += interest;
       breakdown.push({
         id: p.id,
         date: p.date,
