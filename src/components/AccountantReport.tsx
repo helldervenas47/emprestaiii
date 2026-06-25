@@ -1034,22 +1034,14 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <Select value={yearFilter} onValueChange={setYearFilter}>
-                  <SelectTrigger
-                    className="w-[120px] h-9"
-                    onPointerDown={(e) => {
-                      if (yearFilter !== currentYear) {
-                        e.preventDefault();
-                        setYearFilter(currentYear);
-                      }
-                    }}
-                  >
-                    <SelectValue>{yearFilter}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(years.includes(yearFilter) ? years : [yearFilter, ...years]).map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <Button
+                  variant="outline"
+                  className="w-[120px] h-9 justify-center font-normal"
+                  onClick={() => setYearFilter(currentYear)}
+                  title="Voltar para o ano atual"
+                >
+                  {yearFilter}
+                </Button>
                 <Button
                   variant="outline"
                   size="icon"
