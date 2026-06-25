@@ -987,21 +987,69 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
               </SelectContent>
             </Select>
             {period === "month" ? (
-              <Select value={monthFilter} onValueChange={setMonthFilter}>
-                <SelectTrigger className="w-[180px] h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {months.map((m) => (
-                    <SelectItem key={m} value={m}>{formatDate(m)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  aria-label="Mês anterior"
+                  onClick={() => {
+                    const [y, m] = monthFilter.split("-").map(Number);
+                    const d = new Date(y, m - 2, 1);
+                    setMonthFilter(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+                  }}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Select value={monthFilter} onValueChange={setMonthFilter}>
+                  <SelectTrigger className="w-[180px] h-9"><SelectValue>{formatDate(monthFilter)}</SelectValue></SelectTrigger>
+                  <SelectContent>
+                    {(months.includes(monthFilter) ? months : [monthFilter, ...months]).map((m) => (
+                      <SelectItem key={m} value={m}>{formatDate(m)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  aria-label="Próximo mês"
+                  onClick={() => {
+                    const [y, m] = monthFilter.split("-").map(Number);
+                    const d = new Date(y, m, 1);
+                    setMonthFilter(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+                  }}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             ) : (
-              <Select value={yearFilter} onValueChange={setYearFilter}>
-                <SelectTrigger className="w-[120px] h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  aria-label="Ano anterior"
+                  onClick={() => setYearFilter(String(Number(yearFilter) - 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Select value={yearFilter} onValueChange={setYearFilter}>
+                  <SelectTrigger className="w-[120px] h-9"><SelectValue>{yearFilter}</SelectValue></SelectTrigger>
+                  <SelectContent>
+                    {(years.includes(yearFilter) ? years : [yearFilter, ...years]).map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  aria-label="Próximo ano"
+                  onClick={() => setYearFilter(String(Number(yearFilter) + 1))}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             )}
           </div>
         </CardContent>
