@@ -24,11 +24,46 @@ interface Metrics {
   periodEnd?: string;
 }
 
+function normalizeMetrics(raw: any): Metrics {
+  const m = (raw && typeof raw === "object") ? raw : {};
+  const current = (m.current && typeof m.current === "object") ? m.current : {};
+  const previous = (m.previous && typeof m.previous === "object") ? m.previous : undefined;
+  return {
+    score: Number(m.score) || 0,
+    improvementPct: Number(m.improvementPct) || 0,
+    monthsCovered: Number(m.monthsCovered) || 0,
+    expenseDelta: Number(m.expenseDelta) || 0,
+    piggyBalance: Number(m.piggyBalance) || 0,
+    current: {
+      income: Number(current.income) || 0,
+      expense: Number(current.expense) || 0,
+      pendingExpense: Number(current.pendingExpense) || 0,
+    },
+    previous: previous
+      ? {
+          income: Number(previous.income) || 0,
+          expense: Number(previous.expense) || 0,
+          pendingExpense: Number(previous.pendingExpense) || 0,
+        }
+      : undefined,
+    radar: Array.isArray(m.radar)
+      ? m.radar.filter((r: any) => r && typeof r === "object").map((r: any) => ({ axis: String(r.axis ?? ""), value: Number(r.value) || 0 }))
+      : [],
+    categories: Array.isArray(m.categories)
+      ? m.categories.filter((c: any) => c && typeof c === "object").map((c: any) => ({ name: String(c.name ?? ""), value: Number(c.value) || 0 }))
+      : [],
+    monthKey: String(m.monthKey ?? ""),
+    monthLabel: m.monthLabel ? String(m.monthLabel) : undefined,
+    periodStart: m.periodStart ? String(m.periodStart) : undefined,
+    periodEnd: m.periodEnd ? String(m.periodEnd) : undefined,
+  };
+}
+
 function buildPrompt(m: Metrics): string {
   const lines: string[] = [];
   const balance = m.current.income - m.current.expense;
-  const label = m.monthLabel || m.monthKey;
-  lines.push(`MÊS DE REFERÊNCIA: ${label} (${m.monthKey})`);
+  const label = m.monthLabel || m.monthKey || "mês atual";
+  lines.push(`MÊS DE REFERÊNCIA: ${label}${m.monthKey ? ` (${m.monthKey})` : ""}`);
   if (m.periodStart && m.periodEnd) {
     lines.push(`PERÍODO CONSIDERADO: ${m.periodStart} a ${m.periodEnd}`);
   }
@@ -51,9 +86,11 @@ function buildPrompt(m: Metrics): string {
     lines.push("");
   }
   lines.push(`Reserva acumulada (cofrinhos, saldo total): ${fmt(m.piggyBalance)} — cobre ${m.monthsCovered.toFixed(1)} meses de despesa média`);
-  lines.push("");
-  lines.push("Componentes do score (0-100):");
-  for (const r of m.radar) lines.push(`- ${r.axis}: ${r.value}`);
+  if (m.radar.length > 0) {
+    lines.push("");
+    lines.push("Componentes do score (0-100):");
+    for (const r of m.radar) lines.push(`- ${r.axis}: ${r.value}`);
+  }
   if (m.categories.length > 0) {
     lines.push("");
     lines.push(`Top categorias de despesa pessoal NO MÊS de ${label}:`);
