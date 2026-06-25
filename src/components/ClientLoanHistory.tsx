@@ -823,6 +823,13 @@ function ClientLoansList({ loans, payments, paymentsByLoan, lastPaymentDateByLoa
           </tbody>
         </table>
       </div>
+
+      <LoanPaymentHistoryDialog
+        loan={selectedLoan}
+        payments={payments}
+        open={selectedLoan !== null}
+        onOpenChange={(o) => !o && setSelectedLoan(null)}
+      />
     </>
   );
 }
