@@ -1396,7 +1396,11 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                         </thead>
                         <tbody>
                           {rows.map(({ k, v }) => (
-                            <tr key={k} className="border-b">
+                            <tr
+                              key={k}
+                              className="border-b cursor-pointer hover:bg-muted/40 transition-colors"
+                              onClick={() => setKindFilter(k as any)}
+                            >
                               <td className="py-1.5 pr-2 font-medium">{labels[k]}</td>
                               <td className="py-1.5 pr-2 text-right">{v.count}</td>
                               <td className="py-1.5 pr-2 text-right">{fmt(v.amount, hidden)}</td>
@@ -1404,7 +1408,10 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                               <td className="py-1.5 text-right">{fmt(v.principal, hidden)}</td>
                             </tr>
                           ))}
-                          <tr className="font-semibold bg-muted/30">
+                          <tr
+                            className="font-semibold bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+                            onClick={() => setKindFilter("__all__")}
+                          >
                             <td className="py-1.5 pr-2">Total</td>
                             <td className="py-1.5 pr-2 text-right">{(dre as any).breakdown.length}</td>
                             <td className="py-1.5 pr-2 text-right">{fmt((dre as any).totalReceived, hidden)}</td>
@@ -1418,7 +1425,12 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                     {/* Cards em mobile */}
                     <div className="sm:hidden space-y-2">
                       {rows.map(({ k, v }) => (
-                        <div key={k} className="rounded-lg border bg-muted/20 p-3 space-y-1.5">
+                        <button
+                          type="button"
+                          key={k}
+                          onClick={() => setKindFilter(k as any)}
+                          className="w-full text-left rounded-lg border bg-muted/20 p-3 space-y-1.5 hover:bg-muted/40 transition-colors"
+                        >
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-xs font-semibold">{labels[k]}</span>
                             <span className="text-[10px] text-muted-foreground">{v.count} pagto(s)</span>
@@ -1437,9 +1449,13 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                               <p className="font-medium tabular-nums">{fmt(v.principal, hidden)}</p>
                             </div>
                           </div>
-                        </div>
+                        </button>
                       ))}
-                      <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 space-y-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setKindFilter("__all__")}
+                        className="w-full text-left rounded-lg border-2 border-primary/30 bg-primary/5 p-3 space-y-1.5 hover:bg-primary/10 transition-colors"
+                      >
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-xs font-bold">Total</span>
                           <span className="text-[10px] text-muted-foreground">{(dre as any).breakdown.length} pagto(s)</span>
@@ -1458,7 +1474,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                             <p className="font-bold tabular-nums">{fmt(dre.principalReceived, hidden)}</p>
                           </div>
                         </div>
-                      </div>
+                      </button>
                     </div>
                   </>
                 );
