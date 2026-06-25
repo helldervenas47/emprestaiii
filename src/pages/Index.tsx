@@ -1356,33 +1356,29 @@ const Index = () => {
                 {tab === "overdue" && (
                   <SubscriptionGate requiredTier={2} featureName="Relatórios">
                     <div>
-                      <div className="flex gap-2 mb-4">
-                        <Button
-                          variant={overdueSubTab === "metas" ? "default" : "outline"}
-                          size="sm"
-                          className="flex-1 min-w-0"
-                          onClick={() => setOverdueSubTab("metas")}
-                        >
-                          <Target className="h-4 w-4 mr-1 shrink-0" /> <span className="truncate">Metas</span>
-                        </Button>
-                        <Button
-                          variant={overdueSubTab === "bot-telegram" ? "default" : "outline"}
-                          size="sm"
-                          className="flex-1 min-w-0"
-                          onClick={() => setOverdueSubTab("bot-telegram")}
-                        >
-                          <Send className="h-4 w-4 mr-1 shrink-0" /> <span className="truncate">Bot Telegram</span>
-                        </Button>
-                        <Button
-                          variant={overdueSubTab === "whatsapp-cobranca" ? "default" : "outline"}
-                          size="sm"
-                          className="flex-1 min-w-0"
-                          onClick={() => setOverdueSubTab("whatsapp-cobranca")}
-                        >
-                          <MessageCircle className="h-4 w-4 mr-1 shrink-0" />{" "}
-                          <span className="truncate">Cobrança WhatsApp</span>
-                        </Button>
-                      </div>
+                      <nav className="flex gap-1 mb-4 bg-muted/60 p-1 rounded-xl border border-border/50 overflow-x-auto scrollbar-hide">
+                        {([
+                          { id: "metas", label: "Metas", Icon: Target },
+                          { id: "bot-telegram", label: "Bot Telegram", Icon: Send },
+                          { id: "whatsapp-cobranca", label: "Cobrança WhatsApp", Icon: MessageCircle },
+                        ] as const).map(({ id, label, Icon }) => {
+                          const active = overdueSubTab === id;
+                          return (
+                            <button
+                              key={id}
+                              onClick={() => setOverdueSubTab(id)}
+                              className={`flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all whitespace-nowrap flex-1 min-w-0 ${
+                                active
+                                  ? "bg-background !text-primary shadow-sm"
+                                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                              }`}
+                            >
+                              <Icon className={`h-4 w-4 shrink-0 ${active ? "!text-primary" : ""}`} />
+                              <span className="truncate">{label}</span>
+                            </button>
+                          );
+                        })}
+                      </nav>
                       {overdueSubTab === "metas" && <MonthlyGoalsManager readOnly={isReadOnly} />}
                       {overdueSubTab === "bot-telegram" && <TelegramBotsHub />}
                       {overdueSubTab === "whatsapp-cobranca" && (
