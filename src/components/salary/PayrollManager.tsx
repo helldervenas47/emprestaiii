@@ -123,9 +123,15 @@ export function PayrollManager({ readOnly }: Props) {
       <div className="relative flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => setMonthOffset((m) => m - 1)}><ChevronLeft className="h-4 w-4" /></Button>
-          <div className="font-semibold text-lg capitalize min-w-[180px] text-center">
+          <button
+            type="button"
+            onClick={() => setMonthOffset(0)}
+            title="Voltar para o mês atual"
+            className="font-semibold text-lg capitalize min-w-[180px] text-center hover:text-primary transition-colors cursor-pointer"
+          >
             {format(parseISO(competence + "-01"), "MMMM 'de' yyyy", { locale: ptBR })}
-          </div>
+          </button>
+
           <Button variant="outline" size="icon" onClick={() => setMonthOffset((m) => m + 1)}><ChevronRight className="h-4 w-4" /></Button>
         </div>
         {!readOnly && (
