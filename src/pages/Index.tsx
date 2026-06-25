@@ -1255,7 +1255,7 @@ const Index = () => {
                           onClick={() => setIncExpTab("incomes")}
                           className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                             incExpTab === "incomes"
-                              ? "bg-card text-foreground shadow-sm"
+                              ? "bg-background !text-primary shadow-sm"
                               : "text-muted-foreground hover:text-foreground"
                           }`}
                         >
@@ -1266,7 +1266,7 @@ const Index = () => {
                           onClick={() => setIncExpTab("expenses")}
                           className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                             incExpTab === "expenses"
-                              ? "bg-card text-foreground shadow-sm"
+                              ? "bg-background !text-primary shadow-sm"
                               : "text-muted-foreground hover:text-foreground"
                           }`}
                         >
@@ -1284,7 +1284,7 @@ const Index = () => {
                               onClick={() => setExpenseSubTab("business")}
                               className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
                                 expenseSubTab === "business"
-                                  ? "bg-card text-foreground shadow-sm"
+                                  ? "bg-background !text-primary shadow-sm"
                                   : "text-muted-foreground hover:text-foreground"
                               }`}
                             >
@@ -1295,7 +1295,7 @@ const Index = () => {
                               onClick={() => setExpenseSubTab("personal")}
                               className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
                                 expenseSubTab === "personal"
-                                  ? "bg-card text-foreground shadow-sm"
+                                  ? "bg-background !text-primary shadow-sm"
                                   : "text-muted-foreground hover:text-foreground"
                               }`}
                             >
