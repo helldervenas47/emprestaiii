@@ -293,7 +293,7 @@ export function ConsolidatedBalanceCards() {
             </p>
           </CardContent>
         </Card>
-        <Card no3d>
+        <Card no3d className="cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => setOpenStockBreakdown(true)}>
           <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
             <div className="flex items-center justify-center gap-1.5">
               <PiggyBank className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
