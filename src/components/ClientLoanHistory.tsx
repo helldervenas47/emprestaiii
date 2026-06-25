@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { LoanPaymentHistoryDialog } from "@/components/LoanPaymentHistoryDialog";
 
 interface Props {
   loans: Loan[];
