@@ -225,7 +225,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       }
 
       const kindLabel = ({
-        juros_puro: "Juros puro",
+        juros_puro: "Juros\u00a0",
         amortizacao: "Amortização",
         quitacao: "Quitação",
         parcela: "Parcela",
@@ -1368,7 +1368,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
               {/* Resumo por tipo */}
               {(() => {
                 const labels: Record<string, string> = {
-                  juros_puro: "Juros puro",
+                  juros_puro: "Juros\u00a0",
                   parcela: "Parcela",
                   quitacao: "Quitação",
                   amortizacao: "Amortização",
@@ -1486,7 +1486,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                   {(() => {
                     if (!kindFilter) return null;
                     const labels: Record<string, string> = {
-                      juros_puro: "Juros puro",
+                      juros_puro: "Juros\u00a0",
                       parcela: "Parcela",
                       quitacao: "Quitação",
                       amortizacao: "Amortização",
@@ -1995,7 +1995,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                   {items.map((p) => {
                     const loan = loanById.get(p.loanId ?? p.loan_id);
                     const inst = Number(p.installmentNumber ?? p.installment_number ?? 0);
-                    const instLabel = inst === 0 ? "Juros puro" : inst === -1 ? "Quitação" : inst === -3 ? "Amortização" : `Parcela ${inst}`;
+                    const instLabel = inst === 0 ? "Juros\u00a0" : inst === -1 ? "Quitação" : inst === -3 ? "Amortização" : `Parcela ${inst}`;
                     return (
                       <div key={p.id} className="flex items-center justify-between rounded-lg border bg-muted/20 p-3 text-sm">
                         <div className="min-w-0">
