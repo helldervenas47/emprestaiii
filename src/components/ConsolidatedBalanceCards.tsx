@@ -107,6 +107,7 @@ export function ConsolidatedBalanceCards() {
   const [openVariacao, setOpenVariacao] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
   const [openPiggyBreakdown, setOpenPiggyBreakdown] = useState(false);
+  const [openStockBreakdown, setOpenStockBreakdown] = useState(false);
   const { extraCards, visibility, setExtraCards, setVisibility, toggleExtra, toggleVis } = useDashboardPrefs();
 
 
