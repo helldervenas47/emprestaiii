@@ -1,5 +1,6 @@
-// Auto-pays personal expenses tagged [Débito automático] when due_date <= today.
-// Mirrors the logic of useExpenses.payExpense for parcelada vs simple expenses.
+// Auto-pays expenses whose payment method is "Débito automático" (or notes tag
+// "[Débito automático]") when due_date <= today. Mirrors useExpenses.payExpense
+// for parcelada vs simple expenses, across all scopes.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -8,6 +9,7 @@ const corsHeaders = {
 };
 
 const AUTO_DEBIT_RE = /\[\s*D[ée]bito autom[áa]tico\s*\]/i;
+const AUTO_DEBIT_NAME_RE = /d[ée]bito\s*autom[áa]tico/i;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -19,12 +21,21 @@ Deno.serve(async (req) => {
 
   const today = new Date().toISOString().split("T")[0];
 
-  // Fetch all unpaid personal expenses past or due today
+  // 1. Identify payment_methods that mean "débito automático"
+  const { data: pmRows } = await supabase
+    .from("payment_methods" as any)
+    .select("id, name");
+  const autoDebitMethodIds = new Set<string>(
+    (pmRows ?? [])
+      .filter((m: any) => AUTO_DEBIT_NAME_RE.test(m.name ?? ""))
+      .map((m: any) => m.id),
+  );
+
+  // 2. Fetch all unpaid expenses past or due today (any scope)
   const { data: candidates, error } = await supabase
     .from("expenses")
     .select("*")
     .eq("paid", false)
-    .eq("scope", "personal")
     .lte("due_date", today);
 
   if (error) {
@@ -35,8 +46,11 @@ Deno.serve(async (req) => {
     });
   }
 
-  const targets = (candidates ?? []).filter((e: any) => AUTO_DEBIT_RE.test(e.notes ?? ""));
-  console.log(`[auto-debit] candidates=${candidates?.length ?? 0} targets=${targets.length}`);
+  const targets = (candidates ?? []).filter((e: any) =>
+    (e.payment_method_id && autoDebitMethodIds.has(e.payment_method_id)) ||
+    AUTO_DEBIT_RE.test(e.notes ?? "")
+  );
+  console.log(`[auto-debit] candidates=${candidates?.length ?? 0} targets=${targets.length} methods=${autoDebitMethodIds.size}`);
 
   let paidCount = 0;
   for (const exp of targets) {
@@ -63,7 +77,8 @@ Deno.serve(async (req) => {
           paid_date: today,
           notes: exp.notes,
           parent_expense_id: exp.id,
-          scope: "personal",
+          scope: exp.scope ?? "personal",
+          payment_method_id: exp.payment_method_id ?? null,
         });
 
         await supabase.from("expenses").update({
