@@ -978,7 +978,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex flex-wrap gap-2 items-center justify-center">
             <Select value={period} onValueChange={(v: "month" | "year") => setPeriod(v)}>
               <SelectTrigger className="w-[140px] h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
