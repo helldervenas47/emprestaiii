@@ -165,10 +165,12 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
         reason = `Split explícito no pagamento: juros = ${splitInterest.toFixed(2)}`;
       } else {
         const inst = Number(p.installmentNumber ?? (p as any).installment_number ?? 0);
-        if (inst === 0) {
+        if (inst === 0 || inst === -2) {
           interest = amt;
           kind = "juros_puro";
-          reason = "Pagamento de juros puro (installmentNumber = 0) → 100% juros";
+          reason = inst === -2
+            ? "Multa/encargos (installmentNumber = -2) → 100% juros"
+            : "Pagamento de juros puro (installmentNumber = 0) → 100% juros";
         } else if (inst === -3) {
           interest = 0;
           kind = "amortizacao";
