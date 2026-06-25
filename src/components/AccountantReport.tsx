@@ -1045,7 +1045,17 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <Select value={yearFilter} onValueChange={setYearFilter}>
-                  <SelectTrigger className="w-[120px] h-9"><SelectValue>{yearFilter}</SelectValue></SelectTrigger>
+                  <SelectTrigger
+                    className="w-[120px] h-9"
+                    onPointerDown={(e) => {
+                      if (yearFilter !== currentYear) {
+                        e.preventDefault();
+                        setYearFilter(currentYear);
+                      }
+                    }}
+                  >
+                    <SelectValue>{yearFilter}</SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
                     {(years.includes(yearFilter) ? years : [yearFilter, ...years]).map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
                   </SelectContent>
