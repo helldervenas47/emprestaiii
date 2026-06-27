@@ -469,9 +469,9 @@ export function IncomeList({ readOnly }: Props) {
         allMonthIncomes={incomes.filter(
           (i) => i.source !== "Ajuste manual" && i.receivedDate.startsWith(monthKey),
         )}
+        allIncomes={incomes.filter((i) => i.source !== "Ajuste manual")}
         sales={sales}
         monthKey={monthKey}
-        onMonthChange={setSelectedMonth}
       />
 
       <Sheet open={statementOpen} onOpenChange={setStatementOpen}>
