@@ -2,7 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Lock, ArrowRight } from "lucide-react";
-import { useSubscription } from "@/hooks/useSubscription";
+import { useSubscription, PLAN_TIERS } from "@/hooks/useSubscription";
+import { usePlanEntitlements } from "@/hooks/usePlanEntitlements";
 import { useAuth } from "@/hooks/useAuth";
 import { ReactNode } from "react";
 
@@ -19,23 +20,24 @@ const TIER_NAMES: Record<number, string> = {
 };
 
 export function SubscriptionGate({ children, requiredTier = 1, featureName }: SubscriptionGateProps) {
-  const { isActive, hasFeature, loading } = useSubscription();
-  const { role, user, loading: authLoading } = useAuth();
+  const { isActive, planTier, loading: subLoading } = useSubscription();
+  const { plan, trial, loading: planLoading } = usePlanEntitlements();
+  const { role } = useAuth();
   const navigate = useNavigate();
 
-  if (loading || authLoading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
-  }
+  const loading = subLoading || planLoading;
+  if (loading) return <>{children}</>;
 
-  // Admins sempre liberados
+  // Admins always have full access — they manage the account, not consume a seat plan.
   if (role === "admin") return <>{children}</>;
 
-  // Precisa estar autenticado, com assinatura ativa e no tier exigido
-  if (user && isActive && hasFeature(requiredTier)) return <>{children}</>;
+  // Tier from an active paid subscription.
+  // While on an active (non-expired) trial, use the tier of the trial plan instead —
+  // trial users should get the same feature access the trial plan promises.
+  const trialTier = trial.active && plan?.name ? (PLAN_TIERS[plan.name.toLowerCase()] ?? 0) : 0;
+  const effectiveTier = isActive ? planTier : trialTier;
+
+  if (effectiveTier >= requiredTier) return <>{children}</>;
 
   const planName = TIER_NAMES[requiredTier] || "Básico";
 
