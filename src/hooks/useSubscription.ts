@@ -13,7 +13,7 @@ export interface Subscription {
   asaas_subscription_id?: string | null;
 }
 
-const PLAN_TIERS: Record<string, number> = {
+export const PLAN_TIERS: Record<string, number> = {
   free_plan: 0,
   basico_plan: 1,
   profissional_plan: 2,
@@ -38,8 +38,15 @@ export function useSubscription() {
   const effectiveUserId = dataOwnerId ?? user?.id ?? null;
 
   useEffect(() => {
-    if (authLoading) { setLoading(true); return; }
-    if (!effectiveUserId) { setSubscription(null); setLoading(false); return; }
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
+    if (!effectiveUserId) {
+      setSubscription(null);
+      setLoading(false);
+      return;
+    }
 
     let cancelled = false;
 
@@ -50,29 +57,43 @@ export function useSubscription() {
         .eq("user_id", effectiveUserId)
         .eq("environment", environment)
         .maybeSingle();
-      if (!cancelled) { setSubscription(data); setLoading(false); }
+      if (!cancelled) {
+        setSubscription(data);
+        setLoading(false);
+      }
     };
 
     fetchSubscription();
 
     const channel = supabase
       .channel(createChannelName(effectiveUserId))
-      .on("postgres_changes", {
-        event: "*", schema: "public", table: "subscriptions",
-        filter: `user_id=eq.${effectiveUserId}`,
-      }, () => { if (!cancelled) fetchSubscription(); })
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "subscriptions",
+          filter: `user_id=eq.${effectiveUserId}`,
+        },
+        () => {
+          if (!cancelled) fetchSubscription();
+        },
+      )
       .subscribe();
 
-    return () => { cancelled = true; supabase.removeChannel(channel); };
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
   }, [user?.id, effectiveUserId, environment, authLoading]);
 
   const isActive = Boolean(
     subscription &&
     ["active", "trialing"].includes(subscription.status) &&
-    (!subscription.current_period_end || new Date(subscription.current_period_end) > new Date())
+    (!subscription.current_period_end || new Date(subscription.current_period_end) > new Date()),
   );
 
-  const planTier = subscription ? (PLAN_TIERS[subscription.product_id] || 0) : 0;
+  const planTier = subscription ? PLAN_TIERS[subscription.product_id] || 0 : 0;
   const planLimits = subscription ? PLAN_LIMITS[subscription.product_id] : null;
   const hasFeature = (requiredTier: number) => isActive && planTier >= requiredTier;
 
