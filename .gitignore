@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# Segredos de ambiente — nunca versionar (mantém só o exemplo)
+.env
+.env.*
+!.env.example
