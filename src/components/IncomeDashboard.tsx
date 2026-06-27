@@ -218,6 +218,8 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
         onOpenChange={(o) => !o && setSelectedCategory(null)}
         categoryName={selectedCategory || ""}
         entries={selectedEntries}
+        monthKey={monthKey}
+        onMonthChange={onMonthChange}
         total={selectedTotal}
       />
     </div>
