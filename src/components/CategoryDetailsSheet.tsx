@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronRight, ChevronLeft } from "lucide-react";
 
 export interface CategoryEntry {
   id: string;
@@ -19,6 +19,8 @@ interface Props {
   categoryName: string;
   entries: CategoryEntry[];
   total: number;
+  monthKey?: string;
+  onMonthChange?: (monthKey: string) => void;
 }
 
 function fmtBRL(n: number) {
@@ -32,7 +34,7 @@ function fmtDate(d: string) {
   return new Date(y, m - 1, day).toLocaleDateString("pt-BR");
 }
 
-export function CategoryDetailsSheet({ open, onOpenChange, categoryName, entries, total }: Props) {
+export function CategoryDetailsSheet({ open, onOpenChange, categoryName, entries, total, monthKey, onMonthChange }: Props) {
   const isMobile = useIsMobile();
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
@@ -85,6 +87,49 @@ export function CategoryDetailsSheet({ open, onOpenChange, categoryName, entries
               </div>
             </div>
           </SheetDescription>
+          {monthKey && onMonthChange && (() => {
+            const [yy, mm] = monthKey.split("-").map(Number);
+            const monthLabel = new Date(yy, mm - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+            return (
+              <div className="pt-3 flex justify-center">
+                <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/60 p-0.5">
+                  <button
+                    type="button"
+                    aria-label="Mês anterior"
+                    onClick={() => {
+                      const d = new Date(yy, mm - 2, 1);
+                      onMonthChange(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+                    }}
+                    className="h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const now = new Date();
+                      onMonthChange(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
+                    }}
+                    className="px-2 h-7 text-xs font-medium text-foreground capitalize rounded-md hover:bg-background transition-colors min-w-[130px]"
+                    title="Voltar ao mês atual"
+                  >
+                    {monthLabel}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Próximo mês"
+                    onClick={() => {
+                      const d = new Date(yy, mm, 1);
+                      onMonthChange(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+                    }}
+                    className="h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2">
