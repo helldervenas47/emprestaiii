@@ -5160,21 +5160,26 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
         case "category":
           return { v: getLoanCategory(l, payments, installmentSchedules), isNull: false };
         case "amount": {
-          // Ordena pelo valor da parcela atual (não pelo total do contrato)
+          // Ordena pelo valor da parcela do contrato (suporta parcelamento irregular)
           if (l.installments > 1) {
-            const nextSchedule = installmentSchedules.find(
-              (s) => s.loanId === l.id && s.installmentNumber === l.paidInstallments + 1,
-            );
+            const loanSchedules = installmentSchedules
+              .filter((s) => s.loanId === l.id)
+              .sort((a, b) => a.installmentNumber - b.installmentNumber);
+            // 1) próxima parcela pendente (paidInstallments + 1)
+            let target = loanSchedules.find((s) => s.installmentNumber === l.paidInstallments + 1);
+            // 2) primeira parcela ainda não paga (cobre gaps em cronogramas irregulares)
+            if (!target) target = loanSchedules.find((s) => s.installmentNumber > l.paidInstallments);
+            // 3) contrato quitado: usa a última parcela do cronograma
+            if (!target && loanSchedules.length > 0) target = loanSchedules[loanSchedules.length - 1];
+            if (target) return { v: Number(target.amount) || 0, isNull: false };
+            // 4) sem cronograma: valor personalizado ou média (último recurso)
+            if (l.customInstallmentValue && l.customInstallmentValue > 0)
+              return { v: l.customInstallmentValue, isNull: false };
             const total = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-            const fullInstallment = nextSchedule
-              ? nextSchedule.amount
-              : (l.customInstallmentValue && l.customInstallmentValue > 0)
-                ? l.customInstallmentValue
-                : total / l.installments;
-            return { v: fullInstallment, isNull: false };
+            return { v: total / l.installments, isNull: false };
           }
           const base = (l.remainingAmount && l.remainingAmount > 0) ? l.remainingAmount : l.amount;
-          return { v: base, isNull: l.amount == null };
+          return { v: Number(base) || 0, isNull: l.amount == null };
         }
         case "remaining": {
           if (l.status === "paid") return { v: getTotalPaid(l, payments), isNull: false };
