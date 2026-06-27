@@ -19,9 +19,9 @@ function fmtBRL(n: number) {
 interface Props {
   incomes: Income[];
   allMonthIncomes?: Income[];
+  allIncomes?: Income[];
   monthKey: string;
   sales?: Sale[];
-  onMonthChange?: (monthKey: string) => void;
 }
 
 /**
@@ -40,12 +40,13 @@ function salePaidInMonth(sale: Sale, monthKey: string): number {
   return total;
 }
 
-export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = [], onMonthChange }: Props) {
+export function IncomeDashboard({ incomes, allMonthIncomes, allIncomes, monthKey, sales = [] }: Props) {
   // Considera receitas PAGAS + pendentes (consolidado por categoria)
   const consolidated = allMonthIncomes ?? incomes;
   const { methods } = usePaymentMethods();
   const methodName = (id?: string | null) => methods.find((m) => m.id === id)?.name || "";
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [sheetMonthKey, setSheetMonthKey] = useState<string>(monthKey);
 
   // Sales contribution per category — only the value effectively received in the period.
   const salesByCategory = useMemo(() => {
@@ -99,7 +100,10 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
     if (!selectedCategory) return [];
     const list: CategoryEntry[] = [];
     const selectedKey = incomeCategoryKey(selectedCategory);
-    consolidated.forEach((i) => {
+    const incomesSource = (allIncomes ?? consolidated).filter((i) =>
+      (i.actualReceivedDate || i.receivedDate || "").startsWith(sheetMonthKey),
+    );
+    incomesSource.forEach((i) => {
       if (incomeCategoryKey(i.category) !== selectedKey) return;
       list.push({
         id: `inc-${i.id}`,
@@ -114,7 +118,7 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
     sales.forEach((s) => {
       const k = (s.category && s.category.trim()) || "Vendas";
       if (incomeCategoryKey(k) !== selectedKey) return;
-      if ((s.downPayment || 0) > 0 && s.date?.startsWith(monthKey)) {
+      if ((s.downPayment || 0) > 0 && s.date?.startsWith(sheetMonthKey)) {
         list.push({
           id: `sale-${s.id}-down`,
           description: `Venda: ${(s as any).description || (s as any).productName || "—"} (entrada)`,
@@ -126,7 +130,7 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
         });
       }
       (s.paymentHistory || []).forEach((p, idx) => {
-        if (!p?.date?.startsWith(monthKey)) return;
+        if (!p?.date?.startsWith(sheetMonthKey)) return;
         list.push({
           id: `sale-${s.id}-pay-${idx}`,
           description: `Venda: ${(s as any).description || (s as any).productName || "—"}`,
@@ -139,9 +143,9 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
       });
     });
     return list;
-  }, [selectedCategory, consolidated, sales, monthKey, methods]);
+  }, [selectedCategory, allIncomes, consolidated, sales, sheetMonthKey, methods]);
 
-  const selectedTotal = topCategories.find((c) => c.name === selectedCategory)?.value || 0;
+  const selectedTotal = selectedEntries.reduce((s, e) => s + (Number(e.amount) || 0), 0);
 
   if (consolidated.length === 0 && salesByCategory.size === 0) {
     return (
@@ -215,11 +219,14 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
 
       <CategoryDetailsSheet
         open={!!selectedCategory}
-        onOpenChange={(o) => !o && setSelectedCategory(null)}
+        onOpenChange={(o) => {
+          if (!o) setSelectedCategory(null);
+          else setSheetMonthKey(monthKey);
+        }}
         categoryName={selectedCategory || ""}
         entries={selectedEntries}
-        monthKey={monthKey}
-        onMonthChange={onMonthChange}
+        monthKey={sheetMonthKey}
+        onMonthChange={setSheetMonthKey}
         total={selectedTotal}
       />
     </div>
