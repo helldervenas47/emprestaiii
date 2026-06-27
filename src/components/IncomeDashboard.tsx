@@ -155,47 +155,8 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <Card no3d className="p-4">
-        <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="mb-3">
           <h3 className="text-sm font-semibold text-foreground">Top 5 categorias</h3>
-          {onMonthChange && (
-            <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/60 p-0.5">
-              <button
-                type="button"
-                aria-label="Mês anterior"
-                onClick={() => {
-                  const [yy, mm] = monthKey.split("-").map(Number);
-                  const d = new Date(yy, mm - 2, 1);
-                  onMonthChange(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-                }}
-                className="h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const now = new Date();
-                  onMonthChange(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
-                }}
-                className="px-2 h-7 text-xs font-medium text-foreground capitalize rounded-md hover:bg-background transition-colors min-w-[110px]"
-                title="Voltar ao mês atual"
-              >
-                {monthLabel}
-              </button>
-              <button
-                type="button"
-                aria-label="Próximo mês"
-                onClick={() => {
-                  const [yy, mm] = monthKey.split("-").map(Number);
-                  const d = new Date(yy, mm, 1);
-                  onMonthChange(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-                }}
-                className="h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          )}
         </div>
         <div className="space-y-2">
           {topCategories.map((s, idx) => (
