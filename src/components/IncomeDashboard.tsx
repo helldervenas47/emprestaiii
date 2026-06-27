@@ -19,9 +19,9 @@ function fmtBRL(n: number) {
 interface Props {
   incomes: Income[];
   allMonthIncomes?: Income[];
+  allIncomes?: Income[];
   monthKey: string;
   sales?: Sale[];
-  onMonthChange?: (monthKey: string) => void;
 }
 
 /**
