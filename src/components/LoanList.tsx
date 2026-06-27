@@ -5003,6 +5003,17 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
   const [tagFilter, setTagFilter] = useState("");
   const [notesFilter, setNotesFilter] = useState<"all" | "with" | "without">("all");
   const [sortBy, setSortBy] = useState<"dueDate" | "startDate" | "amount" | "name">("dueDate");
+  type SortableCol = "borrowerName" | "category" | "amount" | "remaining" | "installments" | "dueDate" | "tags";
+  const [columnSort, setColumnSort] = useState<{ col: SortableCol; dir: "desc" | "asc" } | null>(null);
+  const cycleColumnSort = useCallback((col: SortableCol) => {
+    setColumnSort((prev) => {
+      if (!prev || prev.col !== col) return { col, dir: "desc" };
+      if (prev.dir === "desc") return { col, dir: "asc" };
+      return null;
+    });
+  }, []);
+  const sortIndicator = (col: SortableCol) =>
+    columnSort?.col === col ? (columnSort.dir === "desc" ? " ▼" : " ▲") : "";
 
   const allTags = useMemo(() => {
     const tags = new Set<string>();
