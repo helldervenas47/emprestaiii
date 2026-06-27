@@ -106,7 +106,7 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 w-full">
       <div>
         <h2 className="text-2xl font-bold text-foreground">Configurações</h2>
         <p className="text-sm text-muted-foreground mt-1">Gerencie preferências, notificações, dados e sua conta.</p>
