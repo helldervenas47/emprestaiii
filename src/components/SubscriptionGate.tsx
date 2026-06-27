@@ -20,13 +20,22 @@ const TIER_NAMES: Record<number, string> = {
 
 export function SubscriptionGate({ children, requiredTier = 1, featureName }: SubscriptionGateProps) {
   const { isActive, hasFeature, loading } = useSubscription();
-  const { role, user } = useAuth();
+  const { role, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  if (loading) return <>{children}</>;
+  if (loading || authLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
-  // All authenticated users bypass subscription gates
-  if (user) return <>{children}</>;
+  // Admins sempre liberados
+  if (role === "admin") return <>{children}</>;
+
+  // Precisa estar autenticado, com assinatura ativa e no tier exigido
+  if (user && isActive && hasFeature(requiredTier)) return <>{children}</>;
 
   const planName = TIER_NAMES[requiredTier] || "Básico";
 
