@@ -5159,8 +5159,23 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
           return { v: (l.borrowerName || "").toLowerCase(), isNull: !l.borrowerName };
         case "category":
           return { v: getLoanCategory(l, payments, installmentSchedules), isNull: false };
-        case "amount":
-          return { v: Number(l.amount) || 0, isNull: l.amount == null };
+        case "amount": {
+          // Ordena pelo valor da parcela atual (não pelo total do contrato)
+          if (l.installments > 1) {
+            const nextSchedule = installmentSchedules.find(
+              (s) => s.loanId === l.id && s.installmentNumber === l.paidInstallments + 1,
+            );
+            const total = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+            const fullInstallment = nextSchedule
+              ? nextSchedule.amount
+              : (l.customInstallmentValue && l.customInstallmentValue > 0)
+                ? l.customInstallmentValue
+                : total / l.installments;
+            return { v: fullInstallment, isNull: false };
+          }
+          const base = (l.remainingAmount && l.remainingAmount > 0) ? l.remainingAmount : l.amount;
+          return { v: base, isNull: l.amount == null };
+        }
         case "remaining": {
           if (l.status === "paid") return { v: getTotalPaid(l, payments), isNull: false };
           const base = getBaseRemainingAmount(l, payments, installmentSchedules);
