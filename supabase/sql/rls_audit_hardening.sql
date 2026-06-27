@@ -138,8 +138,13 @@ begin
   for t in
     select c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace
     where c.relkind='r' and n.nspname='public'
+      and c.relname <> 'system_telegram_bots'   -- evita regredir o REVOKE de `token`
   loop
     execute format('grant select, insert, update, delete on public.%I to authenticated', t.relname);
     execute format('grant all on public.%I to service_role', t.relname);
   end loop;
 end$$;
+
+-- Reafirma proteção da coluna `token` (idempotente, fica por último)
+revoke select (token), insert (token), update (token)
+  on public.system_telegram_bots from authenticated, anon;
