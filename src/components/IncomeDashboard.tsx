@@ -40,12 +40,13 @@ function salePaidInMonth(sale: Sale, monthKey: string): number {
   return total;
 }
 
-export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = [], onMonthChange }: Props) {
+export function IncomeDashboard({ incomes, allMonthIncomes, allIncomes, monthKey, sales = [] }: Props) {
   // Considera receitas PAGAS + pendentes (consolidado por categoria)
   const consolidated = allMonthIncomes ?? incomes;
   const { methods } = usePaymentMethods();
   const methodName = (id?: string | null) => methods.find((m) => m.id === id)?.name || "";
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [sheetMonthKey, setSheetMonthKey] = useState<string>(monthKey);
 
   // Sales contribution per category — only the value effectively received in the period.
   const salesByCategory = useMemo(() => {
