@@ -471,6 +471,7 @@ export function IncomeList({ readOnly }: Props) {
         )}
         sales={sales}
         monthKey={monthKey}
+        onMonthChange={setSelectedMonth}
       />
 
       <Sheet open={statementOpen} onOpenChange={setStatementOpen}>
