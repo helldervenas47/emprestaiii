@@ -21,6 +21,7 @@ interface Props {
   allMonthIncomes?: Income[];
   monthKey: string;
   sales?: Sale[];
+  onMonthChange?: (monthKey: string) => void;
 }
 
 /**
