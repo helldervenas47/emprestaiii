@@ -4,12 +4,19 @@ import { Download, Upload, FileDown, Database, FileJson, Loader2, RotateCcw } fr
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loan, Payment, Client, Sale, Expense } from "@/types/loan";
-import { exportLoansToCSV, exportClientsToCSV, exportSalesToCSV, importLoansFromCSV, importClientsFromCSV, importSalesFromCSV, downloadCSV } from "@/lib/csv";
+import {
+  exportLoansToCSV,
+  exportClientsToCSV,
+  exportSalesToCSV,
+  importLoansFromCSV,
+  importClientsFromCSV,
+  importSalesFromCSV,
+  downloadCSV,
+} from "@/lib/csv";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/userClient";
 import { RestoreBackupDialog } from "./RestoreBackupDialog";
-
 
 interface BackupExportProps {
   loans: Loan[];
@@ -21,11 +28,24 @@ interface BackupExportProps {
   onImportClients: (clients: Omit<Client, "id" | "createdAt">[]) => Promise<void>;
   onImportSales: (sales: Omit<Sale, "id">[]) => Promise<void>;
   onImportExpenses: (expenses: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">[]) => Promise<void>;
-  onImportPayments: (payments: { loanId: string; amount: number; date: string; installmentNumber?: number; previousDueDate?: string }[]) => Promise<{ imported: number; skipped: number }>;
+  onImportPayments: (
+    payments: { loanId: string; amount: number; date: string; installmentNumber?: number; previousDueDate?: string }[],
+  ) => Promise<{ imported: number; skipped: number }>;
 }
 
 function exportExpensesToCSV(expenses: Expense[]): string {
-  const headers = ["Descrição", "Valor", "Categoria", "Tipo", "Vencimento", "Pago", "Data Pagamento", "Parcelas", "Parcelas Pagas", "Observações"];
+  const headers = [
+    "Descrição",
+    "Valor",
+    "Categoria",
+    "Tipo",
+    "Vencimento",
+    "Pago",
+    "Data Pagamento",
+    "Parcelas",
+    "Parcelas Pagas",
+    "Observações",
+  ];
   const rows = expenses.map((e) => [
     e.description,
     e.amount.toFixed(2),
@@ -66,13 +86,23 @@ function parseCSVLine(line: string): string[] {
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
     if (inQuotes) {
-      if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
-      else if (ch === '"') { inQuotes = false; }
-      else { current += ch; }
+      if (ch === '"' && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
     } else {
-      if (ch === '"') { inQuotes = true; }
-      else if (ch === ",") { result.push(current.trim()); current = ""; }
-      else { current += ch; }
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ",") {
+        result.push(current.trim());
+        current = "";
+      } else {
+        current += ch;
+      }
     }
   }
   result.push(current.trim());
@@ -91,24 +121,40 @@ function exportPaymentsToCSV(payments: Payment[]): string {
   return [headers, ...rows].map((r) => r.map((c) => `"${(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
 }
 
-function importPaymentsFromCSV(csv: string): { loanId: string; amount: number; date: string; installmentNumber?: number; previousDueDate?: string }[] {
+function importPaymentsFromCSV(
+  csv: string,
+): { loanId: string; amount: number; date: string; installmentNumber?: number; previousDueDate?: string }[] {
   const lines = csv.split("\n").filter((l) => l.trim());
   if (lines.length < 2) return [];
-  return lines.slice(1).map((line) => {
-    const cols = parseCSVLine(line);
-    const amount = parseFloat(cols[1]) || 0;
-    const installment = parseInt(cols[3]);
-    return {
-      loanId: (cols[0] || "").trim(),
-      amount,
-      date: (cols[2] || todayInAppTz()).trim(),
-      installmentNumber: Number.isFinite(installment) ? installment : undefined,
-      previousDueDate: (cols[4] || "").trim() || undefined,
-    };
-  }).filter((p) => p.loanId && p.amount > 0 && p.date);
+  return lines
+    .slice(1)
+    .map((line) => {
+      const cols = parseCSVLine(line);
+      const amount = parseFloat(cols[1]) || 0;
+      const installment = parseInt(cols[3]);
+      return {
+        loanId: (cols[0] || "").trim(),
+        amount,
+        date: (cols[2] || todayInAppTz()).trim(),
+        installmentNumber: Number.isFinite(installment) ? installment : undefined,
+        previousDueDate: (cols[4] || "").trim() || undefined,
+      };
+    })
+    .filter((p) => p.loanId && p.amount > 0 && p.date);
 }
 
-export function BackupExport({ loans, payments, clients, sales, expenses, onImportLoans, onImportClients, onImportSales, onImportExpenses, onImportPayments }: BackupExportProps) {
+export function BackupExport({
+  loans,
+  payments,
+  clients,
+  sales,
+  expenses,
+  onImportLoans,
+  onImportClients,
+  onImportSales,
+  onImportExpenses,
+  onImportPayments,
+}: BackupExportProps) {
   const loanFileRef = useRef<HTMLInputElement>(null);
   const clientFileRef = useRef<HTMLInputElement>(null);
   const saleFileRef = useRef<HTMLInputElement>(null);
@@ -123,14 +169,16 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
   async function handleDownloadFullBackup() {
     setDownloadingFull(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Sessão expirada");
-      const url = `${import.meta.env.VITE_EXTERNAL_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-full-backup`;
+      const url = `${import.meta.env.VITE_EXTERNAL_SUPABASE_URL}/functions/v1/export-full-backup`;
       const r = await fetch(url, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${session.access_token}`,
-          apikey: import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          apikey: import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
         },
       });
       if (!r.ok) {
@@ -169,7 +217,11 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
     const reader = new FileReader();
     reader.onload = (evt) => {
       const csv = evt.target?.result as string;
-      try { handler(csv); } catch { toast.error("Erro ao importar CSV."); }
+      try {
+        handler(csv);
+      } catch {
+        toast.error("Erro ao importar CSV.");
+      }
     };
     reader.readAsText(file);
     e.target.value = "";
@@ -189,7 +241,10 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
       },
       onImportFile: (csv: string) => {
         const imported = importLoansFromCSV(csv);
-        if (imported.length === 0) { toast.error("Nenhum dado encontrado no CSV."); return; }
+        if (imported.length === 0) {
+          toast.error("Nenhum dado encontrado no CSV.");
+          return;
+        }
         onImportLoans(imported).then(() => toast.success(`${imported.length} empréstimo(s) importado(s)!`));
       },
     },
@@ -206,44 +261,57 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
       },
       onImportFile: (csv: string) => {
         const imported = importClientsFromCSV(csv);
-        if (imported.length === 0) { toast.error("Nenhum dado encontrado no CSV."); return; }
+        if (imported.length === 0) {
+          toast.error("Nenhum dado encontrado no CSV.");
+          return;
+        }
         onImportClients(imported).then(() => toast.success(`${imported.length} cliente(s) importado(s)!`));
       },
     },
     {
       title: "Vendas",
-      description: `${sales.filter(s => s.businessType !== "aluguel_veiculo").length} registros`,
+      description: `${sales.filter((s) => s.businessType !== "aluguel_veiculo").length} registros`,
       icon: Database,
-      count: sales.filter(s => s.businessType !== "aluguel_veiculo").length,
+      count: sales.filter((s) => s.businessType !== "aluguel_veiculo").length,
       fileRef: saleFileRef,
       onExport: () => {
-        const filtered = sales.filter(s => s.businessType !== "aluguel_veiculo");
+        const filtered = sales.filter((s) => s.businessType !== "aluguel_veiculo");
         if (filtered.length === 0) return toast.error("Nenhuma venda para exportar");
         downloadCSV(exportSalesToCSV(filtered), `vendas_backup_${todayInAppTz()}.csv`);
         toast.success("Vendas exportadas!");
       },
       onImportFile: (csv: string) => {
         const imported = importSalesFromCSV(csv);
-        if (imported.length === 0) { toast.error("Nenhum dado encontrado no CSV."); return; }
-        onImportSales(imported.map(s => ({ ...s, businessType: "venda" as Sale["businessType"] }))).then(() => toast.success(`${imported.length} venda(s) importada(s)!`));
+        if (imported.length === 0) {
+          toast.error("Nenhum dado encontrado no CSV.");
+          return;
+        }
+        onImportSales(imported.map((s) => ({ ...s, businessType: "venda" as Sale["businessType"] }))).then(() =>
+          toast.success(`${imported.length} venda(s) importada(s)!`),
+        );
       },
     },
     {
       title: "Aluguéis de Veículos",
-      description: `${sales.filter(s => s.businessType === "aluguel_veiculo").length} registros`,
+      description: `${sales.filter((s) => s.businessType === "aluguel_veiculo").length} registros`,
       icon: Database,
-      count: sales.filter(s => s.businessType === "aluguel_veiculo").length,
+      count: sales.filter((s) => s.businessType === "aluguel_veiculo").length,
       fileRef: vehicleFileRef,
       onExport: () => {
-        const filtered = sales.filter(s => s.businessType === "aluguel_veiculo");
+        const filtered = sales.filter((s) => s.businessType === "aluguel_veiculo");
         if (filtered.length === 0) return toast.error("Nenhum aluguel para exportar");
         downloadCSV(exportSalesToCSV(filtered), `veiculos_backup_${todayInAppTz()}.csv`);
         toast.success("Aluguéis exportados!");
       },
       onImportFile: (csv: string) => {
         const imported = importSalesFromCSV(csv);
-        if (imported.length === 0) { toast.error("Nenhum dado encontrado no CSV."); return; }
-        onImportSales(imported.map(s => ({ ...s, businessType: "aluguel_veiculo" as Sale["businessType"] }))).then(() => toast.success(`${imported.length} aluguel(éis) importado(s)!`));
+        if (imported.length === 0) {
+          toast.error("Nenhum dado encontrado no CSV.");
+          return;
+        }
+        onImportSales(imported.map((s) => ({ ...s, businessType: "aluguel_veiculo" as Sale["businessType"] }))).then(
+          () => toast.success(`${imported.length} aluguel(éis) importado(s)!`),
+        );
       },
     },
     {
@@ -259,7 +327,10 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
       },
       onImportFile: (csv: string) => {
         const imported = importExpensesFromCSV(csv);
-        if (imported.length === 0) { toast.error("Nenhum dado encontrado no CSV."); return; }
+        if (imported.length === 0) {
+          toast.error("Nenhum dado encontrado no CSV.");
+          return;
+        }
         onImportExpenses(imported).then(() => toast.success(`${imported.length} despesa(s) importada(s)!`));
       },
     },
@@ -276,10 +347,14 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
       },
       onImportFile: (csv: string) => {
         const parsed = importPaymentsFromCSV(csv);
-        if (parsed.length === 0) { toast.error("Nenhum pagamento válido encontrado no CSV."); return; }
+        if (parsed.length === 0) {
+          toast.error("Nenhum pagamento válido encontrado no CSV.");
+          return;
+        }
         onImportPayments(parsed).then(({ imported, skipped }) => {
           if (imported > 0 && skipped === 0) toast.success(`${imported} pagamento(s) importado(s)!`);
-          else if (imported > 0 && skipped > 0) toast.success(`${imported} importado(s), ${skipped} ignorado(s) (empréstimo não encontrado)`);
+          else if (imported > 0 && skipped > 0)
+            toast.success(`${imported} importado(s), ${skipped} ignorado(s) (empréstimo não encontrado)`);
           else toast.error(`Nenhum pagamento importado — ${skipped} ignorado(s) (empréstimo não encontrado)`);
         });
       },
@@ -289,14 +364,32 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
   const handleExportAll = () => {
     let exported = 0;
     const date = todayInAppTz();
-    if (loans.length > 0) { downloadCSV(exportLoansToCSV(loans, payments), `emprestimos_backup_${date}.csv`); exported++; }
-    if (payments.length > 0) { downloadCSV(exportPaymentsToCSV(payments), `pagamentos_backup_${date}.csv`); exported++; }
-    if (clients.length > 0) { downloadCSV(exportClientsToCSV(clients), `clientes_backup_${date}.csv`); exported++; }
-    const vendasFiltered = sales.filter(s => s.businessType !== "aluguel_veiculo");
-    if (vendasFiltered.length > 0) { downloadCSV(exportSalesToCSV(vendasFiltered), `vendas_backup_${date}.csv`); exported++; }
-    const veiculosFiltered = sales.filter(s => s.businessType === "aluguel_veiculo");
-    if (veiculosFiltered.length > 0) { downloadCSV(exportSalesToCSV(veiculosFiltered), `veiculos_backup_${date}.csv`); exported++; }
-    if (expenses.length > 0) { downloadCSV(exportExpensesToCSV(expenses), `despesas_backup_${date}.csv`); exported++; }
+    if (loans.length > 0) {
+      downloadCSV(exportLoansToCSV(loans, payments), `emprestimos_backup_${date}.csv`);
+      exported++;
+    }
+    if (payments.length > 0) {
+      downloadCSV(exportPaymentsToCSV(payments), `pagamentos_backup_${date}.csv`);
+      exported++;
+    }
+    if (clients.length > 0) {
+      downloadCSV(exportClientsToCSV(clients), `clientes_backup_${date}.csv`);
+      exported++;
+    }
+    const vendasFiltered = sales.filter((s) => s.businessType !== "aluguel_veiculo");
+    if (vendasFiltered.length > 0) {
+      downloadCSV(exportSalesToCSV(vendasFiltered), `vendas_backup_${date}.csv`);
+      exported++;
+    }
+    const veiculosFiltered = sales.filter((s) => s.businessType === "aluguel_veiculo");
+    if (veiculosFiltered.length > 0) {
+      downloadCSV(exportSalesToCSV(veiculosFiltered), `veiculos_backup_${date}.csv`);
+      exported++;
+    }
+    if (expenses.length > 0) {
+      downloadCSV(exportExpensesToCSV(expenses), `despesas_backup_${date}.csv`);
+      exported++;
+    }
     if (exported === 0) {
       toast.error("Nenhum dado para exportar");
     } else {
@@ -306,7 +399,6 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
 
   return (
     <div className="space-y-6">
-
       {/* Backup completo em JSON */}
       <Card className="border-primary/30">
         <CardHeader>
@@ -314,9 +406,9 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
             <FileJson className="h-4 w-4 text-primary" /> Backup completo (JSON)
           </CardTitle>
           <CardDescription>
-            Pacote único com todas as tabelas, relacionamentos, configurações e metadados.
-            Ideal para migrar a conta para outro ambiente ou guardar uma cópia integral fora do Google Drive.
-            O arquivo inclui um checksum de integridade.
+            Pacote único com todas as tabelas, relacionamentos, configurações e metadados. Ideal para migrar a conta
+            para outro ambiente ou guardar uma cópia integral fora do Google Drive. O arquivo inclui um checksum de
+            integridade.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
@@ -331,25 +423,22 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
         </CardContent>
       </Card>
 
-      <RestoreBackupDialog
-        open={restoreOpen}
-        onOpenChange={setRestoreOpen}
-        history={[]}
-        defaultSource="upload"
-      />
-
+      <RestoreBackupDialog open={restoreOpen} onOpenChange={setRestoreOpen} history={[]} defaultSource="upload" />
 
       {/* Hidden file inputs */}
-      {sections.map((s) => s.fileRef && (
-        <input
-          key={s.title}
-          type="file"
-          ref={s.fileRef}
-          accept=".csv"
-          className="hidden"
-          onChange={(e) => processFile(e, s.onImportFile!)}
-        />
-      ))}
+      {sections.map(
+        (s) =>
+          s.fileRef && (
+            <input
+              key={s.title}
+              type="file"
+              ref={s.fileRef}
+              accept=".csv"
+              className="hidden"
+              onChange={(e) => processFile(e, s.onImportFile!)}
+            />
+          ),
+      )}
 
       <div className="flex items-start sm:items-center justify-between gap-3 flex-col sm:flex-row">
         <div>
