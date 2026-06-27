@@ -5003,6 +5003,17 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
   const [tagFilter, setTagFilter] = useState("");
   const [notesFilter, setNotesFilter] = useState<"all" | "with" | "without">("all");
   const [sortBy, setSortBy] = useState<"dueDate" | "startDate" | "amount" | "name">("dueDate");
+  type SortableCol = "borrowerName" | "category" | "amount" | "remaining" | "installments" | "dueDate" | "tags";
+  const [columnSort, setColumnSort] = useState<{ col: SortableCol; dir: "desc" | "asc" } | null>(null);
+  const cycleColumnSort = useCallback((col: SortableCol) => {
+    setColumnSort((prev) => {
+      if (!prev || prev.col !== col) return { col, dir: "desc" };
+      if (prev.dir === "desc") return { col, dir: "asc" };
+      return null;
+    });
+  }, []);
+  const sortIndicator = (col: SortableCol) =>
+    columnSort?.col === col ? (columnSort.dir === "desc" ? " ▼" : " ▲") : "";
 
   const allTags = useMemo(() => {
     const tags = new Set<string>();
@@ -5094,7 +5105,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     }
 
     // Sort
-    return [...filtered].sort((a, b) => {
+    const defaultSorted = [...filtered].sort((a, b) => {
       if (sortBy === "dueDate") {
         const aDate = getFirstPendingDate(a, installmentSchedules).getTime();
         const bDate = getFirstPendingDate(b, installmentSchedules).getTime();
@@ -5137,7 +5148,46 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       }
       return a.borrowerName.localeCompare(b.borrowerName);
     });
-  }, [loans, payments, installmentSchedules, search, category, selectedCategories, isMultiSelect, dateFrom, dateTo, dueDateFrom, dueDateTo, amountMin, amountMax, tagFilter, notesFilter, sortBy, dueDateQuick, view]);
+
+    // Column sort (header click) — overrides default order; nulls/empty always last
+    if (!columnSort) return defaultSorted;
+    const { col, dir } = columnSort;
+    const mul = dir === "desc" ? -1 : 1;
+    const getVal = (l: Loan): { v: number | string; isNull: boolean } => {
+      switch (col) {
+        case "borrowerName":
+          return { v: (l.borrowerName || "").toLowerCase(), isNull: !l.borrowerName };
+        case "category":
+          return { v: getLoanCategory(l, payments, installmentSchedules), isNull: false };
+        case "amount":
+          return { v: Number(l.amount) || 0, isNull: l.amount == null };
+        case "remaining": {
+          if (l.status === "paid") return { v: getTotalPaid(l, payments), isNull: false };
+          const base = getBaseRemainingAmount(l, payments, installmentSchedules);
+          const fees = getLoanLateFees(l, payments, installmentSchedules);
+          return { v: base + fees.lateFees + Number(l.renegotiationPenaltyTotal || 0), isNull: false };
+        }
+        case "installments":
+          return { v: Number(l.installments) || 0, isNull: false };
+        case "dueDate": {
+          const t = getFirstPendingDate(l, installmentSchedules).getTime();
+          return { v: t, isNull: !isFinite(t) || isNaN(t) };
+        }
+        case "tags": {
+          const t = (l.tags && l.tags[0]) || "";
+          return { v: t.toLowerCase(), isNull: !t };
+        }
+      }
+    };
+    return [...defaultSorted].sort((a, b) => {
+      const va = getVal(a); const vb = getVal(b);
+      if (va.isNull && vb.isNull) return 0;
+      if (va.isNull) return 1;
+      if (vb.isNull) return -1;
+      if (typeof va.v === "number" && typeof vb.v === "number") return (va.v - vb.v) * mul;
+      return String(va.v).localeCompare(String(vb.v)) * mul;
+    });
+  }, [loans, payments, installmentSchedules, search, category, selectedCategories, isMultiSelect, dateFrom, dateTo, dueDateFrom, dueDateTo, amountMin, amountMax, tagFilter, notesFilter, sortBy, dueDateQuick, view, columnSort]);
 
   const folderCount = useMemo(() => {
     const byName: Record<string, number> = {};
@@ -5620,13 +5670,13 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border/30">
-                    <th className="px-1.5 sm:px-2 lg:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Cliente</th>
-                    <th className="hidden lg:table-cell px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Status</th>
-                    <th className="hidden sm:table-cell px-2 lg:px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Emprestado</th>
-                    <th className="px-1.5 sm:px-2 lg:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">{category === "paid" ? "Pago" : "Restante"}</th>
-                    <th className="hidden sm:table-cell px-2 lg:px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Parcelas</th>
-                    <th className="px-1.5 sm:px-2 lg:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Venc.</th>
-                    <th className="hidden sm:table-cell px-2 lg:px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Etiquetas</th>
+                    <th onClick={() => cycleColumnSort("borrowerName")} className="px-1.5 sm:px-2 lg:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors">Cliente{sortIndicator("borrowerName")}</th>
+                    <th onClick={() => cycleColumnSort("category")} className="hidden lg:table-cell px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors">Status{sortIndicator("category")}</th>
+                    <th onClick={() => cycleColumnSort("amount")} className="hidden sm:table-cell px-2 lg:px-4 py-2.5 text-left text-xs font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors">Emprestado{sortIndicator("amount")}</th>
+                    <th onClick={() => cycleColumnSort("remaining")} className="px-1.5 sm:px-2 lg:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors">{category === "paid" ? "Pago" : "Restante"}{sortIndicator("remaining")}</th>
+                    <th onClick={() => cycleColumnSort("installments")} className="hidden sm:table-cell px-2 lg:px-4 py-2.5 text-left text-xs font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors">Parcelas{sortIndicator("installments")}</th>
+                    <th onClick={() => cycleColumnSort("dueDate")} className="px-1.5 sm:px-2 lg:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors">Venc.{sortIndicator("dueDate")}</th>
+                    <th onClick={() => cycleColumnSort("tags")} className="hidden sm:table-cell px-2 lg:px-4 py-2.5 text-left text-xs font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors">Etiquetas{sortIndicator("tags")}</th>
                     <th className="hidden lg:table-cell px-4 py-2.5 text-right text-xs font-medium text-muted-foreground"></th>
                   </tr>
                 </thead>
