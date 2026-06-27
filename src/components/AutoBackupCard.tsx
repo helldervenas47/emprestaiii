@@ -44,12 +44,28 @@ export function AutoBackupCard() {
   const [restoreOpen, setRestoreOpen] = useState(false);
   const [apiKeyOpen, setApiKeyOpen] = useState(false);
   const [apiKeyValue, setApiKeyValue] = useState("");
+  const [apiKeyLast4, setApiKeyLast4] = useState<string>("");
+  const [apiKeyId, setApiKeyId] = useState<string | null>(null);
   const [savingApiKey, setSavingApiKey] = useState(false);
 
+  // Reserva um "name" interno no backend para esse override.
+  const GDRIVE_OVERRIDE_NAME = "__gdrive_api_key_override";
+
   useEffect(() => {
-    if (apiKeyOpen) {
-      setApiKeyValue(localStorage.getItem("gdrive_api_key_override") || "");
-    }
+    if (!apiKeyOpen) return;
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("manage-api-keys", { method: "GET" });
+        if (error) throw error;
+        const list = ((data as any)?.keys ?? []) as Array<{ id: string; name: string; key_last4: string }>;
+        const existing = list.find((k) => k.name === GDRIVE_OVERRIDE_NAME);
+        setApiKeyId(existing?.id ?? null);
+        setApiKeyLast4(existing?.key_last4 ?? "");
+        setApiKeyValue("");
+      } catch (e: any) {
+        console.error("[AutoBackupCard] load override", e?.message);
+      }
+    })();
   }, [apiKeyOpen]);
 
   async function saveApiKey() {
@@ -57,17 +73,31 @@ export function AutoBackupCard() {
     try {
       const trimmed = apiKeyValue.trim();
       if (trimmed) {
-        localStorage.setItem("gdrive_api_key_override", trimmed);
+        const { error } = await supabase.functions.invoke("manage-api-keys", {
+          method: "POST",
+          body: apiKeyId
+            ? { id: apiKeyId, name: GDRIVE_OVERRIDE_NAME, key: trimmed }
+            : { name: GDRIVE_OVERRIDE_NAME, key: trimmed },
+        });
+        if (error) throw error;
         toast.success("Chave API salva. Os próximos backups usarão esta conta.");
-      } else {
-        localStorage.removeItem("gdrive_api_key_override");
+      } else if (apiKeyId) {
+        const { error } = await supabase.functions.invoke("manage-api-keys", {
+          method: "DELETE",
+          body: { id: apiKeyId },
+        });
+        if (error) throw error;
         toast.success("Chave API removida. Voltando à conta padrão.");
       }
       setApiKeyOpen(false);
+    } catch (e: any) {
+      console.error("[AutoBackupCard] saveApiKey", e?.message);
+      toast.error("Não foi possível salvar a chave");
     } finally {
       setSavingApiKey(false);
     }
   }
+
 
   async function load() {
     setLoading(true);
