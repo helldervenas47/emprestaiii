@@ -5105,7 +5105,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     }
 
     // Sort
-    return [...filtered].sort((a, b) => {
+    const defaultSorted = [...filtered].sort((a, b) => {
       if (sortBy === "dueDate") {
         const aDate = getFirstPendingDate(a, installmentSchedules).getTime();
         const bDate = getFirstPendingDate(b, installmentSchedules).getTime();
@@ -5148,7 +5148,46 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       }
       return a.borrowerName.localeCompare(b.borrowerName);
     });
-  }, [loans, payments, installmentSchedules, search, category, selectedCategories, isMultiSelect, dateFrom, dateTo, dueDateFrom, dueDateTo, amountMin, amountMax, tagFilter, notesFilter, sortBy, dueDateQuick, view]);
+
+    // Column sort (header click) — overrides default order; nulls/empty always last
+    if (!columnSort) return defaultSorted;
+    const { col, dir } = columnSort;
+    const mul = dir === "desc" ? -1 : 1;
+    const getVal = (l: Loan): { v: number | string; isNull: boolean } => {
+      switch (col) {
+        case "borrowerName":
+          return { v: (l.borrowerName || "").toLowerCase(), isNull: !l.borrowerName };
+        case "category":
+          return { v: getLoanCategory(l, payments, installmentSchedules), isNull: false };
+        case "amount":
+          return { v: Number(l.amount) || 0, isNull: l.amount == null };
+        case "remaining": {
+          if (l.status === "paid") return { v: getTotalPaid(l, payments), isNull: false };
+          const base = getBaseRemainingAmount(l, payments, installmentSchedules);
+          const fees = getLoanLateFees(l, payments, installmentSchedules);
+          return { v: base + fees.lateFees + Number(l.renegotiationPenaltyTotal || 0), isNull: false };
+        }
+        case "installments":
+          return { v: Number(l.installments) || 0, isNull: false };
+        case "dueDate": {
+          const t = getFirstPendingDate(l, installmentSchedules).getTime();
+          return { v: t, isNull: !isFinite(t) || isNaN(t) };
+        }
+        case "tags": {
+          const t = (l.tags && l.tags[0]) || "";
+          return { v: t.toLowerCase(), isNull: !t };
+        }
+      }
+    };
+    return [...defaultSorted].sort((a, b) => {
+      const va = getVal(a); const vb = getVal(b);
+      if (va.isNull && vb.isNull) return 0;
+      if (va.isNull) return 1;
+      if (vb.isNull) return -1;
+      if (typeof va.v === "number" && typeof vb.v === "number") return (va.v - vb.v) * mul;
+      return String(va.v).localeCompare(String(vb.v)) * mul;
+    });
+  }, [loans, payments, installmentSchedules, search, category, selectedCategories, isMultiSelect, dateFrom, dateTo, dueDateFrom, dueDateTo, amountMin, amountMax, tagFilter, notesFilter, sortBy, dueDateQuick, view, columnSort]);
 
   const folderCount = useMemo(() => {
     const byName: Record<string, number> = {};
