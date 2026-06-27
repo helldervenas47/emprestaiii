@@ -7,10 +7,13 @@ import { ArrowUp, Loader2, Plus, MessageSquarePlus } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 
-interface Msg { role: "user" | "assistant"; content: string }
+interface Msg {
+  role: "user" | "assistant";
+  content: string;
+}
 
-const HELP_CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/help-chat`;
-const HELP_CHAT_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const HELP_CHAT_URL = `${import.meta.env.VITE_EXTERNAL_SUPABASE_URL}/functions/v1/help-chat`;
+const HELP_CHAT_KEY = import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY;
 
 const SUGGESTIONS = [
   { title: "Cadastrar empréstimo", subtitle: "Como criar um contrato parcelado" },
@@ -23,10 +26,13 @@ export default function HelpChat() {
   const { branding } = useAppBranding();
   const brandName = branding.brand_name;
 
-  const greeting = useMemo<Msg>(() => ({
-    role: "assistant",
-    content: `Olá! 👋 Sou o assistente do **${brandName}**. Posso ajudar com cadastros, cofrinhos, relatórios, integrações, permissões e qualquer dúvida sobre o app. Como posso ajudar hoje?`,
-  }), [brandName]);
+  const greeting = useMemo<Msg>(
+    () => ({
+      role: "assistant",
+      content: `Olá! 👋 Sou o assistente do **${brandName}**. Posso ajudar com cadastros, cofrinhos, relatórios, integrações, permissões e qualquer dúvida sobre o app. Como posso ajudar hoje?`,
+    }),
+    [brandName],
+  );
 
   const [messages, setMessages] = useState<Msg[]>([greeting]);
   const [input, setInput] = useState("");
@@ -170,7 +176,11 @@ export default function HelpChat() {
               disabled={sending || !input.trim()}
               aria-label="Enviar"
             >
-              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" strokeWidth={2.5} />}
+              {sending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
+              )}
             </Button>
           </div>
           <p className="text-[10px] text-muted-foreground text-center mt-2">
@@ -188,11 +198,10 @@ function EmptyState({ brandName, onPick }: { brandName: string; onPick: (q: stri
       <div className="h-14 w-14 rounded-2xl overflow-hidden flex items-center justify-center bg-primary/10 ring-1 ring-primary/20 mb-4">
         <AppLogo area="auth" alt={brandName} rounded />
       </div>
-      <h2 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight">
-        Como posso ajudar você hoje?
-      </h2>
+      <h2 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight">Como posso ajudar você hoje?</h2>
       <p className="text-sm text-muted-foreground mt-1.5 max-w-md">
-        Sou o assistente do <span className="font-medium text-foreground">{brandName}</span>. Pergunte sobre qualquer recurso do app.
+        Sou o assistente do <span className="font-medium text-foreground">{brandName}</span>. Pergunte sobre qualquer
+        recurso do app.
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-8 w-full max-w-2xl">
@@ -203,9 +212,7 @@ function EmptyState({ brandName, onPick }: { brandName: string; onPick: (q: stri
             onClick={() => onPick(s.title + "?")}
             className="group text-left rounded-2xl border border-border/50 bg-card/50 hover:bg-card hover:border-primary/40 hover:shadow-sm px-4 py-3 transition-all"
           >
-            <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-              {s.title}
-            </p>
+            <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{s.title}</p>
             <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{s.subtitle}</p>
           </button>
         ))}
