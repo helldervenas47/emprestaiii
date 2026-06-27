@@ -1,7 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronRight } from "lucide-react";
 
 export interface CategoryEntry {
   id: string;
@@ -34,11 +34,36 @@ function fmtDate(d: string) {
 
 export function CategoryDetailsSheet({ open, onOpenChange, categoryName, entries, total }: Props) {
   const isMobile = useIsMobile();
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const sorted = useMemo(
     () => [...entries].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)),
     [entries],
   );
+
+  const isExtra = categoryName.trim().toLowerCase() === "extra";
+
+  const groups = useMemo(() => {
+    if (!isExtra) return [];
+    const map = new Map<string, { description: string; total: number; items: CategoryEntry[] }>();
+    sorted.forEach((e) => {
+      const key = (e.description || "Sem descrição").trim();
+      const g = map.get(key) ?? { description: key, total: 0, items: [] };
+      g.total += Number(e.amount) || 0;
+      g.items.push(e);
+      map.set(key, g);
+    });
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [sorted, isExtra]);
+
+  const toggleGroup = (key: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -67,6 +92,86 @@ export function CategoryDetailsSheet({ open, onOpenChange, categoryName, entries
             <p className="text-sm text-muted-foreground text-center py-8">
               Nenhum lançamento encontrado.
             </p>
+          ) : isExtra ? (
+            groups.map((g) => {
+              const open = expandedGroups.has(g.description);
+              return (
+                <div key={g.description} className="rounded-lg border border-border bg-card overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(g.description)}
+                    className="w-full flex items-center gap-3 p-3 text-left hover:bg-muted/40 transition-colors"
+                  >
+                    <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 bg-muted text-muted-foreground">
+                      {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="text-sm font-medium text-foreground truncate">
+                          {g.description}
+                        </div>
+                        <div className="text-sm font-semibold shrink-0 text-emerald-500">
+                          {fmtBRL(g.total)}
+                        </div>
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {g.items.length} {g.items.length === 1 ? "registro" : "registros"}
+                      </div>
+                    </div>
+                  </button>
+                  {open && (
+                    <div className="border-t border-border divide-y divide-border">
+                      {g.items.map((e) => {
+                        const isIncome = e.type === "receita";
+                        const Icon = isIncome ? ArrowDownLeft : ArrowUpRight;
+                        return (
+                          <div key={e.id} className="flex items-start gap-3 p-3 pl-4 bg-muted/20">
+                            <div
+                              className={`mt-0.5 h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${
+                                isIncome ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
+                              }`}
+                            >
+                              <Icon className="h-3.5 w-3.5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="text-sm text-foreground truncate">
+                                  {e.description || "Sem descrição"}
+                                </div>
+                                <div
+                                  className={`text-sm font-semibold shrink-0 ${
+                                    isIncome ? "text-emerald-500" : "text-rose-500"
+                                  }`}
+                                >
+                                  {isIncome ? "+" : "-"} {fmtBRL(e.amount)}
+                                </div>
+                              </div>
+                              <div className="mt-1 flex items-center flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                                <span>{fmtDate(e.date)}</span>
+                                {e.status && (
+                                  <span
+                                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${
+                                      e.status === "paid"
+                                        ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                                        : e.status === "overdue"
+                                          ? "bg-rose-500/15 text-rose-600 dark:text-rose-400"
+                                          : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                    }`}
+                                  >
+                                    {e.status === "paid" ? "Pago" : e.status === "overdue" ? "Atrasado" : "Pendente"}
+                                  </span>
+                                )}
+                                {e.account && <span className="truncate">{e.account}</span>}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })
           ) : (
             sorted.map((e) => {
               const isIncome = e.type === "receita";
