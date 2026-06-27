@@ -353,7 +353,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
               <ArrowUpDown className="h-3.5 w-3.5 opacity-60" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-[calc(100vw-2rem)] max-w-sm">
+          <DropdownMenuContent align="start" className="w-[calc(100%-2rem)] max-w-sm">
             <DropdownMenuItem onClick={() => setStatusFilter("all")}>
               <Users className="h-4 w-4 mr-2" /> Todos ({clients.length})
             </DropdownMenuItem>

@@ -206,7 +206,7 @@ export function BoletoFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         onOpenAutoFocus={(e) => e.preventDefault()}
-        className="w-[calc(100vw-1rem)] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6 z-[2147483651]"
+        className="w-[calc(100%-1rem)] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6 z-[2147483651]"
       >
         <DialogHeader>
           <DialogTitle>{editing ? "Editar boleto" : "Novo boleto"}</DialogTitle>
