@@ -39,14 +39,11 @@ export async function getReportsLinkForUser(
   if (dedicated) return { chat_id: Number((dedicated as any).chat_id) };
   if (dedicatedErr && dedicatedErr.code !== "42P01" && dedicatedErr.code !== "PGRST205") return null;
 
-  // Legacy fallback: telegram_links may have bot_id=null for older rows linked
-  // before bot_id was tracked. Accept those as reports links too.
   const { data } = await supabase
     .from("telegram_links")
-    .select("chat_id, bot_id")
+    .select("chat_id")
     .eq("user_id", userId)
-    .or(`bot_id.eq.${botId},bot_id.is.null`)
-    .limit(1)
+    .eq("bot_id", botId)
     .maybeSingle();
   if (!data) return null;
   return { chat_id: Number((data as any).chat_id) };
