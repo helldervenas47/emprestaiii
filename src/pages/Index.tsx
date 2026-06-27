@@ -2176,7 +2176,7 @@ const Index = () => {
 
         {/* Extrato em Dialog (acionado pelo botão "Ver extrato") */}
         <Dialog open={ledgerOpen} onOpenChange={setLedgerOpen}>
-          <DialogContent className="max-w-5xl w-[calc(100vw-1rem)] sm:w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto overflow-x-hidden p-3 sm:p-6">
+          <DialogContent className="max-w-5xl w-[calc(100%-1rem)] sm:w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto overflow-x-hidden p-3 sm:p-6">
             <DialogHeader>
               <DialogTitle>Extrato da Conta</DialogTitle>
               <DialogDescription>Histórico completo de entradas e saídas. Fonte única do saldo.</DialogDescription>
