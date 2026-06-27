@@ -30,6 +30,18 @@ bootstrapAppTheme();
   }
 })();
 
+// Cleanup único: remove API keys que ficaram em localStorage em versões
+// anteriores. Os valores agora ficam exclusivamente no backend.
+(() => {
+  try {
+    const CLEANED = "api-keys-localstorage-purged-v1";
+    if (localStorage.getItem(CLEANED)) return;
+    localStorage.removeItem("app_api_keys_v1");
+    localStorage.removeItem("gdrive_api_key_override");
+    localStorage.setItem(CLEANED, "1");
+  } catch { /* noop */ }
+})();
+
 // Guard: never register service workers in preview/iframe contexts
 const isInIframe = (() => {
   try {
