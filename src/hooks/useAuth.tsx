@@ -235,12 +235,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { error: userErr } = await supabase.auth.getUser();
         if (userErr) {
           const msg = `${(userErr as any)?.code || ""} ${userErr.message || ""}`.toLowerCase();
-          if (msg.includes("bad_jwt") || msg.includes("missing sub") || msg.includes("invalid claim")) {
-            await supabase.auth.signOut({ scope: "local" }).catch(() => {});
-            try {
-              Object.keys(localStorage).forEach((k) => { if (k.startsWith("sb-")) localStorage.removeItem(k); });
-            } catch {}
-          }
+            if (
+              msg.includes("bad_jwt") ||
+              msg.includes("missing sub") ||
+              msg.includes("invalid claim") ||
+              msg.includes("session_not_found") ||
+              msg.includes("session from session_id")
+            ) {
+              await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+              try {
+                Object.keys(localStorage).forEach((k) => { if (k.startsWith("sb-")) localStorage.removeItem(k); });
+              } catch {}
+              if (mounted) {
+                setSession(null);
+                setUser(null);
+                clearUserState();
+                setLoading(false);
+              }
+              return;
+            }
         }
       } catch {}
 
