@@ -37,40 +37,33 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Eye, EyeOff, Copy, Pencil, Trash2, Plus, MoreVertical, KeyRound, Plug, RefreshCw, Loader2, ChevronDown } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  Plus,
+  MoreVertical,
+  KeyRound,
+  Plug,
+  RefreshCw,
+  Loader2,
+  ChevronDown,
+  ShieldCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/userClient";
-
-const STORAGE_KEY = "app_api_keys_v1";
 
 interface ApiKeyEntry {
   id: string;
   name: string;
-  key: string;
+  key_last4: string;
   active: boolean;
   createdAt: string;
   lastUsedAt: string | null;
 }
 
-function loadKeys(): ApiKeyEntry[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveKeys(keys: ApiKeyEntry[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(keys));
-}
-
-function maskKey(key: string): string {
-  if (!key) return "—";
-  if (key.length <= 8) return "•".repeat(key.length);
-  return `${key.slice(0, 4)}${"•".repeat(Math.max(4, key.length - 8))}${key.slice(-4)}`;
+function maskLast4(last4: string): string {
+  if (!last4) return "—";
+  return `••••${last4}`;
 }
 
 function formatDate(iso: string | null): string {
@@ -98,10 +91,11 @@ interface AppIntegration {
 
 export function ApiKeysManager() {
   const [keys, setKeys] = useState<ApiKeyEntry[]>([]);
-  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const [loadingKeys, setLoadingKeys] = useState(true);
   const [editing, setEditing] = useState<ApiKeyEntry | null>(null);
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", key: "" });
   const [integrations, setIntegrations] = useState<AppIntegration[]>([]);
   const [loadingIntegrations, setLoadingIntegrations] = useState(false);
@@ -116,15 +110,34 @@ export function ApiKeysManager() {
       setIntegrations((data as any)?.integrations ?? []);
       setIntegrationsLoaded(true);
     } catch (e: any) {
-      console.error("[ApiKeysManager] loadIntegrations", e);
+      console.error("[ApiKeysManager] loadIntegrations", e?.message);
       setIntegrations([]);
     } finally {
       setLoadingIntegrations(false);
     }
   };
 
+  const loadKeys = async () => {
+    setLoadingKeys(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-api-keys", {
+        method: "GET",
+      });
+      if (error) throw error;
+      const list = ((data as any)?.keys ?? []) as ApiKeyEntry[];
+      // Oculta entradas reservadas (ex.: __gdrive_api_key_override)
+      setKeys(list.filter((k) => !k.name.startsWith("__")));
+    } catch (e: any) {
+      console.error("[ApiKeysManager] loadKeys", e?.message);
+      toast.error("Não foi possível carregar as chaves");
+      setKeys([]);
+    } finally {
+      setLoadingKeys(false);
+    }
+  };
+
   useEffect(() => {
-    setKeys(loadKeys());
+    loadKeys();
   }, []);
 
   const toggleIntegrations = () => {
@@ -137,69 +150,81 @@ export function ApiKeysManager() {
     });
   };
 
-  const persist = (next: ApiKeyEntry[]) => {
-    setKeys(next);
-    saveKeys(next);
-  };
-
   const openCreate = () => {
     setForm({ name: "", key: "" });
     setCreating(true);
   };
 
   const openEdit = (k: ApiKeyEntry) => {
-    setForm({ name: k.name, key: k.key });
+    setForm({ name: k.name, key: "" });
     setEditing(k);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const name = form.name.trim();
     const key = form.key.trim();
-    if (!name || !key) {
-      toast.error("Preencha nome e chave");
+    if (!name) {
+      toast.error("Informe o nome da integração");
       return;
     }
-    if (editing) {
-      persist(keys.map((k) => (k.id === editing.id ? { ...k, name, key } : k)));
-      toast.success("Chave atualizada");
-      setEditing(null);
-    } else {
-      const entry: ApiKeyEntry = {
-        id: crypto.randomUUID(),
-        name,
-        key,
-        active: true,
-        createdAt: new Date().toISOString(),
-        lastUsedAt: null,
-      };
-      persist([entry, ...keys]);
-      toast.success("Chave adicionada");
-      setCreating(false);
+    if (!editing && !key) {
+      toast.error("Informe a chave");
+      return;
     }
-  };
-
-  const toggleActive = (id: string, value: boolean) => {
-    persist(keys.map((k) => (k.id === id ? { ...k, active: value } : k)));
-  };
-
-  const handleDelete = (id: string) => {
-    persist(keys.filter((k) => k.id !== id));
-    toast.success("Chave removida");
-    setDeletingId(null);
-  };
-
-  const handleCopy = async (k: ApiKeyEntry) => {
+    setSaving(true);
     try {
-      await navigator.clipboard.writeText(k.key);
-      persist(keys.map((it) => (it.id === k.id ? { ...it, lastUsedAt: new Date().toISOString() } : it)));
-      toast.success("Chave copiada");
-    } catch {
-      toast.error("Não foi possível copiar");
+      const body: Record<string, unknown> = { name };
+      if (key) body.key = key;
+      if (editing) body.id = editing.id;
+
+      const { error } = await supabase.functions.invoke("manage-api-keys", {
+        method: "POST",
+        body,
+      });
+      if (error) throw error;
+      toast.success(editing ? "Chave atualizada" : "Chave adicionada");
+      setEditing(null);
+      setCreating(false);
+      await loadKeys();
+    } catch (e: any) {
+      console.error("[ApiKeysManager] save", e?.message);
+      toast.error("Não foi possível salvar a chave");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const toggleReveal = (id: string) => {
-    setRevealed((r) => ({ ...r, [id]: !r[id] }));
+  const toggleActive = async (k: ApiKeyEntry, value: boolean) => {
+    // Atualização otimista
+    setKeys((prev) => prev.map((it) => (it.id === k.id ? { ...it, active: value } : it)));
+    try {
+      const { error } = await supabase.functions.invoke("manage-api-keys", {
+        method: "POST",
+        body: { id: k.id, name: k.name, active: value },
+      });
+      if (error) throw error;
+    } catch (e: any) {
+      console.error("[ApiKeysManager] toggleActive", e?.message);
+      toast.error("Não foi possível alterar o status");
+      setKeys((prev) => prev.map((it) => (it.id === k.id ? { ...it, active: !value } : it)));
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase.functions.invoke("manage-api-keys", {
+        method: "DELETE",
+        body: { id },
+      });
+      if (error) throw error;
+      toast.success("Chave removida");
+      setKeys((prev) => prev.filter((k) => k.id !== id));
+    } catch (e: any) {
+      console.error("[ApiKeysManager] delete", e?.message);
+      toast.error("Não foi possível remover");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const dialogOpen = creating || !!editing;
@@ -296,15 +321,16 @@ export function ApiKeysManager() {
         )}
       </section>
 
-      {/* Chaves customizadas (gerenciadas pelo usuário) */}
+      {/* Chaves customizadas (armazenadas com segurança no backend) */}
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div>
             <h3 className="text-sm font-semibold flex items-center gap-1.5">
               <KeyRound className="h-4 w-4 text-primary" /> Minhas chaves
             </h3>
-            <p className="text-xs text-muted-foreground">
-              Chaves personalizadas gerenciadas neste dispositivo.
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <ShieldCheck className="h-3 w-3" />
+              Armazenadas com segurança no servidor. Só os 4 últimos caracteres são exibidos.
             </p>
           </div>
           <Button size="sm" onClick={openCreate}>
@@ -312,7 +338,11 @@ export function ApiKeysManager() {
           </Button>
         </div>
 
-      {empty ? (
+      {loadingKeys ? (
+        <div className="flex items-center justify-center py-10">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : empty ? (
         <div className="border border-dashed rounded-lg py-10 flex flex-col items-center text-center gap-2">
           <KeyRound className="h-6 w-6 text-muted-foreground" />
           <p className="text-sm font-medium">Nenhuma chave cadastrada</p>
@@ -338,30 +368,13 @@ export function ApiKeysManager() {
                 <TableRow key={k.id}>
                   <TableCell className="font-medium">{k.name}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <code className="font-mono text-xs">
-                        {revealed[k.id] ? k.key : maskKey(k.key)}
-                      </code>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6"
-                        onClick={() => toggleReveal(k.id)}
-                        aria-label={revealed[k.id] ? "Ocultar" : "Visualizar"}
-                      >
-                        {revealed[k.id] ? (
-                          <EyeOff className="h-3.5 w-3.5" />
-                        ) : (
-                          <Eye className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
-                    </div>
+                    <code className="font-mono text-xs">{maskLast4(k.key_last4)}</code>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Switch
                         checked={k.active}
-                        onCheckedChange={(v) => toggleActive(k.id, v)}
+                        onCheckedChange={(v) => toggleActive(k, v)}
                       />
                       <Badge variant={k.active ? "default" : "secondary"} className="text-[10px]">
                         {k.active ? "Ativa" : "Inativa"}
@@ -382,20 +395,10 @@ export function ApiKeysManager() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => toggleReveal(k.id)}>
-                          {revealed[k.id] ? (
-                            <><EyeOff className="h-3.5 w-3.5 mr-2" /> Ocultar</>
-                          ) : (
-                            <><Eye className="h-3.5 w-3.5 mr-2" /> Visualizar</>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleCopy(k)}>
-                          <Copy className="h-3.5 w-3.5 mr-2" /> Copiar
-                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => openEdit(k)}>
-                          <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
+                          <Pencil className="h-3.5 w-3.5 mr-2" /> Editar / Substituir
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toggleActive(k.id, !k.active)}>
+                        <DropdownMenuItem onClick={() => toggleActive(k, !k.active)}>
                           {k.active ? "Desativar" : "Ativar"}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -422,7 +425,9 @@ export function ApiKeysManager() {
           <DialogHeader>
             <DialogTitle>{editing ? "Editar chave de API" : "Nova chave de API"}</DialogTitle>
             <DialogDescription>
-              As chaves ficam armazenadas neste dispositivo.
+              {editing
+                ? "Deixe o campo Chave em branco para manter a atual. Informe um novo valor para substituí-la."
+                : "A chave é armazenada com segurança no servidor e nunca é exibida novamente."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -436,19 +441,26 @@ export function ApiKeysManager() {
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="api-key-value" className="text-xs">Chave</Label>
+              <Label htmlFor="api-key-value" className="text-xs">
+                Chave {editing && <span className="text-muted-foreground">(opcional)</span>}
+              </Label>
               <Input
                 id="api-key-value"
+                type="password"
+                autoComplete="off"
                 value={form.key}
                 onChange={(e) => setForm((f) => ({ ...f, key: e.target.value }))}
-                placeholder="sk-..."
+                placeholder={editing ? `Atual: ••••${editing.key_last4}` : "sk-..."}
                 className="font-mono text-sm"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
-            <Button onClick={handleSave}>{editing ? "Salvar" : "Adicionar"}</Button>
+            <Button variant="outline" onClick={closeDialog} disabled={saving}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+              {editing ? "Salvar" : "Adicionar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
