@@ -325,26 +325,37 @@ function validateReply(reply: string): { ok: boolean; issues: string[] } {
   return { ok: issues.length === 0, issues };
 }
 
+const MODEL_FALLBACK_CHAIN = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"];
+
 async function callAI(
   systemContent: string,
   history: ChatMsg[],
   apiKey: string,
 ): Promise<{ ok: true; reply: string } | { ok: false; status: number; text: string }> {
-  const resp = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gemini-2.5-flash",
-      messages: [{ role: "system", content: systemContent }, ...history],
-    }),
-  });
-  if (!resp.ok) return { ok: false, status: resp.status, text: await resp.text() };
-  const data = await resp.json();
-  const reply = data?.choices?.[0]?.message?.content?.trim() || "Não consegui gerar resposta.";
-  return { ok: true, reply };
+  let lastErr: { status: number; text: string } = { status: 500, text: "no attempt" };
+  for (const model of MODEL_FALLBACK_CHAIN) {
+    const resp = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "system", content: systemContent }, ...history],
+      }),
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      const reply = data?.choices?.[0]?.message?.content?.trim() || "Não consegui gerar resposta.";
+      return { ok: true, reply };
+    }
+    lastErr = { status: resp.status, text: await resp.text() };
+    // Só tenta fallback em 503/429/500; outros erros (400/401/403) abortam.
+    if (![429, 500, 502, 503, 504].includes(resp.status)) break;
+    console.warn(`[help-chat] modelo ${model} falhou (${resp.status}), tentando próximo`);
+  }
+  return { ok: false, ...lastErr };
 }
 
 // --- Handler -------------------------------------------------------------
