@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
 } from "recharts";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { CategoryDetailsSheet, CategoryEntry } from "@/components/CategoryDetailsSheet";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { displayIncomeCategory, incomeCategoryKey } from "@/lib/incomeCategory";
