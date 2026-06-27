@@ -40,7 +40,7 @@ function salePaidInMonth(sale: Sale, monthKey: string): number {
   return total;
 }
 
-export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = [] }: Props) {
+export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = [], onMonthChange }: Props) {
   // Considera receitas PAGAS + pendentes (consolidado por categoria)
   const consolidated = allMonthIncomes ?? incomes;
   const { methods } = usePaymentMethods();
