@@ -219,11 +219,14 @@ export function IncomeDashboard({ incomes, allMonthIncomes, allIncomes, monthKey
 
       <CategoryDetailsSheet
         open={!!selectedCategory}
-        onOpenChange={(o) => !o && setSelectedCategory(null)}
+        onOpenChange={(o) => {
+          if (!o) setSelectedCategory(null);
+          else setSheetMonthKey(monthKey);
+        }}
         categoryName={selectedCategory || ""}
         entries={selectedEntries}
-        monthKey={monthKey}
-        onMonthChange={onMonthChange}
+        monthKey={sheetMonthKey}
+        onMonthChange={setSheetMonthKey}
         total={selectedTotal}
       />
     </div>
