@@ -271,6 +271,16 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const admin = getExternalAdmin();
+  const url = new URL(req.url);
+  if (url.searchParams.get("debug") === "1") {
+    const { data: bots } = await admin.from("system_telegram_bots")
+      .select("id, name, bot_username, active, purpose").eq("purpose", "reports");
+    const { data: rep } = await admin.from("telegram_reports_links").select("user_id, chat_id, bot_id");
+    const { data: leg } = await admin.from("telegram_links").select("user_id, chat_id, bot_id");
+    return new Response(JSON.stringify({ bots, reports_links: rep, telegram_links: leg }, null, 2), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   let brandName = "EmprestAI";
   try {
@@ -347,7 +357,9 @@ Deno.serve(async (req) => {
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
 
   let sent = 0;
+  const diag: any[] = [];
   for (const pref of (prefs ?? [])) {
+    const userId = (pref as any).user_id;
     try {
       const slots = [
         { key: "send_time_1", time: (pref as any).send_time_1 },
@@ -356,26 +368,41 @@ Deno.serve(async (req) => {
       ] as const;
       const lastSent = ((pref as any).last_sent ?? {}) as Record<string, string>;
       const firedSlots = dueSlotKeys(slots, nowMin, today, lastSent);
-      if (firedSlots.length === 0) continue;
+      if (firedSlots.length === 0) {
+        diag.push({ userId, status: "no_slot_due", lastSent });
+        continue;
+      }
 
       const isToday = (pref as any).send_target === "today";
       const targetDate = isToday ? today : tomorrow;
-      const label = isToday ? "Receitas e Despesas" : "Receitas e Despesas";
-      const res = await buildAndSend(admin, (pref as any).user_id, targetDate, brandName, label);
+      const label = "Receitas e Despesas";
+
+      const link = await getReportsLinkForUser(admin, userId);
+      if (!link) {
+        diag.push({ userId, status: "no_reports_link", firedSlots });
+        console.error("[incomes-expenses-summary] no reports link for", userId);
+        continue;
+      }
+
+      const res = await buildAndSend(admin, userId, targetDate, brandName, label);
+      diag.push({ userId, status: res.sent ? "sent" : "send_failed", firedSlots, targetDate, chat_id: link.chat_id });
       if (res.sent) {
         const newLast = { ...lastSent };
         for (const slot of firedSlots) newLast[slot] = today;
         await admin.from("incomes_expenses_telegram_prefs")
           .update({ last_sent: newLast })
-          .eq("user_id", (pref as any).user_id);
+          .eq("user_id", userId);
         sent++;
+      } else {
+        console.error("[incomes-expenses-summary] buildAndSend returned sent=false for", userId);
       }
     } catch (e) {
-      console.error("incomes-expenses-summary error", (pref as any).user_id, e);
+      console.error("incomes-expenses-summary error", userId, e);
+      diag.push({ userId, status: "exception", error: (e as Error).message });
     }
   }
 
-  return new Response(JSON.stringify({ ok: true, sent, checked: prefs?.length ?? 0, hhmm }), {
+  return new Response(JSON.stringify({ ok: true, sent, checked: prefs?.length ?? 0, hhmm, diag }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
