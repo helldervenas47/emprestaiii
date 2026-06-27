@@ -92,7 +92,7 @@ export function CategoryDetailsSheet({ open, onOpenChange, categoryName, entries
             const monthLabel = new Date(yy, mm - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
             return (
               <div className="pt-3 flex justify-center">
-                <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/60 p-0.5">
+                <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/60 p-1">
                   <button
                     type="button"
                     aria-label="Mês anterior"
@@ -100,9 +100,9 @@ export function CategoryDetailsSheet({ open, onOpenChange, categoryName, entries
                       const d = new Date(yy, mm - 2, 1);
                       onMonthChange(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
                     }}
-                    className="h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
+                    className="h-9 w-9 inline-flex items-center justify-center rounded-md hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="h-5 w-5" />
                   </button>
                   <button
                     type="button"
@@ -110,7 +110,7 @@ export function CategoryDetailsSheet({ open, onOpenChange, categoryName, entries
                       const now = new Date();
                       onMonthChange(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
                     }}
-                    className="px-2 h-7 text-xs font-medium text-foreground capitalize rounded-md hover:bg-background transition-colors min-w-[130px]"
+                    className="px-3 h-9 text-sm font-medium text-foreground capitalize rounded-md hover:bg-background transition-colors min-w-[170px]"
                     title="Voltar ao mês atual"
                   >
                     {monthLabel}
@@ -122,9 +122,9 @@ export function CategoryDetailsSheet({ open, onOpenChange, categoryName, entries
                       const d = new Date(yy, mm, 1);
                       onMonthChange(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
                     }}
-                    className="h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
+                    className="h-9 w-9 inline-flex items-center justify-center rounded-md hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-5 w-5" />
                   </button>
                 </div>
               </div>
