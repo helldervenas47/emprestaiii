@@ -7,10 +7,13 @@ import { useAppBranding } from "@/hooks/useAppBranding";
 import { ArrowLeft, Loader2, Send, Sparkles, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 
-interface Msg { role: "user" | "assistant"; content: string }
+interface Msg {
+  role: "user" | "assistant";
+  content: string;
+}
 
-const HELP_CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/help-chat`;
-const HELP_CHAT_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const HELP_CHAT_URL = `${import.meta.env.VITE_EXTERNAL_SUPABASE_URL}/functions/v1/help-chat`;
+const HELP_CHAT_KEY = import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY;
 
 const SUGGESTIONS = [
   "Como cadastrar um empréstimo parcelado?",
@@ -165,9 +168,7 @@ function MessageBubble({ msg }: { msg: Msg }) {
       )}
       <div
         className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
-          isUser
-            ? "bg-primary text-primary-foreground rounded-br-sm"
-            : "bg-muted text-foreground rounded-bl-sm"
+          isUser ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted text-foreground rounded-bl-sm"
         }`}
       >
         {msg.content}
