@@ -5183,9 +5183,37 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
         }
         case "remaining": {
           if (l.status === "paid") return { v: getTotalPaid(l, payments), isNull: false };
-          const base = getBaseRemainingAmount(l, payments, installmentSchedules);
+          // Ordena pelo restante da parcela atual (não pelo saldo total do contrato)
           const fees = getLoanLateFees(l, payments, installmentSchedules);
-          return { v: base + fees.lateFees + Number(l.renegotiationPenaltyTotal || 0), isNull: false };
+          const renegPenalty = Number(l.renegotiationPenaltyTotal || 0);
+          if (l.installments > 1) {
+            const loanSchedules = installmentSchedules
+              .filter((s) => s.loanId === l.id)
+              .sort((a, b) => a.installmentNumber - b.installmentNumber);
+            const nextSchedule =
+              loanSchedules.find((s) => s.installmentNumber === l.paidInstallments + 1) ||
+              loanSchedules.find((s) => s.installmentNumber > l.paidInstallments);
+            const total = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+            const totalPaid = payments.filter((p) => p.loanId === l.id).reduce((s, p) => s + p.amount, 0);
+            const remainingInstallments = Math.max(1, l.installments - l.paidInstallments);
+            const fullInstallment = nextSchedule
+              ? nextSchedule.amount
+              : (l.customInstallmentValue && l.customInstallmentValue > 0)
+                ? l.customInstallmentValue
+                : total / l.installments;
+            const actualRemaining = (l.remainingAmount != null && l.remainingAmount > 0)
+              ? l.remainingAmount
+              : Math.max(0, total - totalPaid);
+            const allUnpaidSum = loanSchedules
+              .filter((s) => s.installmentNumber > l.paidInstallments)
+              .reduce((sum, s) => sum + s.amount, 0);
+            const expectedRemaining = nextSchedule ? allUnpaidSum : fullInstallment * remainingInstallments;
+            const partialPaidOnCurrent = Math.max(0, expectedRemaining - actualRemaining);
+            const currentInstallmentRemaining = Math.max(0, fullInstallment - partialPaidOnCurrent);
+            return { v: currentInstallmentRemaining + fees.lateFees + renegPenalty, isNull: false };
+          }
+          const base = getBaseRemainingAmount(l, payments, installmentSchedules);
+          return { v: base + fees.lateFees + renegPenalty, isNull: false };
         }
         case "installments":
           return { v: Number(l.installments) || 0, isNull: false };
