@@ -4,11 +4,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
-  Eye, EyeOff, Copy, Check, ShieldAlert, Key, Download,
-  Loader2, Code2, Database, AlertTriangle, Info,
+  Eye,
+  EyeOff,
+  Copy,
+  Check,
+  ShieldAlert,
+  Key,
+  Download,
+  Loader2,
+  Code2,
+  Database,
+  AlertTriangle,
+  Info,
 } from "lucide-react";
 
-const FUNCTIONS_URL = `${import.meta.env.VITE_EXTERNAL_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL}/functions/v1/painel-migracao`;
+const FUNCTIONS_URL = `${import.meta.env.VITE_EXTERNAL_SUPABASE_URL}/functions/v1/painel-migracao`;
 
 type TableInfo = {
   tablename: string;
@@ -146,7 +156,9 @@ export default function PainelMigracao() {
       `${sep}EDGE FUNCTIONS (${data.edge_functions_count})${sep}`,
       data.edge_functions.join("\n"),
       `${sep}SECRETS${sep}`,
-      Object.entries(data.secrets).map(([k, v]) => `${k}=${v}`).join("\n"),
+      Object.entries(data.secrets)
+        .map(([k, v]) => `${k}=${v}`)
+        .join("\n"),
       `${sep}TABELAS (${data.database_tables.length})${sep}`,
       data.database_tables.map((t) => `${t.tablename} (${t.row_count} linhas)`).join("\n"),
     ];
@@ -159,9 +171,7 @@ export default function PainelMigracao() {
       <div className="max-w-3xl mx-auto space-y-6">
         <header className="space-y-2">
           <h1 className="text-3xl md:text-4xl font-bold">Painel de Migração</h1>
-          <p className="text-muted-foreground">
-            Copie os itens abaixo na ordem e cole na extensão CloneSupa.
-          </p>
+          <p className="text-muted-foreground">Copie os itens abaixo na ordem e cole na extensão CloneSupa.</p>
         </header>
 
         <div className="flex flex-wrap gap-2">
@@ -214,7 +224,9 @@ export default function PainelMigracao() {
               <>
                 <div className="flex flex-wrap gap-1">
                   {data.edge_functions.map((f) => (
-                    <Badge key={f} variant="secondary">{f}</Badge>
+                    <Badge key={f} variant="secondary">
+                      {f}
+                    </Badge>
                   ))}
                 </div>
                 <Button onClick={downloadEdgeFunctions}>
@@ -287,7 +299,11 @@ export default function PainelMigracao() {
                             <td className="p-2 text-right">{t.row_count}</td>
                             <td className="p-2 text-right">{t.column_count}</td>
                             <td className="p-2">
-                              <Badge variant={cls === "Essencial" ? "default" : cls === "Histórico" ? "secondary" : "outline"}>
+                              <Badge
+                                variant={
+                                  cls === "Essencial" ? "default" : cls === "Histórico" ? "secondary" : "outline"
+                                }
+                              >
                                 {cls}
                               </Badge>
                             </td>
@@ -300,8 +316,8 @@ export default function PainelMigracao() {
                 <div className="flex items-start gap-2 p-3 border rounded-md bg-amber-500/10 text-sm">
                   <AlertTriangle className="h-4 w-4 mt-0.5 text-amber-600 shrink-0" />
                   <p>
-                    Senhas são copiadas como hash bcrypt. Se o JWT secret do destino for diferente,
-                    sessões antigas serão invalidadas, mas as senhas continuam válidas para novo login.
+                    Senhas são copiadas como hash bcrypt. Se o JWT secret do destino for diferente, sessões antigas
+                    serão invalidadas, mas as senhas continuam válidas para novo login.
                   </p>
                 </div>
               </>
