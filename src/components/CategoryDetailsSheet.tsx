@@ -34,7 +34,7 @@ function fmtDate(d: string) {
   return new Date(y, m - 1, day).toLocaleDateString("pt-BR");
 }
 
-export function CategoryDetailsSheet({ open, onOpenChange, categoryName, entries, total }: Props) {
+export function CategoryDetailsSheet({ open, onOpenChange, categoryName, entries, total, monthKey, onMonthChange }: Props) {
   const isMobile = useIsMobile();
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
