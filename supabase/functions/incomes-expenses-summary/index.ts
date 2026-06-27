@@ -271,6 +271,16 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const admin = getExternalAdmin();
+  const url = new URL(req.url);
+  if (url.searchParams.get("debug") === "1") {
+    const { data: bots } = await admin.from("system_telegram_bots")
+      .select("id, name, bot_username, active, purpose").eq("purpose", "reports");
+    const { data: rep } = await admin.from("telegram_reports_links").select("user_id, chat_id, bot_id");
+    const { data: leg } = await admin.from("telegram_links").select("user_id, chat_id, bot_id");
+    return new Response(JSON.stringify({ bots, reports_links: rep, telegram_links: leg }, null, 2), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   let brandName = "EmprestAI";
   try {
