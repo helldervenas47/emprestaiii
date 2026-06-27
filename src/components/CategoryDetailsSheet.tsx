@@ -34,11 +34,36 @@ function fmtDate(d: string) {
 
 export function CategoryDetailsSheet({ open, onOpenChange, categoryName, entries, total }: Props) {
   const isMobile = useIsMobile();
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const sorted = useMemo(
     () => [...entries].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)),
     [entries],
   );
+
+  const isExtra = categoryName.trim().toLowerCase() === "extra";
+
+  const groups = useMemo(() => {
+    if (!isExtra) return [];
+    const map = new Map<string, { description: string; total: number; items: CategoryEntry[] }>();
+    sorted.forEach((e) => {
+      const key = (e.description || "Sem descrição").trim();
+      const g = map.get(key) ?? { description: key, total: 0, items: [] };
+      g.total += Number(e.amount) || 0;
+      g.items.push(e);
+      map.set(key, g);
+    });
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [sorted, isExtra]);
+
+  const toggleGroup = (key: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
