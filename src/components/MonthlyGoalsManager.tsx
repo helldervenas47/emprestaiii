@@ -296,7 +296,7 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
               Nenhuma meta cadastrada para {formatMonthLabel(filterMonth)}.
             </p>
           )}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full overflow-x-hidden">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full overflow-x-hidden auto-rows-fr items-stretch">
             {groupedGoals.map(({ type, items }) => {
               const meta = GOAL_TYPE_META[type];
               if (!meta) return null;
@@ -311,7 +311,7 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
               return (
                 <div
                   key={type}
-                  className="rounded-2xl p-4 bg-card border border-border shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all duration-300 flex flex-col min-w-0 w-full min-h-[420px]"
+                  className="rounded-2xl p-4 bg-card border border-border shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all duration-300 flex flex-col min-w-0 w-full h-full min-h-[420px]"
                 >
                   <div className="flex flex-col items-center text-center mb-3 min-h-[110px]">
                     <div className={`h-10 w-10 rounded-xl ${iconBg} flex items-center justify-center mb-2 ring-1 ring-border/50`}>
