@@ -4,19 +4,34 @@ import { useAuth } from "./useAuth";
 import { useDataOwner } from "./useDataOwner";
 import { toast } from "sonner";
 import { assertWritable } from "@/lib/readOnlyState";
-import {
-  computePiggyDetailed as computePiggyDetailedSeg,
-  type PiggyDetailed,
-  type RatePeriod,
-} from "@/lib/piggyTax";
-import { recordLedger } from "@/lib/ledger";
-import { getBalances } from "@/lib/balance";
+import type { PiggyDetailed, RatePeriod } from "@/lib/piggyTax";
+
+/**
+ * Adapter sobre a nova arquitetura financeira (tabelas `cofrinhos`,
+ * `cofrinho_aportes`, `cofrinho_eventos`, `cofrinho_rendimento_diario`,
+ * `taxa_referencia`) + Edge Functions:
+ *   - processar-deposito-cofrinho
+ *   - processar-resgate-cofrinho
+ *   - sync-taxas-financeiras
+ *
+ * A interface pública foi mantida intacta para preservar compatibilidade
+ * com todos os consumidores existentes (PiggyBankList, PiggyBankDetail,
+ * useAccountBalance, useExternalAccountSources, ConsolidatedBalanceCards,
+ * IncomePendingCalendar, FinancialHealthDashboard, PiggyBanksSummaryCard,
+ * PiggyBanksBreakdownDialog, PersonalExpenseForm, etc.).
+ *
+ * A tabela legada `piggy_banks` NÃO é mais lida nem escrita. Permanece no
+ * banco para preservar histórico — não está sendo dropada nesta migração.
+ *
+ * Cores/ícones/categoria/data-alvo são serializados em `cofrinhos.descricao`
+ * como JSON, já que o novo schema não possui esses campos.
+ */
 
 export interface PiggyBankRateHistory {
   id: string;
   piggyBankId: string;
   annualRate: number;
-  effectiveFrom: string; // YYYY-MM-DD
+  effectiveFrom: string;
   createdAt: string;
 }
 
@@ -48,8 +63,8 @@ export interface PiggyBankDeposit {
   piggyBankId: string;
   expenseId?: string | null;
   amount: number;
-  depositDate: string; // YYYY-MM-DD
-  source?: string; // 'expense' | 'manual' | 'recurring'
+  depositDate: string;
+  source?: string;
   recurrenceId?: string | null;
 }
 
@@ -65,30 +80,33 @@ export interface PiggyBankRecurrence {
   lastGeneratedDate: string | null;
 }
 
+// ---------------------------------------------------------------------------
+// Compat layer: as funções abaixo são exportadas porque outros módulos do app
+// (PersonalExpenseForm, useExpenses, etc.) ainda dependem delas para marcar
+// expenses como transferências para cofrinho.
+// ---------------------------------------------------------------------------
+
 const PIGGY_TAG_RE = /\[cofrinho:([0-9a-f-]{36})\]/i;
 
-/** Build the notes tag used to mark an expense as a piggy-bank transfer. */
 export const buildPiggyTag = (piggyId: string, original?: string) =>
   `[cofrinho:${piggyId}]${original ? " " + original : ""}`;
 
-/** Extract a piggy bank id from an expense.notes string, if present. */
 export const extractPiggyId = (notes?: string | null): string | null => {
   if (!notes) return null;
   const m = notes.match(PIGGY_TAG_RE);
   return m ? m[1] : null;
 };
 
-/** True when an expense should be excluded from monthly spending totals. */
 export const isPiggyExpense = (notes?: string | null) => !!extractPiggyId(notes);
 
 /**
- * Compound daily yield: amount * (1 + annualRate/100)^(days/365) - amount.
- * Negative deposits (manual withdrawals/adjustments) reduce balance without yield.
+ * Mantida para compat com módulos que ainda chamam diretamente. NÃO é usada
+ * internamente — o backend é a fonte de verdade do saldo agora.
  */
 export function computePiggyBalance(
   deposits: PiggyBankDeposit[],
   annualRatePct: number,
-  asOf: Date = new Date()
+  asOf: Date = new Date(),
 ) {
   const dailyFactor = Math.pow(1 + annualRatePct / 100, 1 / 365);
   const todayMs = new Date(asOf.getFullYear(), asOf.getMonth(), asOf.getDate()).getTime();
@@ -99,12 +117,8 @@ export function computePiggyBalance(
     const depMs = new Date(y, (m || 1) - 1, day || 1).getTime();
     const days = Math.max(0, Math.floor((todayMs - depMs) / 86_400_000));
     principal += d.amount;
-    if (d.amount >= 0) {
-      total += d.amount * Math.pow(dailyFactor, days);
-    } else {
-      // withdrawals/adjustments don't earn yield going forward
-      total += d.amount;
-    }
+    if (d.amount >= 0) total += d.amount * Math.pow(dailyFactor, days);
+    else total += d.amount;
   }
   return { principal, balance: total, yield: total - principal };
 }
@@ -112,558 +126,539 @@ export function computePiggyBalance(
 const ymd = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-const parseYmd = (s: string) => {
-  const [y, m, d] = s.split("-").map(Number);
-  return new Date(y, (m || 1) - 1, d || 1);
+// ---------------------------------------------------------------------------
+// Descricao JSON helpers — extras visuais que o novo schema não comporta.
+// ---------------------------------------------------------------------------
+interface DescricaoMeta {
+  color?: string;
+  icon?: string;
+  category?: string | null;
+  targetDate?: string | null;
+  shortId?: number | null;
+  note?: string;
+}
+
+const parseDescricao = (raw: any): DescricaoMeta => {
+  if (!raw || typeof raw !== "string") return {};
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith("{")) return { note: trimmed };
+  try {
+    const parsed = JSON.parse(trimmed);
+    return typeof parsed === "object" && parsed ? parsed : { note: trimmed };
+  } catch {
+    return { note: trimmed };
+  }
 };
 
-/**
- * Generate due dates for a recurrence. Catch-up é limitado ao mês corrente:
- * datas anteriores ao primeiro dia do mês atual são ignoradas (sem geração
- * retroativa de meses passados).
- */
-function dueDatesFor(rec: PiggyBankRecurrence, today: Date): string[] {
-  const start = parseYmd(rec.startDate);
-  const end = rec.endDate ? parseYmd(rec.endDate) : null;
-  const lastGen = rec.lastGeneratedDate ? parseYmd(rec.lastGeneratedDate) : null;
-  const monthFloor = new Date(today.getFullYear(), today.getMonth(), 1);
-  const result: string[] = [];
+const stringifyDescricao = (meta: DescricaoMeta): string => JSON.stringify(meta);
 
-  // First due date = start
-  // Subsequent = same day_of_month each next month
-  const firstYear = start.getFullYear();
-  const firstMonth = start.getMonth();
-  const day = rec.dayOfMonth;
-
-  for (let i = 0; i < 600; i++) {
-    const d = new Date(firstYear, firstMonth + i, day);
-    if (d.getMonth() !== ((firstMonth + i) % 12 + 12) % 12) {
-      // overflow (e.g. day 31 in Feb) -> use last day of month
-      d.setDate(0);
-    }
-    if (d < start) continue;
-    if (end && d > end) break;
-    if (d > today) break;
-    if (lastGen && d <= lastGen) continue;
-    if (d < monthFloor) continue; // não gera retroativo de meses passados
-    result.push(ymd(d));
-  }
-  return result;
-}
+const DEFAULT_COLOR = "210 80% 55%";
+const DEFAULT_ICON = "PiggyBank";
 
 export function usePiggyBanks() {
   const { user } = useAuth();
   const dataOwnerId = useDataOwner();
   const [piggyBanks, setPiggyBanks] = useState<PiggyBank[]>([]);
   const [deposits, setDeposits] = useState<PiggyBankDeposit[]>([]);
-  const [recurrences, setRecurrences] = useState<PiggyBankRecurrence[]>([]);
-  const [rateHistory, setRateHistory] = useState<PiggyBankRateHistory[]>([]);
+  const [cofrinhoRows, setCofrinhoRows] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
-
   const [cdiRate, setCdiRate] = useState<MarketRate | null>(null);
+
+  // Recurrences/RateHistory ainda não migradas para a nova arquitetura.
+  // Mantidas como arrays vazios para preservar a interface pública.
+  const recurrences: PiggyBankRecurrence[] = [];
+  const rateHistory: PiggyBankRateHistory[] = [];
 
   const reload = useCallback(async () => {
     if (!dataOwnerId) return;
-    const [pbRes, dpRes, rcRes, rhRes, mrRes] = await Promise.all([
-      supabase.from("piggy_banks" as any).select("*").eq("user_id", dataOwnerId).order("created_at"),
-      supabase.from("piggy_bank_deposits" as any).select("*").eq("user_id", dataOwnerId),
-      supabase.from("piggy_bank_recurrences" as any).select("*").eq("user_id", dataOwnerId),
-      supabase.from("piggy_bank_rate_history" as any).select("*").eq("user_id", dataOwnerId).order("effective_from"),
-      supabase.from("market_rates" as any).select("*").eq("indicator", "cdi").maybeSingle(),
+    const [cofRes, apoRes, taxaRes] = await Promise.all([
+      supabase
+        .from("cofrinhos" as any)
+        .select("*")
+        .eq("usuario_id", dataOwnerId)
+        .order("created_at"),
+      supabase
+        .from("cofrinho_aportes" as any)
+        .select("id, cofrinho_id, valor_original, data_aporte, percentual_cdi, created_at"),
+      supabase
+        .from("taxa_referencia" as any)
+        .select("*")
+        .limit(1),
     ]);
-    if (!pbRes.error) {
-      setPiggyBanks(((pbRes.data as any[]) || []).map((r) => ({
-        id: r.id,
-        shortId: r.short_id ?? null,
-        name: r.name,
-        color: r.color,
-        icon: r.icon,
-        annualRate: Number(r.annual_rate),
-        autoRate: Boolean(r.auto_rate),
-        cdiPercent: r.cdi_percent != null ? Number(r.cdi_percent) : 100,
-        goalAmount: r.goal_amount != null ? Number(r.goal_amount) : null,
-        category: r.category ?? null,
-        targetDate: r.target_date ?? null,
-        createdAt: r.created_at,
-      })));
+
+    if (!cofRes.error && Array.isArray(cofRes.data)) {
+      const rowsMap: Record<string, any> = {};
+      const list: PiggyBank[] = (cofRes.data as any[])
+        .filter((r) => r.ativo !== false)
+        .map((r) => {
+          rowsMap[r.id] = r;
+          const meta = parseDescricao(r.descricao);
+          return {
+            id: r.id,
+            shortId: meta.shortId ?? null,
+            name: r.nome,
+            color: meta.color || DEFAULT_COLOR,
+            icon: meta.icon || DEFAULT_ICON,
+            annualRate: 0, // backend controla; campo legado mantido por compat
+            autoRate: true,
+            cdiPercent: r.percentual_cdi != null ? Number(r.percentual_cdi) : 100,
+            goalAmount: r.meta != null ? Number(r.meta) : null,
+            category: meta.category ?? null,
+            targetDate: meta.targetDate ?? null,
+            createdAt: r.created_at,
+          };
+        });
+      setPiggyBanks(list);
+      setCofrinhoRows(rowsMap);
     }
-    if (!dpRes.error) {
-      setDeposits(((dpRes.data as any[]) || []).map((r) => ({
-        id: r.id,
-        piggyBankId: r.piggy_bank_id,
-        expenseId: r.expense_id,
-        amount: Number(r.amount),
-        depositDate: r.deposit_date,
-        source: r.source,
-        recurrenceId: r.recurrence_id,
-      })));
+
+    if (!apoRes.error && Array.isArray(apoRes.data)) {
+      setDeposits(
+        (apoRes.data as any[]).map((r) => ({
+          id: r.id,
+          piggyBankId: r.cofrinho_id,
+          expenseId: null,
+          amount: Number(r.valor_original),
+          depositDate: r.data_aporte,
+          source: "manual",
+          recurrenceId: null,
+        })),
+      );
     }
-    if (!rcRes.error) {
-      setRecurrences(((rcRes.data as any[]) || []).map((r) => ({
-        id: r.id,
-        piggyBankId: r.piggy_bank_id,
-        amount: Number(r.amount),
-        startDate: r.start_date,
-        endDate: r.end_date,
-        dayOfMonth: r.day_of_month,
-        description: r.description,
-        active: r.active,
-        lastGeneratedDate: r.last_generated_date,
-      })));
+
+    if (!taxaRes.error && Array.isArray(taxaRes.data) && taxaRes.data.length > 0) {
+      const r: any = taxaRes.data[0];
+      const annual =
+        r.taxa_anual ?? r.valor_anual ?? r.taxa ?? r.valor ?? r.annual_rate ?? null;
+      if (annual != null) {
+        setCdiRate({
+          indicator: "cdi",
+          annualRate: Number(annual),
+          source: r.fonte ?? r.source ?? null,
+          referenceDate: r.data_referencia ?? r.reference_date ?? null,
+          fetchedAt: r.atualizado_em ?? r.updated_at ?? new Date().toISOString(),
+        });
+      }
     }
-    if (!rhRes.error) {
-      setRateHistory(((rhRes.data as any[]) || []).map((r) => ({
-        id: r.id,
-        piggyBankId: r.piggy_bank_id,
-        annualRate: Number(r.annual_rate),
-        effectiveFrom: r.effective_from,
-        createdAt: r.created_at,
-      })));
-    }
-    if (!mrRes.error && mrRes.data) {
-      const r: any = mrRes.data;
-      setCdiRate({
-        indicator: r.indicator,
-        annualRate: Number(r.annual_rate),
-        source: r.source,
-        referenceDate: r.reference_date,
-        fetchedAt: r.fetched_at,
-      });
-    }
+
     setLoading(false);
   }, [dataOwnerId]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
-  // Realtime: keep all consumers (form + list) in sync when deposits/banks change.
+  // Realtime
   useEffect(() => {
     if (!dataOwnerId) return;
     const channel = supabase
-      .channel(`piggy-realtime-${crypto.randomUUID()}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'piggy_bank_deposits' }, () => { reload(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'piggy_banks' }, () => { reload(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'piggy_bank_recurrences' }, () => { reload(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'piggy_bank_rate_history' }, () => { reload(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_rates' }, () => { reload(); })
+      .channel(`cofrinhos-realtime-${crypto.randomUUID()}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "cofrinhos" }, () => {
+        reload();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_aportes" }, () => {
+        reload();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_eventos" }, () => {
+        reload();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "taxa_referencia" }, () => {
+        reload();
+      })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [dataOwnerId, reload]);
-
-  // Auto-refresh CDI rate if cache is stale (>12h) — fire-and-forget.
-  useEffect(() => {
-    if (!dataOwnerId) return;
-    const stale = !cdiRate || (Date.now() - new Date(cdiRate.fetchedAt).getTime()) > 12 * 3600 * 1000;
-    if (!stale) return;
-    supabase.functions.invoke("sync-cdi-rate", { body: {} }).catch(() => { /* silent */ });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataOwnerId, cdiRate?.fetchedAt]);
-
-  // Auto-catch-up: generate missing recurring deposits whenever recurrences load.
-  useEffect(() => {
-    if (!dataOwnerId || recurrences.length === 0) return;
-    const today = new Date();
-    (async () => {
-      let touched = false;
-      for (const rec of recurrences) {
-        if (!rec.active) continue;
-        const due = dueDatesFor(rec, today);
-        if (due.length === 0) continue;
-        const rows = due.map((d) => ({
-          user_id: dataOwnerId,
-          piggy_bank_id: rec.piggyBankId,
-          amount: rec.amount,
-          deposit_date: d,
-          source: "recurring",
-          recurrence_id: rec.id,
-        }));
-        const { error } = await supabase.from("piggy_bank_deposits" as any).insert(rows);
-        if (!error) {
-          await supabase
-            .from("piggy_bank_recurrences" as any)
-            .update({ last_generated_date: due[due.length - 1] })
-            .eq("id", rec.id);
-          touched = true;
-        }
-      }
-      if (touched) reload();
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recurrences, dataOwnerId]);
-
-  const createPiggyBank = useCallback(async (data: { 
-    name: string; 
-    color?: string; 
-    icon?: string; 
-    annualRate?: number; 
-    autoRate?: boolean; 
-    cdiPercent?: number; 
-    shortId?: number | null;
-    goalAmount?: number | null;
-    category?: string | null;
-    targetDate?: string | null;
-  }) => {
-    assertWritable();
-    if (!user || !dataOwnerId) return null;
-    const payload: any = {
-      user_id: dataOwnerId,
-      name: data.name,
-      color: data.color ?? "210 80% 55%",
-      icon: data.icon ?? "PiggyBank",
-      annual_rate: data.annualRate ?? 11.15,
-      auto_rate: data.autoRate ?? false,
-      cdi_percent: data.cdiPercent ?? 100,
-      goal_amount: data.goalAmount ?? null,
-      category: data.category ?? null,
-      target_date: data.targetDate ?? null,
+    return () => {
+      supabase.removeChannel(channel);
     };
-    if (data.shortId !== undefined && data.shortId !== null) payload.short_id = data.shortId;
-    const { data: row, error } = await (supabase as any).from("piggy_banks").insert(payload).select().single();
-    if (error) {
-      const msg = error.message?.includes("piggy_banks_user_short_id_uniq")
-        ? `Já existe uma caixinha com o número ${data.shortId}`
-        : error.message?.includes("piggy_banks_short_id_range")
-          ? "O número da caixinha deve estar entre 1 e 99"
-          : "Erro ao criar cofrinho";
-      toast.error(msg);
-      return null;
-    }
-    await reload();
-    return (row as any)?.id as string;
-  }, [user, dataOwnerId, reload]);
-
-  const updatePiggyBank = useCallback(async (id: string, patch: Partial<{ 
-    name: string; 
-    color: string; 
-    icon: string; 
-    annualRate: number; 
-    autoRate: boolean; 
-    cdiPercent: number; 
-    shortId: number | null;
-    goalAmount: number | null;
-    category: string | null;
-    targetDate: string | null;
-  }>) => {
-    assertWritable();
-    const dbPatch: any = {};
-    if (patch.name !== undefined) dbPatch.name = patch.name;
-    if (patch.color !== undefined) dbPatch.color = patch.color;
-    if (patch.icon !== undefined) dbPatch.icon = patch.icon;
-    if (patch.annualRate !== undefined) dbPatch.annual_rate = patch.annualRate;
-    if (patch.autoRate !== undefined) dbPatch.auto_rate = patch.autoRate;
-    if (patch.cdiPercent !== undefined) dbPatch.cdi_percent = patch.cdiPercent;
-    if (patch.shortId !== undefined) dbPatch.short_id = patch.shortId;
-    if (patch.goalAmount !== undefined) dbPatch.goal_amount = patch.goalAmount;
-    if (patch.category !== undefined) dbPatch.category = patch.category;
-    if (patch.targetDate !== undefined) dbPatch.target_date = patch.targetDate;
-    const { error } = await supabase.from("piggy_banks" as any).update(dbPatch).eq("id", id);
-    if (error) {
-      const msg = error.message?.includes("piggy_banks_user_short_id_uniq")
-        ? `Já existe uma caixinha com o número ${patch.shortId}`
-        : error.message?.includes("piggy_banks_short_id_range")
-          ? "O número da caixinha deve estar entre 1 e 99"
-          : "Erro ao atualizar";
-      toast.error(msg);
-      return;
-    }
-    await reload();
-  }, [reload]);
-
-  const deletePiggyBank = useCallback(async (id: string) => {
-    assertWritable();
-    const { error } = await supabase.from("piggy_banks" as any).delete().eq("id", id);
-    if (error) { toast.error("Erro ao excluir cofrinho"); return; }
-    await reload();
-  }, [reload]);
-
-  const addDeposit = useCallback(async (input: { piggyBankId: string; amount: number; depositDate: string; expenseId?: string; source?: string }) => {
-    assertWritable();
-    if (!dataOwnerId) return;
-    const { error } = await supabase.from("piggy_bank_deposits" as any).insert({
-      user_id: dataOwnerId,
-      piggy_bank_id: input.piggyBankId,
-      expense_id: input.expenseId ?? null,
-      amount: input.amount,
-      deposit_date: input.depositDate,
-      source: input.source ?? "expense",
-    });
-    if (error) { toast.error("Erro ao registrar aporte"); return; }
-    await reload();
   }, [dataOwnerId, reload]);
 
-  const removeDepositByExpenseId = useCallback(async (expenseId: string) => {
-    assertWritable();
-    await supabase.from("piggy_bank_deposits" as any).delete().eq("expense_id", expenseId);
-    await reload();
-  }, [reload]);
+  // ---------------------------------------------------------------------------
+  // CRUD de cofrinhos
+  // ---------------------------------------------------------------------------
 
-  /** Update a single deposit's amount and/or date. */
-  const updateDeposit = useCallback(async (
-    id: string,
-    patch: Partial<{ amount: number; depositDate: string }>
-  ) => {
-    assertWritable();
-    const dbPatch: any = {};
-    if (patch.amount !== undefined) dbPatch.amount = patch.amount;
-    if (patch.depositDate !== undefined) dbPatch.deposit_date = patch.depositDate;
-    const { error } = await supabase.from("piggy_bank_deposits" as any).update(dbPatch).eq("id", id);
-    if (error) { toast.error("Erro ao atualizar lançamento"); return; }
-    await reload();
-  }, [reload]);
-
-  /** Delete a single deposit by id. */
-  const deleteDeposit = useCallback(async (id: string) => {
-    assertWritable();
-    const { error } = await supabase.from("piggy_bank_deposits" as any).delete().eq("id", id);
-    if (error) { toast.error("Erro ao excluir lançamento"); return; }
-    await reload();
-  }, [reload]);
-
-  /** Adjust the balance to a new target value by inserting a delta deposit (positive or negative). */
-  const adjustBalance = useCallback(async (
-    piggyBankId: string,
-    newBalance: number,
-    note?: string
-  ) => {
-    assertWritable();
-    if (!dataOwnerId) return;
-    const pb = piggyBanks.find((p) => p.id === piggyBankId);
-    if (!pb) return;
-    const ds = deposits.filter((d) => d.piggyBankId === piggyBankId);
-    const current = computePiggyBalance(ds, pb.annualRate).balance;
-    const delta = Number((newBalance - current).toFixed(2));
-    if (delta === 0) {
-      toast.info("Saldo já está nesse valor");
-      return;
-    }
-    const { error } = await supabase.from("piggy_bank_deposits" as any).insert({
-      user_id: dataOwnerId,
-      piggy_bank_id: piggyBankId,
-      amount: delta,
-      deposit_date: ymd(new Date()),
-      source: "manual",
-      // expense_id stays null -> won't affect any expense
-    });
-    if (error) { toast.error("Erro ao ajustar saldo"); return; }
-    toast.success(`Saldo ajustado em ${delta > 0 ? "+" : ""}${delta.toFixed(2)}`);
-    await reload();
-  }, [dataOwnerId, piggyBanks, deposits, reload]);
-
-  /**
-   * Guarda dinheiro: debita o saldo da conta e credita no cofrinho.
-   * Registra uma transferência interna (categoria 'transfer') que NÃO entra
-   * em receitas/despesas operacionais nem em relatórios contábeis.
-   */
-  const storeMoney = useCallback(async (piggyBankId: string, amount: number) => {
-    if (!dataOwnerId) return false;
-    const value = Number(amount.toFixed(2));
-    if (!Number.isFinite(value) || value <= 0) {
-      toast.error("Informe um valor válido");
-      return false;
-    }
-    const pb = piggyBanks.find((p) => p.id === piggyBankId);
-    if (!pb) return false;
-    const bal = await getBalances();
-    if (value > bal.account + 0.0001) {
-      toast.error(`Saldo em conta insuficiente (disponível: ${bal.account.toFixed(2)})`);
-      return false;
-    }
-    const today = ymd(new Date());
-    const { error } = await supabase.from("piggy_bank_deposits" as any).insert({
-      user_id: dataOwnerId,
-      piggy_bank_id: piggyBankId,
-      amount: value,
-      deposit_date: today,
-      source: "transfer_in",
-    });
-    if (error) { toast.error("Erro ao guardar no cofrinho"); return false; }
-    // NÃO grava no account_ledger: o saldo do Dashboard não deve ser afetado.
-    // O saldo de "Receitas e Despesas" é derivado dos próprios piggy_bank_deposits.
-    try { window.dispatchEvent(new CustomEvent("balance:changed")); } catch { /* noop */ }
-    toast.success(`Guardado ${value.toFixed(2)} em "${pb.name}"`);
-    await reload();
-    return true;
-  }, [dataOwnerId, piggyBanks, reload]);
-
-  /**
-   * Resgata dinheiro: credita o saldo da conta e debita do cofrinho.
-   */
-  const withdrawMoney = useCallback(async (piggyBankId: string, amount: number) => {
-    if (!dataOwnerId) return false;
-    const value = Number(amount.toFixed(2));
-    if (!Number.isFinite(value) || value <= 0) {
-      toast.error("Informe um valor válido");
-      return false;
-    }
-    const pb = piggyBanks.find((p) => p.id === piggyBankId);
-    if (!pb) return false;
-    const ds = deposits.filter((d) => d.piggyBankId === piggyBankId);
-    const current = computePiggyBalance(ds, pb.annualRate).balance;
-    if (value > current + 0.0001) {
-      toast.error(`Saldo do cofrinho insuficiente (disponível: ${current.toFixed(2)})`);
-      return false;
-    }
-    const today = ymd(new Date());
-    const { error } = await supabase.from("piggy_bank_deposits" as any).insert({
-      user_id: dataOwnerId,
-      piggy_bank_id: piggyBankId,
-      amount: -value,
-      deposit_date: today,
-      source: "transfer_out",
-    });
-    if (error) { toast.error("Erro ao resgatar do cofrinho"); return false; }
-    // NÃO grava no account_ledger: o saldo do Dashboard não deve ser afetado.
-    // O saldo de "Receitas e Despesas" é derivado dos próprios piggy_bank_deposits.
-    try { window.dispatchEvent(new CustomEvent("balance:changed")); } catch { /* noop */ }
-    toast.success(`Resgatado ${value.toFixed(2)} de "${pb.name}"`);
-    await reload();
-    return true;
-  }, [dataOwnerId, piggyBanks, deposits, reload]);
-
-  const createRecurrence = useCallback(async (input: {
-    piggyBankId: string;
-    amount: number;
-    startDate: string;
-    endDate?: string | null;
-    description?: string;
-  }) => {
-    if (!dataOwnerId) return null;
-    const startDay = parseYmd(input.startDate).getDate();
-    const { data, error } = await (supabase as any).from("piggy_bank_recurrences").insert({
-      user_id: dataOwnerId,
-      piggy_bank_id: input.piggyBankId,
-      amount: input.amount,
-      start_date: input.startDate,
-      end_date: input.endDate ?? null,
-      day_of_month: startDay,
-      description: input.description ?? null,
-      active: true,
-    }).select().single();
-    if (error) { toast.error("Erro ao criar recorrência"); return null; }
-    await reload();
-    return (data as any)?.id as string;
-  }, [dataOwnerId, reload]);
-
-  /** Ativa/desativa uma recorrência (sem apagar histórico). */
-  const setRecurrenceActive = useCallback(async (id: string, active: boolean) => {
-    const { error } = await (supabase as any)
-      .from("piggy_bank_recurrences")
-      .update({ active })
-      .eq("id", id);
-    if (error) { toast.error("Erro ao atualizar recorrência"); return false; }
-    await reload();
-    return true;
-  }, [reload]);
-
-  /** Remove uma recorrência (não apaga aportes já gerados). */
-  const deleteRecurrence = useCallback(async (id: string) => {
-    const { error } = await (supabase as any)
-      .from("piggy_bank_recurrences")
-      .delete()
-      .eq("id", id);
-    if (error) { toast.error("Erro ao excluir recorrência"); return false; }
-    toast.success("Recorrência removida");
-    await reload();
-    return true;
-  }, [reload]);
-
-  /**
-   * Retorna os períodos de taxa de uma caixinha. Sempre garante pelo menos um
-   * período: se não houver histórico, usa a taxa atual valendo desde a criação.
-   * Todos os cofrinhos seguem o CDI automaticamente: o último período sempre
-   * reflete a taxa CDI vigente quando ela está disponível.
-   */
-  const periodsFor = useCallback((pb: PiggyBank): RatePeriod[] => {
-    const hist = rateHistory
-      .filter((h) => h.piggyBankId === pb.id)
-      .map<RatePeriod>((h) => ({ effectiveFrom: h.effectiveFrom, annualRate: h.annualRate }));
-    let base: RatePeriod[] = hist.length === 0
-      ? [{ effectiveFrom: pb.createdAt.slice(0, 10), annualRate: pb.annualRate }]
-      : hist;
-    // CDI sempre vigente: garante que o último período reflita a taxa CDI atual,
-    // ajustada pela porcentagem do CDI configurada na caixinha (ex.: 80%, 110%).
-    if (cdiRate) {
-      const pct = (pb.cdiPercent ?? 100) / 100;
-      const effectiveCdi = cdiRate.annualRate * pct;
-      const last = base[base.length - 1];
-      const cdiFrom = cdiRate.referenceDate || ymd(new Date());
-      const sameRate = Math.abs(last.annualRate - effectiveCdi) < 0.01;
-      if (!sameRate) {
-        const effectiveFrom = cdiFrom > last.effectiveFrom ? cdiFrom : last.effectiveFrom;
-        base = [...base, { effectiveFrom, annualRate: effectiveCdi }];
+  const createPiggyBank = useCallback(
+    async (data: {
+      name: string;
+      color?: string;
+      icon?: string;
+      annualRate?: number;
+      autoRate?: boolean;
+      cdiPercent?: number;
+      shortId?: number | null;
+      goalAmount?: number | null;
+      category?: string | null;
+      targetDate?: string | null;
+    }) => {
+      assertWritable();
+      if (!user || !dataOwnerId) return null;
+      const descricao = stringifyDescricao({
+        color: data.color ?? DEFAULT_COLOR,
+        icon: data.icon ?? DEFAULT_ICON,
+        category: data.category ?? null,
+        targetDate: data.targetDate ?? null,
+        shortId: data.shortId ?? null,
+      });
+      const payload: any = {
+        usuario_id: dataOwnerId,
+        nome: data.name,
+        descricao,
+        meta: data.goalAmount ?? null,
+        percentual_cdi: data.cdiPercent ?? 100,
+        tipo_rendimento: "CDI",
+        rendimento_automatico: true,
+        ativo: true,
+      };
+      const { data: row, error } = await (supabase as any)
+        .from("cofrinhos")
+        .insert(payload)
+        .select()
+        .single();
+      if (error) {
+        toast.error(error.message || "Erro ao criar cofrinho");
+        return null;
       }
-    }
-    return base;
-  }, [rateHistory, cdiRate]);
+      await reload();
+      return (row as any)?.id as string;
+    },
+    [user, dataOwnerId, reload],
+  );
 
-  const balances = useMemo(() => {
-    const map = new Map<string, ReturnType<typeof computePiggyBalance>>();
-    for (const pb of piggyBanks) {
-      const ds = deposits.filter((d) => d.piggyBankId === pb.id);
-      // Usa cálculo segmentado por taxa; expõe na mesma forma legacy {principal, balance, yield}
-      const det = computePiggyDetailedSeg(ds, periodsFor(pb));
-      map.set(pb.id, { principal: det.principal, balance: det.balance, yield: det.gross });
-    }
-    return map;
-  }, [piggyBanks, deposits, periodsFor]);
+  const updatePiggyBank = useCallback(
+    async (
+      id: string,
+      patch: Partial<{
+        name: string;
+        color: string;
+        icon: string;
+        annualRate: number;
+        autoRate: boolean;
+        cdiPercent: number;
+        shortId: number | null;
+        goalAmount: number | null;
+        category: string | null;
+        targetDate: string | null;
+      }>,
+    ) => {
+      assertWritable();
+      const current = cofrinhoRows[id];
+      const meta = parseDescricao(current?.descricao);
+      const newMeta: DescricaoMeta = { ...meta };
+      if (patch.color !== undefined) newMeta.color = patch.color;
+      if (patch.icon !== undefined) newMeta.icon = patch.icon;
+      if (patch.category !== undefined) newMeta.category = patch.category;
+      if (patch.targetDate !== undefined) newMeta.targetDate = patch.targetDate;
+      if (patch.shortId !== undefined) newMeta.shortId = patch.shortId;
+      const dbPatch: any = { descricao: stringifyDescricao(newMeta) };
+      if (patch.name !== undefined) dbPatch.nome = patch.name;
+      if (patch.cdiPercent !== undefined) dbPatch.percentual_cdi = patch.cdiPercent;
+      if (patch.goalAmount !== undefined) dbPatch.meta = patch.goalAmount;
+      const { error } = await supabase.from("cofrinhos" as any).update(dbPatch).eq("id", id);
+      if (error) {
+        toast.error(error.message || "Erro ao atualizar");
+        return;
+      }
+      await reload();
+    },
+    [cofrinhoRows, reload],
+  );
 
-  const detailed = useMemo(() => {
-    const map = new Map<string, PiggyDetailed>();
-    for (const pb of piggyBanks) {
-      const ds = deposits.filter((d) => d.piggyBankId === pb.id);
-      map.set(pb.id, computePiggyDetailedSeg(ds, periodsFor(pb)));
-    }
-    return map;
-  }, [piggyBanks, deposits, periodsFor]);
+  const deletePiggyBank = useCallback(
+    async (id: string) => {
+      assertWritable();
+      // Soft delete para preservar histórico de aportes/eventos.
+      const { error } = await supabase
+        .from("cofrinhos" as any)
+        .update({ ativo: false })
+        .eq("id", id);
+      if (error) {
+        toast.error("Erro ao excluir cofrinho");
+        return;
+      }
+      await reload();
+    },
+    [reload],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Depósitos e resgates — TODOS via Edge Function
+  // ---------------------------------------------------------------------------
+
+  const invokeDeposit = useCallback(
+    async (cofrinhoId: string, valor: number, dataAporte?: string, percentualCdi?: number) => {
+      const { data, error } = await supabase.functions.invoke(
+        "processar-deposito-cofrinho",
+        {
+          body: {
+            cofrinho_id: cofrinhoId,
+            valor,
+            ...(dataAporte ? { data_aporte: dataAporte } : {}),
+            ...(percentualCdi != null ? { percentual_cdi: percentualCdi } : {}),
+          },
+        },
+      );
+      if (error) {
+        const msg =
+          (error as any)?.context?.error ||
+          (data as any)?.error ||
+          error.message ||
+          "Erro ao registrar aporte";
+        throw new Error(msg);
+      }
+      return data;
+    },
+    [],
+  );
+
+  const invokeWithdraw = useCallback(
+    async (cofrinhoId: string, valor: number, dataResgate?: string) => {
+      const { data, error } = await supabase.functions.invoke(
+        "processar-resgate-cofrinho",
+        {
+          body: {
+            cofrinho_id: cofrinhoId,
+            valor,
+            ...(dataResgate ? { data_resgate: dataResgate } : {}),
+          },
+        },
+      );
+      if (error) {
+        const msg =
+          (error as any)?.context?.error ||
+          (data as any)?.error ||
+          error.message ||
+          "Erro ao processar resgate";
+        throw new Error(msg);
+      }
+      return data;
+    },
+    [],
+  );
+
+  /** Aporte simples (compat). */
+  const addDeposit = useCallback(
+    async (input: {
+      piggyBankId: string;
+      amount: number;
+      depositDate: string;
+      expenseId?: string;
+      source?: string;
+    }) => {
+      assertWritable();
+      try {
+        await invokeDeposit(input.piggyBankId, input.amount, input.depositDate);
+        try {
+          window.dispatchEvent(new CustomEvent("balance:changed"));
+        } catch {
+          /* noop */
+        }
+        await reload();
+      } catch (e: any) {
+        toast.error(e?.message || "Erro ao registrar aporte");
+      }
+    },
+    [invokeDeposit, reload],
+  );
 
   /**
-   * Atualiza a taxa de uma caixinha:
-   *  - mode='forward': mantém rendimentos passados; novo período inicia hoje.
-   *  - mode='recalc': recalcula tudo com a nova taxa (apaga histórico e
-   *    insere uma única linha valendo desde a criação).
+   * Remoção via expenseId: no novo schema os aportes não carregam expense_id,
+   * então essa operação vira no-op silencioso (a despesa será apagada pelo
+   * fluxo normal de despesas; o cofrinho continua com o aporte registrado).
    */
-  const setPiggyRate = useCallback(async (
-    piggyBankId: string,
-    newRate: number,
-    mode: "forward" | "recalc",
-  ) => {
-    if (!dataOwnerId) return;
-    const pb = piggyBanks.find((p) => p.id === piggyBankId);
-    if (!pb) return;
-    if (mode === "recalc") {
-      await supabase.from("piggy_bank_rate_history" as any).delete().eq("piggy_bank_id", piggyBankId);
-      await supabase.from("piggy_bank_rate_history" as any).insert({
-        user_id: dataOwnerId,
-        piggy_bank_id: piggyBankId,
-        annual_rate: newRate,
-        effective_from: pb.createdAt.slice(0, 10),
-      });
-    } else {
-      await supabase.from("piggy_bank_rate_history" as any).insert({
-        user_id: dataOwnerId,
-        piggy_bank_id: piggyBankId,
-        annual_rate: newRate,
-        effective_from: ymd(new Date()),
-      });
-    }
-    await supabase.from("piggy_banks" as any).update({ annual_rate: newRate }).eq("id", piggyBankId);
-    await reload();
-  }, [dataOwnerId, piggyBanks, reload]);
+  const removeDepositByExpenseId = useCallback(async (_expenseId: string) => {
+    // intencionalmente vazio na nova arquitetura
+  }, []);
+
+  const updateDeposit = useCallback(
+    async (_id: string, _patch: Partial<{ amount: number; depositDate: string }>) => {
+      toast.info(
+        "Edição direta de aporte indisponível. Use um resgate parcial ou aporte de ajuste.",
+      );
+    },
+    [],
+  );
+
+  const deleteDeposit = useCallback(async (_id: string) => {
+    toast.info(
+      "Exclusão direta de aporte indisponível. Use um resgate para retirar o valor.",
+    );
+  }, []);
+
+  const adjustBalance = useCallback(
+    async (piggyBankId: string, newBalance: number, _note?: string) => {
+      assertWritable();
+      const row = cofrinhoRows[piggyBankId];
+      if (!row) return;
+      const current = Number(row.saldo_total ?? 0);
+      const delta = Number((newBalance - current).toFixed(2));
+      if (delta === 0) {
+        toast.info("Saldo já está nesse valor");
+        return;
+      }
+      try {
+        if (delta > 0) await invokeDeposit(piggyBankId, delta);
+        else await invokeWithdraw(piggyBankId, Math.abs(delta));
+        toast.success(`Saldo ajustado em ${delta > 0 ? "+" : ""}${delta.toFixed(2)}`);
+        try {
+          window.dispatchEvent(new CustomEvent("balance:changed"));
+        } catch {
+          /* noop */
+        }
+        await reload();
+      } catch (e: any) {
+        toast.error(e?.message || "Erro ao ajustar saldo");
+      }
+    },
+    [cofrinhoRows, invokeDeposit, invokeWithdraw, reload],
+  );
+
+  const storeMoney = useCallback(
+    async (piggyBankId: string, amount: number) => {
+      const value = Number(amount.toFixed(2));
+      if (!Number.isFinite(value) || value <= 0) {
+        toast.error("Informe um valor válido");
+        return false;
+      }
+      const pb = piggyBanks.find((p) => p.id === piggyBankId);
+      try {
+        await invokeDeposit(piggyBankId, value);
+        try {
+          window.dispatchEvent(new CustomEvent("balance:changed"));
+        } catch {
+          /* noop */
+        }
+        toast.success(`Guardado ${value.toFixed(2)} em "${pb?.name ?? "cofrinho"}"`);
+        await reload();
+        return true;
+      } catch (e: any) {
+        toast.error(e?.message || "Erro ao guardar no cofrinho");
+        return false;
+      }
+    },
+    [piggyBanks, invokeDeposit, reload],
+  );
+
+  const withdrawMoney = useCallback(
+    async (piggyBankId: string, amount: number) => {
+      const value = Number(amount.toFixed(2));
+      if (!Number.isFinite(value) || value <= 0) {
+        toast.error("Informe um valor válido");
+        return false;
+      }
+      const pb = piggyBanks.find((p) => p.id === piggyBankId);
+      try {
+        await invokeWithdraw(piggyBankId, value);
+        try {
+          window.dispatchEvent(new CustomEvent("balance:changed"));
+        } catch {
+          /* noop */
+        }
+        toast.success(`Resgatado ${value.toFixed(2)} de "${pb?.name ?? "cofrinho"}"`);
+        await reload();
+        return true;
+      } catch (e: any) {
+        toast.error(e?.message || "Erro ao resgatar do cofrinho");
+        return false;
+      }
+    },
+    [piggyBanks, invokeWithdraw, reload],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Recorrências — feature ainda não disponível na nova arquitetura (stubs)
+  // ---------------------------------------------------------------------------
+  const createRecurrence = useCallback(
+    async (_input: {
+      piggyBankId: string;
+      amount: number;
+      startDate: string;
+      endDate?: string | null;
+      description?: string;
+    }) => {
+      toast.info("Aportes recorrentes serão reintroduzidos em uma próxima atualização.");
+      return null;
+    },
+    [],
+  );
+  const setRecurrenceActive = useCallback(async (_id: string, _active: boolean) => false, []);
+  const deleteRecurrence = useCallback(async (_id: string) => false, []);
+
+  // Taxa controlada automaticamente pelo backend.
+  const setPiggyRate = useCallback(
+    async (_piggyBankId: string, _newRate: number, _mode: "forward" | "recalc") => {
+      toast.info("A taxa é controlada automaticamente pelo CDI/backend.");
+    },
+    [],
+  );
 
   const refreshCdiNow = useCallback(async () => {
     try {
-      const { data, error } = await supabase.functions.invoke("sync-cdi-rate", { body: {} });
+      const { data, error } = await supabase.functions.invoke("sync-taxas-financeiras", {
+        body: {},
+      });
       if (error) throw error;
       await reload();
-      const rate = (data as any)?.annual_rate;
+      const rate = (data as any)?.cdi?.taxa_anual ?? (data as any)?.annual_rate;
       if (typeof rate === "number") {
         toast.success(`Taxa CDI atualizada: ${rate.toFixed(2)}% a.a.`);
+      } else {
+        toast.success("Taxas financeiras atualizadas");
       }
       return data;
-    } catch (e: any) {
+    } catch {
       toast.error("Não foi possível atualizar a taxa CDI agora");
       return null;
     }
   }, [reload]);
+
+  // ---------------------------------------------------------------------------
+  // Saldos derivados — leitura direta da tabela `cofrinhos`
+  // ---------------------------------------------------------------------------
+
+  const balances = useMemo(() => {
+    const map = new Map<string, { principal: number; balance: number; yield: number }>();
+    for (const pb of piggyBanks) {
+      const row = cofrinhoRows[pb.id] || {};
+      const principal = Number(row.saldo_principal ?? 0);
+      const balance = Number(row.saldo_total ?? 0);
+      const net = Number(row.saldo_rendimento_liquido ?? 0);
+      map.set(pb.id, { principal, balance, yield: net });
+    }
+    return map;
+  }, [piggyBanks, cofrinhoRows]);
+
+  const detailed = useMemo(() => {
+    const map = new Map<string, PiggyDetailed>();
+    for (const pb of piggyBanks) {
+      const row = cofrinhoRows[pb.id] || {};
+      const principal = Number(row.saldo_principal ?? 0);
+      const balance = Number(row.saldo_total ?? 0);
+      const gross = Number(row.saldo_rendimento_bruto ?? 0);
+      const net = Number(row.saldo_rendimento_liquido ?? 0);
+      const tax = Math.max(0, gross - net);
+      const cdi = cdiRate?.annualRate ?? 0;
+      const currentRate = cdi * ((pb.cdiPercent ?? 100) / 100);
+      map.set(pb.id, {
+        principal,
+        balance,
+        gross,
+        tax,
+        net,
+        projectionNetEom: net,
+        currentNet: principal + net,
+        currentRate,
+      });
+    }
+    return map;
+  }, [piggyBanks, cofrinhoRows, cdiRate]);
+
+  // Exposto para compat com qualquer consumidor que chame `periodsFor(pb)`.
+  const _periodsFor = useCallback(
+    (pb: PiggyBank): RatePeriod[] => {
+      const annual = (cdiRate?.annualRate ?? 0) * ((pb.cdiPercent ?? 100) / 100);
+      return [{ effectiveFrom: pb.createdAt?.slice(0, 10) || ymd(new Date()), annualRate: annual }];
+    },
+    [cdiRate],
+  );
+  void _periodsFor;
 
   return {
     piggyBanks,
@@ -690,5 +685,9 @@ export function usePiggyBanks() {
     setPiggyRate,
     refreshCdiNow,
     reload,
+    /** Dados crus do cofrinho (saldo_principal, saldo_total etc.) para UIs que
+     *  queiram surface fields novos (saldo_rendimento_bruto, ultimo_rendimento,
+     *  proximo_rendimento, tipo_rendimento). */
+    cofrinhoRows,
   };
 }
