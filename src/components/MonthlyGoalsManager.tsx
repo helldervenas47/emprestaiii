@@ -358,17 +358,17 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
 
                           </div>
 
-                          <div className="flex items-baseline justify-between gap-1 border-b border-border/50 pb-1.5">
-                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Meta</span>
-                            <span className={`text-sm font-bold ${meta.color} truncate`}>{targetStr}</span>
+                          <div className="flex items-baseline justify-between gap-1 border-b border-border/50 pb-1.5 min-h-[22px]">
+                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground leading-[14px]">Meta</span>
+                            <span className={`text-sm font-bold ${meta.color} truncate leading-[18px]`}>{targetStr}</span>
                           </div>
-                          <div className="flex items-baseline justify-between gap-1">
-                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Real</span>
-                            <span className="text-sm font-semibold text-foreground truncate">{actualStr}</span>
+                          <div className="flex items-baseline justify-between gap-1 min-h-[22px]">
+                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground leading-[14px]">Real</span>
+                            <span className="text-sm font-semibold text-foreground truncate leading-[18px]">{actualStr}</span>
                           </div>
 
                           <div className="space-y-1">
-                            <div className="flex justify-between text-[10px]">
+                            <div className="flex justify-between text-[10px] leading-[14px] min-h-[14px]">
                               <span className="text-muted-foreground">Progresso</span>
                               <span className={reached ? "text-success font-bold" : "text-muted-foreground font-medium"}>
                                 {pctRound}% {reached && "✓"}
@@ -380,11 +380,12 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
                             />
                           </div>
                           <p
-                            className="text-[10px] text-muted-foreground truncate italic min-h-[14px]"
+                            className="text-[10px] text-muted-foreground truncate italic leading-[14px] min-h-[14px]"
                             title={g.notes || ""}
                           >
                             {g.notes || "\u00A0"}
                           </p>
+
 
                         </div>
                       );
