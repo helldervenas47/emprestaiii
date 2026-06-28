@@ -250,6 +250,9 @@ export function CategoryDetailsSheet({ open, onOpenChange, categoryName, entries
                         {isIncome ? "+" : "-"} {fmtBRL(e.amount)}
                       </div>
                     </div>
+                    <div className="text-xs text-muted-foreground truncate min-h-[16px] leading-4">
+                      {e.clientName || "\u00A0"}
+                    </div>
                     <div className="mt-1 flex items-center flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground">
                       <span>{fmtDate(e.date)}</span>
                       {e.status && (
