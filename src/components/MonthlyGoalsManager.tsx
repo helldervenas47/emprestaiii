@@ -296,7 +296,7 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
               Nenhuma meta cadastrada para {formatMonthLabel(filterMonth)}.
             </p>
           )}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full overflow-x-hidden">
             {groupedGoals.map(({ type, items }) => {
               const meta = GOAL_TYPE_META[type];
               if (!meta) return null;
