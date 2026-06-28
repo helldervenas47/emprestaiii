@@ -46,6 +46,12 @@ export function IncomeDashboard({ incomes, allMonthIncomes, allIncomes, monthKey
   const consolidated = allMonthIncomes ?? incomes;
   const { methods } = usePaymentMethods();
   const methodName = (id?: string | null) => methods.find((m) => m.id === id)?.name || "";
+  const { clients } = useClients();
+  const clientNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    clients.forEach((c) => map.set(c.id, c.name));
+    return map;
+  }, [clients]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [sheetMonthKey, setSheetMonthKey] = useState<string>(monthKey);
 
