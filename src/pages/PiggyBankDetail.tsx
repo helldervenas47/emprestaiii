@@ -163,17 +163,50 @@ export default function PiggyBankDetail() {
     setEditDeposit(null);
   };
 
-  // ===== Sorted history + linked expenses =====
-  const history = useMemo<PiggyBankDeposit[]>(() => {
-    if (!pb) return [];
-    return deposits
-      .filter((d) => d.piggyBankId === pb.id)
-      .slice()
-      .sort((a, b) => {
-        if (a.depositDate !== b.depositDate) return a.depositDate < b.depositDate ? 1 : -1;
-        return a.id < b.id ? 1 : -1;
+  // ===== Extrato vindo de cofrinho_eventos (nova arquitetura) =====
+  const [history, setHistory] = useState<PiggyBankDeposit[]>([]);
+  useEffect(() => {
+    if (!pb) {
+      setHistory([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("cofrinho_eventos" as any)
+        .select("id, cofrinho_id, tipo, valor, descricao, referencia, created_at")
+        .eq("cofrinho_id", pb.id)
+        .order("created_at", { ascending: false });
+      if (cancelled || error || !Array.isArray(data)) return;
+      const mapped: PiggyBankDeposit[] = (data as any[]).map((ev) => {
+        const tipo = String(ev.tipo || "").toUpperCase();
+        const rawVal = Number(ev.valor || 0);
+        const amount =
+          tipo === "RESGATE" ? -Math.abs(rawVal) : Math.abs(rawVal);
+        const source =
+          tipo === "RESGATE"
+            ? "transfer_out"
+            : tipo === "RENDIMENTO"
+              ? "rendimento"
+              : tipo === "AJUSTE"
+                ? "manual"
+                : "transfer_in";
+        return {
+          id: ev.id,
+          piggyBankId: ev.cofrinho_id,
+          expenseId: null,
+          amount,
+          depositDate: String(ev.created_at).slice(0, 10),
+          source,
+          recurrenceId: null,
+        };
       });
-  }, [pb, deposits]);
+      setHistory(mapped);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pb?.id]);
 
   const [expensesById, setExpensesById] = useState<Record<string, { description: string; category: string }>>({});
   useEffect(() => {
@@ -385,6 +418,8 @@ export default function PiggyBankDetail() {
                               ? "Depósito"
                               : d.source === "transfer_out"
                               ? "Resgate"
+                              : d.source === "rendimento"
+                              ? "Rendimento"
                               : d.source === "recurring"
                               ? "Aporte recorrente"
                               : "Aporte")}
