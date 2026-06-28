@@ -378,11 +378,13 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
                               className={`h-1.5 ${reached ? "[&>div]:bg-success" : ""}`}
                             />
                           </div>
-                          {g.notes && (
-                            <p className="text-[10px] text-muted-foreground truncate italic" title={g.notes}>
-                              {g.notes}
-                            </p>
-                          )}
+                          <p
+                            className="text-[10px] text-muted-foreground truncate italic min-h-[14px]"
+                            title={g.notes || ""}
+                          >
+                            {g.notes || "\u00A0"}
+                          </p>
+
                         </div>
                       );
                     })}
