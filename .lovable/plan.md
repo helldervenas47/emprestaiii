@@ -1,137 +1,89 @@
-# Bloqueio de funcionalidades — plano de teste expirado
+# Migração do módulo Cofrinhos
 
-## Estratégia
+## 1. Mapeamento do uso atual de `piggy_banks`
 
-Centralizar o estado "expirado e somente leitura" no hook `usePlanEntitlements` (já existe `lockdown`) e aplicar de forma consistente em três camadas:
+Arquivos que tocam o módulo hoje:
 
-1. **UI global** — um helper compartilhado para desabilitar/ocultar ações de escrita.
-2. **Mutações no cliente** — interceptar criar/editar/excluir antes da chamada ao backend.
-3. **Backend** — validação no Postgres (RLS) e nas edge functions, sem confiar na UI.
+**Núcleo (vai migrar):**
+- `src/hooks/usePiggyBanks.ts` (694 linhas) — CRUD de `piggy_banks`, depósitos manuais, cálculo de rendimento no frontend, eventos `balance:changed`.
+- `src/components/PiggyBankList.tsx` (996 linhas) — tela principal, criação, edição, depósito, resgate.
+- `src/pages/PiggyBankDetail.tsx` (693 linhas) — detalhes, extrato, gráfico de evolução.
+- `src/components/PiggyBanksSummaryCard.tsx` — card de saldo total.
+- `src/components/PiggyBanksBreakdownDialog.tsx` — drill-down do Dashboard.
 
-Também adicionar a regra de unicidade do teste grátis por usuário.
+**Consumidores periféricos (apenas leitura de saldo/depósitos — manter intactos por compatibilidade):**
+- `src/hooks/useAccountBalance.ts`, `useExternalAccountSources.ts` — usam `piggyBanks` + `balances` + `deposits` do hook. Hook continuará expondo a mesma interface.
+- `src/lib/projectedBalance.ts`, `incomeProjectedSummary.ts`, `IncomePendingCalendar.tsx`, `MonthTransactionsSheet.tsx`, `ConsolidatedBalanceCards.tsx`, `FinancialHealthDashboard.tsx`, `PersonalExpense*.tsx`, `useExpenses.ts` — apenas consomem `pb.id`, `pb.name`, `balance.balance`.
 
----
+**Edge / backend (fora do escopo desta migração):**
+- `supabase/functions/sync-cdi-rate`, `telegram-process`, `backup-tables` — continuam apontando para `piggy_banks` por ora.
 
-## 1. Camada de UI
+## 2. Estratégia: adapter, não rewrite
 
-### 1.1 Novo hook `useReadOnlyMode`
-Arquivo: `src/hooks/useReadOnlyMode.ts`
-- Consome `usePlanEntitlements` e expõe:
-  - `readOnly: boolean` (true quando `trial.expired && !isPaid`, independente da `expiration_action` — qualquer expiração sem assinatura paga = somente leitura)
-  - `reason: "trial_expired" | null`
-  - `loading: boolean`
+Manter a **interface pública** do hook `usePiggyBanks` (campos `piggyBanks[]`, `balances: Map`, `deposits[]`, `cdiRate`, `createPiggyBank`, `deposit`, `withdraw`, `refresh`) — assim os 15+ consumidores periféricos não mudam. Por dentro, o hook lê da nova arquitetura e chama Edge Functions.
 
-### 1.2 Componente `<WriteGuard>`
-Arquivo: `src/components/upgrade/WriteGuard.tsx`
-- Wrapper que recebe `children` (botão/ação) e:
-  - Se `loading` → renderiza skeleton/desabilitado.
-  - Se `readOnly` → clona o filho injetando `disabled` + tooltip "Plano de teste expirado. Faça upgrade para continuar."
-  - Caso contrário → renderiza normal.
-- Variante `<WriteGuard mode="hide">` para esconder em vez de desabilitar.
+Mapeamento de campos:
 
-### 1.3 Aplicação nas abas
-Envolver os botões de **Novo/Editar/Excluir** (e similares) com `<WriteGuard>` nas telas principais:
-- Empréstimos, Clientes, Receitas, Despesas, Cobranças, Cartões, Mealheiros, Funcionários/Folha, Metas, Veículos, Garantias, Produtos/Estoque.
-- `TelegramBotsHub` e telas de Telegram: bloquear "Conectar/Vincular/Configurar bot".
-- Formulários: desabilitar o submit final via `WriteGuard` (defesa em profundidade).
-
----
-
-## 2. Camada de mutações
-
-### 2.1 Guard nos repositórios
-Em `src/repositories/*Repository.ts`, adicionar um util `assertWritable()` no início das funções de mutação que lança erro amigável se o usuário estiver em modo read-only. O estado é lido de um pequeno store leve (`src/lib/readOnlyState.ts`) atualizado pelo `useReadOnlyMode` em um `useEffect` global em `App.tsx`.
-
-Isto cobre chamadas feitas fora de botões diretos (atalhos, automações locais, sync offline).
-
----
-
-## 3. Camada de backend
-
-### 3.1 Função SQL `public.is_trial_expired(_user_id uuid)`
-- `SECURITY DEFINER`, retorna `boolean`.
-- Lê `plans` (via `profiles.trial_plan_name` ou primeiro plano ativo), `profiles.trial_started_at`/`created_at` e `subscriptions` (assinatura ativa).
-- Retorna `true` quando `trial_days` esgotaram **e** não há assinatura ativa.
-
-### 3.2 RLS — bloquear escrita quando expirado
-Para cada tabela de domínio do usuário (empréstimos, clientes, receitas, despesas, cobranças, cartões, mealheiros, folha, metas, veículos, produtos, estoque, telegram bots do usuário etc.), adicionar políticas:
-
-```sql
-CREATE POLICY "<tbl>_block_writes_when_trial_expired_ins"
-ON public.<tbl> FOR INSERT TO authenticated
-WITH CHECK (NOT public.is_trial_expired(auth.uid()));
-
-CREATE POLICY "<tbl>_block_writes_when_trial_expired_upd"
-ON public.<tbl> FOR UPDATE TO authenticated
-USING (NOT public.is_trial_expired(auth.uid()));
-
-CREATE POLICY "<tbl>_block_writes_when_trial_expired_del"
-ON public.<tbl> FOR DELETE TO authenticated
-USING (NOT public.is_trial_expired(auth.uid()));
+```text
+piggy_banks (antigo)            cofrinhos (novo)
+─────────────────────────────────────────────────────
+id                              id
+name                            nome
+target_amount                   meta
+percentual_cdi                  percentual_cdi
+tipo_rendimento                 tipo_rendimento
+balances.balance                saldo_total
+balances.totalDeposited         saldo_principal
+balances.totalYield             saldo_rendimento_liquido
+                                + saldo_rendimento_bruto (novo)
+                                + ultimo_rendimento (novo)
 ```
 
-Leitura (SELECT) continua liberada normalmente. Assinatura ativa libera tudo de volta automaticamente.
+`deposits[]` (consumido por `useAccountBalance` para descontar depósitos manuais do saldo em conta) → derivar de `cofrinho_aportes` (origem manual) com o mesmo shape `{ id, piggyBankId, amount, date, expenseId, note }`.
 
-### 3.3 Edge functions sensíveis
-Em `link-telegram-bot`, `validate-telegram-bot`, `telegram-webhook-setup`, `admin-create-user`, `admin-manage-user`, `seed-new-user`, `wipe-all-data`, etc., adicionar guard:
+## 3. Etapas de implementação
 
-```ts
-const expired = await supabase.rpc("is_trial_expired", { _user_id: userId });
-if (expired.data === true) {
-  return new Response(JSON.stringify({ error: "trial_expired" }), { status: 403, headers: corsHeaders });
-}
-```
+### Etapa 1 — Hook adapter `usePiggyBanks` (núcleo)
+Reescrever internamente para:
+- `SELECT * FROM cofrinhos WHERE user_id = auth.uid()` → popular `piggyBanks` + `balances`.
+- `SELECT * FROM cofrinho_aportes` para `deposits[]` (compat).
+- `createPiggyBank` → `INSERT INTO cofrinhos`.
+- `deposit(piggyBankId, amount, …)` → `supabase.functions.invoke('processar-deposito-cofrinho', { body })`.
+- `withdraw(piggyBankId, amount, …)` → `supabase.functions.invoke('processar-resgate-cofrinho', { body })`.
+- Remover qualquer cálculo de rendimento local (`computeYield`, etc.).
+- Após invoke OK: refetch de `cofrinhos` + dispatch `balance:changed` (mantém demais cards reativos).
+- Tratar `error` da function com `toast.error(error.message ?? 'Falha ao processar')`.
+- Realtime: subscrever `cofrinhos` + `cofrinho_eventos` para refetch automático.
 
----
+### Etapa 2 — Tela principal `PiggyBankList`
+- Cards passam a exibir: `saldo_principal` (aplicado), `saldo_rendimento_bruto`, `saldo_rendimento_liquido`, `saldo_total`, `percentual_cdi`, `tipo_rendimento`, `ultimo_rendimento`, `meta`.
+- Modais de depósito/resgate apenas chamam `deposit/withdraw` do hook (já encaminham para edge functions).
+- Remover qualquer recálculo client-side.
 
-## 4. Unicidade do teste grátis
+### Etapa 3 — Tela de detalhes `PiggyBankDetail`
+- Cabeçalho: aplicado, rendimento bruto/líquido, saldo total, %CDI, meta.
+- Aba **Extrato** → `SELECT * FROM cofrinho_eventos WHERE cofrinho_id = ? ORDER BY data DESC`.
+- Aba **Aportes** → `cofrinho_aportes`; **Resgates** → `cofrinho_resgates`.
+- Gráfico de evolução → `cofrinho_rendimento_diario` (não calcular no front).
 
-### 4.1 Migration
-- Adicionar coluna `profiles.trial_used_at timestamptz`.
-- No trigger `handle_new_user`, manter `trial_started_at` no primeiro cadastro.
-- Função `public.has_used_trial(_email text) returns boolean` que verifica se já existe `profiles` com aquele e-mail (normalizado) e `trial_started_at IS NOT NULL`.
+### Etapa 4 — Cards/breakdown
+- `PiggyBanksSummaryCard` e `PiggyBanksBreakdownDialog` consomem `saldo_total` direto.
 
-### 4.2 Fluxo de cadastro
-- Em `Cadastro.tsx`, antes de criar a conta, chamar `has_used_trial` com o e-mail. Se `true`, bloquear seleção do plano "Teste Gratuito" e exibir mensagem orientando assinar um plano pago.
-- Em `seed-new-user` (edge function), revalidar e negar atribuição do plano de teste se `has_used_trial` retornar `true`.
+### Etapa 5 — Validação
+- Smoke test via Playwright: depositar, resgatar, ver extrato e gráfico.
+- Verificar que `useAccountBalance` continua conferindo (mesma interface preservada).
 
----
+## 4. Garantias
 
-## 5. Desbloqueio imediato após upgrade
+- RLS já existente nas tabelas `cofrinho*` cobre o isolamento por usuário.
+- `piggy_banks` permanece no banco (não dropada) — apenas deixa de ser lida/escrita pelo fluxo principal.
+- Edge Functions tratam toda a regra de rendimento, saldo e CDI.
+- Layout visual preservado — só muda origem dos dados.
 
-- `useSubscription` já refaz fetch após `payments-webhook` confirmar. Garantir que `usePlanEntitlements` reage a `isActive` (já reage via dependência em `subscription?.product_id`).
-- Em `Pricing.tsx` (callback de sucesso do Paddle), invalidar/refetch a assinatura imediatamente e — se houver — disparar `window.dispatchEvent(new Event("subscription:refresh"))` que `useSubscription` escuta. Garantir que `lockdown` recalcula sem reload.
+## 5. Riscos & mitigação
 
----
+- **Schemas `cofrinho*` ainda não estão em `src/integrations/supabase/types.ts`** (arquivo auto-gerado). Usar `supabase.from('cofrinhos' as any)` com tipos locais para evitar bloqueio. Documentar para regeneração futura dos tipos.
+- **Edge function payloads**: vou inspecionar `processar-deposito-cofrinho` / `processar-resgate-cofrinho` se existirem no repo; se forem só remotas, assumir contrato `{ cofrinho_id, valor, data?, nota? }` e ajustar conforme erro retornado no primeiro teste.
+- **Compat `deposits[]`**: o `useAccountBalance` filtra `!d.expenseId` para não dobrar débito. Mapear `cofrinho_aportes.expense_id` (se existir) ou `origem='despesa'` para esse campo.
 
-## 6. Validação (critérios de aceite)
-
-- Conta com trial expirado:
-  - Botões "Novo/Editar/Excluir" ficam desabilitados com tooltip em todas as abas listadas.
-  - `TelegramBotsHub` não permite conectar/configurar.
-  - Tentativa direta via repositório falha com `trial_expired`.
-  - INSERT/UPDATE/DELETE via PostgREST retorna 403 por RLS.
-  - Edge functions sensíveis retornam 403.
-  - Listagens e detalhes continuam visíveis.
-- Cadastro com e-mail que já teve trial: plano "Teste Gratuito" indisponível, mensagem clara.
-- Após pagar plano: UI libera sem refresh; nova mutação passa.
-
----
-
-## Detalhes técnicos
-
-- `<WriteGuard>` usa `React.cloneElement` para injetar `disabled` em `Button`/`button`/`IconButton`. Itens de menu (`DropdownMenuItem`) recebem prop equivalente.
-- O store `readOnlyState` é um `let` + `subscribe` simples (sem dependência nova); evita prop drilling nos repositórios.
-- Não há mudança nos fluxos de planos ativos nem na tela de compra — fora do escopo.
-- Não tocar em `src/integrations/supabase/client.ts` nem em `supabase/config.toml` (auto-gerados).
-
----
-
-## Arquivos impactados (alto nível)
-
-- Novos: `src/hooks/useReadOnlyMode.ts`, `src/components/upgrade/WriteGuard.tsx`, `src/lib/readOnlyState.ts`.
-- Migrations: criar `is_trial_expired`, `has_used_trial`, coluna `profiles.trial_used_at`, políticas RLS nas tabelas de domínio.
-- Edge functions: guards em funções sensíveis listadas; ajuste em `seed-new-user`.
-- UI: envolver botões de escrita nas telas principais e em `TelegramBotsHub`.
-- `src/pages/Cadastro.tsx`: checagem de reuso do trial.
-- Repositórios em `src/repositories/*`: `assertWritable()` nas mutações.
+Quer que eu prossiga com a Etapa 1 (reescrever `usePiggyBanks` mantendo a interface pública)?
