@@ -8,6 +8,7 @@ import {
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { CategoryDetailsSheet, CategoryEntry } from "@/components/CategoryDetailsSheet";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
+import { useClients } from "@/hooks/useClients";
 import { displayIncomeCategory, incomeCategoryKey } from "@/lib/incomeCategory";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#84cc16"];
