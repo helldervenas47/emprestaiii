@@ -313,17 +313,18 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
                   key={type}
                   className="rounded-2xl p-4 bg-card border border-border shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all duration-300 flex flex-col min-w-0 w-full h-full min-h-[420px]"
                 >
-                  <div className="flex flex-col items-center text-center mb-3 min-h-[110px]">
+                  <div className="flex flex-col items-center text-center mb-3 min-h-[110px] leading-tight">
                     <div className={`h-10 w-10 rounded-xl ${iconBg} flex items-center justify-center mb-2 ring-1 ring-border/50`}>
                       <Icon className={`h-5 w-5 ${meta.color}`} />
                     </div>
-                    <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider leading-tight line-clamp-2">
+                    <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider leading-[14px] line-clamp-2 min-h-[28px]">
                       {meta.label}
                     </p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                    <p className="text-[10px] text-muted-foreground mt-0.5 leading-[14px] min-h-[14px]">
                       {items.length} {items.length === 1 ? "registro" : "registros"}
                     </p>
                   </div>
+
 
 
                   <div className="space-y-2 flex-1">
@@ -357,17 +358,17 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
 
                           </div>
 
-                          <div className="flex items-baseline justify-between gap-1 border-b border-border/50 pb-1.5">
-                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Meta</span>
-                            <span className={`text-sm font-bold ${meta.color} truncate`}>{targetStr}</span>
+                          <div className="flex items-baseline justify-between gap-1 border-b border-border/50 pb-1.5 min-h-[22px]">
+                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground leading-[14px]">Meta</span>
+                            <span className={`text-sm font-bold ${meta.color} truncate leading-[18px]`}>{targetStr}</span>
                           </div>
-                          <div className="flex items-baseline justify-between gap-1">
-                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Real</span>
-                            <span className="text-sm font-semibold text-foreground truncate">{actualStr}</span>
+                          <div className="flex items-baseline justify-between gap-1 min-h-[22px]">
+                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground leading-[14px]">Real</span>
+                            <span className="text-sm font-semibold text-foreground truncate leading-[18px]">{actualStr}</span>
                           </div>
 
                           <div className="space-y-1">
-                            <div className="flex justify-between text-[10px]">
+                            <div className="flex justify-between text-[10px] leading-[14px] min-h-[14px]">
                               <span className="text-muted-foreground">Progresso</span>
                               <span className={reached ? "text-success font-bold" : "text-muted-foreground font-medium"}>
                                 {pctRound}% {reached && "✓"}
@@ -379,11 +380,12 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
                             />
                           </div>
                           <p
-                            className="text-[10px] text-muted-foreground truncate italic min-h-[14px]"
+                            className="text-[10px] text-muted-foreground truncate italic leading-[14px] min-h-[14px]"
                             title={g.notes || ""}
                           >
                             {g.notes || "\u00A0"}
                           </p>
+
 
                         </div>
                       );
