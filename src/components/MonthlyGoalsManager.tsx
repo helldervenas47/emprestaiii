@@ -311,19 +311,20 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
               return (
                 <div
                   key={type}
-                  className="rounded-2xl p-4 bg-card border border-border shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all duration-300 flex flex-col"
+                  className="rounded-2xl p-4 bg-card border border-border shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all duration-300 flex flex-col min-w-0 w-full min-h-[420px]"
                 >
-                  <div className="flex flex-col items-center text-center mb-3">
+                  <div className="flex flex-col items-center text-center mb-3 min-h-[110px]">
                     <div className={`h-10 w-10 rounded-xl ${iconBg} flex items-center justify-center mb-2 ring-1 ring-border/50`}>
                       <Icon className={`h-5 w-5 ${meta.color}`} />
                     </div>
-                    <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider leading-tight">
+                    <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider leading-tight line-clamp-2">
                       {meta.label}
                     </p>
                     <p className="text-[10px] text-muted-foreground mt-0.5">
                       {items.length} {items.length === 1 ? "registro" : "registros"}
                     </p>
                   </div>
+
 
                   <div className="space-y-2 flex-1">
                     {items.map((g) => {
