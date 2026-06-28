@@ -182,7 +182,7 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
   const selectedMeta = GOAL_TYPE_META[goalType];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full max-w-full overflow-x-hidden">
       {!readOnly && (
       <Card no3d>
         <CardContent className="p-4 space-y-4">
