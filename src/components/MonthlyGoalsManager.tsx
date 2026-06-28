@@ -241,7 +241,7 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
       )}
 
       <Card no3d>
-        <CardContent className="p-4">
+        <CardContent className="p-4 min-w-0 overflow-x-hidden">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
             <h3 className="font-semibold text-foreground">Metas cadastradas</h3>
             <div className="flex flex-wrap items-center gap-2">
