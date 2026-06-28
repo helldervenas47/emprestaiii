@@ -11,6 +11,7 @@ export interface CategoryEntry {
   type: "receita" | "despesa";
   account?: string | null;
   status?: "paid" | "pending" | "overdue";
+  clientName?: string | null;
 }
 
 interface Props {
