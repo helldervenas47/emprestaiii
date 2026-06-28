@@ -8,6 +8,7 @@ import {
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { CategoryDetailsSheet, CategoryEntry } from "@/components/CategoryDetailsSheet";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
+import { useClients } from "@/hooks/useClients";
 import { displayIncomeCategory, incomeCategoryKey } from "@/lib/incomeCategory";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#84cc16"];
@@ -45,6 +46,12 @@ export function IncomeDashboard({ incomes, allMonthIncomes, allIncomes, monthKey
   const consolidated = allMonthIncomes ?? incomes;
   const { methods } = usePaymentMethods();
   const methodName = (id?: string | null) => methods.find((m) => m.id === id)?.name || "";
+  const { clients } = useClients();
+  const clientNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    clients.forEach((c) => map.set(c.id, c.name));
+    return map;
+  }, [clients]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [sheetMonthKey, setSheetMonthKey] = useState<string>(monthKey);
 
@@ -113,11 +120,13 @@ export function IncomeDashboard({ incomes, allMonthIncomes, allIncomes, monthKey
         type: "receita",
         account: methodName(i.paymentMethodId),
         status: i.status === "received" ? "paid" : i.status === "overdue" ? "overdue" : "pending",
+        clientName: i.clientId ? clientNameById.get(i.clientId) || null : null,
       });
     });
     sales.forEach((s) => {
       const k = (s.category && s.category.trim()) || "Vendas";
       if (incomeCategoryKey(k) !== selectedKey) return;
+      const customer = (s as any).customerName || null;
       if ((s.downPayment || 0) > 0 && s.date?.startsWith(sheetMonthKey)) {
         list.push({
           id: `sale-${s.id}-down`,
@@ -127,6 +136,7 @@ export function IncomeDashboard({ incomes, allMonthIncomes, allIncomes, monthKey
           type: "receita",
           account: "",
           status: "paid",
+          clientName: customer,
         });
       }
       (s.paymentHistory || []).forEach((p, idx) => {
@@ -139,11 +149,12 @@ export function IncomeDashboard({ incomes, allMonthIncomes, allIncomes, monthKey
           type: "receita",
           account: "",
           status: "paid",
+          clientName: customer,
         });
       });
     });
     return list;
-  }, [selectedCategory, allIncomes, consolidated, sales, sheetMonthKey, methods]);
+  }, [selectedCategory, allIncomes, consolidated, sales, sheetMonthKey, methods, clientNameById]);
 
   const selectedTotal = selectedEntries.reduce((s, e) => s + (Number(e.amount) || 0), 0);
 
