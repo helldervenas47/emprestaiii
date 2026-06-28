@@ -418,6 +418,8 @@ export default function PiggyBankDetail() {
                               ? "Depósito"
                               : d.source === "transfer_out"
                               ? "Resgate"
+                              : d.source === "rendimento"
+                              ? "Rendimento"
                               : d.source === "recurring"
                               ? "Aporte recorrente"
                               : "Aporte")}
