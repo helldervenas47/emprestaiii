@@ -469,23 +469,27 @@ export function useExpenses(enabled = true) {
 
 
       // Piggy bank credit: only when the piggy expense is paid.
+      // Nova arquitetura: o depósito SEMPRE passa pela Edge Function
+      // `processar-deposito-cofrinho`. Nunca mais escrever em piggy_bank_deposits.
       const piggyId = extractPiggyId(expense.notes);
       if (piggyId) {
-        // Avoid duplicate deposits if one already exists for this expense.
-        const { data: existing } = await supabase
-          .from("piggy_bank_deposits" as any)
-          .select("id")
-          .eq("expense_id", id)
-          .limit(1);
-        if (!existing || existing.length === 0) {
-          await supabase.from("piggy_bank_deposits" as any).insert({
-            user_id: dataOwnerId,
-            piggy_bank_id: piggyId,
-            expense_id: id,
-            amount: finalAmount,
-            deposit_date: today,
-            source: "expense",
-          });
+        try {
+          const { error: depErr } = await supabase.functions.invoke(
+            "processar-deposito-cofrinho",
+            {
+              body: {
+                cofrinho_id: piggyId,
+                valor: finalAmount,
+                data_aporte: today,
+                expense_id: id,
+              },
+            },
+          );
+          if (depErr) {
+            console.warn("[piggy] falha ao registrar aporte via edge function:", depErr);
+          }
+        } catch (e) {
+          console.warn("[piggy] erro inesperado em processar-deposito-cofrinho:", e);
         }
       }
     }
