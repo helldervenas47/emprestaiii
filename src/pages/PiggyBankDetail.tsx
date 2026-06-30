@@ -237,13 +237,26 @@ export default function PiggyBankDetail() {
       if (!ledgerRes.error && Array.isArray(ledgerRes.data)) {
         for (const row of ledgerRes.data as any[]) {
           const tipo = String(row.tipo || "").toUpperCase().replace("Ó", "O");
+          const rawDateForKey = String(row.data_evento ?? row.created_at).slice(0, 10);
+          // RENDIMENTO: agrupa por dia (várias linhas no ledger para o mesmo
+          // dia geram uma única entrada na timeline). Os demais tipos usam
+          // o identificador da movimentação.
           const uniqueId =
-            row.evento_id ||
-            row.aporte_id ||
-            row.resgate_id ||
-            row.id ||
-            `${row.cofrinho_id}-${row.data_evento}-${row.tipo}-${row.valor}`;
-          if (seen.has(String(uniqueId))) continue;
+            tipo === "RENDIMENTO"
+              ? `RENDIMENTO-${row.cofrinho_id}-${rawDateForKey}`
+              : row.evento_id ||
+                row.aporte_id ||
+                row.resgate_id ||
+                row.id ||
+                `${row.cofrinho_id}-${rawDateForKey}-${row.tipo}-${row.valor}`;
+          if (seen.has(String(uniqueId))) {
+            // Para RENDIMENTO duplicado no mesmo dia, soma o valor à entrada existente.
+            if (tipo === "RENDIMENTO") {
+              const existing = items.find((it) => it.id === String(uniqueId));
+              if (existing) existing.amount += Math.abs(Number(row.valor || 0));
+            }
+            continue;
+          }
           seen.add(String(uniqueId));
 
           const rawVal = Number(row.valor || 0);
