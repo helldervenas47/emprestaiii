@@ -357,13 +357,21 @@ export function usePiggyBanks() {
       assertWritable();
       const current = cofrinhoRows[id];
       const meta = parseDescricao(current?.descricao);
-      const newMeta: DescricaoMeta = { ...meta };
-      if (patch.color !== undefined) newMeta.color = patch.color;
-      if (patch.icon !== undefined) newMeta.icon = patch.icon;
-      if (patch.category !== undefined) newMeta.category = patch.category;
-      if (patch.targetDate !== undefined) newMeta.targetDate = patch.targetDate;
-      if (patch.shortId !== undefined) newMeta.shortId = patch.shortId;
-      const dbPatch: any = { descricao: stringifyDescricao(newMeta) };
+      // Normaliza para chaves PT e remove chaves legadas (color/icon/etc.)
+      const base = readMeta(meta);
+      const newMeta: DescricaoMeta = {
+        cor: base.cor,
+        icone: base.icone,
+        categoria: base.categoria,
+        data_prevista: base.data_prevista,
+        short_id: base.short_id,
+      };
+      if (patch.color !== undefined) newMeta.cor = patch.color;
+      if (patch.icon !== undefined) newMeta.icone = patch.icon;
+      if (patch.category !== undefined) newMeta.categoria = patch.category;
+      if (patch.targetDate !== undefined) newMeta.data_prevista = patch.targetDate;
+      if (patch.shortId !== undefined) newMeta.short_id = patch.shortId;
+      const dbPatch: any = { descricao: newMeta };
       if (patch.name !== undefined) dbPatch.nome = patch.name;
       if (patch.cdiPercent !== undefined) dbPatch.percentual_cdi = patch.cdiPercent;
       if (patch.goalAmount !== undefined) dbPatch.meta = patch.goalAmount;
