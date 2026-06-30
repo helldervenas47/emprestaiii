@@ -49,6 +49,7 @@ import { AmortizationResultCard } from "@/components/loans/AmortizationResultCar
 
 import { WhatsappBillButton } from "@/components/loans/list/WhatsappBillButton";
 import { LoanListSummaryCards } from "@/components/loans/list/LoanListSummaryCards";
+import { LoanCategoryChips, LoanSearchBar, LoanQuickDateFilters, LoanAdvancedFilters } from "@/components/loans/list/LoanListFilters";
 
 
 interface Props {
