@@ -68,16 +68,33 @@ export function useMonthFlow(monthKey: string): MonthFlow {
     if (!ownerId) return;
     let cancelled = false;
     const load = async () => {
-      const { data: piggy } = await supabase
-        .from("piggy_bank_deposits" as any)
-        .select("amount, deposit_date")
-        .eq("user_id", ownerId);
+      // Nova arquitetura: cruza cofrinhos do usuário com eventos
+      // (`cofrinho_eventos`) para obter o fluxo líquido por mês usando
+      // `data_evento` como data financeira real (DEPOSITO + / RESGATE -).
+      const { data: banks } = await supabase
+        .from("cofrinhos" as any)
+        .select("id")
+        .eq("usuario_id", ownerId);
+      const bankIds = ((banks as any[]) ?? []).map((b) => b.id);
+      let events: any[] = [];
+      if (bankIds.length > 0) {
+        const { data: ev } = await supabase
+          .from("cofrinho_eventos" as any)
+          .select("tipo, valor, data_evento, created_at, cofrinho_id")
+          .in("cofrinho_id", bankIds)
+          .in("tipo", ["DEPOSITO", "RESGATE"]);
+        events = (ev as any[]) ?? [];
+      }
       if (cancelled) return;
       const byMonth: Record<string, number> = {};
-      for (const r of (piggy as any[]) ?? []) {
-        const mk = ((r.deposit_date as string) || "").slice(0, 7);
+      for (const r of events) {
+        const raw = (r.data_evento as string) || (r.created_at as string) || "";
+        const mk = raw.slice(0, 7);
         if (!mk) continue;
-        byMonth[mk] = (byMonth[mk] ?? 0) + (Number(r.amount) || 0);
+        const tipo = String(r.tipo || "").toUpperCase();
+        const v = Number(r.valor) || 0;
+        const signed = tipo === "RESGATE" ? -Math.abs(v) : Math.abs(v);
+        byMonth[mk] = (byMonth[mk] ?? 0) + signed;
       }
       setPiggyNetByMonth(byMonth);
     };
@@ -89,6 +106,7 @@ export function useMonthFlow(monthKey: string): MonthFlow {
       window.removeEventListener("balance:changed", handler);
     };
   }, [ownerId]);
+
 
   return useMemo<MonthFlow>(() => {
     const monthInIncomes = incomes.reduce((s, i: Income) => {
