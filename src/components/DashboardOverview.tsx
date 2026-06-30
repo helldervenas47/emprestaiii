@@ -404,6 +404,40 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [editingInterest, setEditingInterest] = useState(false);
   const [tempInterestOverrides, setTempInterestOverrides] = useState<Record<string, string>>({});
 
+  const startEditChart = () => {
+    const temp: Record<string, { emprestado: string; recebido: string }> = {};
+    monthlyChart.forEach((m) => {
+      temp[m.month] = { emprestado: String(m.emprestado), recebido: String(m.recebido) };
+    });
+    setTempOverrides(temp);
+    setEditingChart(true);
+  };
+
+  const saveChartOverrides = () => {
+    const newOverrides: Record<string, { emprestado?: number; recebido?: number }> = {};
+    monthlyChartBase.forEach((m) => {
+      const temp = tempOverrides[m.month];
+      if (!temp) return;
+      const totalEmprestado = parseFloat(temp.emprestado) || 0;
+      const totalRecebido = parseFloat(temp.recebido) || 0;
+      const diffEmprestado = totalEmprestado - m.emprestado;
+      const diffRecebido = totalRecebido - m.recebido;
+      if (diffEmprestado !== 0 || diffRecebido !== 0) {
+        newOverrides[m.month] = {
+          ...(diffEmprestado !== 0 ? { emprestado: diffEmprestado } : {}),
+          ...(diffRecebido !== 0 ? { recebido: diffRecebido } : {}),
+        };
+      }
+    });
+    setChartOverrides(newOverrides);
+    setEditingChart(false);
+  };
+
+  const resetChartOverrides = () => {
+    setChartOverrides({});
+    setEditingChart(false);
+  };
+
   const startEditInterest = () => {
     const temp: Record<string, string> = {};
     interestChart.forEach((m) => { temp[m.month] = String(m.juros); });
