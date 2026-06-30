@@ -157,45 +157,72 @@ function hasNaturalLanguageHint(text: string): boolean {
   return NATURAL_LANGUAGE_HINT.test(text);
 }
 
+// Helpers da nova arquitetura de cofrinhos
+function parseCofrinhoMeta(raw: any): { shortId: number | null } {
+  if (!raw || typeof raw !== "string") return { shortId: null };
+  const t = raw.trim();
+  if (!t.startsWith("{")) return { shortId: null };
+  try {
+    const p = JSON.parse(t);
+    return { shortId: typeof p?.shortId === "number" ? p.shortId : null };
+  } catch {
+    return { shortId: null };
+  }
+}
+
+async function invokeExternalCofrinhoFn(
+  fn: "processar-deposito-cofrinho" | "processar-resgate-cofrinho" | "processar-ajuste-cofrinho",
+  body: Record<string, unknown>,
+): Promise<{ ok: boolean; error?: string; data?: any }> {
+  try {
+    const url = `${Deno.env.get("EXTERNAL_SUPABASE_URL")}/functions/v1/${fn}`;
+    const key = await getExternalServiceRoleKey();
+    const r = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${key}`,
+        "apikey": key,
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) return { ok: false, error: (data as any)?.error || `HTTP ${r.status}` };
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
 async function handleAportesSaldo(admin: any, userId: string): Promise<string> {
   const { data: ownerData } = await admin.rpc("get_data_owner_id", { _user_id: userId });
   const ownerId = (typeof ownerData === "string" && ownerData) ? ownerData : userId;
 
   const { data: banks, error: banksErr } = await admin
-    .from("piggy_banks")
-    .select("id, name, short_id")
-    .eq("user_id", ownerId)
-    .order("short_id", { ascending: true, nullsFirst: false })
-    .order("name", { ascending: true });
+    .from("cofrinhos")
+    .select("id, nome, descricao, saldo_total, ativo, created_at")
+    .eq("usuario_id", ownerId)
+    .order("created_at", { ascending: true });
 
   if (banksErr) return "❌ Erro ao buscar caixinhas: " + banksErr.message;
-  if (!banks || banks.length === 0) {
+  const active = (banks ?? []).filter((b: any) => b.ativo !== false);
+  if (active.length === 0) {
     return "ℹ️ Nenhuma caixinha cadastrada ainda.";
-  }
-
-  const ids = banks.map((b: any) => b.id);
-  const { data: deposits } = await admin
-    .from("piggy_bank_deposits")
-    .select("piggy_bank_id, amount")
-    .eq("user_id", ownerId)
-    .in("piggy_bank_id", ids);
-
-  const balanceById = new Map<string, number>();
-  for (const d of (deposits ?? []) as any[]) {
-    balanceById.set(d.piggy_bank_id, (balanceById.get(d.piggy_bank_id) ?? 0) + (Number(d.amount) || 0));
   }
 
   let total = 0;
   let msg = "🐷 *Saldo das caixinhas*\n";
-  for (const b of banks as any[]) {
-    const bal = balanceById.get(b.id) ?? 0;
+  for (const b of active as any[]) {
+    const bal = Number(b.saldo_total) || 0;
     total += bal;
-    const tag = b.short_id ? `#${b.short_id}` : `#${String(b.id).slice(0, 4)}`;
-    msg += `${tag} ${b.name} — *${fmtBRL(bal)}*\n`;
+    const meta = parseCofrinhoMeta(b.descricao);
+    const tag = meta.shortId ? `#${meta.shortId}` : `#${String(b.id).slice(0, 4)}`;
+    msg += `${tag} ${b.nome} — *${fmtBRL(bal)}*\n`;
   }
   msg += `\n*Total geral:* ${fmtBRL(total)}`;
   return msg;
 }
+
 
 
 function detectCategory(description: string): string {
