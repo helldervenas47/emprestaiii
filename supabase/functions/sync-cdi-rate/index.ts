@@ -103,43 +103,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Try to update piggy banks
-    let updated = 0;
-    try {
-      const { data: pbs, error: pbErr } = await supabase
-        .from("piggy_banks")
-        .select("id, user_id, annual_rate")
-        .eq("auto_rate", true);
-      
-      if (!pbErr && pbs) {
-        for (const pb of pbs) {
-          const current = Number(pb.annual_rate);
-          if (Math.abs(current - newRate) < 0.01) continue;
+    // Nova arquitetura: a taxa por cofrinho é controlada pela função
+    // `sync-taxas-financeiras` (CDI/Selic gravado em `taxa_referencia`).
+    // As tabelas legadas `piggy_banks` e `piggy_bank_rate_history` não são
+    // mais utilizadas. Esta função permanece apenas como fonte do cache
+    // `market_rates`. Nenhuma escrita em piggy_banks ocorre mais aqui.
+    const updated = 0;
 
-          try {
-            await supabase.from("piggy_bank_rate_history").insert({
-              piggy_bank_id: pb.id,
-              user_id: pb.user_id,
-              annual_rate: newRate,
-              effective_from: today,
-            });
-
-            await supabase
-              .from("piggy_banks")
-              .update({ annual_rate: newRate })
-              .eq("id", pb.id);
-
-            updated++;
-          } catch (innerErr) {
-            console.error(`Failed to update piggy bank ${pb.id}:`, innerErr);
-          }
-        }
-      } else if (pbErr) {
-        console.warn("Could not fetch piggy_banks (table might be missing):", pbErr.message);
-      }
-    } catch (e) {
-      console.warn("Piggy bank update logic failed:", e.message);
-    }
 
     return new Response(
       JSON.stringify({
