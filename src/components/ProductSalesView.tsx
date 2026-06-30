@@ -64,6 +64,9 @@ import {
 import { ProductSaleCard } from "@/components/product-sales/ProductSaleCard";
 import { ProductSalesTable } from "@/components/product-sales/ProductSalesTable";
 import { ProductSalesMobileCards } from "@/components/product-sales/ProductSalesMobileCards";
+import { useProductSalesController } from "@/components/product-sales/useProductSalesController";
+import { VehicleExpenseEditDialog, VehiclePayExpenseDialog } from "@/components/product-sales/VehicleExpenseDialogs";
+import { ProductSalesSubTabsList } from "@/components/product-sales/ProductSalesSubTabs";
 
 
 interface Props {
@@ -185,199 +188,38 @@ function SaleClientFolder({
 }
 
 function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrackCard = false, renderAfterCards, readOnly = false, locadorInfo, registeredVehicles = [], locadores = [] }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void; clients?: Client[]; hideOnTrackCard?: boolean; renderAfterCards?: React.ReactNode; readOnly?: boolean; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[] }) {
-  const [editingSale, setEditingSale] = useState<Sale | null>(null);
-  const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<SaleCategory>("all");
-  const [incomeCategoryFilter, setIncomeCategoryFilter] = useState<string>("all");
-  const [view, setView] = useState<"cards" | "list" | "folders">("list");
-  const [breakdownCard, setBreakdownCard] = useState<null | "overdue" | "paid" | "receivable" | "ontrack">(null);
-
-  const { mask } = useHideValues();
-  const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
-  const { categories: incomeCategories } = useIncomeCategories();
-  const incomeCategoryByName = useMemo(() => {
-    const m = new Map<string, CustomIncomeCategory>();
-    incomeCategories.forEach((c) => m.set(c.name, c));
-    return m;
-  }, [incomeCategories]);
-
-  // Count per category
-  const counts = sales.reduce((acc, s) => {
-    const cat = getSaleCategory(s);
-    acc[cat] = (acc[cat] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const getNextDueDate = getNextDueDateHelper;
-
-  const filtered = sales.filter((s) => {
-    const q = search.toLowerCase();
-    const matchesSearch = s.description.toLowerCase().includes(q) ||
-      s.customerName.toLowerCase().includes(q) ||
-      s.productName.toLowerCase().includes(q) ||
-      (s.category || "").toLowerCase().includes(q);
-    if (!matchesSearch) return false;
-    if (incomeCategoryFilter !== "all") {
-      if (incomeCategoryFilter === "__none__") {
-        if (s.category) return false;
-      } else if (s.category !== incomeCategoryFilter) {
-        return false;
-      }
-    }
-    if (categoryFilter === "all") return getSaleCategory(s) !== "paid";
-    return getSaleCategory(s) === categoryFilter;
-  }).sort((a, b) => {
-    // Sempre ordena por data de vencimento (mais antiga primeiro), respeitando datas customizadas por parcela
-    return getNextDueDate(a).getTime() - getNextDueDate(b).getTime();
-  });
-
-
-  const total = filtered.reduce((acc, s) => acc + s.total, 0);
-
-  // Determine which customer names have 2+ contracts across ALL sales (not filtered)
-  const folderEligibleNames = useMemo(() => {
-    const byName: Record<string, number> = {};
-    sales.forEach((s) => {
-      const name = s.customerName?.trim();
-      if (name) byName[name] = (byName[name] || 0) + 1;
-    });
-    return new Set(Object.entries(byName).filter(([, c]) => c > 1).map(([name]) => name));
-  }, [sales]);
-
-  const folderCount = folderEligibleNames.size;
-
-  const { saleGroups, saleSingles } = useMemo(() => {
-    const byName: Record<string, Sale[]> = {};
-    const saleSingles: Sale[] = [];
-    filtered.forEach((s) => {
-      const name = s.customerName?.trim();
-      if (name && folderEligibleNames.has(name)) {
-        (byName[name] ??= []).push(s);
-      } else {
-        saleSingles.push(s);
-      }
-    });
-    const saleGroups: SaleClientGroup[] = [];
-    Object.entries(byName).forEach(([name, salesGroup]) => {
-      const totalPaid = salesGroup.reduce((s, sale) => s + getSalePaidAmountHelper(sale), 0);
-      const totalReceivable = salesGroup.reduce((s, sale) => s + Math.max(0, sale.total - getSalePaidAmountHelper(sale)), 0);
-      const hasOverdue = salesGroup.some((s) => getSaleCategory(s) === "overdue");
-      saleGroups.push({ name, sales: salesGroup, totalAmount: salesGroup.reduce((s, sale) => s + sale.total, 0), totalPaid, totalReceivable, hasOverdue });
-    });
-    // Ordena grupos pela venda com vencimento mais antigo
-    const earliestDue = (g: SaleClientGroup) => Math.min(...g.sales.map((s) => getNextDueDateHelper(s).getTime()));
-    saleGroups.sort((a, b) => earliestDue(a) - earliestDue(b));
-    // Ordena vendas dentro de cada grupo por vencimento ascendente
-    saleGroups.forEach((g) => g.sales.sort((a, b) => getNextDueDateHelper(a).getTime() - getNextDueDateHelper(b).getTime()));
-    return { saleGroups, saleSingles };
-  }, [filtered, folderEligibleNames]);
-
-  // Sorted list for list view (by due date ascending)
-  const listSorted = useMemo(() => {
-    return [...filtered].sort((a, b) => {
-      return getNextDueDateHelper(a).getTime() - getNextDueDateHelper(b).getTime();
-    });
-  }, [filtered]);
-
-  // Calculate receivables per category
-  const getSalePaidAmount = (s: Sale) => {
-    const amounts = s.installmentAmounts;
-    if (amounts && amounts.length > 0) {
-      let paid = s.downPayment || 0;
-      for (let i = 0; i < s.paidInstallments && i < amounts.length; i++) {
-        paid += amounts[i] || 0;
-      }
-      return paid + (s.partialPaid || 0);
-    }
-    const vp = s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
-    return vp * s.paidInstallments + (s.downPayment || 0) + (s.partialPaid || 0);
-  };
-
-  const getRemaining = (s: Sale) => Math.max(0, s.total - getSalePaidAmount(s));
-
-  const overdueSales = sales.filter((s) => getSaleCategory(s) === "overdue");
-  const onTrackSales = sales.filter((s) => getSaleCategory(s) === "on_track");
-  const dueTodaySales = sales.filter((s) => getSaleCategory(s) === "due_today");
-  const paidSales = sales.filter((s) => getSaleCategory(s) === "paid");
-
-  // Calculate only the value of overdue installments (not all remaining)
-  const getOverdueInstallmentsValue = (s: Sale): number => {
-    const isRecorrente = s.paymentMode === "recorrente" && s.installments > 1;
-    if (!isRecorrente) return getRemaining(s);
-    const baseDate = new Date(s.date + "T00:00:00");
-    const today = new Date();
-    const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    let overdueValue = 0;
-    for (let i = s.paidInstallments; i < s.installments; i++) {
-      const customDate = s.installmentDates && s.installmentDates[i];
-      const dueDate = customDate ? new Date(customDate + "T00:00:00") : addByFrequency(baseDate, s.frequency || "Mensal", i);
-      const dueNorm = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-      if (todayNorm.getTime() > dueNorm.getTime()) {
-        if (s.installmentAmounts && s.installmentAmounts[i] != null) {
-          overdueValue += s.installmentAmounts[i] || 0;
-        } else {
-          overdueValue += s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : 0;
-        }
-      }
-    }
-    return Math.max(0, overdueValue - (s.partialPaid || 0));
-  };
-
-  // Calculate future (not-yet-due) installments value for a sale
-  const getFutureInstallmentsValue = (s: Sale): number => {
-    const isRecorrente = s.paymentMode === "recorrente" && s.installments > 1;
-    if (!isRecorrente) return 0;
-    const baseDate = new Date(s.date + "T00:00:00");
-    const today = new Date();
-    const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    let futureValue = 0;
-    for (let i = s.paidInstallments; i < s.installments; i++) {
-      const customDate = s.installmentDates && s.installmentDates[i];
-      const dueDate = customDate ? new Date(customDate + "T00:00:00") : addByFrequency(baseDate, s.frequency || "Mensal", i);
-      const dueNorm = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-      if (todayNorm.getTime() < dueNorm.getTime()) {
-        if (s.installmentAmounts && s.installmentAmounts[i] != null) {
-          futureValue += s.installmentAmounts[i] || 0;
-        } else {
-          futureValue += s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : 0;
-        }
-      }
-    }
-    return futureValue;
-  };
-
-  // Due today installment value
-  const getDueTodayInstallmentValue = (s: Sale): number => {
-    const isRecorrente = s.paymentMode === "recorrente" && s.installments > 1;
-    if (!isRecorrente) return getRemaining(s);
-    const baseDate = new Date(s.date + "T00:00:00");
-    const today = new Date();
-    const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    let todayValue = 0;
-    for (let i = s.paidInstallments; i < s.installments; i++) {
-      const customDate = s.installmentDates && s.installmentDates[i];
-      const dueDate = customDate ? new Date(customDate + "T00:00:00") : addByFrequency(baseDate, s.frequency || "Mensal", i);
-      const dueNorm = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-      if (todayNorm.getTime() === dueNorm.getTime()) {
-        if (s.installmentAmounts && s.installmentAmounts[i] != null) {
-          todayValue += s.installmentAmounts[i] || 0;
-        } else {
-          todayValue += s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : 0;
-        }
-      }
-    }
-    return todayValue;
-  };
-
-  const totalOverdue = overdueSales.reduce((acc, s) => acc + getOverdueInstallmentsValue(s), 0);
-  // "No Prazo" = future installments from ALL non-paid sales (including overdue contracts that have future installments)
-  const totalOnTrack = sales.filter((s) => getSaleCategory(s) !== "paid").reduce((acc, s) => acc + getFutureInstallmentsValue(s), 0)
-    + onTrackSales.filter((s) => s.paymentMode !== "recorrente" || s.installments <= 1).reduce((acc, s) => acc + getRemaining(s), 0);
-  const totalDueToday = dueTodaySales.reduce((acc, s) => acc + getDueTodayInstallmentValue(s), 0);
-  const totalPaid = sales.reduce((acc, s) => acc + getSalePaidAmount(s), 0);
-  // Quantidade de contratos = somente os quitados
-  const paidContractsCount = paidSales.length;
-  const totalAReceber = sales.filter((s) => getSaleCategory(s) !== "paid").reduce((acc, s) => acc + getRemaining(s), 0);
+  const {
+    editingSale, setEditingSale,
+    search, setSearch,
+    categoryFilter, setCategoryFilter,
+    incomeCategoryFilter,
+    view, setView,
+    breakdownCard, setBreakdownCard,
+    formatCurrency,
+    incomeCategoryByName,
+    counts,
+    filtered,
+    total,
+    folderCount,
+    saleGroups,
+    listSorted,
+    overdueSales,
+    onTrackSales,
+    dueTodaySales,
+    paidContractsCount,
+    totalOverdue,
+    totalOnTrack,
+    totalDueToday,
+    totalPaid,
+    totalAReceber,
+    getSalePaidAmount,
+    getRemaining,
+    getOverdueInstallmentsValue,
+    getFutureInstallmentsValue,
+    getDueTodayInstallmentValue,
+  } = useProductSalesController(sales);
+  // incomeCategoryFilter setter currently unused inside this component (filter UI lives in ProductSalesFilters).
+  void incomeCategoryFilter;
 
   return (
     <div className="space-y-4">
@@ -541,200 +383,8 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
   );
 }
 
-function VehicleExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency }: {
-  expense: Expense;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSave: (data: Partial<Omit<Expense, "id" | "createdAt">>) => void;
-  formatCurrency: (v: number) => string;
-}) {
-  const isRecorrente = expense.type === "recorrente" && expense.installments && expense.installments > 1;
-  const installmentVal = isRecorrente ? expense.amount / expense.installments! : expense.amount;
-  const [form, setForm] = useState({
-    description: expense.description,
-    amount: String(installmentVal),
-    type: expense.type as "fixa" | "recorrente",
-    category: expense.category,
-    installments: String(expense.installments || 1),
-    dueDate: expense.dueDate,
-    notes: expense.notes || "",
-  });
+// VehicleExpenseEditDialog & VehiclePayExpenseDialog moved to ./product-sales/VehicleExpenseDialogs
 
-  useEffect(() => {
-    if (open) {
-      const isRec = expense.type === "recorrente" && expense.installments && expense.installments > 1;
-      const instVal = isRec ? expense.amount / expense.installments! : expense.amount;
-      setForm({
-        description: expense.description,
-        amount: String(instVal),
-        type: expense.type as "fixa" | "recorrente",
-        category: expense.category,
-        installments: String(expense.installments || 1),
-        dueDate: expense.dueDate,
-        notes: expense.notes || "",
-      });
-    }
-  }, [open, expense]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const parsedAmount = parseFloat(form.amount) || 0;
-    const installments = form.type === "recorrente" ? parseInt(form.installments) || 1 : 1;
-    const totalAmount = form.type === "recorrente" ? parsedAmount * installments : parsedAmount;
-    onSave({
-      description: form.description,
-      amount: totalAmount,
-      type: form.type,
-      category: form.category,
-      installments: form.type === "recorrente" ? installments : undefined,
-      dueDate: form.dueDate,
-      notes: form.notes || undefined,
-    });
-  };
-
-  const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Editar Despesa</DialogTitle>
-          <DialogDescription>Altere os dados da despesa de veículo.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="edit-desc">Descrição</Label>
-            <Input id="edit-desc" value={form.description} onChange={e => update("description", e.target.value)} required />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="edit-amount">{form.type === "recorrente" ? "Valor da Parcela (R$)" : "Valor (R$)"}</Label>
-              <Input id="edit-amount" type="number" step="0.01" value={form.amount} onChange={e => update("amount", e.target.value)} required />
-            </div>
-            <div>
-              <Label>Tipo</Label>
-              <Select value={form.type} onValueChange={v => update("type", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="fixa">Fixa</SelectItem>
-                  <SelectItem value="recorrente">Recorrente</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          {form.type === "recorrente" && (
-            <div>
-              <Label htmlFor="edit-inst">Parcelas</Label>
-              <Input id="edit-inst" type="number" min="1" value={form.installments} onChange={e => update("installments", e.target.value)} />
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Categoria</Label>
-              <Select value={form.category} onValueChange={v => update("category", v)}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {vehicleExpenseCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="edit-due">Data de Pagamento</Label>
-              <DatePickerField id="edit-due" value={form.dueDate} onChange={(v) => update("dueDate", v)} />
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="edit-notes">Observações</Label>
-            <Textarea id="edit-notes" value={form.notes} onChange={e => update("notes", e.target.value)} rows={2} />
-          </div>
-          <ExpenseBoletoLinkSection expenseId={expense.id} />
-
-          {parseFloat(form.amount) > 0 && form.type === "recorrente" && parseInt(form.installments) > 1 && (
-            <div className="rounded-lg bg-muted p-3">
-              <p className="text-sm text-muted-foreground">
-                Valor total: <span className="font-semibold text-foreground">
-                  {formatCurrency(parseFloat(form.amount) * (parseInt(form.installments) || 1))}
-                </span> ({form.installments}x de {formatCurrency(parseFloat(form.amount))})
-              </p>
-            </div>
-          )}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button data-mutation type="submit">Salvar</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function VehiclePayExpenseDialog({ expense, open, onOpenChange, onConfirm, formatCurrency }: {
-  expense: Expense;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: (payDate: string, paidAmount: number) => void;
-  formatCurrency: (v: number) => string;
-}) {
-  const isRecorrente = expense.type === "recorrente" && expense.installments && expense.installments > 1;
-  const defaultAmount = isRecorrente ? expense.amount / expense.installments! : expense.amount;
-  const [payDate, setPayDate] = useState(todayInAppTz());
-  const [amountStr, setAmountStr] = useState(String(defaultAmount.toFixed(2)));
-
-  useEffect(() => {
-    if (open) {
-      setPayDate(todayInAppTz());
-      setAmountStr(String(defaultAmount.toFixed(2)));
-    }
-  }, [open, defaultAmount]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const parsed = parseFloat(amountStr);
-    if (isNaN(parsed) || parsed <= 0) return;
-    onConfirm(payDate, parsed);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Confirmar Pagamento</DialogTitle>
-          <DialogDescription>
-            Informe a data e o valor efetivamente pago{isRecorrente ? " desta parcela" : ""}.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="pay-date">Data do pagamento</Label>
-            <DatePickerField id="pay-date" value={payDate} onChange={setPayDate} />
-          </div>
-          <div>
-            <Label htmlFor="pay-amount">Valor pago (R$)</Label>
-            <Input
-              id="pay-amount"
-              type="number"
-              step="0.01"
-              min="0.01"
-              value={amountStr}
-              onChange={(e) => setAmountStr(e.target.value)}
-              required
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Valor original: {formatCurrency(defaultAmount)}
-            </p>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit">
-              <CheckCircle className="h-4 w-4 mr-1" />
-              Confirmar pagamento
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense, readOnly = false, isVehicleView = false, locadores: locadoresProp, onSaveLocador: onSaveLocadorProp }: Props) {
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
@@ -1258,34 +908,8 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   return (
     <>
     <Tabs value={currentSubTab} onValueChange={setCurrentSubTab} className="space-y-4">
-      <TabsList className="w-full bg-muted/60 border border-border/50 rounded-xl p-1 grid grid-cols-2 gap-1 sm:flex sm:gap-1 h-auto">
-        {activeTabs.map((tab) => (
-          <TabsTrigger
-            key={tab.type}
-            value={tab.type}
-            className="sm:flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 text-muted-foreground hover:text-foreground data-[state=active]:bg-background data-[state=active]:!text-primary data-[state=active]:shadow-sm"
-          >
-            <tab.icon className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{tab.label}</span>
-          </TabsTrigger>
-        ))}
-        <TabsTrigger
-          value="extrato"
-          className="sm:flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 text-muted-foreground hover:text-foreground data-[state=active]:bg-background data-[state=active]:!text-primary data-[state=active]:shadow-sm"
-        >
-          <BookOpen className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate">Extrato</span>
-        </TabsTrigger>
-        {!isVehicleView && (
-          <TabsTrigger
-            value="estoque"
-            className="sm:flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 text-muted-foreground hover:text-foreground data-[state=active]:bg-background data-[state=active]:!text-primary data-[state=active]:shadow-sm"
-          >
-            <Boxes className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">Estoque</span>
-          </TabsTrigger>
-        )}
-      </TabsList>
+      <ProductSalesSubTabsList showStock={!isVehicleView} />
+
 
 
       {activeTabs.map((tab) => (
