@@ -5270,16 +5270,14 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
 
 
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-          <Input placeholder="Buscar por nome do cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-        </div>
-        <Button variant={showFilters ? "default" : "outline"} size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-1.5">
-          <SlidersHorizontal className="h-3.5 w-3.5" />Filtros
-          {(dateFrom || dateTo || dueDateFrom || dueDateTo || amountMin || amountMax || tagFilter || notesFilter !== "all") && (
-            <Badge className="bg-destructive text-destructive-foreground h-4 w-4 p-0 flex items-center justify-center text-[10px] rounded-full">!</Badge>
-          )}
-        </Button>
+        <LoanSearchBar
+          search={search}
+          setSearch={setSearch}
+          showFilters={showFilters}
+          setShowFilters={setShowFilters}
+          hasActiveFilters={Boolean(dateFrom || dateTo || dueDateFrom || dueDateTo || amountMin || amountMax || tagFilter || notesFilter !== "all")}
+        />
+
         {/* Botões — versão PC/Tablet (entre Filtros e o seletor de visualização) */}
         {onOpenSimulator && (
           <Button variant="outline" size="sm" onClick={onOpenSimulator} className="hidden md:inline-flex gap-1.5" title="Simular Empréstimo">
