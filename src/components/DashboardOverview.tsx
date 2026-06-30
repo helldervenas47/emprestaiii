@@ -1367,11 +1367,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     setEditingInterest(false);
   };
 
-  const handleChangePeriod = (p: Period) => { setPeriod(p); setOffset(0); };
-
-  const startEditBalance = () => { setTempBalance(String(accountBalance)); setEditingBalance(true); };
-  const saveBalance = () => { setAccountBalance(parseFloat(tempBalance) || 0); setEditingBalance(false); };
-  const cancelEditBalance = () => setEditingBalance(false);
 
 
   const healthColor = portfolio.score >= 70 ? "text-success" : portfolio.score >= 40 ? "text-warning" : "text-destructive";
