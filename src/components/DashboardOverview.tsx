@@ -56,6 +56,7 @@ import { DashboardMainCards } from "@/components/dashboard/DashboardMainCards";
 import { DashboardPortfolioMetrics } from "@/components/dashboard/DashboardPortfolioMetrics";
 import { DashboardBreakdownSection } from "@/components/dashboard/DashboardBreakdownSection";
 import { useDashboardOverviewController } from "@/components/dashboard/useDashboardOverviewController";
+import { useDashboardMetrics } from "@/components/dashboard/useDashboardMetrics";
 
 
 interface Props {
