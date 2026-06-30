@@ -186,21 +186,19 @@ export function usePiggyBanks() {
 
   const reload = useCallback(async () => {
     if (!dataOwnerId) return;
-    const [cofRes, apoRes, taxaRes] = await Promise.all([
+    const [cofRes, taxaRes] = await Promise.all([
       supabase
         .from("cofrinhos" as any)
         .select("id, ativo, nome, descricao, percentual_cdi, meta, created_at, saldo_principal, saldo_total, saldo_rendimento_bruto, saldo_rendimento_liquido")
         .eq("usuario_id", dataOwnerId)
         .order("created_at"),
       supabase
-        .from("cofrinho_aportes" as any)
-        .select("id, cofrinho_id, valor_original, data_aporte, percentual_cdi, created_at"),
-      supabase
         .from("taxa_referencia" as any)
         .select("*")
         .limit(50),
     ]);
 
+    let activeCofrinhoIds: string[] = [];
     if (!cofRes.error && Array.isArray(cofRes.data)) {
       const rowsMap: Record<string, any> = {};
       const list: PiggyBank[] = (cofRes.data as any[])
@@ -226,20 +224,59 @@ export function usePiggyBanks() {
         });
       setPiggyBanks(list);
       setCofrinhoRows(rowsMap);
+      activeCofrinhoIds = list.map((pb) => pb.id);
     }
 
-    if (!apoRes.error && Array.isArray(apoRes.data)) {
-      setDeposits(
-        (apoRes.data as any[]).map((r) => ({
-          id: r.id,
-          piggyBankId: r.cofrinho_id,
-          expenseId: null,
-          amount: Number(r.valor_original),
-          depositDate: r.data_aporte,
-          source: "manual",
-          recurrenceId: null,
-        })),
-      );
+    if (activeCofrinhoIds.length > 0) {
+      const ledgerRes = await supabase
+        .from("cofrinho_ledger" as any)
+        .select("id, cofrinho_id, tipo, valor, data_evento, created_at, evento_id, aporte_id, resgate_id")
+        .in("cofrinho_id", activeCofrinhoIds)
+        .order("data_evento", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      if (!ledgerRes.error && Array.isArray(ledgerRes.data)) {
+        const seen = new Set<string>();
+        setDeposits(
+          (ledgerRes.data as any[]).flatMap((r) => {
+            const tipo = String(r.tipo || "").toUpperCase().replace("Ó", "O");
+            if (tipo === "RENDIMENTO") return [];
+            const rawDate = String(r.data_evento ?? r.created_at ?? "").slice(0, 10);
+            const uniqueId = String(
+              r.evento_id ||
+                r.aporte_id ||
+                r.resgate_id ||
+                r.id ||
+                `${r.cofrinho_id}-${rawDate}-${r.tipo}-${r.valor}`,
+            );
+            if (seen.has(uniqueId)) return [];
+            seen.add(uniqueId);
+
+            const rawValue = Number(r.valor || 0);
+            let amount = rawValue;
+            let source: PiggyBankDeposit["source"] = "manual";
+            if (tipo === "DEPOSITO") {
+              amount = Math.abs(rawValue);
+              source = "transfer_in";
+            } else if (tipo === "RESGATE") {
+              amount = -Math.abs(rawValue);
+              source = "transfer_out";
+            }
+
+            return [{
+              id: uniqueId,
+              piggyBankId: r.cofrinho_id,
+              expenseId: null,
+              amount,
+              depositDate: rawDate,
+              source,
+              recurrenceId: null,
+            }];
+          }),
+        );
+      }
+    } else {
+      setDeposits([]);
     }
 
     if (!taxaRes.error && Array.isArray(taxaRes.data) && taxaRes.data.length > 0) {
