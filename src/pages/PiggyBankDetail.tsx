@@ -486,15 +486,34 @@ export default function PiggyBankDetail() {
                 const isPositive = d.amount >= 0;
                 const exp = d.expenseId ? expensesById[d.expenseId] : null;
                 const isYield = d.source === "rendimento";
-                const Icon = d.source === "recurring" ? Repeat : isYield ? TrendingUp : isPositive ? ArrowDownCircle : ArrowUpCircle;
+                const isAdjust = d.source === "manual";
+                const Icon = d.source === "recurring"
+                  ? Repeat
+                  : isYield
+                    ? TrendingUp
+                    : isAdjust
+                      ? Wallet
+                      : isPositive
+                        ? ArrowDownCircle
+                        : ArrowUpCircle;
                 const onRowClick = isYield ? () => setSelectedYieldId(d.id) : undefined;
+                const iconWrap = isAdjust
+                  ? "bg-primary/10 text-primary"
+                  : isPositive
+                    ? "bg-success/10 text-success"
+                    : "bg-destructive/10 text-destructive";
+                const amountColor = isAdjust
+                  ? "text-foreground"
+                  : isPositive
+                    ? "text-success"
+                    : "text-destructive";
                 return (
                   <div
                     key={d.id}
                     onClick={onRowClick}
                     className={`flex items-center gap-3 p-3 rounded-xl border border-border/30 bg-background/50 hover:border-primary/20 transition-colors ${isYield ? "cursor-pointer" : ""}`}
                   >
-                    <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${isPositive ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                    <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${iconWrap}`}>
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -513,7 +532,7 @@ export default function PiggyBankDetail() {
                               ? "Aporte recorrente"
                               : "Aporte")}
                         </p>
-                        <p className={`text-sm font-black tabular-nums ${isPositive ? "text-success" : "text-destructive"}`}>
+                        <p className={`text-sm font-black tabular-nums ${amountColor}`}>
                           {isPositive ? "+" : ""}{mask(fmt(d.amount))}
                         </p>
                       </div>
