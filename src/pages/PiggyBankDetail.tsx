@@ -223,26 +223,39 @@ export default function PiggyBankDetail() {
       // com a linha de RENDIMENTO vinda do ledger.
       const detailsByDate: Record<string, YieldDetail> = {};
       if (!yieldRes.error && Array.isArray(yieldRes.data)) {
+        // A view pode retornar várias linhas por (cofrinho_id, data) — uma por
+        // aporte. Agregamos somando bruto/iof/ir/liquido e mantendo o maior
+        // saldo_principal_base/saldo_total/aportes_calculados do dia.
         for (const r of yieldRes.data as any[]) {
           const date = String(r.data).slice(0, 10);
-          // Clamp em zero — rendimento líquido diário CDI nunca é negativo.
-          // Erros de arredondamento/ajuste no banco podem produzir valores
-          // levemente negativos; tratamos como 0.
           const bruto = Math.max(0, Number(r.rendimento_bruto_dia || 0));
           const iof = Math.max(0, Number(r.iof_dia || 0));
           const ir = Math.max(0, Number(r.imposto_renda_dia || 0));
-          const liquidoRaw = Number(r.rendimento_liquido_dia || 0);
-          const liquido = Math.max(0, liquidoRaw);
-          detailsByDate[date] = {
-            date,
-            saldoPrincipalBase: Number(r.saldo_principal_base || 0),
-            rendimentoBruto: bruto,
-            iof,
-            impostoRenda: ir,
-            rendimentoLiquido: liquido,
-            saldoTotal: Number(r.saldo_total || 0),
-            aportesCalculados: Number(r.aportes_calculados || 0),
-          };
+          const liquido = Math.max(0, Number(r.rendimento_liquido_dia || 0));
+          const saldoBase = Number(r.saldo_principal_base || 0);
+          const saldoTotal = Number(r.saldo_total || 0);
+          const aportes = Number(r.aportes_calculados || 0);
+          const prev = detailsByDate[date];
+          if (prev) {
+            prev.rendimentoBruto += bruto;
+            prev.iof += iof;
+            prev.impostoRenda += ir;
+            prev.rendimentoLiquido += liquido;
+            prev.saldoPrincipalBase = Math.max(prev.saldoPrincipalBase, saldoBase);
+            prev.saldoTotal = Math.max(prev.saldoTotal, saldoTotal);
+            prev.aportesCalculados = Math.max(prev.aportesCalculados, aportes);
+          } else {
+            detailsByDate[date] = {
+              date,
+              saldoPrincipalBase: saldoBase,
+              rendimentoBruto: bruto,
+              iof,
+              impostoRenda: ir,
+              rendimentoLiquido: liquido,
+              saldoTotal,
+              aportesCalculados: aportes,
+            };
+          }
         }
       }
 
