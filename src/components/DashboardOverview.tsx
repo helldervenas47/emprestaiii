@@ -53,6 +53,8 @@ import { useAccountBalance } from "@/components/dashboard/useAccountBalance";
 import { DashboardPeriodFilter } from "@/components/dashboard/DashboardPeriodFilter";
 import { DashboardFinancialHealthSection } from "@/components/dashboard/DashboardFinancialHealthSection";
 import { DashboardMainCards } from "@/components/dashboard/DashboardMainCards";
+import { DashboardPortfolioMetrics } from "@/components/dashboard/DashboardPortfolioMetrics";
+import { DashboardBreakdownSection } from "@/components/dashboard/DashboardBreakdownSection";
 
 
 interface Props {
@@ -1442,40 +1444,16 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
 
       {/* Portfolio metrics */}
-      {(() => {
-        // Interest metrics based on selected period filter (installment due dates)
-        // Use interestExpectedRecords como fonte única para garantir consistência com o detalhamento
-        const interestReceivedInPeriod = data.periodProfitRealized;
-        const interestPendingInPeriod = data.periodProfitExpected;
-        const interestDueInPeriod = interestReceivedInPeriod + interestPendingInPeriod;
+      <DashboardPortfolioMetrics
+        portfolio={portfolio}
+        periodProfitRealized={data.periodProfitRealized}
+        periodProfitExpected={data.periodProfitExpected}
+        formatCurrency={formatCurrency}
+        onOpenInterestReceived={() => setShowInterestDetail(true)}
+        onOpenInterestExpectedAll={() => { setInterestExpectedFilter("all"); setShowInterestExpectedDetail(true); }}
+        onOpenInterestPending={() => { setInterestExpectedFilter("pending"); setShowInterestExpectedDetail(true); }}
+      />
 
-        const items: Array<{ label: string; value: string; color: string; iconBg: string; iconColor: string; onClick?: () => void; tooltip?: string }> = [
-          { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", tooltip: "Principal proporcional ainda em aberto: para cada contrato ativo, valor emprestado × (parcelas restantes ÷ total de parcelas). Diminui conforme as parcelas são pagas." },
-          { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Valor restante a receber de todos os contratos de empréstimos ativos." },
-          { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Total de juros previstos a receber considerando todos os contratos ativos até o final dos seus ciclos. É o lucro projetado se todos pagarem conforme o combinado." },
-          { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: () => { setInterestExpectedFilter("all"); setShowInterestExpectedDetail(true); }, tooltip: "Soma dos 'Juros Recebidos no Mês' + 'Juros Pendentes do Mês'. Representa o total de juros do período: o que já entrou somado ao que ainda falta receber. Clique para ver o detalhamento." },
-          { label: "Juros Recebidos", value: formatCurrency(interestReceivedInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => setShowInterestDetail(true), tooltip: "Critério: DATA DE PAGAMENTO + contabilidade JUROS PRIMEIRO. Cada pagamento amortiza antes o juros pendente do contrato; juros avulsos (sem parcela) contam 100% como juros; na quitação, todo o lucro residual (incl. acordos com bônus ou desconto) é alocado ao último pagamento. Clique para ver o detalhamento." },
-          { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => { setInterestExpectedFilter("pending"); setShowInterestExpectedDetail(true); }, tooltip: "Diferença entre 'Juros a Receber no Mês' (vencimento) e 'Juros Recebidos no Mês' (pagamento). Clique para ver o detalhamento do que está pendente de recebimento." },
-        ];
-
-        return (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-            {items.map((item) => (
-              <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
-                <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center relative">
-                  {item.tooltip && <InfoPopover text={item.tooltip} />}
-                  {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
-                  <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
-                    <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
-                  </div>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</p>
-                  <p className={`text-sm sm:text-lg font-bold ${item.color} mt-0.5`}>{item.value}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        );
-      })()}
 
       {/* Health Score — Glass Grid */}
       <DashboardFinancialHealthSection
@@ -1684,120 +1662,16 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
 
       {/* Breakdown */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card no3d>
-          <CardContent className="p-5">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Detalhamento de Entradas</h3>
-            <div className="space-y-1">
-              <button
-                className="flex justify-between text-sm w-full py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
-                onClick={() => setExpandedBreakdown(expandedBreakdown === "payments" ? null : "payments")}
-              >
-                <span className="text-muted-foreground flex items-center gap-1">
-                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedBreakdown === "payments" ? "rotate-0" : "-rotate-90"}`} />
-                  Parcelas recebidas ({data.filteredPayments.length})
-                </span>
-                <span className="font-medium">{formatCurrency(data.incomeFromPayments)}</span>
-              </button>
-              {expandedBreakdown === "payments" && (
-                <div className="ml-5 space-y-1 max-h-[200px] overflow-y-auto">
-                  {data.filteredPayments.map((p) => {
-                    const loan = loans.find((l) => l.id === p.loanId);
-                    return (
-                      <div key={p.id} className="flex justify-between text-xs py-1 border-b border-border/20 last:border-0">
-                        <span className="text-muted-foreground truncate mr-2">Parcela {p.installmentNumber} — {loan?.borrowerName || "Empréstimo"}</span>
-                        <span className="font-medium shrink-0 text-success">{formatCurrency(p.amount)}</span>
-                      </div>
-                    );
-                  })}
-                  {data.filteredPayments.length === 0 && <p className="text-xs text-muted-foreground py-1">Nenhuma parcela no período</p>}
-                </div>
-              )}
-              <button
-                className="flex justify-between items-center text-sm w-full py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
-                onClick={() => setExpandedBreakdown(expandedBreakdown === "sales" ? null : "sales")}
-              >
-                <span className={`text-muted-foreground flex items-center gap-1 ${!includeSales ? "line-through opacity-50" : ""}`}>
-                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedBreakdown === "sales" ? "rotate-0" : "-rotate-90"}`} />
-                  Vendas de produtos ({data.salesWithReceived.length})
-                </span>
-                <span className="flex items-center gap-2">
-                  <Switch checked={includeSales} onCheckedChange={setIncludeSales} className="scale-75" onClick={(e) => e.stopPropagation()} />
-                  <span className={`font-medium ${!includeSales ? "opacity-50" : ""}`}>{formatCurrency(data.incomeFromSales)}</span>
-                </span>
-              </button>
-              {expandedBreakdown === "sales" && (
-                <div className="ml-5 space-y-1 max-h-[200px] overflow-y-auto">
-                  {data.salesWithReceived.map((s) => (
-                    <div key={s.id} className="flex justify-between text-xs py-1 border-b border-border/20 last:border-0">
-                      <span className="text-muted-foreground truncate mr-2">{s.productName}{s.customerName ? ` — ${s.customerName}` : ""}</span>
-                      <span className="font-medium shrink-0 text-success">{formatCurrency(s.received)}</span>
-                    </div>
-                  ))}
-                  {data.salesWithReceived.length === 0 && <p className="text-xs text-muted-foreground py-1">Nenhuma venda no período</p>}
-                </div>
-              )}
-              <div className="border-t pt-2 flex justify-between text-sm font-semibold px-2">
-                <span>Total</span>
-                <span className="text-success">{formatCurrency(data.totalIncome)}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card no3d>
-          <CardContent className="p-5">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Detalhamento de Saídas</h3>
-            <div className="space-y-1">
-              <button
-                className="flex justify-between text-sm w-full py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
-                onClick={() => setExpandedBreakdown(expandedBreakdown === "loans" ? null : "loans")}
-              >
-                <span className="text-muted-foreground flex items-center gap-1">
-                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedBreakdown === "loans" ? "rotate-0" : "-rotate-90"}`} />
-                  Empréstimos concedidos ({data.filteredLoans.length})
-                </span>
-                <span className="font-medium">{formatCurrency(data.totalLoanOutgoing)}</span>
-              </button>
-              {expandedBreakdown === "loans" && (
-                <div className="ml-5 space-y-1 max-h-[200px] overflow-y-auto">
-                  {data.filteredLoans.map((l) => (
-                    <div key={l.id} className="flex justify-between text-xs py-1 border-b border-border/20 last:border-0">
-                      <span className="text-muted-foreground truncate mr-2">{l.borrowerName}</span>
-                      <span className="font-medium shrink-0 text-destructive">{formatCurrency(l.amount)}</span>
-                    </div>
-                  ))}
-                  {data.filteredLoans.length === 0 && <p className="text-xs text-muted-foreground py-1">Nenhum empréstimo no período</p>}
-                </div>
-              )}
-              <button
-                className="flex justify-between text-sm w-full py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
-                onClick={() => setExpandedBreakdown(expandedBreakdown === "expenses" ? null : "expenses")}
-              >
-                <span className="text-muted-foreground flex items-center gap-1">
-                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedBreakdown === "expenses" ? "rotate-0" : "-rotate-90"}`} />
-                  Despesas pagas ({data.filteredExpenses.length})
-                </span>
-                <span className="font-medium">{formatCurrency(data.totalExpenses)}</span>
-              </button>
-              {expandedBreakdown === "expenses" && (
-                <div className="ml-5 space-y-1 max-h-[200px] overflow-y-auto">
-                  {data.filteredExpenses.map((e) => (
-                    <div key={e.id} className="flex justify-between text-xs py-1 border-b border-border/20 last:border-0">
-                      <span className="text-muted-foreground truncate mr-2">{e.description}</span>
-                      <span className="font-medium shrink-0 text-destructive">{formatCurrency(e.amount)}</span>
-                    </div>
-                  ))}
-                  {data.filteredExpenses.length === 0 && <p className="text-xs text-muted-foreground py-1">Nenhuma despesa no período</p>}
-                </div>
-              )}
-              <div className="border-t pt-2 flex justify-between text-sm font-semibold px-2">
-                <span>Total</span>
-                <span className="text-destructive">{formatCurrency(data.totalOutgoing)}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <DashboardBreakdownSection
+        data={data}
+        loans={loans}
+        includeSales={includeSales}
+        setIncludeSales={setIncludeSales}
+        expandedBreakdown={expandedBreakdown}
+        setExpandedBreakdown={setExpandedBreakdown}
+        formatCurrency={formatCurrency}
+      />
+
 
       {/* Monthly transactions */}
       <Card no3d>
