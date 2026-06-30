@@ -462,11 +462,14 @@ export default function PiggyBankDetail() {
               {history.map((d) => {
                 const isPositive = d.amount >= 0;
                 const exp = d.expenseId ? expensesById[d.expenseId] : null;
-                const Icon = d.source === "recurring" ? Repeat : isPositive ? ArrowDownCircle : ArrowUpCircle;
+                const isYield = d.source === "rendimento";
+                const Icon = d.source === "recurring" ? Repeat : isYield ? TrendingUp : isPositive ? ArrowDownCircle : ArrowUpCircle;
+                const onRowClick = isYield ? () => setSelectedYieldId(d.id) : undefined;
                 return (
                   <div
                     key={d.id}
-                    className="flex items-center gap-3 p-3 rounded-xl border border-border/30 bg-background/50 hover:border-primary/20 transition-colors"
+                    onClick={onRowClick}
+                    className={`flex items-center gap-3 p-3 rounded-xl border border-border/30 bg-background/50 hover:border-primary/20 transition-colors ${isYield ? "cursor-pointer" : ""}`}
                   >
                     <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${isPositive ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
                       <Icon className="h-4 w-4" />
@@ -495,6 +498,11 @@ export default function PiggyBankDetail() {
                         <span className="text-[10px] text-muted-foreground font-medium uppercase">
                           {d.depositDate.split("-").reverse().join("/")}
                         </span>
+                        {isYield && yieldDetails[d.id] && (
+                          <Badge variant="secondary" className="h-3.5 px-1 text-[8px] uppercase tracking-tighter">
+                            {yieldDetails[d.id].aportesCalculados} {yieldDetails[d.id].aportesCalculados === 1 ? "aporte" : "aportes"}
+                          </Badge>
+                        )}
                         {exp?.category && (
                           <Badge variant="secondary" className="h-3.5 px-1 text-[8px] uppercase tracking-tighter">
                             {exp.category}
@@ -502,12 +510,14 @@ export default function PiggyBankDetail() {
                         )}
                       </div>
                     </div>
-                    <RowActions
-                      actions={[
-                        { label: "Editar", icon: <Pencil className="h-3 w-3" />, onClick: () => openEditDeposit(d) },
-                        { label: "Excluir", icon: <Trash2 className="h-3 w-3" />, destructive: true, onClick: () => setDeleteDepositId(d.id) },
-                      ]}
-                    />
+                    {!isYield && (
+                      <RowActions
+                        actions={[
+                          { label: "Editar", icon: <Pencil className="h-3 w-3" />, onClick: () => openEditDeposit(d) },
+                          { label: "Excluir", icon: <Trash2 className="h-3 w-3" />, destructive: true, onClick: () => setDeleteDepositId(d.id) },
+                        ]}
+                      />
+                    )}
                   </div>
                 );
               })}
