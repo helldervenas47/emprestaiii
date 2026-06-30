@@ -1205,17 +1205,19 @@ async function handleResgateCommand(
 
   let amount = parsed.amount;
   if (amount === null && parsed.allBalance) {
-    const { data: deps } = await admin
-      .from("piggy_bank_deposits")
-      .select("amount")
-      .eq("piggy_bank_id", bank.id);
-    const totalAvailable = ((deps ?? []) as any[]).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+    const { data: cof } = await admin
+      .from("cofrinhos")
+      .select("saldo_total")
+      .eq("id", bank.id)
+      .maybeSingle();
+    const totalAvailable = Number((cof as any)?.saldo_total ?? 0);
     amount = totalAvailable;
     if (totalAvailable <= 0) {
       await tgSend(chatId, `ℹ️ A caixinha *${bank.name}* não tem saldo para resgatar.`, telegramKey);
       return;
     }
   }
+
 
   if (amount === null || amount <= 0) {
     await tgSend(
@@ -1719,18 +1721,20 @@ async function resolvePiggyOwner(admin: any, userId: string): Promise<string> {
 async function listUserPiggyBanks(admin: any, userId: string) {
   const ownerId = await resolvePiggyOwner(admin, userId);
   const { data } = await admin
-    .from("piggy_banks")
-    .select("id, name, short_id")
-    .eq("user_id", ownerId)
-    .order("short_id", { ascending: true, nullsFirst: false })
-    .order("created_at");
-  const banks = ((data ?? []) as any[]).map((b) => ({
-    id: b.id as string,
-    name: b.name as string,
-    shortId: (b.short_id ?? null) as number | null,
-  }));
+    .from("cofrinhos")
+    .select("id, nome, descricao, ativo, created_at")
+    .eq("usuario_id", ownerId)
+    .order("created_at", { ascending: true });
+  const banks = ((data ?? []) as any[])
+    .filter((b) => b.ativo !== false)
+    .map((b) => ({
+      id: b.id as string,
+      name: b.nome as string,
+      shortId: parseCofrinhoMeta(b.descricao).shortId,
+    }));
   return { ownerId, banks };
 }
+
 
 function buildPiggyBanksKeyboard(banks: { id: string; name: string; shortId?: number | null }[]) {
   const rows: any[] = [];
@@ -2963,12 +2967,13 @@ Deno.serve(async (req) => {
                 pendingHandled = true;
               } else {
                 const ownerId = await resolvePiggyOwner(admin, link.user_id);
-                const { data: bank } = await admin
-                  .from("piggy_banks")
-                  .select("id, name")
+                const { data: bankRow } = await admin
+                  .from("cofrinhos")
+                  .select("id, nome")
                   .eq("id", pendingPiggy.piggy_bank_id)
-                  .eq("user_id", ownerId)
+                  .eq("usuario_id", ownerId)
                   .maybeSingle();
+                const bank = bankRow ? { id: (bankRow as any).id, name: (bankRow as any).nome } : null;
                 await admin.from("telegram_pending_piggy_aporte").delete().eq("chat_id", chatId);
                 if (!bank) {
                   await tgSend(chatId, "❌ Caixinha não encontrada.", telegramKey);
@@ -2978,6 +2983,7 @@ Deno.serve(async (req) => {
                   const reply = await finalizePiggyAporte(admin, link.user_id, bank, parsed.amount, finalNote);
                   await tgSend(chatId, reply, telegramKey);
                 }
+
                 pendingHandled = true;
               }
             }
