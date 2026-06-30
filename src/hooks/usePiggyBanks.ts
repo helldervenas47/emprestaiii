@@ -373,7 +373,9 @@ export function usePiggyBanks() {
       if (patch.shortId !== undefined) newMeta.short_id = patch.shortId;
       const dbPatch: any = { descricao: newMeta };
       if (patch.name !== undefined) dbPatch.nome = patch.name;
-      if (patch.cdiPercent !== undefined) dbPatch.percentual_cdi = patch.cdiPercent;
+      // `percentual_cdi` é controlado automaticamente pelo backend (CDI).
+      // Ignoramos qualquer alteração vinda do modal para não bloquear o update
+      // dos demais campos por triggers/policies que protegem essa coluna.
       if (patch.goalAmount !== undefined) dbPatch.meta = patch.goalAmount;
 
       // Logs temporários para auditoria do modal Editar Cofrinho
@@ -639,10 +641,10 @@ export function usePiggyBanks() {
   const setRecurrenceActive = useCallback(async (_id: string, _active: boolean) => false, []);
   const deleteRecurrence = useCallback(async (_id: string) => false, []);
 
-  // Taxa controlada automaticamente pelo backend.
+  // Taxa controlada automaticamente pelo backend — no-op silencioso.
   const setPiggyRate = useCallback(
     async (_piggyBankId: string, _newRate: number, _mode: "forward" | "recalc") => {
-      toast.info("A taxa é controlada automaticamente pelo CDI/backend.");
+      // Intencionalmente vazio: o backend recalcula via CDI.
     },
     [],
   );

@@ -216,13 +216,12 @@ export function PiggyBankList({ readOnly = false }: Props) {
 
     if (editing) {
       console.log("[EditarCofrinho] submetendo edição. id:", editing.id);
-      const rateChanged = Math.abs(editing.annualRate - rate) > 0.0001;
       const ok = await updatePiggyBank(editing.id, {
         name: draft.name.trim(),
         color: draft.color,
         shortId,
         autoRate: true,
-        cdiPercent: pct,
+        // cdiPercent é controlado pelo backend — não enviamos no update.
         goalAmount,
         category,
         targetDate,
@@ -231,10 +230,6 @@ export function PiggyBankList({ readOnly = false }: Props) {
       if (!ok) {
         // Mantém o modal aberto para o usuário tentar de novo.
         return;
-      }
-      if (rateChanged) {
-        // Forward: mantém histórico de rendimentos passados intacto.
-        await setPiggyRate(editing.id, rate, "forward");
       }
       toast.success("Cofrinho atualizado");
     } else {
