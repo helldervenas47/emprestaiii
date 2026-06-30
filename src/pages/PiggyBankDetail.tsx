@@ -150,6 +150,7 @@ export default function PiggyBankDetail() {
   const [editDeposit, setEditDeposit] = useState<PiggyBankDeposit | null>(null);
   const [editDepositDraft, setEditDepositDraft] = useState({ amount: "", depositDate: "" });
   const [deleteDepositId, setDeleteDepositId] = useState<string | null>(null);
+  const [selectedYieldId, setSelectedYieldId] = useState<string | null>(null);
 
   const openEditDeposit = (d: PiggyBankDeposit) => {
     setEditDepositDraft({ amount: d.amount.toFixed(2), depositDate: d.depositDate });
