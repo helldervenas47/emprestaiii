@@ -50,6 +50,8 @@ import {
   summarizeMonthMetrics,
 } from "@/components/dashboard/dashboardHelpers";
 import { useAccountBalance } from "@/components/dashboard/useAccountBalance";
+import { DashboardPeriodFilter } from "@/components/dashboard/DashboardPeriodFilter";
+import { DashboardFinancialHealthSection } from "@/components/dashboard/DashboardFinancialHealthSection";
 
 
 interface Props {
