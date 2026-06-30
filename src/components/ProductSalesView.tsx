@@ -64,6 +64,9 @@ import {
 import { ProductSaleCard } from "@/components/product-sales/ProductSaleCard";
 import { ProductSalesTable } from "@/components/product-sales/ProductSalesTable";
 import { ProductSalesMobileCards } from "@/components/product-sales/ProductSalesMobileCards";
+import { useProductSalesController } from "@/components/product-sales/useProductSalesController";
+import { VehicleExpenseEditDialog, VehiclePayExpenseDialog } from "@/components/product-sales/VehicleExpenseDialogs";
+import { ProductSalesSubTabsList } from "@/components/product-sales/ProductSalesSubTabs";
 
 
 interface Props {
