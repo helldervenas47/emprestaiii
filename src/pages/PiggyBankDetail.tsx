@@ -238,39 +238,30 @@ export default function PiggyBankDetail() {
         }
       }
 
-      // Mapeia cada linha do ledger para um item da timeline. A identificação
-      // única usa `evento_id` (ou fallback para `aporte_id`/`resgate_id`/`id`)
-      // garantindo que cada movimentação apareça uma única vez.
+      // Mapeia cada linha do ledger para um item da timeline.
+      // IMPORTANTE: Rendimentos NÃO vêm do ledger — usamos a view
+      // `vw_cofrinho_rendimento_por_dia` (já filtrada por cofrinho_id) que
+      // entrega 1 registro por dia com o líquido individual deste cofrinho.
+      // Isso evita: (a) somar várias linhas RENDIMENTO do ledger (1 por aporte),
+      // (b) misturar valores entre cofrinhos.
       const seen = new Set<string>();
       const detailsMap: Record<string, YieldDetail> = {};
       const items: PiggyBankDeposit[] = [];
       if (!ledgerRes.error && Array.isArray(ledgerRes.data)) {
         for (const row of ledgerRes.data as any[]) {
           const tipo = String(row.tipo || "").toUpperCase().replace("Ó", "O");
+          if (tipo === "RENDIMENTO") continue; // tratado via view abaixo
           const rawDateForKey = String(row.data_evento ?? row.created_at).slice(0, 10);
-          // RENDIMENTO: agrupa por dia (várias linhas no ledger para o mesmo
-          // dia geram uma única entrada na timeline). Os demais tipos usam
-          // o identificador da movimentação.
           const uniqueId =
-            tipo === "RENDIMENTO"
-              ? `RENDIMENTO-${row.cofrinho_id}-${rawDateForKey}`
-              : row.evento_id ||
-                row.aporte_id ||
-                row.resgate_id ||
-                row.id ||
-                `${row.cofrinho_id}-${rawDateForKey}-${row.tipo}-${row.valor}`;
-          if (seen.has(String(uniqueId))) {
-            // Para RENDIMENTO duplicado no mesmo dia, soma o valor à entrada existente.
-            if (tipo === "RENDIMENTO") {
-              const existing = items.find((it) => it.id === String(uniqueId));
-              if (existing) existing.amount += Math.abs(Number(row.valor || 0));
-            }
-            continue;
-          }
+            row.evento_id ||
+            row.aporte_id ||
+            row.resgate_id ||
+            row.id ||
+            `${row.cofrinho_id}-${rawDateForKey}-${row.tipo}-${row.valor}`;
+          if (seen.has(String(uniqueId))) continue;
           seen.add(String(uniqueId));
 
           const rawVal = Number(row.valor || 0);
-          // O tipo determina o sinal — não invertemos sinais automaticamente.
           let amount = rawVal;
           let source: PiggyBankDeposit["source"] = "transfer_in";
           if (tipo === "DEPOSITO") {
@@ -279,33 +270,41 @@ export default function PiggyBankDetail() {
           } else if (tipo === "RESGATE") {
             amount = -Math.abs(rawVal);
             source = "transfer_out";
-          } else if (tipo === "RENDIMENTO") {
-            amount = Math.abs(rawVal);
-            source = "rendimento";
           } else if (tipo === "AJUSTE") {
             amount = rawVal;
             source = "manual";
           }
 
-          const rawDate = row.data_evento ?? row.created_at;
-          const date = String(rawDate).slice(0, 10);
-          const itemId = String(uniqueId);
-
-          if (tipo === "RENDIMENTO" && detailsByDate[date]) {
-            detailsMap[itemId] = detailsByDate[date];
-          }
-
           items.push({
-            id: itemId,
+            id: String(uniqueId),
             piggyBankId: row.cofrinho_id,
             expenseId: null,
             amount,
-            depositDate: date,
+            depositDate: rawDateForKey,
             source,
             recurrenceId: null,
           } as PiggyBankDeposit);
         }
       }
+
+      // Rendimentos: 1 entrada por dia, valor = rendimento_liquido_dia deste cofrinho.
+      for (const [date, detail] of Object.entries(detailsByDate)) {
+        if (detail.rendimentoLiquido === 0) continue;
+        const itemId = `RENDIMENTO-${pb.id}-${date}`;
+        detailsMap[itemId] = detail;
+        items.push({
+          id: itemId,
+          piggyBankId: pb.id,
+          expenseId: null,
+          amount: detail.rendimentoLiquido,
+          depositDate: date,
+          source: "rendimento",
+          recurrenceId: null,
+        } as PiggyBankDeposit);
+      }
+
+      // Reordena: data DESC
+      items.sort((a, b) => (a.depositDate < b.depositDate ? 1 : a.depositDate > b.depositDate ? -1 : 0));
 
       // Ordenação: data_evento DESC, created_at DESC (já vem do banco assim).
       setHistory(items);
