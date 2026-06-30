@@ -5317,24 +5317,9 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
           </div>
           {/* Quick due date filter */}
           {view === "rows" && (
-            <div className="flex w-full bg-muted/60 rounded-xl p-0.5 backdrop-blur-sm border border-border/30">
-              {([
-                { id: "yesterday" as const, label: "Ontem" },
-                { id: "today" as const, label: "Hoje" },
-                { id: "tomorrow" as const, label: "Amanhã" },
-              ]).map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => setDueDateQuick(dueDateQuick === f.id ? null : f.id)}
-                  className={`flex-1 flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                    dueDateQuick === f.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
+            <LoanQuickDateFilters dueDateQuick={dueDateQuick} setDueDateQuick={setDueDateQuick} />
           )}
+
           {/* Botões — versão Mobile (abaixo de Ontem/Hoje/Amanhã) */}
           {/* Botões — versão Mobile (abaixo de Ontem/Hoje/Amanhã) */}
           {(onOpenSimulator || onOpenClientHistory) && (
