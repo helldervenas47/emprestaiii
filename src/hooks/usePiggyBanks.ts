@@ -306,13 +306,13 @@ export function usePiggyBanks() {
     }) => {
       assertWritable();
       if (!user || !dataOwnerId) return null;
-      const descricao = stringifyDescricao({
-        color: data.color ?? DEFAULT_COLOR,
-        icon: data.icon ?? DEFAULT_ICON,
-        category: data.category ?? null,
-        targetDate: data.targetDate ?? null,
-        shortId: data.shortId ?? null,
-      });
+      const descricao: DescricaoMeta = {
+        cor: data.color ?? DEFAULT_COLOR,
+        icone: data.icon ?? DEFAULT_ICON,
+        categoria: data.category ?? null,
+        data_prevista: data.targetDate ?? null,
+        short_id: data.shortId ?? null,
+      };
       const payload: any = {
         usuario_id: dataOwnerId,
         nome: data.name,
