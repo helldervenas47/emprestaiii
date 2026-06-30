@@ -164,11 +164,15 @@ export default function PiggyBankDetail() {
     setEditDeposit(null);
   };
 
-  // ===== Extrato vindo de cofrinho_eventos + vw_cofrinho_rendimento_por_dia =====
-  // Eventos (DEPOSITO, RESGATE, AJUSTE) vêm da tabela `cofrinho_eventos`.
-  // Rendimentos são lidos da view consolidada `vw_cofrinho_rendimento_por_dia`,
-  // que agrupa todos os rendimentos do dia em UM registro por cofrinho/data,
-  // evitando duplicação visual quando há múltiplos aportes ativos.
+  // ===== Extrato — FONTE ÚNICA: `cofrinho_ledger` =====
+  // Todo o histórico (DEPOSITO, RESGATE, RENDIMENTO, AJUSTE) é construído
+  // exclusivamente a partir da tabela `cofrinho_ledger`. Não há união com
+  // `cofrinho_eventos` nem `cofrinho_aportes` — isso elimina a duplicação
+  // visual de movimentações vinda da migração da arquitetura antiga.
+  //
+  // A view `vw_cofrinho_rendimento_por_dia` continua sendo consultada APENAS
+  // para popular o diálogo de detalhes do rendimento (saldo base, IOF, IR,
+  // bruto, líquido, aportes calculados). Ela não participa da timeline.
   interface YieldDetail {
     date: string;
     saldoPrincipalBase: number;
@@ -189,12 +193,11 @@ export default function PiggyBankDetail() {
     }
     let cancelled = false;
     (async () => {
-      const [evRes, yieldRes] = await Promise.all([
+      const [ledgerRes, yieldRes] = await Promise.all([
         supabase
-          .from("cofrinho_eventos" as any)
-          .select("id, cofrinho_id, tipo, valor, descricao, referencia, data_evento, created_at")
+          .from("cofrinho_ledger" as any)
+          .select("*")
           .eq("cofrinho_id", pb.id)
-          .neq("tipo", "RENDIMENTO")
           .order("data_evento", { ascending: false })
           .order("created_at", { ascending: false }),
         supabase
@@ -202,68 +205,87 @@ export default function PiggyBankDetail() {
           .select(
             "cofrinho_id, data, saldo_principal_base, rendimento_bruto_dia, imposto_renda_dia, iof_dia, rendimento_liquido_dia, saldo_total, aportes_calculados",
           )
-          .eq("cofrinho_id", pb.id)
-          .order("data", { ascending: false }),
+          .eq("cofrinho_id", pb.id),
       ]);
       if (cancelled) return;
 
-      const events: PiggyBankDeposit[] = !evRes.error && Array.isArray(evRes.data)
-        ? (evRes.data as any[]).map((ev) => {
-            const tipo = String(ev.tipo || "").toUpperCase();
-            const rawVal = Number(ev.valor || 0);
-            const amount = tipo === "RESGATE" ? -Math.abs(rawVal) : Math.abs(rawVal);
-            const source =
-              tipo === "RESGATE"
-                ? "transfer_out"
-                : tipo === "AJUSTE"
-                  ? "manual"
-                  : "transfer_in";
-            const rawDate = ev.data_evento ?? ev.created_at;
-            return {
-              id: ev.id,
-              piggyBankId: ev.cofrinho_id,
-              expenseId: null,
-              amount,
-              depositDate: String(rawDate).slice(0, 10),
-              source,
-              recurrenceId: null,
-            } as PiggyBankDeposit;
-          })
-        : [];
+      // Detalhes do rendimento — indexados por data (YYYY-MM-DD) para casamento
+      // com a linha de RENDIMENTO vinda do ledger.
+      const detailsByDate: Record<string, YieldDetail> = {};
+      if (!yieldRes.error && Array.isArray(yieldRes.data)) {
+        for (const r of yieldRes.data as any[]) {
+          const date = String(r.data).slice(0, 10);
+          detailsByDate[date] = {
+            date,
+            saldoPrincipalBase: Number(r.saldo_principal_base || 0),
+            rendimentoBruto: Number(r.rendimento_bruto_dia || 0),
+            iof: Number(r.iof_dia || 0),
+            impostoRenda: Number(r.imposto_renda_dia || 0),
+            rendimentoLiquido: Number(r.rendimento_liquido_dia || 0),
+            saldoTotal: Number(r.saldo_total || 0),
+            aportesCalculados: Number(r.aportes_calculados || 0),
+          };
+        }
+      }
 
+      // Mapeia cada linha do ledger para um item da timeline. A identificação
+      // única usa `evento_id` (ou fallback para `aporte_id`/`resgate_id`/`id`)
+      // garantindo que cada movimentação apareça uma única vez.
+      const seen = new Set<string>();
       const detailsMap: Record<string, YieldDetail> = {};
-      const yields: PiggyBankDeposit[] = !yieldRes.error && Array.isArray(yieldRes.data)
-        ? (yieldRes.data as any[]).map((r) => {
-            const date = String(r.data).slice(0, 10);
-            const liquido = Number(r.rendimento_liquido_dia || 0);
-            const detail: YieldDetail = {
-              date,
-              saldoPrincipalBase: Number(r.saldo_principal_base || 0),
-              rendimentoBruto: Number(r.rendimento_bruto_dia || 0),
-              iof: Number(r.iof_dia || 0),
-              impostoRenda: Number(r.imposto_renda_dia || 0),
-              rendimentoLiquido: liquido,
-              saldoTotal: Number(r.saldo_total || 0),
-              aportesCalculados: Number(r.aportes_calculados || 0),
-            };
-            const id = `yield-${date}`;
-            detailsMap[id] = detail;
-            return {
-              id,
-              piggyBankId: pb.id,
-              expenseId: null,
-              amount: liquido,
-              depositDate: date,
-              source: "rendimento",
-              recurrenceId: null,
-            } as PiggyBankDeposit;
-          })
-        : [];
+      const items: PiggyBankDeposit[] = [];
+      if (!ledgerRes.error && Array.isArray(ledgerRes.data)) {
+        for (const row of ledgerRes.data as any[]) {
+          const tipo = String(row.tipo || "").toUpperCase().replace("Ó", "O");
+          const uniqueId =
+            row.evento_id ||
+            row.aporte_id ||
+            row.resgate_id ||
+            row.id ||
+            `${row.cofrinho_id}-${row.data_evento}-${row.tipo}-${row.valor}`;
+          if (seen.has(String(uniqueId))) continue;
+          seen.add(String(uniqueId));
 
-      const merged = [...events, ...yields].sort((a, b) =>
-        a.depositDate < b.depositDate ? 1 : a.depositDate > b.depositDate ? -1 : 0,
-      );
-      setHistory(merged);
+          const rawVal = Number(row.valor || 0);
+          // O tipo determina o sinal — não invertemos sinais automaticamente.
+          let amount = rawVal;
+          let source: PiggyBankDeposit["source"] = "transfer_in";
+          if (tipo === "DEPOSITO") {
+            amount = Math.abs(rawVal);
+            source = "transfer_in";
+          } else if (tipo === "RESGATE") {
+            amount = -Math.abs(rawVal);
+            source = "transfer_out";
+          } else if (tipo === "RENDIMENTO") {
+            amount = Math.abs(rawVal);
+            source = "rendimento";
+          } else if (tipo === "AJUSTE") {
+            amount = rawVal;
+            source = "manual";
+          }
+
+          const rawDate = row.data_evento ?? row.created_at;
+          const date = String(rawDate).slice(0, 10);
+          const itemId = String(uniqueId);
+
+          if (tipo === "RENDIMENTO" && detailsByDate[date]) {
+            detailsMap[itemId] = detailsByDate[date];
+          }
+
+          items.push({
+            id: itemId,
+            piggyBankId: row.cofrinho_id,
+            expenseId: null,
+            amount,
+            depositDate: date,
+            source,
+            recurrenceId: null,
+          } as PiggyBankDeposit);
+        }
+      }
+
+      // Ordenação: data_evento DESC, created_at DESC (já vem do banco assim).
+      setHistory(items);
       setYieldDetails(detailsMap);
     })();
 
