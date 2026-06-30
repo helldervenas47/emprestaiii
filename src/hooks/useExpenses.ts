@@ -628,9 +628,11 @@ export function useExpenses(enabled = true) {
       }
 
       // Reverse piggy bank credit when unpaying a piggy expense.
-      if (extractPiggyId(expense.notes)) {
-        await supabase.from("piggy_bank_deposits" as any).delete().eq("expense_id", id);
-      }
+      // Nova arquitetura: aportes não carregam expense_id e ficam preservados
+      // como histórico em `cofrinho_aportes`/`cofrinho_eventos`. Para reverter
+      // saldo o usuário deve usar um resgate. No-op intencional aqui.
+      if (extractPiggyId(expense.notes)) { /* no-op */ }
+
     }
   }, [expenses, dataOwnerId]);
 
@@ -643,8 +645,8 @@ export function useExpenses(enabled = true) {
       await enqueueMutation({ table: "expenses", op: "delete", recordId: id });
       return;
     }
-    // Remove any piggy deposit linked to this expense (no-op if none).
-    await supabase.from("piggy_bank_deposits" as any).delete().eq("expense_id", id);
+    // Nova arquitetura: aportes não têm expense_id; nada para limpar aqui.
+
 
     // Remove lançamento do extrato (reverte saldo na carteira correta automaticamente)
     await removeLedgerByRef({ expense_id: id, category: "expense" });

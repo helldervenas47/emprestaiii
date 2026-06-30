@@ -34,10 +34,13 @@ export const BACKUP_TABLES: BackupTable[] = [
   { name: "monthly_opening_balances", ownerCol: "owner_id", replaceSafe: true },
   { name: "active_capital_snapshots", ownerCol: "owner_id", replaceSafe: true },
   { name: "personal_budgets", ownerCol: "user_id", replaceSafe: true },
-  { name: "piggy_banks", ownerCol: "user_id", replaceSafe: true },
-  { name: "piggy_bank_recurrences", ownerCol: "user_id", replaceSafe: true },
-  { name: "piggy_bank_rate_history", ownerCol: "user_id", replaceSafe: true },
-  { name: "piggy_bank_deposits", ownerCol: "user_id", replaceSafe: true },
+  // Nova arquitetura de cofrinhos: tabelas `cofrinhos`, `cofrinho_aportes`,
+  // `cofrinho_resgates`, `cofrinho_eventos`, `cofrinho_rendimento_diario` e
+  // `taxa_referencia`. Os legados (`piggy_banks`, `piggy_bank_deposits`,
+  // `piggy_bank_recurrences`, `piggy_bank_rate_history`) foram removidos do
+  // backup. A inclusão dos novos requer suporte a `usuario_id` em ownerCol e
+  // será tratada num próximo passo do backup engine.
+
   { name: "manager_commissions", ownerCol: "user_id", replaceSafe: true },
   { name: "tracking_providers", ownerCol: "owner_id", replaceSafe: true },
   { name: "tracking_positions", ownerCol: "owner_id", replaceSafe: true },

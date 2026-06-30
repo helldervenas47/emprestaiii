@@ -41,24 +41,28 @@ export function useUnifiedAccountBalance(): number {
     if (!ownerId) return;
     let cancelled = false;
     const load = async () => {
-      const [{ data: ledger }, { data: piggy }] = await Promise.all([
+      const [{ data: ledger }, { data: cofrinhos }] = await Promise.all([
         supabase
           .from("account_ledger")
           .select("amount")
           .eq("user_id", ownerId)
           .eq("direction", "out")
           .eq("metadata->>kind", "credit_card_invoice_payment"),
+        // Nova arquitetura: saldo líquido dos cofrinhos = soma de saldo_principal
+        // da tabela `cofrinhos` (já reflete depósitos − resgates).
         supabase
-          .from("piggy_bank_deposits" as any)
-          .select("amount")
-          .eq("user_id", ownerId),
+          .from("cofrinhos" as any)
+          .select("saldo_principal, ativo")
+          .eq("usuario_id", ownerId),
       ]);
       if (cancelled) return;
       setCardInvoicePaidTotal(
         ((ledger as any[]) ?? []).reduce((s, r) => s + (Number(r.amount) || 0), 0),
       );
       setPiggyNetTotal(
-        ((piggy as any[]) ?? []).reduce((s, r) => s + (Number(r.amount) || 0), 0),
+        ((cofrinhos as any[]) ?? [])
+          .filter((r) => r.ativo !== false)
+          .reduce((s, r) => s + (Number(r.saldo_principal) || 0), 0),
       );
     };
     load();
@@ -71,6 +75,7 @@ export function useUnifiedAccountBalance(): number {
       window.removeEventListener("balance:changed", handler);
     };
   }, [ownerId]);
+
 
   return useMemo(() => {
     const totalIncomeReceived = incomes

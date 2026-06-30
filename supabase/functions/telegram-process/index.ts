@@ -157,45 +157,72 @@ function hasNaturalLanguageHint(text: string): boolean {
   return NATURAL_LANGUAGE_HINT.test(text);
 }
 
+// Helpers da nova arquitetura de cofrinhos
+function parseCofrinhoMeta(raw: any): { shortId: number | null } {
+  if (!raw || typeof raw !== "string") return { shortId: null };
+  const t = raw.trim();
+  if (!t.startsWith("{")) return { shortId: null };
+  try {
+    const p = JSON.parse(t);
+    return { shortId: typeof p?.shortId === "number" ? p.shortId : null };
+  } catch {
+    return { shortId: null };
+  }
+}
+
+async function invokeExternalCofrinhoFn(
+  fn: "processar-deposito-cofrinho" | "processar-resgate-cofrinho" | "processar-ajuste-cofrinho",
+  body: Record<string, unknown>,
+): Promise<{ ok: boolean; error?: string; data?: any }> {
+  try {
+    const url = `${Deno.env.get("EXTERNAL_SUPABASE_URL")}/functions/v1/${fn}`;
+    const key = await getExternalServiceRoleKey();
+    const r = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${key}`,
+        "apikey": key,
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) return { ok: false, error: (data as any)?.error || `HTTP ${r.status}` };
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
 async function handleAportesSaldo(admin: any, userId: string): Promise<string> {
   const { data: ownerData } = await admin.rpc("get_data_owner_id", { _user_id: userId });
   const ownerId = (typeof ownerData === "string" && ownerData) ? ownerData : userId;
 
   const { data: banks, error: banksErr } = await admin
-    .from("piggy_banks")
-    .select("id, name, short_id")
-    .eq("user_id", ownerId)
-    .order("short_id", { ascending: true, nullsFirst: false })
-    .order("name", { ascending: true });
+    .from("cofrinhos")
+    .select("id, nome, descricao, saldo_total, ativo, created_at")
+    .eq("usuario_id", ownerId)
+    .order("created_at", { ascending: true });
 
   if (banksErr) return "❌ Erro ao buscar caixinhas: " + banksErr.message;
-  if (!banks || banks.length === 0) {
+  const active = (banks ?? []).filter((b: any) => b.ativo !== false);
+  if (active.length === 0) {
     return "ℹ️ Nenhuma caixinha cadastrada ainda.";
-  }
-
-  const ids = banks.map((b: any) => b.id);
-  const { data: deposits } = await admin
-    .from("piggy_bank_deposits")
-    .select("piggy_bank_id, amount")
-    .eq("user_id", ownerId)
-    .in("piggy_bank_id", ids);
-
-  const balanceById = new Map<string, number>();
-  for (const d of (deposits ?? []) as any[]) {
-    balanceById.set(d.piggy_bank_id, (balanceById.get(d.piggy_bank_id) ?? 0) + (Number(d.amount) || 0));
   }
 
   let total = 0;
   let msg = "🐷 *Saldo das caixinhas*\n";
-  for (const b of banks as any[]) {
-    const bal = balanceById.get(b.id) ?? 0;
+  for (const b of active as any[]) {
+    const bal = Number(b.saldo_total) || 0;
     total += bal;
-    const tag = b.short_id ? `#${b.short_id}` : `#${String(b.id).slice(0, 4)}`;
-    msg += `${tag} ${b.name} — *${fmtBRL(bal)}*\n`;
+    const meta = parseCofrinhoMeta(b.descricao);
+    const tag = meta.shortId ? `#${meta.shortId}` : `#${String(b.id).slice(0, 4)}`;
+    msg += `${tag} ${b.nome} — *${fmtBRL(bal)}*\n`;
   }
   msg += `\n*Total geral:* ${fmtBRL(total)}`;
   return msg;
 }
+
 
 
 function detectCategory(description: string): string {
@@ -977,43 +1004,50 @@ async function handleMeusAportes(admin: any, userId: string): Promise<string> {
   const { data: ownerData } = await admin.rpc("get_data_owner_id", { _user_id: userId });
   const ownerId = (typeof ownerData === "string" && ownerData) ? ownerData : userId;
 
-  const { data: deposits } = await admin
-    .from("piggy_bank_deposits")
-    .select("amount, deposit_date, piggy_bank_id, created_at")
-    .eq("user_id", ownerId)
-    .order("deposit_date", { ascending: false })
+  // Nova arquitetura: eventos via `cofrinho_eventos`, filtrados pelos cofrinhos
+  // do usuário. Usa `data_evento` como data financeira real.
+  const { data: banks } = await admin
+    .from("cofrinhos")
+    .select("id, nome")
+    .eq("usuario_id", ownerId);
+  const bankList = (banks ?? []) as any[];
+  if (bankList.length === 0) {
+    return "ℹ️ Nenhum aporte em caixinhas registrado ainda.\nUse /aporte para fazer o primeiro.";
+  }
+  const nameById = new Map<string, string>();
+  for (const b of bankList) nameById.set(b.id, b.nome);
+
+  const { data: events } = await admin
+    .from("cofrinho_eventos")
+    .select("tipo, valor, data_evento, created_at, cofrinho_id")
+    .in("cofrinho_id", bankList.map((b) => b.id))
+    .in("tipo", ["DEPOSITO", "RESGATE"])
+    .order("data_evento", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(10);
 
-  if (!deposits || deposits.length === 0) {
+  if (!events || events.length === 0) {
     return "ℹ️ Nenhum aporte em caixinhas registrado ainda.\nUse /aporte para fazer o primeiro.";
   }
 
-  const ids = Array.from(new Set(deposits.map((d: any) => d.piggy_bank_id)));
-  const { data: banks } = await admin
-    .from("piggy_banks")
-    .select("id, name")
-    .in("id", ids);
-  const nameById = new Map<string, string>();
-  for (const b of (banks ?? []) as any[]) nameById.set(b.id, b.name);
-
   let total = 0;
   let msg = "🐷 *Últimos aportes*\n";
-  deposits.forEach((d: any, i: number) => {
-    const amt = Number(d.amount) || 0;
+  events.forEach((d: any, i: number) => {
+    const raw = Number(d.valor) || 0;
+    const amt = String(d.tipo).toUpperCase() === "RESGATE" ? -Math.abs(raw) : Math.abs(raw);
     total += amt;
-    const dateStr = d.deposit_date ? fmtDayMonth(d.deposit_date) : "—";
+    const rawDate = d.data_evento ?? d.created_at;
+    const dateStr = rawDate ? fmtDayMonth(String(rawDate).slice(0, 10)) : "—";
     const sign = amt < 0 ? "↓ " : "";
-    msg += `${i + 1}. ${sign}${fmtBRL(amt)} — ${nameById.get(d.piggy_bank_id) ?? "Caixinha"} — ${dateStr}\n`;
+    msg += `${i + 1}. ${sign}${fmtBRL(amt)} — ${nameById.get(d.cofrinho_id) ?? "Caixinha"} — ${dateStr}\n`;
   });
   msg += `\n*Total exibido:* ${fmtBRL(total)}`;
   return msg;
 }
 
 // Registers an internal contribution (aporte) to a piggy bank.
-// IMPORTANT: aportes are pure internal balance movements — they MUST NOT create
-// an expense, since they are not a real cash outflow (just moving money between
-// the user's own balances). Only `piggy_bank_deposits` is touched.
+// Delega para a Edge Function `processar-deposito-cofrinho`, fonte de verdade
+// da nova arquitetura. Nenhuma escrita direta em tabelas legadas.
 async function finalizePiggyAporte(
   admin: any,
   userId: string,
@@ -1021,41 +1055,25 @@ async function finalizePiggyAporte(
   amount: number,
   _note: string | null,
 ): Promise<string> {
-  const { data: ownerData } = await admin.rpc("get_data_owner_id", { _user_id: userId });
-  const ownerId = (typeof ownerData === "string" && ownerData) ? ownerData : userId;
   const today = todayBR();
+  const res = await invokeExternalCofrinhoFn("processar-deposito-cofrinho", {
+    cofrinho_id: bank.id,
+    valor: amount,
+    data_aporte: today,
+  });
+  if (!res.ok) return "❌ Erro ao registrar aporte: " + (res.error ?? "desconhecido");
 
-  const { error: depErr } = await admin
-    .from("piggy_bank_deposits")
-    .insert({
-      user_id: ownerId,
-      piggy_bank_id: bank.id,
-      expense_id: null,
-      amount,
-      deposit_date: today,
-      source: "manual",
-    });
-
-  if (depErr) {
-    return "❌ Erro ao registrar aporte: " + depErr.message;
-  }
-
-  // Compute updated balance for confirmation feedback.
-  const { data: allDeposits } = await admin
-    .from("piggy_bank_deposits")
-    .select("amount")
-    .eq("user_id", ownerId)
-    .eq("piggy_bank_id", bank.id);
-  const balance = ((allDeposits ?? []) as any[])
-    .reduce((s: number, d: any) => s + (Number(d.amount) || 0), 0);
-
+  // Saldo atualizado via tabela `cofrinhos`.
+  const { data: cof } = await admin
+    .from("cofrinhos")
+    .select("saldo_total")
+    .eq("id", bank.id)
+    .maybeSingle();
+  const balance = Number((cof as any)?.saldo_total ?? 0);
   return `✅ Aporte de ${fmtBRL(amount)} adicionado em *${bank.name}*\n💰 Saldo atual: *${fmtBRL(balance)}*`;
 }
 
-// Resgate (withdrawal) from a piggy bank back into the main account.
-// Performs a NEGATIVE deposit on the piggy bank and registers an income with
-// category "Resgate Cofrinho" so the value composes the account balance and
-// shows up in the Extrato Financeiro automatically.
+// Resgate (withdrawal) — usa Edge Function dedicada da nova arquitetura.
 async function finalizePiggyResgate(
   admin: any,
   userId: string,
@@ -1065,33 +1083,27 @@ async function finalizePiggyResgate(
   const ownerId = await resolvePiggyOwner(admin, userId);
   const today = todayBR();
 
-  // Verify available balance.
-  const { data: existingDeposits, error: balErr } = await admin
-    .from("piggy_bank_deposits")
-    .select("amount")
-    .eq("user_id", ownerId)
-    .eq("piggy_bank_id", bank.id);
+  // Verifica saldo via `cofrinhos.saldo_total`.
+  const { data: cof, error: balErr } = await admin
+    .from("cofrinhos")
+    .select("saldo_total")
+    .eq("id", bank.id)
+    .maybeSingle();
   if (balErr) return "❌ Erro ao consultar saldo da caixinha: " + balErr.message;
-  const currentBalance = ((existingDeposits ?? []) as any[])
-    .reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  const currentBalance = Number((cof as any)?.saldo_total ?? 0);
   if (amount > currentBalance + 0.005) {
     return `❌ Saldo insuficiente em *${bank.name}*.\n💰 Disponível: *${fmtBRL(currentBalance)}*`;
   }
 
-  // 1) Negative deposit = withdrawal.
-  const { error: depErr } = await admin
-    .from("piggy_bank_deposits")
-    .insert({
-      user_id: ownerId,
-      piggy_bank_id: bank.id,
-      expense_id: null,
-      amount: -amount,
-      deposit_date: today,
-      source: "telegram_withdraw",
-    });
-  if (depErr) return "❌ Erro ao registrar resgate: " + depErr.message;
+  // 1) Resgate via Edge Function.
+  const res = await invokeExternalCofrinhoFn("processar-resgate-cofrinho", {
+    cofrinho_id: bank.id,
+    valor: amount,
+    data_resgate: today,
+  });
+  if (!res.ok) return "❌ Erro ao registrar resgate: " + (res.error ?? "desconhecido");
 
-  // 2) Income entry to credit the main account & populate the extrato.
+  // 2) Crédito no extrato como receita "Resgate Cofrinho".
   const { error: incErr } = await admin.from("incomes").insert({
     user_id: ownerId,
     description: `Resgate da caixinha ${bank.name}`,
@@ -1104,15 +1116,7 @@ async function finalizePiggyResgate(
     notes: `[bot][cofrinho:${bank.id}]`,
   });
   if (incErr) {
-    // Best-effort rollback of the deposit so balances stay consistent.
-    await admin.from("piggy_bank_deposits")
-      .delete()
-      .eq("user_id", ownerId)
-      .eq("piggy_bank_id", bank.id)
-      .eq("source", "telegram_withdraw")
-      .eq("deposit_date", today)
-      .eq("amount", -amount);
-    return "❌ Erro ao registrar entrada na conta: " + incErr.message;
+    return "⚠️ Resgate efetuado, mas falhou ao lançar receita: " + incErr.message;
   }
 
   const newBalance = currentBalance - amount;
@@ -1122,6 +1126,7 @@ async function finalizePiggyResgate(
     `🏦 Crédito lançado em receitas como _Resgate Cofrinho_`,
   ].join("\n");
 }
+
 
 // Detects natural-language requests to transfer money from a piggy bank back
 // into the main account, e.g.:
@@ -1200,17 +1205,19 @@ async function handleResgateCommand(
 
   let amount = parsed.amount;
   if (amount === null && parsed.allBalance) {
-    const { data: deps } = await admin
-      .from("piggy_bank_deposits")
-      .select("amount")
-      .eq("piggy_bank_id", bank.id);
-    const totalAvailable = ((deps ?? []) as any[]).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+    const { data: cof } = await admin
+      .from("cofrinhos")
+      .select("saldo_total")
+      .eq("id", bank.id)
+      .maybeSingle();
+    const totalAvailable = Number((cof as any)?.saldo_total ?? 0);
     amount = totalAvailable;
     if (totalAvailable <= 0) {
       await tgSend(chatId, `ℹ️ A caixinha *${bank.name}* não tem saldo para resgatar.`, telegramKey);
       return;
     }
   }
+
 
   if (amount === null || amount <= 0) {
     await tgSend(
@@ -1714,18 +1721,20 @@ async function resolvePiggyOwner(admin: any, userId: string): Promise<string> {
 async function listUserPiggyBanks(admin: any, userId: string) {
   const ownerId = await resolvePiggyOwner(admin, userId);
   const { data } = await admin
-    .from("piggy_banks")
-    .select("id, name, short_id")
-    .eq("user_id", ownerId)
-    .order("short_id", { ascending: true, nullsFirst: false })
-    .order("created_at");
-  const banks = ((data ?? []) as any[]).map((b) => ({
-    id: b.id as string,
-    name: b.name as string,
-    shortId: (b.short_id ?? null) as number | null,
-  }));
+    .from("cofrinhos")
+    .select("id, nome, descricao, ativo, created_at")
+    .eq("usuario_id", ownerId)
+    .order("created_at", { ascending: true });
+  const banks = ((data ?? []) as any[])
+    .filter((b) => b.ativo !== false)
+    .map((b) => ({
+      id: b.id as string,
+      name: b.nome as string,
+      shortId: parseCofrinhoMeta(b.descricao).shortId,
+    }));
   return { ownerId, banks };
 }
+
 
 function buildPiggyBanksKeyboard(banks: { id: string; name: string; shortId?: number | null }[]) {
   const rows: any[] = [];
@@ -2958,12 +2967,13 @@ Deno.serve(async (req) => {
                 pendingHandled = true;
               } else {
                 const ownerId = await resolvePiggyOwner(admin, link.user_id);
-                const { data: bank } = await admin
-                  .from("piggy_banks")
-                  .select("id, name")
+                const { data: bankRow } = await admin
+                  .from("cofrinhos")
+                  .select("id, nome")
                   .eq("id", pendingPiggy.piggy_bank_id)
-                  .eq("user_id", ownerId)
+                  .eq("usuario_id", ownerId)
                   .maybeSingle();
+                const bank = bankRow ? { id: (bankRow as any).id, name: (bankRow as any).nome } : null;
                 await admin.from("telegram_pending_piggy_aporte").delete().eq("chat_id", chatId);
                 if (!bank) {
                   await tgSend(chatId, "❌ Caixinha não encontrada.", telegramKey);
@@ -2973,6 +2983,7 @@ Deno.serve(async (req) => {
                   const reply = await finalizePiggyAporte(admin, link.user_id, bank, parsed.amount, finalNote);
                   await tgSend(chatId, reply, telegramKey);
                 }
+
                 pendingHandled = true;
               }
             }
