@@ -68,9 +68,7 @@ import {
 import { PaymentHistoryItem } from "@/components/loans/list/PaymentHistoryItem";
 
 
-export EOF
-
-# Append LoanCardView body (lines 180-2546)
+export HEAD
 sed -n '180,2546p' src/components/LoanList.tsx >> src/components/loans/list/LoanMobileCard.tsx
-
 wc -l src/components/loans/list/LoanMobileCard.tsx
+tail -3 src/components/loans/list/LoanMobileCard.tsx
