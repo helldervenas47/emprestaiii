@@ -164,9 +164,9 @@ export default function PiggyBankDetail() {
   };
 
   // ===== Extrato vindo de cofrinho_eventos (nova arquitetura) =====
-  // Para eventos do tipo DEPOSITO, a data exibida é `data_aporte` do aporte
-  // correspondente (referenciado em `cofrinho_eventos.referencia`). O
-  // `created_at` do evento representa apenas a data de criação do registro.
+  // A data financeira real do evento é `data_evento`. `created_at` é apenas
+  // auditoria interna (quando o registro foi criado no banco) e só serve de
+  // fallback caso `data_evento` esteja nulo.
   const [history, setHistory] = useState<PiggyBankDeposit[]>([]);
   useEffect(() => {
     if (!pb) {
@@ -177,17 +177,11 @@ export default function PiggyBankDetail() {
     (async () => {
       const { data, error } = await supabase
         .from("cofrinho_eventos" as any)
-        .select("id, cofrinho_id, tipo, valor, descricao, referencia, created_at")
+        .select("id, cofrinho_id, tipo, valor, descricao, referencia, data_evento, created_at")
         .eq("cofrinho_id", pb.id)
+        .order("data_evento", { ascending: false })
         .order("created_at", { ascending: false });
       if (cancelled || error || !Array.isArray(data)) return;
-
-      // Lookup de data_aporte por aporte_id, vinda do hook (já mapeada de
-      // cofrinho_aportes.data_aporte).
-      const aporteDateById = new Map<string, string>();
-      for (const d of deposits) {
-        if (d.piggyBankId === pb.id) aporteDateById.set(d.id, d.depositDate);
-      }
 
       const mapped: PiggyBankDeposit[] = (data as any[]).map((ev) => {
         const tipo = String(ev.tipo || "").toUpperCase();
@@ -202,14 +196,8 @@ export default function PiggyBankDetail() {
               : tipo === "AJUSTE"
                 ? "manual"
                 : "transfer_in";
-        // Para DEPOSITO: usar data_aporte do aporte referenciado. Demais
-        // tipos (RESGATE, RENDIMENTO, AJUSTE) não possuem data própria no
-        // schema atual, então caímos no created_at como melhor aproximação.
-        const aporteDate =
-          tipo === "DEPOSITO" && ev.referencia
-            ? aporteDateById.get(String(ev.referencia))
-            : undefined;
-        const depositDate = aporteDate || String(ev.created_at).slice(0, 10);
+        const rawDate = ev.data_evento ?? ev.created_at;
+        const depositDate = String(rawDate).slice(0, 10);
         return {
           id: ev.id,
           piggyBankId: ev.cofrinho_id,
@@ -222,6 +210,7 @@ export default function PiggyBankDetail() {
       });
       setHistory(mapped);
     })();
+
     return () => {
       cancelled = true;
     };
