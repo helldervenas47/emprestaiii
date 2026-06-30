@@ -130,17 +130,26 @@ const ymd = (d: Date) =>
 // Descricao JSON helpers — extras visuais que o novo schema não comporta.
 // ---------------------------------------------------------------------------
 interface DescricaoMeta {
+  cor?: string;
+  icone?: string;
+  categoria?: string | null;
+  data_prevista?: string | null;
+  short_id?: number | null;
+  note?: string;
+  // legacy keys (compat com registros antigos)
   color?: string;
   icon?: string;
   category?: string | null;
   targetDate?: string | null;
   shortId?: number | null;
-  note?: string;
 }
 
 const parseDescricao = (raw: any): DescricaoMeta => {
-  if (!raw || typeof raw !== "string") return {};
+  if (raw == null) return {};
+  if (typeof raw === "object") return { ...(raw as DescricaoMeta) };
+  if (typeof raw !== "string") return {};
   const trimmed = raw.trim();
+  if (!trimmed) return {};
   if (!trimmed.startsWith("{")) return { note: trimmed };
   try {
     const parsed = JSON.parse(trimmed);
@@ -150,7 +159,13 @@ const parseDescricao = (raw: any): DescricaoMeta => {
   }
 };
 
-const stringifyDescricao = (meta: DescricaoMeta): string => JSON.stringify(meta);
+const readMeta = (m: DescricaoMeta) => ({
+  cor: m.cor ?? m.color ?? DEFAULT_COLOR,
+  icone: m.icone ?? m.icon ?? DEFAULT_ICON,
+  categoria: m.categoria ?? m.category ?? null,
+  data_prevista: m.data_prevista ?? m.targetDate ?? null,
+  short_id: m.short_id ?? m.shortId ?? null,
+});
 
 const DEFAULT_COLOR = "210 80% 55%";
 const DEFAULT_ICON = "PiggyBank";
@@ -193,18 +208,19 @@ export function usePiggyBanks() {
         .map((r) => {
           rowsMap[r.id] = r;
           const meta = parseDescricao(r.descricao);
+          const m = readMeta(meta);
           return {
             id: r.id,
-            shortId: meta.shortId ?? null,
+            shortId: m.short_id,
             name: r.nome,
-            color: meta.color || DEFAULT_COLOR,
-            icon: meta.icon || DEFAULT_ICON,
+            color: m.cor,
+            icon: m.icone,
             annualRate: 0, // backend controla; campo legado mantido por compat
             autoRate: true,
             cdiPercent: r.percentual_cdi != null ? Number(r.percentual_cdi) : 100,
             goalAmount: r.meta != null ? Number(r.meta) : null,
-            category: meta.category ?? null,
-            targetDate: meta.targetDate ?? null,
+            category: m.categoria,
+            targetDate: m.data_prevista,
             createdAt: r.created_at,
           };
         });
@@ -290,13 +306,13 @@ export function usePiggyBanks() {
     }) => {
       assertWritable();
       if (!user || !dataOwnerId) return null;
-      const descricao = stringifyDescricao({
-        color: data.color ?? DEFAULT_COLOR,
-        icon: data.icon ?? DEFAULT_ICON,
-        category: data.category ?? null,
-        targetDate: data.targetDate ?? null,
-        shortId: data.shortId ?? null,
-      });
+      const descricao: DescricaoMeta = {
+        cor: data.color ?? DEFAULT_COLOR,
+        icone: data.icon ?? DEFAULT_ICON,
+        categoria: data.category ?? null,
+        data_prevista: data.targetDate ?? null,
+        short_id: data.shortId ?? null,
+      };
       const payload: any = {
         usuario_id: dataOwnerId,
         nome: data.name,
@@ -341,13 +357,21 @@ export function usePiggyBanks() {
       assertWritable();
       const current = cofrinhoRows[id];
       const meta = parseDescricao(current?.descricao);
-      const newMeta: DescricaoMeta = { ...meta };
-      if (patch.color !== undefined) newMeta.color = patch.color;
-      if (patch.icon !== undefined) newMeta.icon = patch.icon;
-      if (patch.category !== undefined) newMeta.category = patch.category;
-      if (patch.targetDate !== undefined) newMeta.targetDate = patch.targetDate;
-      if (patch.shortId !== undefined) newMeta.shortId = patch.shortId;
-      const dbPatch: any = { descricao: stringifyDescricao(newMeta) };
+      // Normaliza para chaves PT e remove chaves legadas (color/icon/etc.)
+      const base = readMeta(meta);
+      const newMeta: DescricaoMeta = {
+        cor: base.cor,
+        icone: base.icone,
+        categoria: base.categoria,
+        data_prevista: base.data_prevista,
+        short_id: base.short_id,
+      };
+      if (patch.color !== undefined) newMeta.cor = patch.color;
+      if (patch.icon !== undefined) newMeta.icone = patch.icon;
+      if (patch.category !== undefined) newMeta.categoria = patch.category;
+      if (patch.targetDate !== undefined) newMeta.data_prevista = patch.targetDate;
+      if (patch.shortId !== undefined) newMeta.short_id = patch.shortId;
+      const dbPatch: any = { descricao: newMeta };
       if (patch.name !== undefined) dbPatch.nome = patch.name;
       if (patch.cdiPercent !== undefined) dbPatch.percentual_cdi = patch.cdiPercent;
       if (patch.goalAmount !== undefined) dbPatch.meta = patch.goalAmount;
