@@ -11,6 +11,7 @@ export interface ExpenseListOptions {
   limit?: number;
   parentId?: string;
   paid?: boolean;
+  columns?: string;
 }
 
 const DEFAULT_LIST_LIMIT = 5000;
@@ -19,7 +20,7 @@ export const expensesRepository = {
   async list(opts: ExpenseListOptions = {}): Promise<ExpenseRow[]> {
     let q = supabase
       .from("expenses")
-      .select("*")
+      .select(opts.columns ?? "*")
       .order("created_at", { ascending: false })
       .limit(opts.limit ?? DEFAULT_LIST_LIMIT);
     if (opts.parentId !== undefined) q = q.eq("parent_expense_id", opts.parentId);
@@ -29,10 +30,10 @@ export const expensesRepository = {
     return (data ?? []) as ExpenseRow[];
   },
 
-  async findById(id: string): Promise<ExpenseRow | null> {
+  async findById(id: string, columns: string = "*"): Promise<ExpenseRow | null> {
     const { data, error } = await supabase
       .from("expenses")
-      .select("*")
+      .select(columns)
       .eq("id", id)
       .maybeSingle();
     if (error) throw error;

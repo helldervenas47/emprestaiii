@@ -62,7 +62,7 @@ export function useIncomes(enabled = true) {
     setLoading(true);
     const { data } = await supabase
       .from("incomes" as any)
-      .select("*")
+      .select("id, description, amount, category, client_id, source, payment_method_id, received_date, actual_received_date, status, notes, recurrence, parent_id, created_at")
       .order("received_date", { ascending: false })
       .limit(5000); // safety cap
     if (data) setIncomes((data as any[]).map(rowToIncome));
