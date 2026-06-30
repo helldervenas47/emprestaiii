@@ -185,6 +185,16 @@ export default function PiggyBankDetail() {
   }
   const [history, setHistory] = useState<PiggyBankDeposit[]>([]);
   const [yieldDetails, setYieldDetails] = useState<Record<string, YieldDetail>>({});
+  const [movementFilter, setMovementFilter] = useState<"all" | "deposit" | "withdraw" | "yield">("all");
+  const filteredHistory = useMemo(() => {
+    if (movementFilter === "all") return history;
+    return history.filter((d) => {
+      if (movementFilter === "yield") return d.source === "rendimento";
+      if (movementFilter === "deposit") return d.source !== "rendimento" && d.amount >= 0;
+      if (movementFilter === "withdraw") return d.source !== "rendimento" && d.amount < 0;
+      return true;
+    });
+  }, [history, movementFilter]);
   useEffect(() => {
     if (!pb) {
       setHistory([]);
@@ -480,13 +490,50 @@ export default function PiggyBankDetail() {
 
         {/* MOVIMENTAÇÕES */}
         <section className="space-y-3 pb-8">
+          {(() => {
+            const filters = [
+              { key: "all" as const, label: "Total" },
+              { key: "deposit" as const, label: "Depósito" },
+              { key: "withdraw" as const, label: "Resgate" },
+              { key: "yield" as const, label: "Rendimento" },
+            ];
+            // Ordem mobile (2x2): Depósito, Resgate, Rendimento, Total
+            const mobileOrder = ["deposit", "withdraw", "yield", "all"] as const;
+            const filtersMobile = mobileOrder.map((k) => filters.find((f) => f.key === k)!);
+            const FilterButton = ({ f }: { f: { key: typeof movementFilter; label: string } }) => {
+              const active = movementFilter === f.key;
+              return (
+                <button
+                  type="button"
+                  onClick={() => setMovementFilter(f.key)}
+                  className={`h-9 rounded-xl text-xs font-semibold transition-colors border ${
+                    active
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-card text-muted-foreground border-border/60 hover:bg-muted"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              );
+            };
+            return (
+              <>
+                <div className="hidden sm:grid grid-cols-4 gap-2">
+                  {filters.map((f) => <FilterButton key={f.key} f={f} />)}
+                </div>
+                <div className="grid sm:hidden grid-cols-2 gap-2">
+                  {filtersMobile.map((f) => <FilterButton key={f.key} f={f} />)}
+                </div>
+              </>
+            );
+          })()}
           <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
             <History className="h-3 w-3" /> Movimentações
             <span className="ml-1 text-muted-foreground/70 normal-case tracking-normal">
-              ({history.length} {history.length === 1 ? "registro" : "registros"})
+              ({filteredHistory.length} {filteredHistory.length === 1 ? "registro" : "registros"})
             </span>
           </h2>
-          {history.length === 0 ? (
+          {filteredHistory.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border/60 p-8 text-center">
               <Receipt className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
               <p className="text-xs text-muted-foreground max-w-[260px] mx-auto">
@@ -495,7 +542,7 @@ export default function PiggyBankDetail() {
             </div>
           ) : (
             <div className="space-y-2">
-              {history.map((d) => {
+              {filteredHistory.map((d) => {
                 const isPositive = d.amount >= 0;
                 const exp = d.expenseId ? expensesById[d.expenseId] : null;
                 const isYield = d.source === "rendimento";
