@@ -1,89 +1,49 @@
-# Migração do módulo Cofrinhos
+## Objetivo
+Reduzir egress substituindo `select("*")` por listas explícitas — sem alterar regra de negócio, layout, ou nomes públicos.
 
-## 1. Mapeamento do uso atual de `piggy_banks`
+## Estratégia
 
-Arquivos que tocam o módulo hoje:
+Os arquivos listados têm dois perfis bem diferentes de risco. Vou tratar separado.
 
-**Núcleo (vai migrar):**
-- `src/hooks/usePiggyBanks.ts` (694 linhas) — CRUD de `piggy_banks`, depósitos manuais, cálculo de rendimento no frontend, eventos `balance:changed`.
-- `src/components/PiggyBankList.tsx` (996 linhas) — tela principal, criação, edição, depósito, resgate.
-- `src/pages/PiggyBankDetail.tsx` (693 linhas) — detalhes, extrato, gráfico de evolução.
-- `src/components/PiggyBanksSummaryCard.tsx` — card de saldo total.
-- `src/components/PiggyBanksBreakdownDialog.tsx` — drill-down do Dashboard.
+### Grupo 1 — Hooks com mappers (BAIXO risco)
 
-**Consumidores periféricos (apenas leitura de saldo/depósitos — manter intactos por compatibilidade):**
-- `src/hooks/useAccountBalance.ts`, `useExternalAccountSources.ts` — usam `piggyBanks` + `balances` + `deposits` do hook. Hook continuará expondo a mesma interface.
-- `src/lib/projectedBalance.ts`, `incomeProjectedSummary.ts`, `IncomePendingCalendar.tsx`, `MonthTransactionsSheet.tsx`, `ConsolidatedBalanceCards.tsx`, `FinancialHealthDashboard.tsx`, `PersonalExpense*.tsx`, `useExpenses.ts` — apenas consomem `pb.id`, `pb.name`, `balance.balance`.
+Têm uma função `rowToX(...)` que lê exatamente quais colunas o app usa. Posso derivar a lista direto do mapper.
 
-**Edge / backend (fora do escopo desta migração):**
-- `supabase/functions/sync-cdi-rate`, `telegram-process`, `backup-tables` — continuam apontando para `piggy_banks` por ora.
+- **`src/hooks/useLoans.ts`** — `fetchLoans` (mapper `rowToLoan` lê ~25 colunas de `loans`), `fetchPayments` (`rowToPayment` lê 7 colunas de `payments`), `fetchSchedules` (5 colunas de `loan_installments`).
+- **`src/hooks/useExpenses.ts`** — `fetchExpenses` (`rowToExpense` lê ~14 colunas de `expenses`).
+- **`src/hooks/useIncomes.ts`** — `fetch()` (`rowToIncome` lê ~13 colunas de `incomes`).
+- **`src/hooks/usePiggyBanks.ts`** — `cofrinhos.select("*")` em `reload` (já uso documentado: `id, ativo, nome, descricao, percentual_cdi, meta, created_at`). Manter `descricao` (JSONB) e os campos lidos.
 
-## 2. Estratégia: adapter, não rewrite
+Vou rodar `tsgo` (via processo automático do harness) e ajustar se algum campo esquecido aparecer.
 
-Manter a **interface pública** do hook `usePiggyBanks` (campos `piggyBanks[]`, `balances: Map`, `deposits[]`, `cdiRate`, `createPiggyBank`, `deposit`, `withdraw`, `refresh`) — assim os 15+ consumidores periféricos não mudam. Por dentro, o hook lê da nova arquitetura e chama Edge Functions.
+### Grupo 2 — Repositórios genéricos (ALTO risco)
 
-Mapeamento de campos:
+`expensesRepository`, `incomesRepository`, `loansRepository`, `paymentsRepository`, `salesRepository` retornam `Record<string, any>` e são consumidos por **muitos** componentes que acessam colunas livremente (snake_case). Trocar `select("*")` por lista fixa aqui quebra consumidores silenciosamente (campos viram `undefined`, sem erro de TypeScript).
 
-```text
-piggy_banks (antigo)            cofrinhos (novo)
-─────────────────────────────────────────────────────
-id                              id
-name                            nome
-target_amount                   meta
-percentual_cdi                  percentual_cdi
-tipo_rendimento                 tipo_rendimento
-balances.balance                saldo_total
-balances.totalDeposited         saldo_principal
-balances.totalYield             saldo_rendimento_liquido
-                                + saldo_rendimento_bruto (novo)
-                                + ultimo_rendimento (novo)
-```
+**Solução:** adicionar parâmetro opcional `columns?: string` em `list`/`findById`. Default permanece `"*"` (zero breaking change). Hooks que já têm mapper passam a lista explícita quando chamarem o repo. Mantém compatibilidade e abre porta pra otimização incremental.
 
-`deposits[]` (consumido por `useAccountBalance` para descontar depósitos manuais do saldo em conta) → derivar de `cofrinho_aportes` (origem manual) com o mesmo shape `{ id, piggyBankId, amount, date, expenseId, note }`.
+Nenhum dos hooks listados atualmente usa esses repositórios — eles ainda chamam `supabase.from(...)` direto. Então o ganho real está no Grupo 1.
 
-## 3. Etapas de implementação
+### Grupo 3 — Componentes/páginas (MÉDIO risco)
 
-### Etapa 1 — Hook adapter `usePiggyBanks` (núcleo)
-Reescrever internamente para:
-- `SELECT * FROM cofrinhos WHERE user_id = auth.uid()` → popular `piggyBanks` + `balances`.
-- `SELECT * FROM cofrinho_aportes` para `deposits[]` (compat).
-- `createPiggyBank` → `INSERT INTO cofrinhos`.
-- `deposit(piggyBankId, amount, …)` → `supabase.functions.invoke('processar-deposito-cofrinho', { body })`.
-- `withdraw(piggyBankId, amount, …)` → `supabase.functions.invoke('processar-resgate-cofrinho', { body })`.
-- Remover qualquer cálculo de rendimento local (`computeYield`, etc.).
-- Após invoke OK: refetch de `cofrinhos` + dispatch `balance:changed` (mantém demais cards reativos).
-- Tratar `error` da function com `toast.error(error.message ?? 'Falha ao processar')`.
-- Realtime: subscrever `cofrinhos` + `cofrinho_eventos` para refetch automático.
+- **`src/pages/PiggyBankDetail.tsx`** — preciso ler e checar se há `select("*")` direto.
+- **`src/components/DashboardOverview.tsx`** — idem.
+- **`src/components/LoanList.tsx`** — consumidor de `useLoans`; provavelmente sem queries diretas, mas vou verificar.
+- **`src/components/ProductSalesView.tsx`** — verificar.
 
-### Etapa 2 — Tela principal `PiggyBankList`
-- Cards passam a exibir: `saldo_principal` (aplicado), `saldo_rendimento_bruto`, `saldo_rendimento_liquido`, `saldo_total`, `percentual_cdi`, `tipo_rendimento`, `ultimo_rendimento`, `meta`.
-- Modais de depósito/resgate apenas chamam `deposit/withdraw` do hook (já encaminham para edge functions).
-- Remover qualquer recálculo client-side.
+Aplico só onde houver `select("*")` direto e o uso das colunas estiver claro no próprio arquivo.
 
-### Etapa 3 — Tela de detalhes `PiggyBankDetail`
-- Cabeçalho: aplicado, rendimento bruto/líquido, saldo total, %CDI, meta.
-- Aba **Extrato** → `SELECT * FROM cofrinho_eventos WHERE cofrinho_id = ? ORDER BY data DESC`.
-- Aba **Aportes** → `cofrinho_aportes`; **Resgates** → `cofrinho_resgates`.
-- Gráfico de evolução → `cofrinho_rendimento_diario` (não calcular no front).
+## O que NÃO vou fazer
+- Não vou tocar em outros `select("*")` fora dos 13 arquivos listados.
+- Não vou mexer em queries dentro de Edge Functions.
+- Não vou remover campos que aparecem em metadata/notes parsing ou em fallbacks (`l.original_amount ?? l.amount`, etc.) — esses entram na lista explícita.
+- Não vou estreitar `select` dentro de `repositories/*` por padrão (apenas adicionar parâmetro opcional).
 
-### Etapa 4 — Cards/breakdown
-- `PiggyBanksSummaryCard` e `PiggyBanksBreakdownDialog` consomem `saldo_total` direto.
+## Verificação
+- Build/tsgo automático após cada arquivo.
+- Conferência manual rápida do mapper x lista de colunas.
 
-### Etapa 5 — Validação
-- Smoke test via Playwright: depositar, resgatar, ver extrato e gráfico.
-- Verificar que `useAccountBalance` continua conferindo (mesma interface preservada).
+## Entrega
+Mudanças em ~5–8 arquivos do Grupo 1 + adições opcionais nos 5 repositórios. Componentes do Grupo 3 só se de fato tiverem `select("*")` direto.
 
-## 4. Garantias
-
-- RLS já existente nas tabelas `cofrinho*` cobre o isolamento por usuário.
-- `piggy_banks` permanece no banco (não dropada) — apenas deixa de ser lida/escrita pelo fluxo principal.
-- Edge Functions tratam toda a regra de rendimento, saldo e CDI.
-- Layout visual preservado — só muda origem dos dados.
-
-## 5. Riscos & mitigação
-
-- **Schemas `cofrinho*` ainda não estão em `src/integrations/supabase/types.ts`** (arquivo auto-gerado). Usar `supabase.from('cofrinhos' as any)` com tipos locais para evitar bloqueio. Documentar para regeneração futura dos tipos.
-- **Edge function payloads**: vou inspecionar `processar-deposito-cofrinho` / `processar-resgate-cofrinho` se existirem no repo; se forem só remotas, assumir contrato `{ cofrinho_id, valor, data?, nota? }` e ajustar conforme erro retornado no primeiro teste.
-- **Compat `deposits[]`**: o `useAccountBalance` filtra `!d.expenseId` para não dobrar débito. Mapear `cofrinho_aportes.expense_id` (se existir) ou `origem='despesa'` para esse campo.
-
-Quer que eu prossiga com a Etapa 1 (reescrever `usePiggyBanks` mantendo a interface pública)?
+Confirma que posso seguir assim? Se preferir uma abordagem mais agressiva nos repositórios (com risco de regressão silenciosa), me avisa.
