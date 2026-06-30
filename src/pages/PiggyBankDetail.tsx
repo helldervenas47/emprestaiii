@@ -776,6 +776,47 @@ export default function PiggyBankDetail() {
         title="Encerrar meta"
         description="O cofrinho e seus aportes registrados serão removidos. As despesas já lançadas permanecem no histórico. Esta ação não pode ser desfeita."
       />
+
+      {/* Yield details dialog */}
+      <Dialog open={!!selectedYieldId} onOpenChange={(o) => !o && setSelectedYieldId(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Detalhes do rendimento</DialogTitle>
+            <DialogDescription>
+              {selectedYieldId && yieldDetails[selectedYieldId]
+                ? `Rendimento consolidado de ${yieldDetails[selectedYieldId].date.split("-").reverse().join("/")}`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedYieldId && yieldDetails[selectedYieldId] && (
+            <div className="space-y-2 py-1 text-sm">
+              {(() => {
+                const y = yieldDetails[selectedYieldId];
+                const Row = ({ label, value, accent }: { label: string; value: string; accent?: string }) => (
+                  <div className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-b-0">
+                    <span className="text-muted-foreground text-xs uppercase tracking-wide">{label}</span>
+                    <span className={`font-semibold tabular-nums ${accent || ""}`}>{value}</span>
+                  </div>
+                );
+                return (
+                  <>
+                    <Row label="Saldo principal (base)" value={fmt(y.saldoPrincipalBase)} />
+                    <Row label="Rendimento bruto" value={fmt(y.rendimentoBruto)} />
+                    <Row label="IOF" value={fmt(y.iof)} accent="text-destructive" />
+                    <Row label="Imposto de renda" value={fmt(y.impostoRenda)} accent="text-destructive" />
+                    <Row label="Rendimento líquido" value={fmt(y.rendimentoLiquido)} accent="text-success" />
+                    <Row label="Saldo total no dia" value={fmt(y.saldoTotal)} />
+                    <Row label="Aportes considerados" value={String(y.aportesCalculados)} />
+                  </>
+                );
+              })()}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedYieldId(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
