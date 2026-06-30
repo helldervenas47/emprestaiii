@@ -52,6 +52,10 @@ import { useLocadorInfo, LocadorInfo } from "@/hooks/useLocadorInfo";
 import { useVehicleRegistry, VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { ExpenseBoletoLinkSection } from "@/components/ExpenseBoletoLinkSection";
 import { ExpenseBoletoLinkButton } from "@/components/ExpenseBoletoLinkButton";
+import { SaleCategory, SaleClientGroup, SummaryBreakdownCard, saleCategoryFilters } from "@/components/product-sales/productSalesTypes";
+import { ProductSalesSummaryCards } from "@/components/product-sales/ProductSalesSummaryCards";
+import { ProductSalesFilters } from "@/components/product-sales/ProductSalesFilters";
+import { ProductSalesHeader } from "@/components/product-sales/ProductSalesHeader";
 
 
 interface Props {
