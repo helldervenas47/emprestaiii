@@ -5352,71 +5352,20 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       </div>
 
       {showFilters && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <div>
-                <Label className="text-xs text-muted-foreground">Data Saída (De)</Label>
-                <DatePickerField value={dateFrom} onChange={(v) => setDateFrom(v)} className="h-8 text-sm" />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Data Saída (Até)</Label>
-                <DatePickerField value={dateTo} onChange={(v) => setDateTo(v)} className="h-8 text-sm" />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Vencimento (De)</Label>
-                <DatePickerField value={dueDateFrom} onChange={(v) => setDueDateFrom(v)} className="h-8 text-sm" />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Vencimento (Até)</Label>
-                <DatePickerField value={dueDateTo} onChange={(v) => setDueDateTo(v)} className="h-8 text-sm" />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Valor Mínimo (R$)</Label>
-                <Input type="number" step="0.01" placeholder="0" value={amountMin} onChange={(e) => setAmountMin(e.target.value)} className="h-8 text-sm" />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Valor Máximo (R$)</Label>
-                <Input type="number" step="0.01" placeholder="∞" value={amountMax} onChange={(e) => setAmountMax(e.target.value)} className="h-8 text-sm" />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Etiqueta</Label>
-                <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}
-                  className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <option value="">Todas</option>
-                  {allTags.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Ordenar por</Label>
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}
-                  className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <option value="dueDate">Vencimento</option>
-                  <option value="startDate">Data de Saída</option>
-                  <option value="amount">Valor</option>
-                  <option value="name">Nome</option>
-                </select>
-              </div>
-              <div className="col-span-2 sm:col-span-3 lg:col-span-2 flex items-end">
-                <select
-                  value={notesFilter}
-                  onChange={(e) => setNotesFilter(e.target.value as "all" | "with" | "without")}
-                  className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="all">Observação: todos</option>
-                  <option value="with">Apenas com observação</option>
-                  <option value="without">Apenas sem observação</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex justify-end mt-3">
-              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setDateFrom(""); setDateTo(""); setDueDateFrom(""); setDueDateTo(""); setAmountMin(""); setAmountMax(""); setTagFilter(""); setNotesFilter("all"); setSortBy("dueDate"); }}>
-                <X className="h-3 w-3 mr-1" />Limpar filtros
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <LoanAdvancedFilters
+          dateFrom={dateFrom} setDateFrom={setDateFrom}
+          dateTo={dateTo} setDateTo={setDateTo}
+          dueDateFrom={dueDateFrom} setDueDateFrom={setDueDateFrom}
+          dueDateTo={dueDateTo} setDueDateTo={setDueDateTo}
+          amountMin={amountMin} setAmountMin={setAmountMin}
+          amountMax={amountMax} setAmountMax={setAmountMax}
+          tagFilter={tagFilter} setTagFilter={setTagFilter}
+          allTags={allTags}
+          sortBy={sortBy} setSortBy={setSortBy}
+          notesFilter={notesFilter} setNotesFilter={setNotesFilter}
+        />
       )}
+
 
       {categorized.length === 0 ? (
         <Card>
