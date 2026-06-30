@@ -908,34 +908,8 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   return (
     <>
     <Tabs value={currentSubTab} onValueChange={setCurrentSubTab} className="space-y-4">
-      <TabsList className="w-full bg-muted/60 border border-border/50 rounded-xl p-1 grid grid-cols-2 gap-1 sm:flex sm:gap-1 h-auto">
-        {activeTabs.map((tab) => (
-          <TabsTrigger
-            key={tab.type}
-            value={tab.type}
-            className="sm:flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 text-muted-foreground hover:text-foreground data-[state=active]:bg-background data-[state=active]:!text-primary data-[state=active]:shadow-sm"
-          >
-            <tab.icon className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{tab.label}</span>
-          </TabsTrigger>
-        ))}
-        <TabsTrigger
-          value="extrato"
-          className="sm:flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 text-muted-foreground hover:text-foreground data-[state=active]:bg-background data-[state=active]:!text-primary data-[state=active]:shadow-sm"
-        >
-          <BookOpen className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate">Extrato</span>
-        </TabsTrigger>
-        {!isVehicleView && (
-          <TabsTrigger
-            value="estoque"
-            className="sm:flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 text-muted-foreground hover:text-foreground data-[state=active]:bg-background data-[state=active]:!text-primary data-[state=active]:shadow-sm"
-          >
-            <Boxes className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">Estoque</span>
-          </TabsTrigger>
-        )}
-      </TabsList>
+      <ProductSalesSubTabsList showStock={!isVehicleView} />
+
 
 
       {activeTabs.map((tab) => (
