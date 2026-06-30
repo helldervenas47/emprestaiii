@@ -1402,28 +1402,16 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   return (
     <div className="space-y-6">
       {/* Period filter + navigation */}
-      <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold text-foreground">Visão Geral</h2>
-        <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOffset(offset - 1)}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-xs sm:text-sm font-medium text-foreground min-w-[120px] sm:min-w-[160px] text-center cursor-pointer hover:text-primary transition-colors" onClick={() => setOffset(0)}>{range.label}</span>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOffset(offset + 1)}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="flex bg-muted/60 rounded-xl p-0.5 ml-auto backdrop-blur-sm border border-border/30">
-            {(["day", "week", "month"] as Period[]).map((p) => (
-              <button key={p} onClick={() => handleChangePeriod(p)}
-                className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-200 ${period === p ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                {periodLabels[p]}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <DashboardPeriodFilter
+        rangeLabel={range.label}
+        period={period}
+        offset={offset}
+        onPrev={() => setOffset(offset - 1)}
+        onNext={() => setOffset(offset + 1)}
+        onReset={() => setOffset(0)}
+        onChangePeriod={handleChangePeriod}
+      />
+
 
       {/* Account balance + Received + Interest rate + Profit */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
