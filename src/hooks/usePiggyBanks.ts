@@ -189,7 +189,7 @@ export function usePiggyBanks() {
     const [cofRes, apoRes, taxaRes] = await Promise.all([
       supabase
         .from("cofrinhos" as any)
-        .select("id, ativo, nome, descricao, percentual_cdi, meta, created_at")
+        .select("id, ativo, nome, descricao, percentual_cdi, meta, created_at, saldo_principal, saldo_total, saldo_rendimento_bruto, saldo_rendimento_liquido")
         .eq("usuario_id", dataOwnerId)
         .order("created_at"),
       supabase
