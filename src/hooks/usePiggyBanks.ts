@@ -382,55 +382,74 @@ export function usePiggyBanks() {
   // Depósitos e resgates — TODOS via Edge Function
   // ---------------------------------------------------------------------------
 
-  const invokeDeposit = useCallback(
-    async (cofrinhoId: string, valor: number, dataAporte?: string, percentualCdi?: number) => {
-      const { data, error } = await supabase.functions.invoke(
-        "processar-deposito-cofrinho",
-        {
-          body: {
-            cofrinho_id: cofrinhoId,
-            valor,
-            ...(dataAporte ? { data_aporte: dataAporte } : {}),
-            ...(percentualCdi != null ? { percentual_cdi: percentualCdi } : {}),
+  // Chama a edge function via fetch explícito para garantir que o
+  // Authorization (access_token do usuário) e a apikey sejam enviados.
+  // `supabase.functions.invoke` às vezes falha com
+  // "failed to send a request to the edge function" quando a sessão
+  // ainda não foi hidratada no client externo.
+  const callCofrinhoFn = useCallback(
+    async (fnName: string, payload: Record<string, unknown>) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) {
+        throw new Error("Sessão expirada. Faça login novamente.");
+      }
+      const baseUrl = (import.meta as any).env.VITE_EXTERNAL_SUPABASE_URL as string;
+      const anonKey = (import.meta as any).env.VITE_EXTERNAL_SUPABASE_ANON_KEY as string;
+      const url = `${baseUrl}/functions/v1/${fnName}`;
+      let res: Response;
+      try {
+        res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+            apikey: anonKey,
           },
-        },
-      );
-      if (error) {
-        const msg =
-          (error as any)?.context?.error ||
-          (data as any)?.error ||
-          error.message ||
-          "Erro ao registrar aporte";
+          body: JSON.stringify(payload),
+        });
+      } catch (e: any) {
+        throw new Error(e?.message || "Falha de rede ao chamar edge function");
+      }
+      const text = await res.text();
+      let json: any = null;
+      try {
+        json = text ? JSON.parse(text) : null;
+      } catch {
+        /* resposta não-JSON */
+      }
+      if (!res.ok) {
+        const msg = json?.error || json?.message || text || `HTTP ${res.status}`;
         throw new Error(msg);
       }
-      return data;
+      return json;
     },
     [],
   );
 
+  const invokeDeposit = useCallback(
+    async (cofrinhoId: string, valor: number, dataAporte?: string, percentualCdi?: number) => {
+      const payload: Record<string, unknown> = {
+        cofrinho_id: cofrinhoId,
+        valor,
+        percentual_cdi: percentualCdi ?? 100,
+      };
+      if (dataAporte) payload.data_aporte = dataAporte;
+      return callCofrinhoFn("processar-deposito-cofrinho", payload);
+    },
+    [callCofrinhoFn],
+  );
+
   const invokeWithdraw = useCallback(
     async (cofrinhoId: string, valor: number, dataResgate?: string) => {
-      const { data, error } = await supabase.functions.invoke(
-        "processar-resgate-cofrinho",
-        {
-          body: {
-            cofrinho_id: cofrinhoId,
-            valor,
-            ...(dataResgate ? { data_resgate: dataResgate } : {}),
-          },
-        },
-      );
-      if (error) {
-        const msg =
-          (error as any)?.context?.error ||
-          (data as any)?.error ||
-          error.message ||
-          "Erro ao processar resgate";
-        throw new Error(msg);
-      }
-      return data;
+      const payload: Record<string, unknown> = {
+        cofrinho_id: cofrinhoId,
+        valor,
+      };
+      if (dataResgate) payload.data_resgate = dataResgate;
+      return callCofrinhoFn("processar-resgate-cofrinho", payload);
     },
-    [],
+    [callCofrinhoFn],
   );
 
   /** Aporte simples (compat). */
