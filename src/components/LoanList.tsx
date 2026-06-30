@@ -47,93 +47,9 @@ import { FullPaymentSummary } from "@/components/loans/FullPaymentSummary";
 import { PayoffCompositionCard, PayoffSimulationCard } from "@/components/loans/PayoffCards";
 import { AmortizationResultCard } from "@/components/loans/AmortizationResultCard";
 
-function WhatsappBillButton({
-  loan,
-  clients,
-  payments,
-  installmentSchedules,
-  variant = "icon",
-}: {
-  loan: Loan;
-  clients: Client[];
-  payments: Payment[];
-  installmentSchedules: InstallmentSchedule[];
-  variant?: "icon" | "compact";
-}) {
-  const { messages } = useWhatsappBillingMessages();
-  const client = clients.find(
-    (c) => c.name.trim().toLowerCase() === loan.borrowerName.trim().toLowerCase(),
-  );
-  const phone = client?.phone || "";
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewData, setPreviewData] = useState<{
-    phone: string;
-    message: string;
-    status: ReturnType<typeof buildBillingWhatsappLink>["status"];
-    name: string;
-  } | null>(null);
+import { WhatsappBillButton } from "@/components/loans/list/WhatsappBillButton";
+import { LoanListSummaryCards } from "@/components/loans/list/LoanListSummaryCards";
 
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!phone) {
-      toast.error("Cliente sem telefone cadastrado");
-      return;
-    }
-    const built = buildBillingWhatsappLink({
-      client,
-      loan,
-      schedules: installmentSchedules,
-      payments,
-      messages,
-    });
-    setPreviewData({
-      phone: built.phone,
-      message: built.message,
-      status: built.status,
-      name: client?.name ?? loan.borrowerName,
-    });
-    setPreviewOpen(true);
-  };
-
-  const buttonNode = variant === "compact" ? (
-    <Button
-      variant="ghost"
-      className="flex-1 h-9 text-xs gap-1.5 text-success hover:text-success"
-      onClick={handleClick}
-      title={phone ? "Cobrar via WhatsApp" : "Cliente sem telefone"}
-      disabled={!phone}
-    >
-      <MessageCircle className="h-3.5 w-3.5" /> <span className="hidden sm:inline">WhatsApp</span>
-    </Button>
-  ) : (
-    <Button
-      size="icon"
-      variant="ghost"
-      className="h-8 w-8 text-success hover:text-success"
-      onClick={handleClick}
-      title={phone ? "Cobrar via WhatsApp" : "Cliente sem telefone"}
-      disabled={!phone}
-    >
-      <MessageCircle className="h-4 w-4" />
-    </Button>
-  );
-
-  return (
-    <>
-      {buttonNode}
-      {previewData && (
-        <WhatsappPreviewDialog
-          open={previewOpen}
-          onOpenChange={setPreviewOpen}
-          phone={previewData.phone}
-          message={previewData.message}
-          status={previewData.status}
-          recipientName={previewData.name}
-        />
-      )}
-    </>
-  );
-}
 
 interface Props {
   loans: Loan[];
@@ -5336,33 +5252,13 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
   return (
     <div className="space-y-3">
       {/* Cards de resumo dos empréstimos */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-        {([
-          { id: "overdue" as Category, label: "Vencidos", value: statusSummary.overdue, count: statusSummary.overdueCount, icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", ring: "ring-destructive/40", delay: "0ms" },
-          { id: "due_today" as Category, label: "Vence Hoje", value: statusSummary.dueToday, count: statusSummary.dueTodayCount, icon: Clock, color: "text-warning", bg: "bg-warning/10", ring: "ring-warning/40", delay: "80ms" },
-          { id: "on_track" as Category, label: "No Prazo", value: statusSummary.onTrack, count: statusSummary.onTrackCount, icon: CheckCircle, color: "text-primary", bg: "bg-primary/10", ring: "ring-primary/40", delay: "160ms" },
-          { id: "all" as Category, label: "Total a Receber", value: statusSummary.total, count: statusSummary.totalCount, icon: DollarSign, color: "text-blue-600", bg: "bg-blue-500/10", ring: "ring-blue-500/40", delay: "240ms" },
-        ]).map((c) => {
-          const Icon = c.icon;
-          const isActive = selectedCategories.length === 1 && selectedCategories[0] === c.id;
-          return (
-            <button
-              key={c.label}
-              type="button"
-              onClick={() => applyCardFilter(c.id as "overdue" | "due_today" | "on_track" | "all")}
-              className={`rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center transition-all duration-200 hover:scale-[1.02] hover:shadow-md focus:outline-none ${isActive ? `ring-2 ${c.ring}` : ""}`}
-              style={{ animationDelay: c.delay, animationFillMode: "backwards" }}
-            >
-              <div className={`h-8 w-8 rounded-lg ${c.bg} flex items-center justify-center mb-2`}>
-                <Icon className={`h-4 w-4 ${c.color}`} />
-              </div>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">{c.label}</p>
-              <p className={`text-sm sm:text-xl font-bold ${c.color} mt-0.5`}>{formatCurrency(c.value)}</p>
-              <p className="text-[10px] text-muted-foreground mt-1">{c.count} {c.count === 1 ? "contrato" : "contratos"}</p>
-            </button>
-          );
-        })}
-      </div>
+      <LoanListSummaryCards
+        statusSummary={statusSummary}
+        selectedCategories={selectedCategories}
+        applyCardFilter={applyCardFilter}
+        formatCurrency={formatCurrency}
+      />
+
 
       {/* Filtros rápidos: grid em mobile, linha única ocupando toda a largura em tablet/desktop */}
       <div className="grid grid-cols-4 gap-2 w-full sm:flex sm:flex-nowrap sm:items-center sm:gap-2 sm:overflow-x-auto sm:scrollbar-hide">
