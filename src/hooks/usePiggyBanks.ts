@@ -228,17 +228,30 @@ export function usePiggyBanks() {
     }
 
     if (activeCofrinhoIds.length > 0) {
-      const ledgerRes = await supabase
-        .from("cofrinho_ledger" as any)
-        .select("id, cofrinho_id, tipo, valor, data_evento, created_at, evento_id, aporte_id, resgate_id")
-        .in("cofrinho_id", activeCofrinhoIds)
-        .order("data_evento", { ascending: false })
-        .order("created_at", { ascending: false });
+      const [ledgerRes, eventosRes] = await Promise.all([
+        supabase
+          .from("cofrinho_ledger" as any)
+          .select("id, cofrinho_id, tipo, valor, data_evento, created_at, evento_id, aporte_id, resgate_id")
+          .in("cofrinho_id", activeCofrinhoIds)
+          .order("data_evento", { ascending: false })
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("cofrinho_eventos" as any)
+          .select("id, cofrinho_id, tipo, valor, data_evento, created_at")
+          .in("cofrinho_id", activeCofrinhoIds)
+          .in("tipo", ["DEPOSITO", "RESGATE", "AJUSTE"]),
+      ]);
 
-      if (!ledgerRes.error && Array.isArray(ledgerRes.data)) {
+      const movementRows = !ledgerRes.error && Array.isArray(ledgerRes.data) && ledgerRes.data.length > 0
+        ? ledgerRes.data
+        : !eventosRes.error && Array.isArray(eventosRes.data)
+          ? eventosRes.data
+          : [];
+
+      if (movementRows.length > 0) {
         const seen = new Set<string>();
         setDeposits(
-          (ledgerRes.data as any[]).flatMap((r) => {
+          (movementRows as any[]).flatMap((r) => {
             const tipo = String(r.tipo || "").toUpperCase().replace("Ó", "O");
             if (tipo === "RENDIMENTO") return [];
             const rawDate = String(r.data_evento ?? r.created_at ?? "").slice(0, 10);
@@ -274,6 +287,8 @@ export function usePiggyBanks() {
             }];
           }),
         );
+      } else {
+        setDeposits([]);
       }
     } else {
       setDeposits([]);
@@ -321,6 +336,9 @@ export function usePiggyBanks() {
         reload();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_eventos" }, () => {
+        reload();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_ledger" }, () => {
         reload();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "taxa_referencia" }, () => {
