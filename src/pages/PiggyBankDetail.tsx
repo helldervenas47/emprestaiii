@@ -225,13 +225,21 @@ export default function PiggyBankDetail() {
       if (!yieldRes.error && Array.isArray(yieldRes.data)) {
         for (const r of yieldRes.data as any[]) {
           const date = String(r.data).slice(0, 10);
+          // Clamp em zero — rendimento líquido diário CDI nunca é negativo.
+          // Erros de arredondamento/ajuste no banco podem produzir valores
+          // levemente negativos; tratamos como 0.
+          const bruto = Math.max(0, Number(r.rendimento_bruto_dia || 0));
+          const iof = Math.max(0, Number(r.iof_dia || 0));
+          const ir = Math.max(0, Number(r.imposto_renda_dia || 0));
+          const liquidoRaw = Number(r.rendimento_liquido_dia || 0);
+          const liquido = Math.max(0, liquidoRaw);
           detailsByDate[date] = {
             date,
             saldoPrincipalBase: Number(r.saldo_principal_base || 0),
-            rendimentoBruto: Number(r.rendimento_bruto_dia || 0),
-            iof: Number(r.iof_dia || 0),
-            impostoRenda: Number(r.imposto_renda_dia || 0),
-            rendimentoLiquido: Number(r.rendimento_liquido_dia || 0),
+            rendimentoBruto: bruto,
+            iof,
+            impostoRenda: ir,
+            rendimentoLiquido: liquido,
             saldoTotal: Number(r.saldo_total || 0),
             aportesCalculados: Number(r.aportes_calculados || 0),
           };
@@ -289,7 +297,7 @@ export default function PiggyBankDetail() {
 
       // Rendimentos: 1 entrada por dia, valor = rendimento_liquido_dia deste cofrinho.
       for (const [date, detail] of Object.entries(detailsByDate)) {
-        if (detail.rendimentoLiquido === 0) continue;
+        if (detail.rendimentoLiquido <= 0) continue;
         const itemId = `RENDIMENTO-${pb.id}-${date}`;
         detailsMap[itemId] = detail;
         items.push({
