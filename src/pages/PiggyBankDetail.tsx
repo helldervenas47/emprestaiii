@@ -205,7 +205,36 @@ export default function PiggyBankDetail() {
           .eq("cofrinho_id", pb.id)
           .order("data", { ascending: false }),
       ]);
-...
+      if (cancelled) return;
+
+      const events: PiggyBankDeposit[] = !evRes.error && Array.isArray(evRes.data)
+        ? (evRes.data as any[]).map((ev) => {
+            const tipo = String(ev.tipo || "").toUpperCase();
+            const rawVal = Number(ev.valor || 0);
+            const amount = tipo === "RESGATE" ? -Math.abs(rawVal) : Math.abs(rawVal);
+            const source =
+              tipo === "RESGATE"
+                ? "transfer_out"
+                : tipo === "AJUSTE"
+                  ? "manual"
+                  : "transfer_in";
+            const rawDate = ev.data_evento ?? ev.created_at;
+            return {
+              id: ev.id,
+              piggyBankId: ev.cofrinho_id,
+              expenseId: null,
+              amount,
+              depositDate: String(rawDate).slice(0, 10),
+              source,
+              recurrenceId: null,
+            } as PiggyBankDeposit;
+          })
+        : [];
+
+      const detailsMap: Record<string, YieldDetail> = {};
+      const yields: PiggyBankDeposit[] = !yieldRes.error && Array.isArray(yieldRes.data)
+        ? (yieldRes.data as any[]).map((r) => {
+            const date = String(r.data).slice(0, 10);
             const liquido = Number(r.rendimento_liquido_dia || 0);
             const detail: YieldDetail = {
               date,
