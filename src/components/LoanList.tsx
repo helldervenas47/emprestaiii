@@ -5262,20 +5262,12 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
 
 
       {/* Filtros rápidos: grid em mobile, linha única ocupando toda a largura em tablet/desktop */}
-      <div className="grid grid-cols-4 gap-2 w-full sm:flex sm:flex-nowrap sm:items-center sm:gap-2 sm:overflow-x-auto sm:scrollbar-hide">
-        {categoryConfig.map((cat) => {
-          const isActive = selectedCategories.includes(cat.id);
-          return (
-            <button key={cat.id} onClick={() => handleCategoryClick(cat.id)}
-              className={`px-2 py-1.5 sm:px-1 lg:px-2 rounded-full text-[10px] sm:text-[10px] lg:text-xs font-medium transition-all duration-200 border whitespace-nowrap sm:flex-1 sm:basis-0 sm:min-w-0 sm:text-center ${
-                isActive ? `${cat.activeColor} scale-[1.03] shadow-sm ring-1 ring-offset-1 ring-offset-background ring-current/20` : `bg-card ${cat.color} hover:opacity-80`
-              }`}
-            >
-              {cat.label} ({counts[cat.id]})
-            </button>
-          );
-        })}
-      </div>
+      <LoanCategoryChips
+        selectedCategories={selectedCategories}
+        counts={counts}
+        onCategoryClick={handleCategoryClick}
+      />
+
 
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
