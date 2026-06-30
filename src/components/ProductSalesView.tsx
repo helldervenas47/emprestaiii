@@ -50,6 +50,20 @@ import { SaleCategory, SaleClientGroup, SummaryBreakdownCard, saleCategoryFilter
 import { ProductSalesSummaryCards } from "@/components/product-sales/ProductSalesSummaryCards";
 import { ProductSalesFilters } from "@/components/product-sales/ProductSalesFilters";
 import { ProductSalesHeader } from "@/components/product-sales/ProductSalesHeader";
+import {
+  addByFrequency,
+  businessTabs,
+  getNextDueDateHelper,
+  getNextInstallmentValueHelper,
+  getSaleCategory,
+  getSalePaidAmountHelper,
+  rawFormatCurrency,
+  saleCategoryConfig,
+  salesSubTabs,
+} from "@/components/product-sales/productSalesUtils";
+import { ProductSaleCard } from "@/components/product-sales/ProductSaleCard";
+import { ProductSalesTable } from "@/components/product-sales/ProductSalesTable";
+import { ProductSalesMobileCards } from "@/components/product-sales/ProductSalesMobileCards";
 
 
 interface Props {
@@ -149,7 +163,7 @@ function SaleClientFolder({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {group.sales.map((sale) => (
-              <SaleCard
+              <ProductSaleCard
                 key={sale.id}
                 sale={sale}
                 onDelete={() => onDeleteSale(sale.id)}
@@ -487,52 +501,28 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           </CardContent></Card>
         )
       ) : view === "list" ? (
-       <Card no3d className="overflow-hidden">
-          {/* Header row */}
-          <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 border-b border-border/50 bg-muted/40">
-            <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0" aria-hidden />
-            <p className="flex-1 min-w-0 md:basis-0 md:grow text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Cliente</p>
-            <p className="hidden md:block flex-1 min-w-0 basis-0 text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Categoria</p>
-            <p className="hidden md:block flex-[2] min-w-0 basis-0 text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Descrição</p>
-
-            <p className="w-[78px] sm:w-[88px] lg:w-[110px] shrink-0 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Vencimento</p>
-            <p className="w-[102px] sm:w-[108px] lg:w-[140px] shrink-0 text-right text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Valor</p>
-            <div className="w-0 md:w-[180px] lg:w-[200px] shrink-0" aria-hidden />
-          </div>
-          <div className="divide-y divide-border/30">
-            {listSorted.map((sale) => (
-              <SaleListRow
-                key={sale.id}
-                sale={sale}
-                onEdit={() => setEditingSale(sale)}
-                onDelete={() => onDeleteSale(sale.id)}
-                onUpdate={(data) => onUpdateSale(sale.id, data)}
-                formatCurrency={formatCurrency}
-                readOnly={readOnly}
-                incomeCategoryByName={incomeCategoryByName}
-              />
-            ))}
-          </div>
-        </Card>
+        <ProductSalesTable
+          sales={listSorted}
+          formatCurrency={formatCurrency}
+          readOnly={readOnly}
+          incomeCategoryByName={incomeCategoryByName}
+          onEdit={setEditingSale}
+          onDeleteSale={onDeleteSale}
+          onUpdateSale={onUpdateSale}
+        />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((sale, i) => (
-            <div key={sale.id} className="animate-fade-in" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
-            <SaleCard
-              sale={sale}
-              onDelete={() => onDeleteSale(sale.id)}
-              onEdit={() => setEditingSale(sale)}
-              onUpdate={(data) => onUpdateSale(sale.id, data)}
-              formatCurrency={formatCurrency}
-              readOnly={readOnly}
-              clients={clients}
-              locadorInfo={locadorInfo}
-              registeredVehicles={registeredVehicles}
-              locadores={locadores}
-            />
-            </div>
-          ))}
-        </div>
+        <ProductSalesMobileCards
+          sales={filtered}
+          formatCurrency={formatCurrency}
+          readOnly={readOnly}
+          clients={clients}
+          locadorInfo={locadorInfo}
+          registeredVehicles={registeredVehicles}
+          locadores={locadores}
+          onEdit={setEditingSale}
+          onDeleteSale={onDeleteSale}
+          onUpdateSale={onUpdateSale}
+        />
       )}
       {editingSale && (
         <SaleEditForm
