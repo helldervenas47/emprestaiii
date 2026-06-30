@@ -9,6 +9,7 @@ export type IncomeRow = Record<string, any>;
 export interface IncomeListOptions {
   limit?: number;
   status?: string;
+  columns?: string;
 }
 
 const DEFAULT_LIST_LIMIT = 5000;
@@ -17,7 +18,7 @@ export const incomesRepository = {
   async list(opts: IncomeListOptions = {}): Promise<IncomeRow[]> {
     let q = supabase
       .from("incomes" as any)
-      .select("*")
+      .select(opts.columns ?? "*")
       .order("received_date", { ascending: false })
       .limit(opts.limit ?? DEFAULT_LIST_LIMIT);
     if (opts.status) q = q.eq("status", opts.status);

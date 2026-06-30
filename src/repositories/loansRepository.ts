@@ -22,6 +22,7 @@ export type LoanRow = Record<string, any>;
 export interface LoanListOptions {
   limit?: number;
   order?: { column: string; ascending: boolean };
+  columns?: string;
 }
 
 const DEFAULT_LIST_LIMIT = 2000;
@@ -32,17 +33,17 @@ export const loansRepository = {
     const order = opts.order ?? { column: "created_at", ascending: false };
     const { data, error } = await supabase
       .from("loans")
-      .select("*")
+      .select(opts.columns ?? "*")
       .order(order.column, { ascending: order.ascending })
       .limit(opts.limit ?? DEFAULT_LIST_LIMIT);
     if (error) throw error;
     return (data ?? []) as LoanRow[];
   },
 
-  async findById(id: string): Promise<LoanRow | null> {
+  async findById(id: string, columns: string = "*"): Promise<LoanRow | null> {
     const { data, error } = await supabase
       .from("loans")
-      .select("*")
+      .select(columns)
       .eq("id", id)
       .maybeSingle();
     if (error) throw error;

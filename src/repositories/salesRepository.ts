@@ -10,6 +10,7 @@ export type SaleRow = Record<string, any>;
 export interface SaleListOptions {
   limit?: number;
   productId?: string;
+  columns?: string;
 }
 
 const DEFAULT_LIST_LIMIT = 5000;
@@ -18,7 +19,7 @@ export const salesRepository = {
   async list(opts: SaleListOptions = {}): Promise<SaleRow[]> {
     let q = supabase
       .from("sales")
-      .select("*")
+      .select(opts.columns ?? "*")
       .order("sale_date", { ascending: false })
       .limit(opts.limit ?? DEFAULT_LIST_LIMIT);
     if (opts.productId) q = q.eq("product_id", opts.productId);

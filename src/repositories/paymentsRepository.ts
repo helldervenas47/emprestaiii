@@ -10,6 +10,7 @@ export type PaymentRow = Record<string, any>;
 export interface PaymentListOptions {
   limit?: number;
   loanId?: string;
+  columns?: string;
 }
 
 const DEFAULT_LIST_LIMIT = 5000;
@@ -18,7 +19,7 @@ export const paymentsRepository = {
   async list(opts: PaymentListOptions = {}): Promise<PaymentRow[]> {
     let q = supabase
       .from("payments")
-      .select("*")
+      .select(opts.columns ?? "*")
       .order("created_at", { ascending: false })
       .limit(opts.limit ?? DEFAULT_LIST_LIMIT);
     if (opts.loanId) q = q.eq("loan_id", opts.loanId);
