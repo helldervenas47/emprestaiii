@@ -303,6 +303,14 @@ export function ProductSalesView({
     onDeleteSale(id);
   }, [sales, onDeleteSale, updateVehicleBalance]);
 
+  // Sub-tab state must be declared before any early return to keep hook order stable.
+  const activeTabs = salesSubTabs;
+  const allTabValues = [...activeTabs.map((t) => t.type as string), "extrato"];
+  const [currentSubTab, setCurrentSubTab] = useState<string>(allTabValues[0] || "venda");
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("products-subtab-change", { detail: currentSubTab }));
+  }, [currentSubTab]);
+
   if (!hasSalesOrStreaming) {
     // Vehicles page - render without sub-tabs + vehicle expenses
     return (
