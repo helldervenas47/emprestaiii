@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { getBalance, setBalance } from "@/lib/balance";
+import { setBalance } from "@/lib/balance";
 import { listLedger, type LedgerEntry } from "@/lib/ledger";
 import {
   TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight,
@@ -35,6 +35,22 @@ import { Banknote, Smartphone, ArrowDownToLine, Activity, ShieldCheck, AlertCirc
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ComposedChart, Line } from "recharts";
 import { AIReportAudioPlayer } from "@/components/AIReportAudioPlayer";
+import { InfoPopover } from "@/components/dashboard/InfoPopover";
+import {
+  type Period,
+  periodLabels,
+  monthNames,
+  isInRange,
+  getRange,
+  rawFormatCurrency,
+  formatDelta,
+  getSaleReceivedAmount,
+  getClientKey,
+  calculateRealizedProfitForRange,
+  summarizeMonthMetrics,
+} from "@/components/dashboard/dashboardHelpers";
+import { useAccountBalance } from "@/components/dashboard/useAccountBalance";
+
 
 const InfoPopover = ({ text }: { text: string }) => (
   <Popover>
