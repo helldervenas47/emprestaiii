@@ -208,18 +208,19 @@ export function usePiggyBanks() {
         .map((r) => {
           rowsMap[r.id] = r;
           const meta = parseDescricao(r.descricao);
+          const m = readMeta(meta);
           return {
             id: r.id,
-            shortId: meta.shortId ?? null,
+            shortId: m.short_id,
             name: r.nome,
-            color: meta.color || DEFAULT_COLOR,
-            icon: meta.icon || DEFAULT_ICON,
+            color: m.cor,
+            icon: m.icone,
             annualRate: 0, // backend controla; campo legado mantido por compat
             autoRate: true,
             cdiPercent: r.percentual_cdi != null ? Number(r.percentual_cdi) : 100,
             goalAmount: r.meta != null ? Number(r.meta) : null,
-            category: meta.category ?? null,
-            targetDate: meta.targetDate ?? null,
+            category: m.categoria,
+            targetDate: m.data_prevista,
             createdAt: r.created_at,
           };
         });
