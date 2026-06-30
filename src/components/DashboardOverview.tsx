@@ -52,6 +52,7 @@ import {
 import { useAccountBalance } from "@/components/dashboard/useAccountBalance";
 import { DashboardPeriodFilter } from "@/components/dashboard/DashboardPeriodFilter";
 import { DashboardFinancialHealthSection } from "@/components/dashboard/DashboardFinancialHealthSection";
+import { DashboardMainCards } from "@/components/dashboard/DashboardMainCards";
 
 
 interface Props {
