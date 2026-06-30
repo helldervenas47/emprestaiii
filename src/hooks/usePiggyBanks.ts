@@ -197,9 +197,8 @@ export function usePiggyBanks() {
         .select("id, cofrinho_id, valor_original, data_aporte, percentual_cdi, created_at"),
       supabase
         .from("taxa_referencia" as any)
-        .select("taxa_anual, valor_anual, taxa, valor, annual_rate, fonte, source, data_referencia, reference_date, atualizado_em, updated_at")
-        .order("data_referencia", { ascending: false, nullsFirst: false })
-        .limit(1),
+        .select("*")
+        .limit(50),
     ]);
 
     if (!cofRes.error && Array.isArray(cofRes.data)) {
@@ -244,7 +243,15 @@ export function usePiggyBanks() {
     }
 
     if (!taxaRes.error && Array.isArray(taxaRes.data) && taxaRes.data.length > 0) {
-      const r: any = taxaRes.data[0];
+      // A tabela `taxa_referencia` pode usar nomes diferentes para a data
+      // (data_referencia / reference_date / atualizado_em / updated_at).
+      // Selecionamos com `*` e ordenamos em JS pegando a mais recente que
+      // tenha qualquer um desses campos preenchidos.
+      const rows = (taxaRes.data as any[]).slice();
+      const dateOf = (r: any) =>
+        r.data_referencia ?? r.reference_date ?? r.atualizado_em ?? r.updated_at ?? "";
+      rows.sort((a, b) => String(dateOf(b)).localeCompare(String(dateOf(a))));
+      const r: any = rows[0];
       const annual =
         r.taxa_anual ?? r.valor_anual ?? r.taxa ?? r.valor ?? r.annual_rate ?? null;
       if (annual != null) {
