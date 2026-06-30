@@ -185,6 +185,16 @@ export default function PiggyBankDetail() {
   }
   const [history, setHistory] = useState<PiggyBankDeposit[]>([]);
   const [yieldDetails, setYieldDetails] = useState<Record<string, YieldDetail>>({});
+  const [movementFilter, setMovementFilter] = useState<"all" | "deposit" | "withdraw" | "yield">("all");
+  const filteredHistory = useMemo(() => {
+    if (movementFilter === "all") return history;
+    return history.filter((d) => {
+      if (movementFilter === "yield") return d.source === "rendimento";
+      if (movementFilter === "deposit") return d.source !== "rendimento" && d.amount >= 0;
+      if (movementFilter === "withdraw") return d.source !== "rendimento" && d.amount < 0;
+      return true;
+    });
+  }, [history, movementFilter]);
   useEffect(() => {
     if (!pb) {
       setHistory([]);
