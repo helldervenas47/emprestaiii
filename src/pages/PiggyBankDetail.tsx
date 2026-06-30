@@ -297,7 +297,7 @@ export default function PiggyBankDetail() {
 
       // Rendimentos: 1 entrada por dia, valor = rendimento_liquido_dia deste cofrinho.
       for (const [date, detail] of Object.entries(detailsByDate)) {
-        if (detail.rendimentoLiquido === 0) continue;
+        if (detail.rendimentoLiquido <= 0) continue;
         const itemId = `RENDIMENTO-${pb.id}-${date}`;
         detailsMap[itemId] = detail;
         items.push({
