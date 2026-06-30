@@ -150,6 +150,7 @@ export default function PiggyBankDetail() {
   const [editDeposit, setEditDeposit] = useState<PiggyBankDeposit | null>(null);
   const [editDepositDraft, setEditDepositDraft] = useState({ amount: "", depositDate: "" });
   const [deleteDepositId, setDeleteDepositId] = useState<string | null>(null);
+  const [selectedYieldId, setSelectedYieldId] = useState<string | null>(null);
 
   const openEditDeposit = (d: PiggyBankDeposit) => {
     setEditDepositDraft({ amount: d.amount.toFixed(2), depositDate: d.depositDate });
@@ -163,52 +164,107 @@ export default function PiggyBankDetail() {
     setEditDeposit(null);
   };
 
-  // ===== Extrato vindo de cofrinho_eventos (nova arquitetura) =====
-  // A data financeira real do evento é `data_evento`. `created_at` é apenas
-  // auditoria interna (quando o registro foi criado no banco) e só serve de
-  // fallback caso `data_evento` esteja nulo.
+  // ===== Extrato vindo de cofrinho_eventos + vw_cofrinho_rendimento_por_dia =====
+  // Eventos (DEPOSITO, RESGATE, AJUSTE) vêm da tabela `cofrinho_eventos`.
+  // Rendimentos são lidos da view consolidada `vw_cofrinho_rendimento_por_dia`,
+  // que agrupa todos os rendimentos do dia em UM registro por cofrinho/data,
+  // evitando duplicação visual quando há múltiplos aportes ativos.
+  interface YieldDetail {
+    date: string;
+    saldoPrincipalBase: number;
+    rendimentoBruto: number;
+    iof: number;
+    impostoRenda: number;
+    rendimentoLiquido: number;
+    saldoTotal: number;
+    aportesCalculados: number;
+  }
   const [history, setHistory] = useState<PiggyBankDeposit[]>([]);
+  const [yieldDetails, setYieldDetails] = useState<Record<string, YieldDetail>>({});
   useEffect(() => {
     if (!pb) {
       setHistory([]);
+      setYieldDetails({});
       return;
     }
     let cancelled = false;
     (async () => {
-      const { data, error } = await supabase
-        .from("cofrinho_eventos" as any)
-        .select("id, cofrinho_id, tipo, valor, descricao, referencia, data_evento, created_at")
-        .eq("cofrinho_id", pb.id)
-        .order("data_evento", { ascending: false })
-        .order("created_at", { ascending: false });
-      if (cancelled || error || !Array.isArray(data)) return;
+      const [evRes, yieldRes] = await Promise.all([
+        supabase
+          .from("cofrinho_eventos" as any)
+          .select("id, cofrinho_id, tipo, valor, descricao, referencia, data_evento, created_at")
+          .eq("cofrinho_id", pb.id)
+          .neq("tipo", "RENDIMENTO")
+          .order("data_evento", { ascending: false })
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("vw_cofrinho_rendimento_por_dia" as any)
+          .select(
+            "cofrinho_id, data, saldo_principal_base, rendimento_bruto, imposto_renda, iof, rendimento_liquido, saldo_total, aportes_calculados",
+          )
+          .eq("cofrinho_id", pb.id)
+          .order("data", { ascending: false }),
+      ]);
+      if (cancelled) return;
 
-      const mapped: PiggyBankDeposit[] = (data as any[]).map((ev) => {
-        const tipo = String(ev.tipo || "").toUpperCase();
-        const rawVal = Number(ev.valor || 0);
-        const amount =
-          tipo === "RESGATE" ? -Math.abs(rawVal) : Math.abs(rawVal);
-        const source =
-          tipo === "RESGATE"
-            ? "transfer_out"
-            : tipo === "RENDIMENTO"
-              ? "rendimento"
-              : tipo === "AJUSTE"
-                ? "manual"
-                : "transfer_in";
-        const rawDate = ev.data_evento ?? ev.created_at;
-        const depositDate = String(rawDate).slice(0, 10);
-        return {
-          id: ev.id,
-          piggyBankId: ev.cofrinho_id,
-          expenseId: null,
-          amount,
-          depositDate,
-          source,
-          recurrenceId: null,
-        };
-      });
-      setHistory(mapped);
+      const events: PiggyBankDeposit[] = !evRes.error && Array.isArray(evRes.data)
+        ? (evRes.data as any[]).map((ev) => {
+            const tipo = String(ev.tipo || "").toUpperCase();
+            const rawVal = Number(ev.valor || 0);
+            const amount = tipo === "RESGATE" ? -Math.abs(rawVal) : Math.abs(rawVal);
+            const source =
+              tipo === "RESGATE"
+                ? "transfer_out"
+                : tipo === "AJUSTE"
+                  ? "manual"
+                  : "transfer_in";
+            const rawDate = ev.data_evento ?? ev.created_at;
+            return {
+              id: ev.id,
+              piggyBankId: ev.cofrinho_id,
+              expenseId: null,
+              amount,
+              depositDate: String(rawDate).slice(0, 10),
+              source,
+              recurrenceId: null,
+            } as PiggyBankDeposit;
+          })
+        : [];
+
+      const detailsMap: Record<string, YieldDetail> = {};
+      const yields: PiggyBankDeposit[] = !yieldRes.error && Array.isArray(yieldRes.data)
+        ? (yieldRes.data as any[]).map((r) => {
+            const date = String(r.data).slice(0, 10);
+            const liquido = Number(r.rendimento_liquido || 0);
+            const detail: YieldDetail = {
+              date,
+              saldoPrincipalBase: Number(r.saldo_principal_base || 0),
+              rendimentoBruto: Number(r.rendimento_bruto || 0),
+              iof: Number(r.iof || 0),
+              impostoRenda: Number(r.imposto_renda || 0),
+              rendimentoLiquido: liquido,
+              saldoTotal: Number(r.saldo_total || 0),
+              aportesCalculados: Number(r.aportes_calculados || 0),
+            };
+            const id = `yield-${date}`;
+            detailsMap[id] = detail;
+            return {
+              id,
+              piggyBankId: pb.id,
+              expenseId: null,
+              amount: liquido,
+              depositDate: date,
+              source: "rendimento",
+              recurrenceId: null,
+            } as PiggyBankDeposit;
+          })
+        : [];
+
+      const merged = [...events, ...yields].sort((a, b) =>
+        a.depositDate < b.depositDate ? 1 : a.depositDate > b.depositDate ? -1 : 0,
+      );
+      setHistory(merged);
+      setYieldDetails(detailsMap);
     })();
 
     return () => {
@@ -407,11 +463,14 @@ export default function PiggyBankDetail() {
               {history.map((d) => {
                 const isPositive = d.amount >= 0;
                 const exp = d.expenseId ? expensesById[d.expenseId] : null;
-                const Icon = d.source === "recurring" ? Repeat : isPositive ? ArrowDownCircle : ArrowUpCircle;
+                const isYield = d.source === "rendimento";
+                const Icon = d.source === "recurring" ? Repeat : isYield ? TrendingUp : isPositive ? ArrowDownCircle : ArrowUpCircle;
+                const onRowClick = isYield ? () => setSelectedYieldId(d.id) : undefined;
                 return (
                   <div
                     key={d.id}
-                    className="flex items-center gap-3 p-3 rounded-xl border border-border/30 bg-background/50 hover:border-primary/20 transition-colors"
+                    onClick={onRowClick}
+                    className={`flex items-center gap-3 p-3 rounded-xl border border-border/30 bg-background/50 hover:border-primary/20 transition-colors ${isYield ? "cursor-pointer" : ""}`}
                   >
                     <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${isPositive ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
                       <Icon className="h-4 w-4" />
@@ -440,6 +499,11 @@ export default function PiggyBankDetail() {
                         <span className="text-[10px] text-muted-foreground font-medium uppercase">
                           {d.depositDate.split("-").reverse().join("/")}
                         </span>
+                        {isYield && yieldDetails[d.id] && (
+                          <Badge variant="secondary" className="h-3.5 px-1 text-[8px] uppercase tracking-tighter">
+                            {yieldDetails[d.id].aportesCalculados} {yieldDetails[d.id].aportesCalculados === 1 ? "aporte" : "aportes"}
+                          </Badge>
+                        )}
                         {exp?.category && (
                           <Badge variant="secondary" className="h-3.5 px-1 text-[8px] uppercase tracking-tighter">
                             {exp.category}
@@ -447,12 +511,14 @@ export default function PiggyBankDetail() {
                         )}
                       </div>
                     </div>
-                    <RowActions
-                      actions={[
-                        { label: "Editar", icon: <Pencil className="h-3 w-3" />, onClick: () => openEditDeposit(d) },
-                        { label: "Excluir", icon: <Trash2 className="h-3 w-3" />, destructive: true, onClick: () => setDeleteDepositId(d.id) },
-                      ]}
-                    />
+                    {!isYield && (
+                      <RowActions
+                        actions={[
+                          { label: "Editar", icon: <Pencil className="h-3 w-3" />, onClick: () => openEditDeposit(d) },
+                          { label: "Excluir", icon: <Trash2 className="h-3 w-3" />, destructive: true, onClick: () => setDeleteDepositId(d.id) },
+                        ]}
+                      />
+                    )}
                   </div>
                 );
               })}
@@ -710,6 +776,47 @@ export default function PiggyBankDetail() {
         title="Encerrar meta"
         description="O cofrinho e seus aportes registrados serão removidos. As despesas já lançadas permanecem no histórico. Esta ação não pode ser desfeita."
       />
+
+      {/* Yield details dialog */}
+      <Dialog open={!!selectedYieldId} onOpenChange={(o) => !o && setSelectedYieldId(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Detalhes do rendimento</DialogTitle>
+            <DialogDescription>
+              {selectedYieldId && yieldDetails[selectedYieldId]
+                ? `Rendimento consolidado de ${yieldDetails[selectedYieldId].date.split("-").reverse().join("/")}`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedYieldId && yieldDetails[selectedYieldId] && (
+            <div className="space-y-2 py-1 text-sm">
+              {(() => {
+                const y = yieldDetails[selectedYieldId];
+                const Row = ({ label, value, accent }: { label: string; value: string; accent?: string }) => (
+                  <div className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-b-0">
+                    <span className="text-muted-foreground text-xs uppercase tracking-wide">{label}</span>
+                    <span className={`font-semibold tabular-nums ${accent || ""}`}>{value}</span>
+                  </div>
+                );
+                return (
+                  <>
+                    <Row label="Saldo principal (base)" value={fmt(y.saldoPrincipalBase)} />
+                    <Row label="Rendimento bruto" value={fmt(y.rendimentoBruto)} />
+                    <Row label="IOF" value={fmt(y.iof)} accent="text-destructive" />
+                    <Row label="Imposto de renda" value={fmt(y.impostoRenda)} accent="text-destructive" />
+                    <Row label="Rendimento líquido" value={fmt(y.rendimentoLiquido)} accent="text-success" />
+                    <Row label="Saldo total no dia" value={fmt(y.saldoTotal)} />
+                    <Row label="Aportes considerados" value={String(y.aportesCalculados)} />
+                  </>
+                );
+              })()}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedYieldId(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
