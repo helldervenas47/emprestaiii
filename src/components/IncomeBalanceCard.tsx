@@ -106,8 +106,9 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     let cancelled = false;
     const load = async () => {
       // Nova arquitetura de cofrinhos: cruza `cofrinhos` (do owner) com
-      // `cofrinho_eventos` (DEPOSITO/RESGATE) usando `data_evento` como data
-      // financeira. Nenhuma leitura de tabelas legadas.
+      // `cofrinho_aportes` (depósitos) usando `data_aporte` como data financeira.
+      // Os resgates já estão refletidos no saldo via `cofrinhos.saldo_principal`,
+      // então ajustamos o total para casar com o saldo principal corrente.
       const [{ data: ledger }, { data: banks }] = await Promise.all([
         supabase
           .from("account_ledger")
@@ -117,18 +118,22 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
           .eq("metadata->>kind", "credit_card_invoice_payment"),
         supabase
           .from("cofrinhos" as any)
-          .select("id")
+          .select("id, saldo_principal, ativo")
           .eq("usuario_id", ownerId),
       ]);
-      const bankIds = ((banks as any[]) ?? []).map((b) => b.id);
-      let events: any[] = [];
+      const activeBanks = ((banks as any[]) ?? []).filter((b) => b.ativo !== false);
+      const bankIds = activeBanks.map((b) => b.id);
+      const principalTotal = activeBanks.reduce(
+        (s, b) => s + (Number(b.saldo_principal) || 0),
+        0,
+      );
+      let aportes: any[] = [];
       if (bankIds.length > 0) {
-        const { data: ev } = await supabase
-          .from("cofrinho_eventos" as any)
-          .select("tipo, valor, data_evento, created_at")
-          .in("cofrinho_id", bankIds)
-          .in("tipo", ["DEPOSITO", "RESGATE"]);
-        events = (ev as any[]) ?? [];
+        const { data: ap } = await supabase
+          .from("cofrinho_aportes" as any)
+          .select("valor_original, data_aporte, created_at")
+          .in("cofrinho_id", bankIds);
+        aportes = (ap as any[]) ?? [];
       }
       if (cancelled) return;
       const cardByMonth: Record<string, number> = {};
@@ -139,16 +144,25 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       }
       setCardInvoicePaidByMonth(cardByMonth);
       const piggyByMonth: Record<string, number> = {};
-      for (const r of events) {
-        const raw = (r.data_evento as string) || (r.created_at as string) || "";
+      let aportesTotal = 0;
+      for (const r of aportes) {
+        const raw = (r.data_aporte as string) || (r.created_at as string) || "";
         const mk = raw.slice(0, 7);
+        const v = Math.abs(Number(r.valor_original) || 0);
+        aportesTotal += v;
         if (!mk) continue;
-        const tipo = String(r.tipo || "").toUpperCase();
-        const v = Number(r.valor) || 0;
-        const signed = tipo === "RESGATE" ? -Math.abs(v) : Math.abs(v);
-        piggyByMonth[mk] = (piggyByMonth[mk] ?? 0) + signed;
+        piggyByMonth[mk] = (piggyByMonth[mk] ?? 0) + v;
+      }
+      // Reconcilia com o saldo_principal atual: a diferença (aportes − saldo)
+      // representa resgates já realizados; é distribuída no mês corrente como
+      // entrada negativa, mantendo o saldo total alinhado.
+      const resgatesTotal = aportesTotal - principalTotal;
+      if (Math.abs(resgatesTotal) > 0.005) {
+        const nowMk = new Date().toISOString().slice(0, 7);
+        piggyByMonth[nowMk] = (piggyByMonth[nowMk] ?? 0) - resgatesTotal;
       }
       setPiggyNetByMonth(piggyByMonth);
+
     };
 
     load();
