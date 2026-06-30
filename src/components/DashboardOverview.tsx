@@ -57,6 +57,7 @@ import { DashboardPortfolioMetrics } from "@/components/dashboard/DashboardPortf
 import { DashboardBreakdownSection } from "@/components/dashboard/DashboardBreakdownSection";
 import { useDashboardOverviewController } from "@/components/dashboard/useDashboardOverviewController";
 import { useDashboardMetrics } from "@/components/dashboard/useDashboardMetrics";
+import { useDashboardAiReports } from "@/components/dashboard/useDashboardAiReports";
 
 
 interface Props {
