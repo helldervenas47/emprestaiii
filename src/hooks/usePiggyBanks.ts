@@ -641,10 +641,10 @@ export function usePiggyBanks() {
   const setRecurrenceActive = useCallback(async (_id: string, _active: boolean) => false, []);
   const deleteRecurrence = useCallback(async (_id: string) => false, []);
 
-  // Taxa controlada automaticamente pelo backend.
+  // Taxa controlada automaticamente pelo backend — no-op silencioso.
   const setPiggyRate = useCallback(
     async (_piggyBankId: string, _newRate: number, _mode: "forward" | "recalc") => {
-      toast.info("A taxa é controlada automaticamente pelo CDI/backend.");
+      // Intencionalmente vazio: o backend recalcula via CDI.
     },
     [],
   );
