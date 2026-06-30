@@ -375,15 +375,30 @@ export function usePiggyBanks() {
       if (patch.name !== undefined) dbPatch.nome = patch.name;
       if (patch.cdiPercent !== undefined) dbPatch.percentual_cdi = patch.cdiPercent;
       if (patch.goalAmount !== undefined) dbPatch.meta = patch.goalAmount;
-      const { error } = await supabase.from("cofrinhos" as any).update(dbPatch).eq("id", id);
+
+      // Logs temporários para auditoria do modal Editar Cofrinho
+      console.log("[updatePiggyBank] id:", id);
+      console.log("[updatePiggyBank] payload:", dbPatch);
+
+      const { data, error } = await supabase
+        .from("cofrinhos" as any)
+        .update(dbPatch)
+        .eq("id", id)
+        .select();
+
+      console.log("[updatePiggyBank] response:", { data, error });
+
       if (error) {
+        console.error("[updatePiggyBank] erro:", error);
         toast.error(error.message || "Erro ao atualizar");
-        return;
+        return false;
       }
       await reload();
+      return true;
     },
     [cofrinhoRows, reload],
   );
+
 
   const deletePiggyBank = useCallback(
     async (id: string) => {
