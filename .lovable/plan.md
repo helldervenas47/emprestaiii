@@ -1,49 +1,65 @@
-## Objetivo
-Reduzir egress substituindo `select("*")` por listas explícitas — sem alterar regra de negócio, layout, ou nomes públicos.
+## Escopo
 
-## Estratégia
+Reduzir o tamanho dos 10 arquivos listados (23.727 linhas totais) sem alterar UI, regras de negócio ou interface pública dos componentes principais. O trabalho é grande demais para uma única rodada — proponho executar em **fases pequenas e independentes**, validando o build a cada fase. Cada fase pode ser aprovada/pausada isoladamente.
 
-Os arquivos listados têm dois perfis bem diferentes de risco. Vou tratar separado.
+## Princípios
 
-### Grupo 1 — Hooks com mappers (BAIXO risco)
+- Cada extração preserva os imports atuais (re-exports quando necessário).
+- Funções puras saem primeiro (zero risco de regressão).
+- Componentes internos saem por último, mantendo props idênticas.
+- Sem renomear símbolos exportados.
+- TypeScript compila limpo após cada fase.
 
-Têm uma função `rowToX(...)` que lê exatamente quais colunas o app usa. Posso derivar a lista direto do mapper.
+## Fase 1 — LoanList.tsx (5.745 linhas) — começa agora
 
-- **`src/hooks/useLoans.ts`** — `fetchLoans` (mapper `rowToLoan` lê ~25 colunas de `loans`), `fetchPayments` (`rowToPayment` lê 7 colunas de `payments`), `fetchSchedules` (5 colunas de `loan_installments`).
-- **`src/hooks/useExpenses.ts`** — `fetchExpenses` (`rowToExpense` lê ~14 colunas de `expenses`).
-- **`src/hooks/useIncomes.ts`** — `fetch()` (`rowToIncome` lê ~13 colunas de `incomes`).
-- **`src/hooks/usePiggyBanks.ts`** — `cofrinhos.select("*")` em `reload` (já uso documentado: `id, ativo, nome, descricao, percentual_cdi, meta, created_at`). Manter `descricao` (JSONB) e os campos lidos.
+Extrações na ordem, cada uma como commit lógico:
 
-Vou rodar `tsgo` (via processo automático do harness) e ajustar se algum campo esquecido aparecer.
+**1.1 Tipos e constantes**
+- `src/components/loans/list/types.ts` — tipos internos (filtros, estados de modal, sort, etc.)
+- `src/components/loans/list/constants.ts` — labels, opções de filtro, status maps.
 
-### Grupo 2 — Repositórios genéricos (ALTO risco)
+**1.2 Helpers de cálculo puros**
+- `src/components/loans/list/calculations.ts` — agregações (total emprestado, restante, juros, ordenação por colunas).
 
-`expensesRepository`, `incomesRepository`, `loansRepository`, `paymentsRepository`, `salesRepository` retornam `Record<string, any>` e são consumidos por **muitos** componentes que acessam colunas livremente (snake_case). Trocar `select("*")` por lista fixa aqui quebra consumidores silenciosamente (campos viram `undefined`, sem erro de TypeScript).
+**1.3 Helpers de formatação**
+- `src/components/loans/list/formatting.ts` — formatação BRL, data, status, badges.
 
-**Solução:** adicionar parâmetro opcional `columns?: string` em `list`/`findById`. Default permanece `"*"` (zero breaking change). Hooks que já têm mapper passam a lista explícita quando chamarem o repo. Mantém compatibilidade e abre porta pra otimização incremental.
+**1.4 Subcomponentes já isoláveis**
+- `WhatsappBillButton` → `src/components/loans/list/WhatsappBillButton.tsx`
+- Cards de resumo no topo → `LoanListSummaryCards.tsx`
+- Barra de filtros → `LoanListFilters.tsx`
 
-Nenhum dos hooks listados atualmente usa esses repositórios — eles ainda chamam `supabase.from(...)` direto. Então o ganho real está no Grupo 1.
+**1.5 Modal de detalhes / histórico**
+- `LoanDetailsDialog.tsx` (somente JSX + handlers locais; dados continuam vindo do pai por props).
 
-### Grupo 3 — Componentes/páginas (MÉDIO risco)
+**1.6 Tabela/lista**
+- `LoanListTable.tsx` (linha, expansão, ações inline). `LoanList.tsx` final fica como container/orquestrador.
 
-- **`src/pages/PiggyBankDetail.tsx`** — preciso ler e checar se há `select("*")` direto.
-- **`src/components/DashboardOverview.tsx`** — idem.
-- **`src/components/LoanList.tsx`** — consumidor de `useLoans`; provavelmente sem queries diretas, mas vou verificar.
-- **`src/components/ProductSalesView.tsx`** — verificar.
+Após 1.6, `LoanList.tsx` deve cair para ≈ 500–800 linhas, mantendo o mesmo default export e mesma assinatura de props.
 
-Aplico só onde houver `select("*")` direto e o uso das colunas estiver claro no próprio arquivo.
+## Fases seguintes (uma por vez, sob demanda)
 
-## O que NÃO vou fazer
-- Não vou tocar em outros `select("*")` fora dos 13 arquivos listados.
-- Não vou mexer em queries dentro de Edge Functions.
-- Não vou remover campos que aparecem em metadata/notes parsing ou em fallbacks (`l.original_amount ?? l.amount`, etc.) — esses entram na lista explícita.
-- Não vou estreitar `select` dentro de `repositories/*` por padrão (apenas adicionar parâmetro opcional).
+2. `DashboardOverview.tsx` — extrair cards (Saúde Financeira, Top 5, Cofrinho, Estoque) e seus dialogs de drill-down.
+3. `ProductSalesView.tsx` — separar formulário, lista e relatório.
+4. `pages/Index.tsx` — extrair tabs/roteamento interno em subcomponentes.
+5. `useLoans.ts` — separar mappers, cálculos e mutations em hooks auxiliares (`useLoanMutations`, `useLoanCalculations`).
+6. `AccountantReport.tsx` — extrair cards de resumo, dialog de detalhes, navegação de mês.
+7. `GoalsCard.tsx`, `PersonalExpenseList.tsx`, `CreditCardInvoice.tsx`, `PiggyBankList.tsx` — mesma abordagem.
 
-## Verificação
-- Build/tsgo automático após cada arquivo.
-- Conferência manual rápida do mapper x lista de colunas.
+## Validação por fase
 
-## Entrega
-Mudanças em ~5–8 arquivos do Grupo 1 + adições opcionais nos 5 repositórios. Componentes do Grupo 3 só se de fato tiverem `select("*")` direto.
+- `tsgo` (typecheck) limpo.
+- Build do Vite sem warnings novos.
+- Sem mudanças nos arquivos consumidores (mesmos imports, mesmas props).
 
-Confirma que posso seguir assim? Se preferir uma abordagem mais agressiva nos repositórios (com risco de regressão silenciosa), me avisa.
+## Detalhes técnicos
+
+- Novos arquivos vivem em `src/components/loans/list/` (já existe `src/components/loans/` no projeto).
+- Funções puras movidas mantêm exports nomeados; se forem usadas só dentro de `LoanList`, não são re-exportadas para fora.
+- Nada de mudanças em `@/hooks/useLoans`, `@/lib/loanLateFees`, `@/lib/loanInstallmentAmount` nesta fase.
+
+## Próximo passo
+
+Começar pela Fase 1.1 + 1.2 + 1.3 (tipos, cálculos e formatação de `LoanList.tsx`) em uma única rodada — são extrações puras, baixo risco, e já reduzem ≈ 400–600 linhas do arquivo.
+
+Confirme para eu seguir, ou ajuste a ordem/escopo se preferir atacar outro arquivo primeiro.
