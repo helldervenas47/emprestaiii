@@ -215,8 +215,9 @@ export function PiggyBankList({ readOnly = false }: Props) {
     }
 
     if (editing) {
+      console.log("[EditarCofrinho] submetendo edição. id:", editing.id);
       const rateChanged = Math.abs(editing.annualRate - rate) > 0.0001;
-      await updatePiggyBank(editing.id, {
+      const ok = await updatePiggyBank(editing.id, {
         name: draft.name.trim(),
         color: draft.color,
         shortId,
@@ -226,10 +227,16 @@ export function PiggyBankList({ readOnly = false }: Props) {
         category,
         targetDate,
       });
+      console.log("[EditarCofrinho] updatePiggyBank ok?", ok);
+      if (!ok) {
+        // Mantém o modal aberto para o usuário tentar de novo.
+        return;
+      }
       if (rateChanged) {
         // Forward: mantém histórico de rendimentos passados intacto.
         await setPiggyRate(editing.id, rate, "forward");
       }
+      toast.success("Cofrinho atualizado");
     } else {
       await createPiggyBank({
         name: draft.name.trim(),
@@ -243,8 +250,10 @@ export function PiggyBankList({ readOnly = false }: Props) {
         targetDate,
       });
     }
+    setEditing(null);
     setCreateOpen(false);
   };
+
 
   const handleRefreshCdi = async () => {
     setRefreshingCdi(true);
