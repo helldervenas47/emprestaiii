@@ -158,128 +158,19 @@ interface Props {
   onOpenSimulator?: () => void;
 }
 
-type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track" | "parcelado" | "venda";
+import type { Category, EditForm } from "@/components/loans/list/types";
+import { categoryConfig, statusMap } from "@/components/loans/list/constants";
+import { rawFormatCurrency } from "@/components/loans/list/formatting";
+import {
+  getNextDate,
+  getFirstPendingDate,
+  getDaysOverdue,
+  getLoanCategory,
+  getInstallmentDueDate,
+  loanToForm,
+  getTotalPaid,
+} from "@/components/loans/list/calculations";
 
-const categoryConfig: { id: Category; label: string; color: string; activeColor: string }[] = [
-  { id: "all", label: "Todos", color: "border-border text-muted-foreground", activeColor: "bg-primary text-primary-foreground border-primary" },
-  { id: "overdue", label: "Atrasados", color: "border-destructive/30 text-destructive", activeColor: "bg-destructive text-destructive-foreground border-destructive" },
-  { id: "paid_interest", label: "Juros", color: "border-purple/30 text-purple", activeColor: "bg-purple text-purple-foreground border-purple" },
-  { id: "due_today", label: "Vence Hoje", color: "border-warning/30 text-warning", activeColor: "bg-warning text-warning-foreground border-warning" },
-  { id: "on_track", label: "Em Dia", color: "border-primary/30 text-primary", activeColor: "bg-primary text-primary-foreground border-primary" },
-  { id: "parcelado", label: "Parcelados", color: "border-blue-400/30 text-blue-400", activeColor: "bg-blue-500 text-white border-blue-500" },
-  { id: "venda", label: "Vendas", color: "border-amber-500/30 text-amber-600 dark:text-amber-400", activeColor: "bg-amber-500 text-white border-amber-500" },
-  { id: "paid", label: "Quitado", color: "border-success/30 text-success", activeColor: "bg-success text-success-foreground border-success" },
-];
-
-function rawFormatCurrency(value: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-}
-
-function getNextDate(base: Date, frequency: string, periods: number): Date {
-  const d = new Date(base);
-  if (frequency === "Diário") d.setDate(d.getDate() + periods);
-  else if (frequency === "Semanal") d.setDate(d.getDate() + 7 * periods);
-  else if (frequency === "Quinzenal") d.setDate(d.getDate() + 15 * periods);
-  else d.setMonth(d.getMonth() + periods);
-  return d;
-}
-
-function getFirstPendingDate(loan: Loan, schedules: InstallmentSchedule[]): Date {
-  const loanSchedules = schedules.filter((s) => s.loanId === loan.id).sort((a, b) => a.installmentNumber - b.installmentNumber);
-  const nextNum = loan.paidInstallments + 1;
-  const saved = loanSchedules.find((s) => s.installmentNumber === nextNum);
-  if (saved) return new Date(saved.dueDate + "T00:00:00");
-  // Fallback to dueDate
-  return new Date(loan.dueDate + "T00:00:00");
-}
-
-function getDaysOverdue(loan: Loan, schedules: InstallmentSchedule[] = []): number {
-  const today = new Date();
-  const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const due = getFirstPendingDate(loan, schedules);
-  const diff = Math.floor((todayNorm.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
-  return diff;
-}
-
-function getLoanCategory(loan: Loan, payments: Payment[], schedules: InstallmentSchedule[] = []): "paid" | "paid_interest" | "overdue" | "due_today" | "on_track" {
-  if (loan.status === "paid") return "paid";
-  const days = getDaysOverdue(loan, schedules);
-  const loanPayments = payments.filter((p) => p.loanId === loan.id);
-  const lastPayment = loanPayments.sort((a, b) => b.date.localeCompare(a.date))[0];
-  // If due date is in the future, it's on_track regardless of interest payments
-  if (days < 0) {
-    if (lastPayment && lastPayment.installmentNumber === 0) return "paid_interest";
-    return "on_track";
-  }
-  if (days === 0) return "due_today";
-  if (days > 0) return "overdue";
-  return "on_track";
-}
-
-const statusMap = {
-  paid: { label: "Quitado", className: "bg-success/10 text-success border-success/20" },
-  paid_interest: { label: "Juros", className: "bg-purple/10 text-purple border-purple/20" },
-  overdue: { label: "Atrasado", className: "bg-destructive/10 text-destructive border-destructive/20" },
-  due_today: { label: "Vence Hoje", className: "bg-warning/10 text-warning border-warning/20" },
-  on_track: { label: "Em Dia", className: "bg-primary/10 text-primary border-primary/20" },
-};
-
-function getInstallmentDueDate(loan: Loan, installmentNumber: number, schedules: InstallmentSchedule[]) {
-  const savedSchedule = schedules.find((s) => s.loanId === loan.id && s.installmentNumber === installmentNumber);
-  if (savedSchedule?.dueDate) return savedSchedule.dueDate;
-  const firstDue = new Date(loan.dueDate + "T00:00:00");
-  return getNextDate(firstDue, loan.interestType || "Mensal", Math.max(0, installmentNumber - 1)).toISOString().split("T")[0];
-}
-
-interface EditForm {
-  borrowerName: string;
-  amount: string;
-  interestRate: string;
-  interestValue: string;
-  installmentValue: string;
-  installments: string;
-  paidInstallments: string;
-  startDate: string;
-  dueDate: string;
-  notes: string;
-  tags: string;
-  interestType: string;
-  remainingAmount: string;
-}
-
-function loanToForm(loan: Loan): EditForm {
-  const amt = loan.amount;
-  const rate = loan.interestRate;
-  const months = loan.installments;
-  const interestValue = loan.customInterestValue != null && loan.customInterestValue > 0
-    ? loan.customInterestValue
-    : amt * (rate / 100);
-  const total = calculateTotalWithInterest(amt, rate, months);
-  const remainingForCalc = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : total;
-  const paidCount = loan.paidInstallments || 0;
-  const remainingInst = Math.max(1, months - paidCount);
-  const installmentValue = remainingForCalc / remainingInst;
-  const totalPaidCalc = loan.remainingAmount != null ? loan.remainingAmount : total;
-  return {
-    borrowerName: loan.borrowerName,
-    amount: String(amt),
-    interestRate: String(rate),
-    interestValue: interestValue.toFixed(2),
-    installmentValue: installmentValue.toFixed(2),
-    installments: String(months),
-    paidInstallments: String(loan.paidInstallments),
-    startDate: loan.startDate,
-    dueDate: loan.dueDate,
-    notes: loan.notes || "",
-    tags: (loan.tags || []).join(", "),
-    interestType: loan.interestType || "Mensal",
-    remainingAmount: String(totalPaidCalc),
-  };
-}
-
-function getTotalPaid(loan: Loan, payments: Payment[]): number {
-  return payments.filter((p) => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
-}
 
 function PaymentHistoryItem({
   payment, formatCurrency, onDelete, readOnly,
