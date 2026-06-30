@@ -90,9 +90,8 @@ import {
   getTotalPaid,
 } from "@/components/loans/list/calculations";
 
-import { PaymentHistoryItem } from "@/components/loans/list/PaymentHistoryItem";
-import { LoanCardView } from "@/components/loans/list/LoanMobileCard";
 import { LoanListMobileCards } from "@/components/loans/list/LoanListMobileCards";
+
 
 
 
