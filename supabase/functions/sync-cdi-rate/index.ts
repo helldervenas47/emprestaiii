@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
         annual_rate: newRate,
         source,
         reference_date: result.date,
-        piggy_banks_updated: updated,
+        cofrinhos_atualizados: updated,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

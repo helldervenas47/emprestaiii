@@ -105,7 +105,10 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     if (!ownerId) return;
     let cancelled = false;
     const load = async () => {
-      const [{ data: ledger }, { data: piggy }] = await Promise.all([
+      // Nova arquitetura de cofrinhos: cruza `cofrinhos` (do owner) com
+      // `cofrinho_eventos` (DEPOSITO/RESGATE) usando `data_evento` como data
+      // financeira. Nenhuma leitura de tabelas legadas.
+      const [{ data: ledger }, { data: banks }] = await Promise.all([
         supabase
           .from("account_ledger")
           .select("amount, occurred_on, metadata")
@@ -113,10 +116,20 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
           .eq("direction", "out")
           .eq("metadata->>kind", "credit_card_invoice_payment"),
         supabase
-          .from("piggy_bank_deposits" as any)
-          .select("amount, deposit_date")
-          .eq("user_id", ownerId),
+          .from("cofrinhos" as any)
+          .select("id")
+          .eq("usuario_id", ownerId),
       ]);
+      const bankIds = ((banks as any[]) ?? []).map((b) => b.id);
+      let events: any[] = [];
+      if (bankIds.length > 0) {
+        const { data: ev } = await supabase
+          .from("cofrinho_eventos" as any)
+          .select("tipo, valor, data_evento, created_at")
+          .in("cofrinho_id", bankIds)
+          .in("tipo", ["DEPOSITO", "RESGATE"]);
+        events = (ev as any[]) ?? [];
+      }
       if (cancelled) return;
       const cardByMonth: Record<string, number> = {};
       for (const r of (ledger as any[]) ?? []) {
@@ -126,13 +139,18 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       }
       setCardInvoicePaidByMonth(cardByMonth);
       const piggyByMonth: Record<string, number> = {};
-      for (const r of (piggy as any[]) ?? []) {
-        const mk = ((r.deposit_date as string) || "").slice(0, 7);
+      for (const r of events) {
+        const raw = (r.data_evento as string) || (r.created_at as string) || "";
+        const mk = raw.slice(0, 7);
         if (!mk) continue;
-        piggyByMonth[mk] = (piggyByMonth[mk] ?? 0) + (Number(r.amount) || 0);
+        const tipo = String(r.tipo || "").toUpperCase();
+        const v = Number(r.valor) || 0;
+        const signed = tipo === "RESGATE" ? -Math.abs(v) : Math.abs(v);
+        piggyByMonth[mk] = (piggyByMonth[mk] ?? 0) + signed;
       }
       setPiggyNetByMonth(piggyByMonth);
     };
+
     load();
     const handler = () => load();
     window.addEventListener("ledger:changed", handler);
