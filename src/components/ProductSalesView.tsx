@@ -52,6 +52,10 @@ import { useLocadorInfo, LocadorInfo } from "@/hooks/useLocadorInfo";
 import { useVehicleRegistry, VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { ExpenseBoletoLinkSection } from "@/components/ExpenseBoletoLinkSection";
 import { ExpenseBoletoLinkButton } from "@/components/ExpenseBoletoLinkButton";
+import { SaleCategory, SaleClientGroup, SummaryBreakdownCard, saleCategoryFilters } from "@/components/product-sales/productSalesTypes";
+import { ProductSalesSummaryCards } from "@/components/product-sales/ProductSalesSummaryCards";
+import { ProductSalesFilters } from "@/components/product-sales/ProductSalesFilters";
+import { ProductSalesHeader } from "@/components/product-sales/ProductSalesHeader";
 
 
 interface Props {
@@ -1388,26 +1392,8 @@ function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnl
     </div>
   );
 }
-type SaleCategory = "all" | "overdue" | "due_today" | "paid" | "on_track";
+// Types/filters moved to ./product-sales/productSalesTypes
 
-
-const saleCategoryFilters: { id: SaleCategory; label: string; color: string; activeColor: string }[] = [
-  { id: "all", label: "Todos", color: "border-border text-muted-foreground", activeColor: "bg-primary text-primary-foreground border-primary" },
-  { id: "overdue", label: "Atrasados", color: "border-destructive/30 text-destructive", activeColor: "bg-destructive text-destructive-foreground border-destructive" },
-  { id: "paid", label: "Pagos", color: "border-success/30 text-success", activeColor: "bg-success text-success-foreground border-success" },
-  { id: "due_today", label: "Vence Hoje", color: "border-warning/30 text-warning", activeColor: "bg-warning text-warning-foreground border-warning" },
-  { id: "on_track", label: "Em Dia", color: "border-primary/30 text-primary", activeColor: "bg-primary text-primary-foreground border-primary" },
-];
-
-// Client folder grouping for sales
-interface SaleClientGroup {
-  name: string;
-  sales: Sale[];
-  totalAmount: number;
-  totalPaid: number;
-  totalReceivable: number;
-  hasOverdue: boolean;
-}
 
 function getSalePaidAmountHelper(s: Sale): number {
   const amounts = s.installmentAmounts;
@@ -1714,42 +1700,21 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
   return (
     <div className="space-y-4">
       {/* Dashboard cards */}
-      <div className={`grid ${hideOnTrackCard ? 'grid-cols-3' : 'grid-cols-2 lg:grid-cols-4'} gap-2 sm:gap-3`}>
-        <button type="button" onClick={() => setBreakdownCard("overdue")} className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center hover:border-destructive/40 hover:shadow-md transition-all cursor-pointer" style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}>
-          <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center mb-2">
-            <AlertTriangle className="h-4 w-4 text-destructive" />
-          </div>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">Vencidos</p>
-          <p className="text-sm sm:text-xl font-bold text-destructive mt-0.5">{formatCurrency(totalOverdue)}</p>
-          <p className="text-[10px] text-muted-foreground mt-1">{overdueSales.length} contratos</p>
-        </button>
-        {!hideOnTrackCard && (
-          <button type="button" onClick={() => setBreakdownCard("ontrack")} className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center hover:border-primary/40 hover:shadow-md transition-all cursor-pointer" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-              <Clock className="h-4 w-4 text-primary" />
-            </div>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">No Prazo</p>
-            <p className="text-sm sm:text-xl font-bold text-primary mt-0.5">{formatCurrency(totalOnTrack + totalDueToday)}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">{onTrackSales.length + dueTodaySales.length} contratos</p>
-          </button>
-        )}
-        <button type="button" onClick={() => setBreakdownCard("paid")} className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center hover:border-success/40 hover:shadow-md transition-all cursor-pointer" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
-          <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
-            <CircleCheck className="h-4 w-4 text-success" />
-          </div>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">Pagos</p>
-          <p className="text-sm sm:text-xl font-bold text-success mt-0.5">{formatCurrency(totalPaid)}</p>
-          <p className="text-[10px] text-muted-foreground mt-1">{paidContractsCount} contratos quitados</p>
-        </button>
-        <button type="button" onClick={() => setBreakdownCard("receivable")} className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center hover:border-warning/40 hover:shadow-md transition-all cursor-pointer" style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}>
-          <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center mb-2">
-            <DollarSign className="h-4 w-4 text-warning" />
-          </div>
-          <p className="text-[10px] sm:text-xs text-muted-foreground">Total a Receber</p>
-          <p className="text-sm sm:text-xl font-bold text-warning mt-0.5">{formatCurrency(totalAReceber)}</p>
-          <p className="text-[10px] text-muted-foreground mt-1">{overdueSales.length + onTrackSales.length + dueTodaySales.length} contratos</p>
-        </button>
-      </div>
+      <ProductSalesSummaryCards
+        hideOnTrackCard={hideOnTrackCard}
+        formatCurrency={formatCurrency}
+        totalOverdue={totalOverdue}
+        totalOnTrack={totalOnTrack}
+        totalDueToday={totalDueToday}
+        totalPaid={totalPaid}
+        totalAReceber={totalAReceber}
+        overdueCount={overdueSales.length}
+        onTrackCount={onTrackSales.length}
+        dueTodayCount={dueTodaySales.length}
+        paidContractsCount={paidContractsCount}
+        onSelect={setBreakdownCard}
+      />
+
 
       {/* Breakdown dialog for clicked summary card */}
       {breakdownCard && (() => {
@@ -1807,64 +1772,21 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
 
       {renderAfterCards}
 
-      {/* View toggle + Category filter pills */}
-      <div className="flex items-center gap-2">
-        <div className="flex-1 grid grid-cols-3 sm:grid-cols-5 gap-2 w-full">
-          {saleCategoryFilters.map((cat) => {
-            const count = cat.id === "all" ? sales.length : (counts[cat.id] || 0);
-            const isActive = categoryFilter === cat.id;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setCategoryFilter(cat.id)}
-                className={`px-2 py-1.5 rounded-xl text-[10px] sm:text-xs font-semibold border transition-all duration-200 whitespace-nowrap ${
-                  isActive ? cat.activeColor : cat.color
-                }`}
-              >
-                {cat.label} ({count})
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <ProductSalesFilters
+        view={view}
+        setView={setView}
+        categoryFilter={categoryFilter}
+        setCategoryFilter={setCategoryFilter}
+        search={search}
+        setSearch={setSearch}
+        counts={counts}
+        totalSalesCount={sales.length}
+        folderCount={folderCount}
+        filteredCount={filtered.length}
+        totalAmount={total}
+        formatCurrency={formatCurrency}
+      />
 
-      {/* View toggle */}
-      <div className="w-full">
-        <div className="bg-muted/50 rounded-xl p-1 flex gap-0.5 w-full">
-          <button onClick={() => setView("cards")}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-              view === "cards" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <LayoutGrid className="h-3.5 w-3.5" />Cards
-          </button>
-          <button onClick={() => setView("list")}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-              view === "list" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <List className="h-3.5 w-3.5" />Lista
-          </button>
-          <button onClick={() => setView("folders")}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-              view === "folders" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Folder className="h-3.5 w-3.5" />Pastas ({folderCount})
-          </button>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between gap-2 sm:gap-4">
-        <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-          <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-        </div>
-        <div className="text-right shrink-0">
-          <p className="text-xs text-muted-foreground">{filtered.length} lançamento(s)</p>
-          <p className="text-lg font-bold">{formatCurrency(total)}</p>
-        </div>
-      </div>
 
       {filtered.length === 0 ? (
         <Card><CardContent className="py-12 text-center">
@@ -2255,83 +2177,23 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   }
 
   const secondaryCards = (
-    <div className="space-y-3">
-      {/* Month filter - full width */}
-      <div className="flex items-center justify-center gap-2">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
-          const [y, m] = selectedMonth.split("-").map(Number);
-          const prev = new Date(y, m - 2, 1);
-          setSelectedMonth(`${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`);
-        }}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <button
-          className="text-sm font-medium text-foreground min-w-[140px] text-center capitalize hover:text-primary transition-colors"
-          onClick={() => {
-            const n = new Date();
-            setSelectedMonth(`${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`);
-          }}
-        >
-          {format(new Date(selYear, selMonthNum - 1, 1), "MMMM yyyy", { locale: ptBR })}
-        </button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
-          const [y, m] = selectedMonth.split("-").map(Number);
-          const next = new Date(y, m, 1);
-          setSelectedMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`);
-        }}>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {!readOnly && (
-      <div className="grid grid-cols-2 gap-3 items-stretch">
-        {/* Saldo em Conta */}
-        <div className="rounded-xl border p-4 bg-card flex flex-col items-center justify-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <p className="text-xs font-medium text-muted-foreground">Saldo em Conta</p>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
-          </div>
-          {editingBalance ? (
-            <div className="flex items-center justify-center gap-2">
-              <Input
-                type="number"
-                step="0.01"
-                value={balanceInput}
-                onChange={(e) => setBalanceInput(e.target.value)}
-                className="h-8 text-sm w-28"
-                autoFocus
-                onKeyDown={(e) => { if (e.key === "Enter") handleSaveBalance(); if (e.key === "Escape") setEditingBalance(false); }}
-              />
-              <Button data-mutation size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleSaveBalance}>
-                <Check className="h-4 w-4" />
-              </Button>
-              <Button data-mutation size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setEditingBalance(false)}>
-                <XIcon className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <p
-              className={`text-xl font-bold cursor-pointer hover:opacity-70 transition-opacity ${balance < 0 ? "text-destructive" : ""}`}
-              onClick={() => { setBalanceInput(String(balance)); setEditingBalance(true); }}
-              title="Clique para editar"
-            >
-              {formatCurrency(balance)}
-            </p>
-          )}
-        </div>
-
-        {/* Despesas Mensais */}
-        <div className="rounded-xl border p-4 bg-card flex flex-col items-center justify-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <p className="text-xs font-medium text-muted-foreground">Despesas Mensais</p>
-            <Receipt className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <p className="text-xl font-bold text-destructive">{formatCurrency(monthlyTotal)}</p>
-        </div>
-      </div>
-      )}
-    </div>
+    <ProductSalesHeader
+      selectedMonth={selectedMonth}
+      setSelectedMonth={setSelectedMonth}
+      selYear={selYear}
+      selMonthNum={selMonthNum}
+      readOnly={readOnly}
+      balance={balance}
+      editingBalance={editingBalance}
+      balanceInput={balanceInput}
+      setBalanceInput={setBalanceInput}
+      setEditingBalance={setEditingBalance}
+      handleSaveBalance={handleSaveBalance}
+      formatCurrency={formatCurrency}
+      monthlyTotal={monthlyTotal}
+    />
   );
+
 
   // Check if this is the vehicles-only view
   const hasSalesOrStreaming = !isVehicleView;
