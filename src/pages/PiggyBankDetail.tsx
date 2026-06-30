@@ -200,48 +200,19 @@ export default function PiggyBankDetail() {
         supabase
           .from("vw_cofrinho_rendimento_por_dia" as any)
           .select(
-            "cofrinho_id, data, saldo_principal_base, rendimento_bruto, imposto_renda, iof, rendimento_liquido, saldo_total, aportes_calculados",
+            "cofrinho_id, data, saldo_principal_base, rendimento_bruto_dia, imposto_renda_dia, iof_dia, rendimento_liquido_dia, saldo_total, aportes_calculados",
           )
           .eq("cofrinho_id", pb.id)
           .order("data", { ascending: false }),
       ]);
-      if (cancelled) return;
-
-      const events: PiggyBankDeposit[] = !evRes.error && Array.isArray(evRes.data)
-        ? (evRes.data as any[]).map((ev) => {
-            const tipo = String(ev.tipo || "").toUpperCase();
-            const rawVal = Number(ev.valor || 0);
-            const amount = tipo === "RESGATE" ? -Math.abs(rawVal) : Math.abs(rawVal);
-            const source =
-              tipo === "RESGATE"
-                ? "transfer_out"
-                : tipo === "AJUSTE"
-                  ? "manual"
-                  : "transfer_in";
-            const rawDate = ev.data_evento ?? ev.created_at;
-            return {
-              id: ev.id,
-              piggyBankId: ev.cofrinho_id,
-              expenseId: null,
-              amount,
-              depositDate: String(rawDate).slice(0, 10),
-              source,
-              recurrenceId: null,
-            } as PiggyBankDeposit;
-          })
-        : [];
-
-      const detailsMap: Record<string, YieldDetail> = {};
-      const yields: PiggyBankDeposit[] = !yieldRes.error && Array.isArray(yieldRes.data)
-        ? (yieldRes.data as any[]).map((r) => {
-            const date = String(r.data).slice(0, 10);
-            const liquido = Number(r.rendimento_liquido || 0);
+...
+            const liquido = Number(r.rendimento_liquido_dia || 0);
             const detail: YieldDetail = {
               date,
               saldoPrincipalBase: Number(r.saldo_principal_base || 0),
-              rendimentoBruto: Number(r.rendimento_bruto || 0),
-              iof: Number(r.iof || 0),
-              impostoRenda: Number(r.imposto_renda || 0),
+              rendimentoBruto: Number(r.rendimento_bruto_dia || 0),
+              iof: Number(r.iof_dia || 0),
+              impostoRenda: Number(r.imposto_renda_dia || 0),
               rendimentoLiquido: liquido,
               saldoTotal: Number(r.saldo_total || 0),
               aportesCalculados: Number(r.aportes_calculados || 0),
