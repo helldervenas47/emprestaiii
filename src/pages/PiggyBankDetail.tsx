@@ -196,7 +196,7 @@ export default function PiggyBankDetail() {
       const [ledgerRes, yieldRes] = await Promise.all([
         supabase
           .from("cofrinho_ledger" as any)
-          .select("*")
+          .select("id, cofrinho_id, tipo, valor, data_evento, created_at, evento_id, aporte_id, resgate_id")
           .eq("cofrinho_id", pb.id)
           .order("data_evento", { ascending: false })
           .order("created_at", { ascending: false }),

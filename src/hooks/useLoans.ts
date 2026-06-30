@@ -211,7 +211,7 @@ export function useLoans() {
     if (!user) return;
     if (isOnline()) {
       const { data, error } = await supabase
-        .from("loans").select("*")
+        .from("loans").select("id, borrower_name, borrower_id, amount, original_amount, interest_rate, interest_type, payment_type, start_date, due_date, original_due_date, installments, paid_installments, status, remaining_amount, custom_installment_value, custom_interest_value, tags, notes, created_at, late_interest_type, late_interest_value, penalty_value, has_manager, manager_id, manager_commission_rate, auto_billing_enabled, renegotiation_penalty_total, is_sale, payment_method_split")
         .order("created_at", { ascending: false })
         .limit(2000); // safety cap — paginação por página será adicionada com UI de "carregar mais"
       if (!error && data) {
@@ -232,7 +232,7 @@ export function useLoans() {
     if (!user) return;
     if (isOnline()) {
       const { data, error } = await supabase
-        .from("payments").select("*")
+        .from("payments").select("id, loan_id, amount, date, installment_number, previous_due_date, payment_method_id, metadata, created_at")
         .order("created_at", { ascending: false })
         .limit(5000); // safety cap
       if (!error && data) {
@@ -253,7 +253,7 @@ export function useLoans() {
     if (!user) return;
     if (isOnline()) {
       const { data, error } = await supabase
-        .from("loan_installments").select("*")
+        .from("loan_installments").select("id, loan_id, installment_number, due_date, amount")
         .order("installment_number", { ascending: true })
         .limit(10000); // safety cap
       if (!error && data) {

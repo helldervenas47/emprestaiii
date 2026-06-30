@@ -209,7 +209,7 @@ export function useExpenses(enabled = true) {
     if (isOnline()) {
       const { data, error } = await supabase
         .from("expenses")
-        .select("*")
+        .select("id, description, amount, type, category, installments, paid_installments, due_date, paid, paid_date, notes, created_at, parent_expense_id, scope, payment_method_id, generate_income_on_pay, generated_income_id")
         .order("created_at", { ascending: false })
         .limit(5000); // safety cap — paginação por mês/página será adicionada na UI
       if (!error && data) {
