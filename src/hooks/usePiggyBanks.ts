@@ -242,11 +242,13 @@ export function usePiggyBanks() {
           .in("tipo", ["DEPOSITO", "RESGATE", "AJUSTE"]),
       ]);
 
-      const movementRows = !ledgerRes.error && Array.isArray(ledgerRes.data) && ledgerRes.data.length > 0
-        ? ledgerRes.data
-        : !eventosRes.error && Array.isArray(eventosRes.data)
-          ? eventosRes.data
-          : [];
+      // Merge ledger + eventos para garantir que entradas/saídas históricas
+      // não se percam quando uma das fontes estiver incompleta. A
+      // deduplicação por evento_id/aporte_id/resgate_id evita contar
+      // duas vezes a mesma movimentação.
+      const ledgerRows = !ledgerRes.error && Array.isArray(ledgerRes.data) ? ledgerRes.data : [];
+      const eventosRows = !eventosRes.error && Array.isArray(eventosRes.data) ? eventosRes.data : [];
+      const movementRows = [...ledgerRows, ...eventosRows];
 
       if (movementRows.length > 0) {
         const seen = new Set<string>();
