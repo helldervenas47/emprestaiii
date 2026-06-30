@@ -130,17 +130,26 @@ const ymd = (d: Date) =>
 // Descricao JSON helpers — extras visuais que o novo schema não comporta.
 // ---------------------------------------------------------------------------
 interface DescricaoMeta {
+  cor?: string;
+  icone?: string;
+  categoria?: string | null;
+  data_prevista?: string | null;
+  short_id?: number | null;
+  note?: string;
+  // legacy keys (compat com registros antigos)
   color?: string;
   icon?: string;
   category?: string | null;
   targetDate?: string | null;
   shortId?: number | null;
-  note?: string;
 }
 
 const parseDescricao = (raw: any): DescricaoMeta => {
-  if (!raw || typeof raw !== "string") return {};
+  if (raw == null) return {};
+  if (typeof raw === "object") return { ...(raw as DescricaoMeta) };
+  if (typeof raw !== "string") return {};
   const trimmed = raw.trim();
+  if (!trimmed) return {};
   if (!trimmed.startsWith("{")) return { note: trimmed };
   try {
     const parsed = JSON.parse(trimmed);
@@ -150,7 +159,13 @@ const parseDescricao = (raw: any): DescricaoMeta => {
   }
 };
 
-const stringifyDescricao = (meta: DescricaoMeta): string => JSON.stringify(meta);
+const readMeta = (m: DescricaoMeta) => ({
+  cor: m.cor ?? m.color ?? DEFAULT_COLOR,
+  icone: m.icone ?? m.icon ?? DEFAULT_ICON,
+  categoria: m.categoria ?? m.category ?? null,
+  data_prevista: m.data_prevista ?? m.targetDate ?? null,
+  short_id: m.short_id ?? m.shortId ?? null,
+});
 
 const DEFAULT_COLOR = "210 80% 55%";
 const DEFAULT_ICON = "PiggyBank";
