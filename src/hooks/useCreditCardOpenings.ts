@@ -66,7 +66,7 @@ export function cycleKeyFromDate(closingTo: Date): string {
 // esse evento e recarregam.
 const OPENINGS_CHANGED_EVENT = "openings:changed";
 const CREDIT_CARD_OPENING_COLUMNS =
-  "id, card_id, credit_card_id, cycle_key, month_label, opening_amount, opening_balance, notes";
+  "id, card_id, credit_card_id, cycle_key, month_label, opening_balance, notes";
 type LedgerPaymentMeta = { amount: number; paidDate: string; isFull: boolean };
 
 function notifyOpeningsChanged() {
