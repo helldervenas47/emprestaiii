@@ -6,7 +6,7 @@ import { BACKUP_TABLES } from "../_shared/backup-tables.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-admin-secret",
 };
 
 const CONFIRMATION_PHRASE = "EXCLUIR TODOS OS DADOS";
