@@ -411,16 +411,6 @@ const Index = () => {
     return isMobileViewport ? "dashboard" : "overview";
   });
   const setTab = (t: Tab) => {
-    if (import.meta.env.DEV) {
-      console.debug("[Index setTab]", {
-        mountId: indexMountIdRef.current,
-        route: `${location.pathname}${location.search}`,
-        from: tab,
-        to: t,
-        sameTab: t === tab,
-        userId: user?.id ?? null,
-      });
-    }
     sessionStorage.setItem("activeTab", t);
     if (t === tab) {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -430,6 +420,7 @@ const Index = () => {
     setPreservedPageHeight(document.documentElement.scrollHeight || document.body.scrollHeight || null);
     setTabState(t);
   };
+
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
