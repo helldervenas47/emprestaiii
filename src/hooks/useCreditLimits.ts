@@ -190,7 +190,7 @@ export function useCreditLimits() {
     async (clientId: string): Promise<CreditLimitHistoryEntry[]> => {
       const { data, error } = await supabase
         .from("credit_limit_history")
-        .select("*")
+        .select(CREDIT_LIMIT_HISTORY_COLUMNS)
         .eq("client_id", clientId)
         .order("created_at", { ascending: false });
       if (error || !data) return [];
