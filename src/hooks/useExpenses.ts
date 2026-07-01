@@ -206,37 +206,75 @@ async function syncPayrollOnExpensePaid(opts: {
 // Fetcher puro consumido por `useExpenses` via `useQuery`, permitindo que
 // múltiplos componentes compartilhem uma única request por queryKey.
 // ---------------------------------------------------------------------------
-export async function fetchExpensesData(): Promise<Expense[]> {
+export interface ExpensesPeriod {
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+}
+
+export async function fetchExpensesData(period?: ExpensesPeriod): Promise<Expense[]> {
+  const { startDate, endDate, limit } = period ?? {};
+  const hasPeriod = !!(startDate || endDate);
+  const effectiveLimit = limit ?? 5000;
   if (isOnline()) {
-    const { data, error } = await supabase
+    let q = supabase
       .from("expenses")
       .select("id, description, amount, type, category, installments, paid_installments, due_date, paid, paid_date, notes, created_at, parent_expense_id, scope, payment_method_id, generate_income_on_pay, generated_income_id")
       .order("created_at", { ascending: false })
-      .limit(5000); // safety cap — paginação por mês/página será adicionada na UI
+      .limit(effectiveLimit);
+    if (startDate) q = q.gte("due_date", startDate);
+    if (endDate) q = q.lte("due_date", endDate);
+    const { data, error } = await q;
     if (!error && data) {
-      cacheRows("expenses", data).catch(() => { /* noop */ });
+      if (!hasPeriod) cacheRows("expenses", data).catch(() => { /* noop */ });
       return data.map(rowToExpense);
     }
   }
   const cached = await getCachedRows("expenses");
-  return cached
+  let rows = cached;
+  if (startDate) rows = rows.filter((r: any) => (r.due_date ?? "") >= startDate);
+  if (endDate) rows = rows.filter((r: any) => (r.due_date ?? "") <= endDate);
+  return rows
     .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
+    .slice(0, effectiveLimit)
     .map(rowToExpense);
 }
 
-export function expensesQueryKey(ownerKey: string | null | undefined) {
-  return ["expenses", ownerKey ?? "anon"] as const;
+export function expensesQueryKey(
+  ownerKey: string | null | undefined,
+  period?: ExpensesPeriod,
+) {
+  const owner = ownerKey ?? "anon";
+  if (!period || (!period.startDate && !period.endDate && period.limit === undefined)) {
+    return ["expenses", owner] as const;
+  }
+  return [
+    "expenses",
+    owner,
+    period.startDate ?? null,
+    period.endDate ?? null,
+    period.limit ?? null,
+  ] as const;
 }
 
-export function useExpenses(enabled = true) {
+export interface UseExpensesOptions extends ExpensesPeriod {
+  enabled?: boolean;
+}
+
+export function useExpenses(opts: boolean | UseExpensesOptions = true) {
+  const parsed: UseExpensesOptions = typeof opts === "boolean" ? { enabled: opts } : opts;
+  const { enabled = true, startDate, endDate, limit } = parsed;
+  const period: ExpensesPeriod | undefined =
+    startDate || endDate || limit !== undefined ? { startDate, endDate, limit } : undefined;
+
   const { user, dataOwnerId } = useAuth();
   const queryClient = useQueryClient();
   const ownerKey = dataOwnerId ?? user?.id ?? null;
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
   const expensesQuery = useQuery({
-    queryKey: expensesQueryKey(ownerKey),
-    queryFn: fetchExpensesData,
+    queryKey: expensesQueryKey(ownerKey, period),
+    queryFn: () => fetchExpensesData(period),
     enabled: !!user && enabled,
     staleTime: 30_000,
   });

@@ -56,29 +56,61 @@ function rowToIncome(r: any): Income {
 // ---------------------------------------------------------------------------
 // Fase 5 — TanStack Query shared cache para incomes.
 // ---------------------------------------------------------------------------
-export async function fetchIncomesData(): Promise<Income[]> {
-  const { data } = await supabase
+export interface IncomesPeriod {
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+}
+
+export async function fetchIncomesData(period?: IncomesPeriod): Promise<Income[]> {
+  const { startDate, endDate, limit } = period ?? {};
+  let q = supabase
     .from("incomes" as any)
     .select("id, description, amount, category, client_id, source, payment_method_id, received_date, actual_received_date, status, notes, recurrence, parent_id, created_at")
     .order("received_date", { ascending: false })
-    .limit(5000); // safety cap
+    .limit(limit ?? 5000);
+  if (startDate) q = q.gte("received_date", startDate);
+  if (endDate) q = q.lte("received_date", endDate);
+  const { data } = await q;
   if (!data) return [];
   return (data as any[]).map(rowToIncome);
 }
 
-export function incomesQueryKey(ownerKey: string | null | undefined) {
-  return ["incomes", ownerKey ?? "anon"] as const;
+export function incomesQueryKey(
+  ownerKey: string | null | undefined,
+  period?: IncomesPeriod,
+) {
+  const owner = ownerKey ?? "anon";
+  if (!period || (!period.startDate && !period.endDate && period.limit === undefined)) {
+    return ["incomes", owner] as const;
+  }
+  return [
+    "incomes",
+    owner,
+    period.startDate ?? null,
+    period.endDate ?? null,
+    period.limit ?? null,
+  ] as const;
 }
 
-export function useIncomes(enabled = true) {
+export interface UseIncomesOptions extends IncomesPeriod {
+  enabled?: boolean;
+}
+
+export function useIncomes(opts: boolean | UseIncomesOptions = true) {
+  const parsed: UseIncomesOptions = typeof opts === "boolean" ? { enabled: opts } : opts;
+  const { enabled = true, startDate, endDate, limit } = parsed;
+  const period: IncomesPeriod | undefined =
+    startDate || endDate || limit !== undefined ? { startDate, endDate, limit } : undefined;
+
   const { user, dataOwnerId } = useAuth();
   const queryClient = useQueryClient();
   const ownerKey = dataOwnerId ?? user?.id ?? null;
   const [incomes, setIncomes] = useState<Income[]>([]);
 
   const incomesQuery = useQuery({
-    queryKey: incomesQueryKey(ownerKey),
-    queryFn: fetchIncomesData,
+    queryKey: incomesQueryKey(ownerKey, period),
+    queryFn: () => fetchIncomesData(period),
     enabled: !!user && enabled,
     staleTime: 30_000,
   });
