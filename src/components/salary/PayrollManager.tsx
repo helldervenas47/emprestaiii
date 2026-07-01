@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { useEmployees } from "@/hooks/useEmployees";
 import { usePayrolls } from "@/hooks/usePayrolls";
 import { useAppBranding } from "@/hooks/useAppBranding";
-import { generatePayslipPdf } from "@/lib/payslipPdf";
+// generatePayslipPdf importado dinamicamente no handler.
 import type { Payroll } from "@/types/salary";
 import { todayInAppTz } from "@/lib/timezone";
 import { ExtraEarningDialog } from "./ExtraEarningDialog";
