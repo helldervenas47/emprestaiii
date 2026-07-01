@@ -216,8 +216,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (hydratedForUserId === userId) return;
       hydratedForUserId = userId;
       if (showLoading) setLoading(true);
-      await hydrateUserState(userId, currentUser, accessToken);
-      if (mounted) setLoading(false);
+      try {
+        await hydrateUserState(userId, currentUser, accessToken);
+      } catch (err) {
+        console.error("[useAuth] hydrateUserState failed:", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
