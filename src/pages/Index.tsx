@@ -470,6 +470,13 @@ const Index = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const initialLoanCategory = urlParams.get("filter") as any;
   const initialLoanView = urlParams.get("view") as any;
+  // Defer heavy hooks until their tabs are active. Loans/Clients são consumidos
+  // por quase todas as abas financeiras (overview, dashboard, calendar, overdue,
+  // accountant, expenses, products, vehicles, clients, salary). Só liberamos
+  // skip para abas totalmente independentes (boletos, help, system).
+  const NON_FINANCIAL_TABS = new Set<Tab>(["boletos", "help", "system"]);
+  const needsLoans = !NON_FINANCIAL_TABS.has(tab);
+  const needsClients = !NON_FINANCIAL_TABS.has(tab);
   const {
     loans,
     payments,
@@ -485,13 +492,12 @@ const Index = () => {
     deleteLoan,
     deletePayment,
     saveSchedule,
-  } = useLoans();
-  const { clients, addClient, deleteClient, updateClient } = useClients();
+  } = useLoans(needsLoans);
+  const { clients, addClient, deleteClient, updateClient } = useClients(needsClients);
 
   // Automatic credit-limit adjustment per client (auto mode only)
   useAutoAdjustCreditLimits(clients, loans, payments);
 
-  // Defer heavy hooks until their tabs are active
   const needsProducts =
     tab === "overview" || tab === "products" || tab === "vehicles" || tab === "calendar" || tab === "settings";
   const needsExpenses =
