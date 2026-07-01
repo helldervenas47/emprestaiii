@@ -67,37 +67,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [linkedClientIds, setLinkedClientIds] = useState<string[] | null>(null);
 
   const fetchRole = async (userId: string, accessToken?: string) => {
-    let { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
+    try {
+      let { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
 
-    let roles = (data ?? []).map((r: any) => r.role as string);
-    if (roles.length === 0) {
-      const token = accessToken ?? (await supabase.auth.getSession()).data.session?.access_token;
-      if (token) {
-        let ensuredRole: { role?: string } | null = null;
-        try {
-          ensuredRole = await invokeExternalFunction<{ role?: string }>("ensure-user-role", token, { role: "cliente" });
-        } catch (ensureRoleError) {
-          console.error("[useAuth] ensure-user-role error:", ensureRoleError);
-        }
-        const retry = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", userId);
-        data = retry.data;
-        roles = (data ?? []).map((r: any) => r.role as string);
-        if (roles.length === 0 && ensuredRole?.role) {
-          roles = [ensuredRole.role as string];
+      let roles = (data ?? []).map((r: any) => r.role as string);
+      if (roles.length === 0) {
+        const token = accessToken ?? (await supabase.auth.getSession()).data.session?.access_token;
+        if (token) {
+          let ensuredRole: { role?: string } | null = null;
+          try {
+            ensuredRole = await invokeExternalFunction<{ role?: string }>("ensure-user-role", token, { role: "cliente" });
+          } catch (ensureRoleError) {
+            console.error("[useAuth] ensure-user-role error:", ensureRoleError);
+          }
+          const retry = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", userId);
+          data = retry.data;
+          roles = (data ?? []).map((r: any) => r.role as string);
+          if (roles.length === 0 && ensuredRole?.role) {
+            roles = [ensuredRole.role as string];
+          }
         }
       }
-    }
-    if (roles.length === 0) {
-      setRole(null);
-      return;
-    }
-    const best = roles.sort(
+      if (roles.length === 0) {
+        // Fallback seguro: assume "cliente" quando não foi possível determinar
+        // o papel (edge function fora do ar, timeout, etc.). Evita travar o app.
+        setRole("cliente");
+        return;
+      }
+      const best = roles.sort(
       (a, b) => (ROLE_PRIORITY[b] ?? 0) - (ROLE_PRIORITY[a] ?? 0),
     )[0];
     setRole((best as AppRole) ?? null);
