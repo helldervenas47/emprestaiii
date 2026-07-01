@@ -11,6 +11,12 @@ import type { Employee, Payroll, PayrollItems, PayrollStatus, SalaryItem } from 
 const linkedExpensePromises = new Map<string, Promise<string | null>>();
 const LINKED_EXPENSE_DEDUP_KEY = "payrolls.linkedExpenseDedup.v2";
 
+const PAYROLL_COLUMNS =
+  "id, employee_id, competence, gross_salary, total_benefits, total_deductions, net_salary, paid_amount, status, due_date, paid_date, payment_method_id, expense_id, income_id, closed, items, notes, created_at, updated_at";
+const PAYROLL_PAYMENT_COLUMNS =
+  "id, user_id, payroll_id, amount, paid_date, payment_method_id, expense_id, income_id, notes";
+
+
 function rowToPayroll(r: any): Payroll {
   return {
     id: r.id,
@@ -82,7 +88,7 @@ export function usePayrolls(enabled = true) {
     setLoading(true);
     const { data } = await supabase
       .from("payrolls" as any)
-      .select("*")
+      .select(PAYROLL_COLUMNS)
       .order("competence", { ascending: false });
     if (data) setPayrolls((data as any[]).map(rowToPayroll));
     setLoading(false);
@@ -364,7 +370,7 @@ export function usePayrolls(enabled = true) {
     assertWritable();
     const { data: pay } = await supabase
       .from("payroll_payments" as any)
-      .select("*")
+      .select(PAYROLL_PAYMENT_COLUMNS)
       .eq("id", paymentId)
       .maybeSingle();
     if (!pay) return;

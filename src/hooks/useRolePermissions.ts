@@ -45,6 +45,11 @@ const COLUMN_BY_ACTION: Record<PermissionAction, keyof RolePermissionRow> = {
   delete: "can_delete",
 };
 
+const ROLE_PERMISSION_COLUMNS =
+  "id, role, module, can_view, can_create, can_edit, can_delete, updated_at, updated_by";
+const ROLE_PERMISSION_AUDIT_COLUMNS =
+  "id, role, module, before_state, after_state, changed_by, changed_at";
+
 /** Permissões do usuário logado, com cache em memória e realtime. */
 export function usePermissions() {
   const { role } = useAuth();
@@ -59,7 +64,7 @@ export function usePermissions() {
     }
     const { data, error } = await supabase
       .from("role_permissions" as any)
-      .select("*")
+      .select(ROLE_PERMISSION_COLUMNS)
       .eq("role", role);
     if (!error) setRows((data as any) || []);
     setLoading(false);
@@ -102,7 +107,7 @@ export function useAllRolePermissions() {
   const refresh = useCallback(async () => {
     const { data, error } = await supabase
       .from("role_permissions" as any)
-      .select("*")
+      .select(ROLE_PERMISSION_COLUMNS)
       .order("role", { ascending: true })
       .order("module", { ascending: true });
     if (!error) setRows((data as any) || []);
@@ -157,7 +162,7 @@ export function useRolePermissionsAudit(limit = 50) {
   const refresh = useCallback(async () => {
     const { data, error } = await supabase
       .from("role_permissions_audit" as any)
-      .select("*")
+      .select(ROLE_PERMISSION_AUDIT_COLUMNS)
       .order("changed_at", { ascending: false })
       .limit(limit);
     if (!error) setRows((data as any) || []);

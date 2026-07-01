@@ -31,6 +31,9 @@ export interface PlanRecord {
 
 export type PlanInput = Omit<PlanRecord, "id">;
 
+const PLAN_COLUMNS =
+  "id, name, description, price, price_semestral, price_anual, discount_semestral, discount_anual, badge, promo_text, highlight_color, highlight, recommended, active, sort_order, features, show_monthly, show_semestral, show_anual, trial_days, limits, permissions, allowed_tabs, expiration_action";
+
 export function usePlans() {
   const [plans, setPlans] = useState<PlanRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +43,7 @@ export function usePlans() {
     setLoading(true);
     const { data, error } = await (supabase as any)
       .from("plans")
-      .select("*")
+      .select(PLAN_COLUMNS)
       .order("sort_order", { ascending: true });
     if (error) {
       toast({ title: "Erro ao carregar planos", description: error.message, variant: "destructive" });

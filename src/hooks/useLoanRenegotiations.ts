@@ -24,6 +24,10 @@ function rowToRenegotiation(r: any): LoanRenegotiation {
   };
 }
 
+const LOAN_RENEGOTIATION_COLUMNS =
+  "id, loan_id, user_id, renegotiated_at, type, previous_amount, new_amount, penalty_amount, penalty_mode, penalty_input, previous_installments, new_installments, notes, created_at";
+const LOAN_RENEGOTIATION_WITH_SNAPSHOT_COLUMNS = `${LOAN_RENEGOTIATION_COLUMNS}, previous_state`;
+
 export function useLoanRenegotiations() {
   const { user, dataOwnerId } = useAuth();
   const [renegotiations, setRenegotiations] = useState<LoanRenegotiation[]>([]);
@@ -32,7 +36,7 @@ export function useLoanRenegotiations() {
     if (!user) return;
     const { data, error } = await supabase
       .from("loan_renegotiations" as any)
-      .select("*")
+      .select(LOAN_RENEGOTIATION_COLUMNS)
       .order("created_at", { ascending: false });
     if (!error && data) setRenegotiations((data as any[]).map(rowToRenegotiation));
   }, [user]);
@@ -105,7 +109,7 @@ export function useLoanRenegotiations() {
     // Busca o registro com snapshot para reverter o contrato
     const { data: row, error: fetchErr } = await supabase
       .from("loan_renegotiations" as any)
-      .select("*")
+      .select(LOAN_RENEGOTIATION_WITH_SNAPSHOT_COLUMNS)
       .eq("id", id)
       .maybeSingle();
     if (fetchErr) throw new Error(fetchErr.message);
