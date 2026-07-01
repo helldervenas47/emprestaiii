@@ -192,7 +192,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await syncProfile(currentUser);
     }
 
-    await Promise.all([
+    // allSettled evita que uma falha isolada (ex.: RPC lento) trave o loading.
+    await Promise.allSettled([
       fetchRole(userId, accessToken),
       fetchDataOwner(userId),
       fetchTabPermissions(userId),
