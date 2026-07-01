@@ -46,7 +46,7 @@ export function useClients() {
     if (isOnline()) {
       const { data, error } = await supabase
         .from("clients")
-        .select("*")
+        .select(CLIENT_COLUMNS)
         .order("created_at", { ascending: false });
 
       if (!error && data) {
