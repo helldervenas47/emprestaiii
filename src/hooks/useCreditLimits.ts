@@ -56,6 +56,11 @@ function rowToHistory(r: any): CreditLimitHistoryEntry {
   };
 }
 
+const CREDIT_LIMIT_COLUMNS =
+  "id, user_id, client_id, current_limit, mode, last_auto_calculated_at, created_at, updated_at";
+const CREDIT_LIMIT_HISTORY_COLUMNS =
+  "id, user_id, client_id, change_type, previous_limit, new_limit, reason, changed_by, metadata, created_at";
+
 export function useCreditLimits() {
   const { user, dataOwnerId } = useAuth();
   const [limits, setLimits] = useState<CreditLimit[]>([]);
@@ -64,7 +69,7 @@ export function useCreditLimits() {
     if (!user) return;
     const { data, error } = await supabase
       .from("credit_limits")
-      .select("*");
+      .select(CREDIT_LIMIT_COLUMNS);
     if (!error && data) setLimits(data.map(rowToLimit));
   }, [user]);
 
