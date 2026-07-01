@@ -210,7 +210,8 @@ export function financeFetchStart(scope: string, table: string, detail?: unknown
       });
     }
   }
-  financeDebug("fetch start", scope, { queryKey: null, ...(detail as object | undefined) }, table);
+  const safeDetail = detail && typeof detail === "object" ? detail : {};
+  financeDebug("fetch start", scope, { queryKey: null, ...safeDetail }, table);
 }
 
 export function financeFetchSuccess(scope: string, table: string, detail?: unknown) {
@@ -230,5 +231,6 @@ export function financeInvalidate(scope: string, table: string, detail?: unknown
 }
 
 export function financeSetState(scope: string, label: string, detail?: unknown) {
-  financeDebug("setState important", scope, { label, ...(detail as object | undefined) });
+  const safeDetail = detail && typeof detail === "object" ? detail : {};
+  financeDebug("setState important", scope, { label, ...safeDetail });
 }
