@@ -99,9 +99,7 @@ describe("PartialPaymentDialog", () => {
 
   it("emite onAmountChange quando o usuário digita no campo Valor recebido", () => {
     const { onAmountChange } = renderDialog();
-    // O <Label> não usa htmlFor — buscamos pelo placeholder.
-    // Input é type="number", então usamos um valor numérico válido.
-    const input = screen.getByPlaceholderText(/ex:\s*150/i);
+    const input = screen.getByLabelText("Valor recebido (R$)");
     fireEvent.change(input, { target: { value: "150" } });
     expect(onAmountChange).toHaveBeenCalledWith("150");
   });

@@ -199,8 +199,9 @@ export function PartialPaymentDialog({
             {/* Coluna direita — Operação */}
             <section className="space-y-3">
               <div>
-                <Label className="text-sm">Valor recebido (R$)</Label>
+                <Label htmlFor="partial-payment-amount" className="text-sm">Valor recebido (R$)</Label>
                 <Input
+                  id="partial-payment-amount"
                   type="number"
                   step="0.01"
                   placeholder="Ex: 150,00"
