@@ -1595,6 +1595,7 @@ export function LoanCardView({
                 className="flex-1 h-9 text-xs gap-1.5 border-primary text-primary"
                 onClick={async () => {
                   try {
+                    const { generateLoanReportPdf } = await import("@/lib/loanReportPdf");
                     await generateLoanReportPdf({
                       loan,
                       payments: allPayments,
