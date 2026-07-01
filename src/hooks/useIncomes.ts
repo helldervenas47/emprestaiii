@@ -25,6 +25,13 @@ export interface Income {
   createdAt: string;
 }
 
+const globalRecurringBackfillLocks = new Set<string>();
+
+function recurringBackfillLockKey(dataOwnerId: string, incomeId: string) {
+  const periodKey = todayInAppTz().slice(0, 7);
+  return `${dataOwnerId}:${incomeId}:${periodKey}`;
+}
+
 function deriveStatus(persisted: IncomeStatus, receivedDate: string): IncomeStatus {
   if (persisted === "received") return "received";
   // Qualquer parcela com vencimento anterior a hoje é considerada vencida
@@ -274,69 +281,90 @@ export function useIncomes(enabled = true) {
   const processingRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!enabled || !dataOwnerId || incomes.length === 0) return;
-    const parents = incomes.filter((i) =>
-      (i.recurrence === "weekly" || i.recurrence === "biweekly" || i.recurrence === "monthly" || i.recurrence === "yearly")
-      && !i.parentId
-      && !((i.notes ?? "").includes("[Expanded]"))
-      && !processingRef.current.has(i.id)
-    );
+    const parents = incomes.filter((i) => {
+      if (!(i.recurrence === "weekly" || i.recurrence === "biweekly" || i.recurrence === "monthly" || i.recurrence === "yearly")) return false;
+      if (i.parentId) return false;
+      if ((i.notes ?? "").includes("[Expanded]")) return false;
+      if (processingRef.current.has(i.id)) return false;
+      if (globalRecurringBackfillLocks.has(recurringBackfillLockKey(dataOwnerId, i.id))) {
+        processingRef.current.add(i.id);
+        return false;
+      }
+      return true;
+    });
     if (parents.length === 0) return;
-    parents.forEach((p) => processingRef.current.add(p.id));
+    const lockedParents = parents.filter((p) => {
+      const lockKey = recurringBackfillLockKey(dataOwnerId, p.id);
+      if (globalRecurringBackfillLocks.has(lockKey)) return false;
+      globalRecurringBackfillLocks.add(lockKey);
+      processingRef.current.add(p.id);
+      return true;
+    });
+    if (lockedParents.length === 0) return;
     let cancelled = false;
     (async () => {
-      assertWritable();
-      for (const p of parents) {
-        if (cancelled) return;
-        // 1) Marca o pai como [Expanded] ANTES de inserir filhos para fechar a janela de corrida.
-        const baseNotes = (p.notes ?? "").trim();
-        const stamped = baseNotes ? `${baseNotes}\n[Expanded]` : "[Expanded]";
-        await supabase.from("incomes" as any).update({ notes: stamped }).eq("id", p.id);
-
-        const today = todayInAppTz();
-        let allDates: string[] = [];
-        if (p.recurrence === "weekly" || p.recurrence === "biweekly") {
-          const stepDays = p.recurrence === "weekly" ? 7 : 14;
-          const base = new Date(p.receivedDate + "T00:00:00");
-          const horizonEnd = new Date();
-          horizonEnd.setMonth(horizonEnd.getMonth() + FUTURE_MONTHS_HORIZON + 1, 0);
-          const d = new Date(base);
-          while (d <= horizonEnd) {
-            allDates.push(ymd(d));
-            d.setDate(d.getDate() + stepDays);
+      try {
+        assertWritable();
+        for (const p of lockedParents) {
+          if (cancelled) return;
+          // 1) Marca o pai como [Expanded] ANTES de inserir filhos para fechar a janela de corrida.
+          // Evita UPDATE repetido caso o registro já tenha chegado marcado por realtime/refetch.
+          if (!((p.notes ?? "").includes("[Expanded]"))) {
+            const baseNotes = (p.notes ?? "").trim();
+            const stamped = baseNotes ? `${baseNotes}\n[Expanded]` : "[Expanded]";
+            await supabase.from("incomes" as any).update({ notes: stamped }).eq("id", p.id);
           }
-        } else if (p.recurrence === "monthly") {
-          allDates = monthlyDates(p.receivedDate, FUTURE_MONTHS_HORIZON);
-        } else if (p.recurrence === "yearly") {
-          allDates = yearlyDates(p.receivedDate, FUTURE_MONTHS_HORIZON);
-        }
-        const childDates = allDates.filter((dt) => dt !== p.receivedDate);
 
-        // 2) Busca filhos já existentes direto do banco para evitar duplicatas em concorrência.
-        const { data: existingRows } = await supabase
-          .from("incomes" as any)
-          .select("received_date")
-          .eq("parent_id", p.id);
-        const existingDates = new Set(((existingRows as any[]) ?? []).map((r) => r.received_date));
+          const today = todayInAppTz();
+          let allDates: string[] = [];
+          if (p.recurrence === "weekly" || p.recurrence === "biweekly") {
+            const stepDays = p.recurrence === "weekly" ? 7 : 14;
+            const base = new Date(p.receivedDate + "T00:00:00");
+            const horizonEnd = new Date();
+            horizonEnd.setMonth(horizonEnd.getMonth() + FUTURE_MONTHS_HORIZON + 1, 0);
+            const d = new Date(base);
+            while (d <= horizonEnd) {
+              allDates.push(ymd(d));
+              d.setDate(d.getDate() + stepDays);
+            }
+          } else if (p.recurrence === "monthly") {
+            allDates = monthlyDates(p.receivedDate, FUTURE_MONTHS_HORIZON);
+          } else if (p.recurrence === "yearly") {
+            allDates = yearlyDates(p.receivedDate, FUTURE_MONTHS_HORIZON);
+          }
+          const childDates = allDates.filter((dt) => dt !== p.receivedDate);
 
-        for (const dt of childDates) {
-          if (existingDates.has(dt)) continue;
-          await insertSingle({
-            description: p.description,
-            amount: p.amount,
-            category: p.category,
-            clientId: p.clientId,
-            source: p.source,
-            paymentMethodId: p.paymentMethodId,
-            receivedDate: dt,
-            status: dt > today ? "pending" : p.status,
-            notes: p.notes,
-            recurrence: "once",
-            parentId: p.id,
-          });
-          existingDates.add(dt);
+          // 2) Busca filhos já existentes direto do banco para evitar duplicatas em concorrência.
+          const { data: existingRows } = await supabase
+            .from("incomes" as any)
+            .select("received_date")
+            .eq("parent_id", p.id);
+          const existingDates = new Set(((existingRows as any[]) ?? []).map((r) => r.received_date));
+
+          for (const dt of childDates) {
+            if (existingDates.has(dt)) continue;
+            await insertSingle({
+              description: p.description,
+              amount: p.amount,
+              category: p.category,
+              clientId: p.clientId,
+              source: p.source,
+              paymentMethodId: p.paymentMethodId,
+              receivedDate: dt,
+              status: dt > today ? "pending" : p.status,
+              notes: p.notes,
+              recurrence: "once",
+              parentId: p.id,
+            });
+            existingDates.add(dt);
+          }
         }
+        if (!cancelled) fetch();
+      } finally {
+        lockedParents.forEach((p) => {
+          globalRecurringBackfillLocks.delete(recurringBackfillLockKey(dataOwnerId, p.id));
+        });
       }
-      if (!cancelled) fetch();
     })();
     return () => { cancelled = true; };
   }, [incomes, enabled, dataOwnerId, insertSingle, fetch]);
