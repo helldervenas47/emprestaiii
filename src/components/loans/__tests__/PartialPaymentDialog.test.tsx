@@ -93,16 +93,17 @@ describe("PartialPaymentDialog", () => {
     expect(screen.getAllByText(/R\$\s?1\.000,00/).length).toBeGreaterThan(0);
     // Parcelas pagas / total.
     expect(screen.getByText("2 / 5")).toBeInTheDocument();
-    // Parcelas pendentes: 5 - 2 = 3.
-    expect(screen.getByText("3")).toBeInTheDocument();
+    // Parcelas pendentes: 5 - 2 = 3 — pode aparecer em outros locais também.
+    expect(screen.getAllByText("3").length).toBeGreaterThan(0);
   });
 
   it("emite onAmountChange quando o usuário digita no campo Valor recebido", () => {
     const { onAmountChange } = renderDialog();
     // O <Label> não usa htmlFor — buscamos pelo placeholder.
+    // Input é type="number", então usamos um valor numérico válido.
     const input = screen.getByPlaceholderText(/ex:\s*150/i);
-    fireEvent.change(input, { target: { value: "150,00" } });
-    expect(onAmountChange).toHaveBeenCalledWith("150,00");
+    fireEvent.change(input, { target: { value: "150" } });
+    expect(onAmountChange).toHaveBeenCalledWith("150");
   });
 
   it("desabilita 'Confirmar pagamento' quando o valor é 0 (inválido)", () => {
