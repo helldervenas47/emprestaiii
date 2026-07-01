@@ -279,7 +279,7 @@ export function useWarranty(saleId: string | undefined) {
       file_name: file.name,
       mime_type: file.type || null,
       size_bytes: file.size,
-    } as any).select("*").single();
+    } as any).select(WARRANTY_ATTACHMENT_COLUMNS).single();
     if (insErr || !row) throw new Error(insErr?.message || "Falha ao registrar anexo");
     const mapped = mapAttachment(row);
     setAttachments((prev) => [mapped, ...prev]);
