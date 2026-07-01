@@ -74,7 +74,7 @@ export function usePaymentMethods(enabled = true) {
             const { data: inserted, error: insErr } = await supabase
               .from("payment_methods" as any)
               .insert(defaults as any)
-              .select("*");
+              .select(PAYMENT_METHOD_COLUMNS);
             if (!insErr && inserted) rows = inserted as any[];
           } else {
             const { data: refetched } = await supabase
