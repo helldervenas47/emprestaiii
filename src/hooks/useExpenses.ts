@@ -8,6 +8,7 @@ import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 import { recordLedger, removeLedgerByRef } from "@/lib/ledger";
 import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
 import { adjustVehicleBalance } from "@/lib/vehicleBalance";
+import { financeFetchError, financeFetchStart, financeFetchSuccess, financeInvalidate, financeRealtimeEvent, financeSetState, useFinanceHookDebug } from "@/lib/financeDebug";
 import {
   cacheRows, getCachedRows, upsertCachedRow, removeCachedRow,
   enqueueMutation, rewritePendingRecordId,
@@ -201,11 +202,13 @@ async function syncPayrollOnExpensePaid(opts: {
 }
 
 export function useExpenses(enabled = true) {
+  useFinanceHookDebug("useExpenses");
   const { user, dataOwnerId } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
   const fetchExpenses = useCallback(async () => {
     if (!user) return;
+    financeFetchStart("useExpenses", "expenses", { source: isOnline() ? "remote" : "cache" });
     if (isOnline()) {
       const { data, error } = await supabase
         .from("expenses")
@@ -213,27 +216,36 @@ export function useExpenses(enabled = true) {
         .order("created_at", { ascending: false })
         .limit(5000); // safety cap — paginação por mês/página será adicionada na UI
       if (!error && data) {
+        financeSetState("useExpenses", "expenses", { rows: data.length, source: "remote" });
         setExpenses(data.map(rowToExpense));
         cacheRows("expenses", data).catch(() => { /* noop */ });
+        financeFetchSuccess("useExpenses", "expenses", { rows: data.length, source: "remote" });
         return;
       }
+      financeFetchError("useExpenses", "expenses", { message: error?.message });
     }
     const cached = await getCachedRows("expenses");
     if (cached.length > 0) {
+      financeSetState("useExpenses", "expenses", { rows: cached.length, source: "cache" });
       setExpenses(cached
         .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
         .map(rowToExpense));
+      financeFetchSuccess("useExpenses", "expenses", { rows: cached.length, source: "cache" });
     }
   }, [user]);
 
-  useEffect(() => { if (enabled) fetchExpenses(); }, [fetchExpenses, enabled]);
+  useEffect(() => { if (enabled) { financeInvalidate("useExpenses", "expenses", { reason: "initial/enabled effect" }); fetchExpenses(); } }, [fetchExpenses, enabled]);
 
   // Realtime subscription
   useEffect(() => {
     if (!user || !enabled) return;
     const channel = supabase
       .channel(`expenses-realtime-${crypto.randomUUID()}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => { fetchExpenses(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, (payload) => {
+        financeRealtimeEvent("useExpenses", "expenses", { eventType: payload.eventType });
+        financeInvalidate("useExpenses", "expenses", { reason: "realtime" });
+        fetchExpenses();
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user, fetchExpenses, enabled]);
@@ -241,7 +253,10 @@ export function useExpenses(enabled = true) {
   // Refetch after offline queue flush
   useEffect(() => {
     const handler = (e: any) => {
-      if (e.detail?.tables?.includes("expenses")) fetchExpenses();
+      if (e.detail?.tables?.includes("expenses")) {
+        financeInvalidate("useExpenses", "expenses", { reason: "offline-sync:flushed" });
+        fetchExpenses();
+      }
     };
     window.addEventListener("offline-sync:flushed", handler);
     return () => window.removeEventListener("offline-sync:flushed", handler);
@@ -256,6 +271,7 @@ export function useExpenses(enabled = true) {
       paidInstallments: 0, createdAt: new Date().toISOString(),
       scope: expense.scope ?? "business",
     };
+    financeSetState("useExpenses", "optimistic expense insert", { rows: 1 });
     setExpenses((prev) => [optimistic, ...prev]);
 
     const insertPayload = {
@@ -283,11 +299,13 @@ export function useExpenses(enabled = true) {
         await enqueueMutation({ table: "expenses", op: "insert", recordId: tempId, payload: insertPayload });
         return tempId;
       } else {
-        setExpenses((prev) => prev.filter((e) => e.id !== tempId));
+          financeSetState("useExpenses", "rollback expense insert", { id: tempId });
+          setExpenses((prev) => prev.filter((e) => e.id !== tempId));
         await removeCachedRow("expenses", tempId);
         return null;
       }
     } else if (data) {
+      financeSetState("useExpenses", "confirm expense insert", { id: data.id });
       setExpenses((prev) => prev.map((e) => e.id === tempId ? { ...e, id: data.id, createdAt: data.created_at } : e));
       await removeCachedRow("expenses", tempId);
       await upsertCachedRow("expenses", data);
@@ -327,6 +345,7 @@ export function useExpenses(enabled = true) {
         : (baseNotesRec ? `${baseNotesRec}\n${prevDueStash}` : prevDueStash);
 
       // Optimistic: update parent
+      financeSetState("useExpenses", "optimistic recurring expense payment", { id, installment: newPaid });
       setExpenses((prev) => prev.map((e) => e.id === id ? {
         ...e,
         paidInstallments: newPaid,
@@ -412,6 +431,7 @@ export function useExpenses(enabled = true) {
         ? (baseNotes ? `${baseNotes}\n[Original: ${expense.amount.toFixed(2)}]` : `[Original: ${expense.amount.toFixed(2)}]`)
         : expense.notes ?? null;
 
+      financeSetState("useExpenses", "optimistic expense payment", { id, amount: finalAmount });
       setExpenses((prev) => prev.map((e) => e.id === id ? {
         ...e, paid: true, paidDate: today, amount: finalAmount, notes: finalNotes,
       } : e));

@@ -25,6 +25,7 @@ import { ExpenseBoletoLinkButton } from "@/components/ExpenseBoletoLinkButton";
 import { EditScopeDialog } from "@/components/EditScopeDialog";
 import { CategoryDetailsSheet, CategoryEntry } from "@/components/CategoryDetailsSheet";
 import { applyExpenseScopedUpdate, isExpenseInSeries } from "@/lib/seriesEdit";
+import { useFinanceComponentDebug } from "@/lib/financeDebug";
 
 const categories = [
   "Aluguel", "Energia", "Água", "Internet", "Telefone",
@@ -248,6 +249,7 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
 
 
 export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, readOnly = false }: Props) {
+  useFinanceComponentDebug("ExpenseList");
   const { mask } = useHideValues();
   const { celebrate } = usePaymentCelebration();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);

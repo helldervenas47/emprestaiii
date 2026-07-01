@@ -5,6 +5,7 @@ import { useDataOwner } from "./useDataOwner";
 import { toast } from "sonner";
 import { assertWritable } from "@/lib/readOnlyState";
 import type { PiggyDetailed, RatePeriod } from "@/lib/piggyTax";
+import { financeFetchStart, financeFetchSuccess, financeInvalidate, financeRealtimeEvent, financeSetState, useFinanceHookDebug } from "@/lib/financeDebug";
 
 /**
  * Adapter sobre a nova arquitetura financeira (tabelas `cofrinhos`,
@@ -171,6 +172,7 @@ const DEFAULT_COLOR = "210 80% 55%";
 const DEFAULT_ICON = "PiggyBank";
 
 export function usePiggyBanks() {
+  useFinanceHookDebug("usePiggyBanks");
   const { user } = useAuth();
   const dataOwnerId = useDataOwner();
   const [piggyBanks, setPiggyBanks] = useState<PiggyBank[]>([]);
@@ -186,6 +188,7 @@ export function usePiggyBanks() {
 
   const reload = useCallback(async () => {
     if (!dataOwnerId) return;
+    financeFetchStart("usePiggyBanks", "cofrinhos/taxa_referencia/cofrinho_ledger/cofrinho_eventos", { ownerId: "present" });
     const [cofRes, taxaRes] = await Promise.all([
       supabase
         .from("cofrinhos" as any)
@@ -224,7 +227,9 @@ export function usePiggyBanks() {
             createdAt: r.created_at,
           };
         });
+      financeSetState("usePiggyBanks", "piggyBanks", { rows: list.length });
       setPiggyBanks(list);
+      financeSetState("usePiggyBanks", "cofrinhoRows", { rows: Object.keys(rowsMap).length });
       setCofrinhoRows(rowsMap);
       activeCofrinhoIds = list.map((pb) => pb.id);
     }
@@ -254,6 +259,7 @@ export function usePiggyBanks() {
 
       if (movementRows.length > 0) {
         const seen = new Set<string>();
+        financeSetState("usePiggyBanks", "deposits", { movementRows: movementRows.length });
         setDeposits(
           (movementRows as any[]).flatMap((r) => {
             const tipo = String(r.tipo || "").toUpperCase().replace("Ó", "O");
@@ -292,9 +298,11 @@ export function usePiggyBanks() {
           }),
         );
       } else {
+        financeSetState("usePiggyBanks", "deposits", { rows: 0 });
         setDeposits([]);
       }
     } else {
+      financeSetState("usePiggyBanks", "deposits", { rows: 0, reason: "no active cofrinhos" });
       setDeposits([]);
     }
 
@@ -311,6 +319,7 @@ export function usePiggyBanks() {
       const annual =
         r.taxa_anual ?? r.valor_anual ?? r.taxa ?? r.valor ?? r.annual_rate ?? null;
       if (annual != null) {
+        financeSetState("usePiggyBanks", "cdiRate", { annualRate: Number(annual) });
         setCdiRate({
           indicator: "cdi",
           annualRate: Number(annual),
@@ -322,9 +331,15 @@ export function usePiggyBanks() {
     }
 
     setLoading(false);
+    financeSetState("usePiggyBanks", "loading", { value: false });
+    financeFetchSuccess("usePiggyBanks", "cofrinhos/taxa_referencia/cofrinho_ledger/cofrinho_eventos", {
+      cofrinhos: Array.isArray(cofRes.data) ? cofRes.data.length : 0,
+      taxaReferencia: Array.isArray(taxaRes.data) ? taxaRes.data.length : 0,
+    });
   }, [dataOwnerId]);
 
   useEffect(() => {
+    financeInvalidate("usePiggyBanks", "cofrinhos/taxa_referencia/cofrinho_ledger/cofrinho_eventos", { reason: "initial effect" });
     reload();
   }, [reload]);
 
@@ -334,18 +349,28 @@ export function usePiggyBanks() {
     const channel = supabase
       .channel(`cofrinhos-realtime-${crypto.randomUUID()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "cofrinhos" }, () => {
+        financeRealtimeEvent("usePiggyBanks", "cofrinhos");
+        financeInvalidate("usePiggyBanks", "cofrinhos/taxa_referencia/cofrinho_ledger/cofrinho_eventos", { reason: "realtime cofrinhos" });
         reload();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_aportes" }, () => {
+        financeRealtimeEvent("usePiggyBanks", "cofrinho_aportes");
+        financeInvalidate("usePiggyBanks", "cofrinhos/taxa_referencia/cofrinho_ledger/cofrinho_eventos", { reason: "realtime cofrinho_aportes" });
         reload();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_eventos" }, () => {
+        financeRealtimeEvent("usePiggyBanks", "cofrinho_eventos");
+        financeInvalidate("usePiggyBanks", "cofrinhos/taxa_referencia/cofrinho_ledger/cofrinho_eventos", { reason: "realtime cofrinho_eventos" });
         reload();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_ledger" }, () => {
+        financeRealtimeEvent("usePiggyBanks", "cofrinho_ledger");
+        financeInvalidate("usePiggyBanks", "cofrinhos/taxa_referencia/cofrinho_ledger/cofrinho_eventos", { reason: "realtime cofrinho_ledger" });
         reload();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "taxa_referencia" }, () => {
+        financeRealtimeEvent("usePiggyBanks", "taxa_referencia");
+        financeInvalidate("usePiggyBanks", "cofrinhos/taxa_referencia/cofrinho_ledger/cofrinho_eventos", { reason: "realtime taxa_referencia" });
         reload();
       })
       .subscribe();

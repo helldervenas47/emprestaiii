@@ -16,6 +16,7 @@ import { CreditCardForm } from "./CreditCardForm";
 import { CreditCardInvoice } from "./CreditCardInvoice";
 import { CreditCardOpeningDialog } from "./CreditCardOpeningDialog";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
+import { useFinanceComponentDebug } from "@/lib/financeDebug";
 
 interface Props {
   readOnly?: boolean;
@@ -263,6 +264,7 @@ const MiniCreditCard = React.forwardRef<HTMLDivElement, MiniCardProps>(({
 MiniCreditCard.displayName = "MiniCreditCard";
 
 export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
+  useFinanceComponentDebug("CreditCardList");
   const { cards: allCards, loading, addCard, updateCard, deleteCard } = useCreditCards();
   const cards = useMemo(() => allCards.filter((c) => c.active !== false), [allCards]);
   const inactiveCards = useMemo(() => allCards.filter((c) => c.active === false), [allCards]);
