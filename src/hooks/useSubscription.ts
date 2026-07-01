@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -26,73 +27,35 @@ const PLAN_LIMITS: Record<string, { maxLoans: number; maxUsers: number }> = {
   empresarial_plan: { maxLoans: 9999, maxUsers: 5 },
 };
 
-const createChannelName = (userId: string) =>
-  `sub-${userId}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
+export const subscriptionQueryKey = (userId: string | null) =>
+  ["subscription", userId] as const;
 
 export function useSubscription() {
   const { user, dataOwnerId, loading: authLoading } = useAuth();
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [loading, setLoading] = useState(true);
-  const lastOwnerKeyRef = useRef<string | null>(null);
-  const fetchCountRef = useRef(0);
+  const queryClient = useQueryClient();
 
   const environment = import.meta.env.VITE_ASAAS_ENVIRONMENT === "production" ? "live" : "sandbox";
   const effectiveUserId = dataOwnerId ?? user?.id ?? null;
 
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    if (lastOwnerKeyRef.current === effectiveUserId) return;
-    console.debug("[OwnerKey transition]", {
-      hook: "useSubscription",
-      oldOwnerKey: lastOwnerKeyRef.current,
-      newOwnerKey: effectiveUserId,
-      queryKey: ["subscriptions", effectiveUserId ?? "anon", environment],
-      authLoading,
-      userId: user?.id ?? null,
-      dataOwnerId,
-    });
-    lastOwnerKeyRef.current = effectiveUserId;
-  }, [authLoading, dataOwnerId, effectiveUserId, environment, user?.id]);
-
-  useEffect(() => {
-    if (authLoading) {
-      setLoading(true);
-      return;
-    }
-    if (!effectiveUserId) {
-      setSubscription(null);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    const fetchSubscription = async () => {
-      fetchCountRef.current += 1;
-      if (import.meta.env.DEV) {
-        console.debug("[OwnerKey fetch:start]", {
-          hook: "useSubscription",
-          count: fetchCountRef.current,
-          ownerKey: effectiveUserId,
-          queryKey: ["subscriptions", effectiveUserId, environment],
-        });
-      }
+  const { data: subscription = null, isLoading } = useQuery({
+    queryKey: subscriptionQueryKey(effectiveUserId),
+    enabled: !authLoading && !!effectiveUserId,
+    queryFn: async () => {
       const { data } = await supabase
         .from("subscriptions")
         .select("id, product_id, price_id, status, current_period_end, cancel_at_period_end, environment")
-        .eq("user_id", effectiveUserId)
+        .eq("user_id", effectiveUserId as string)
         .eq("environment", environment)
         .maybeSingle();
-      if (!cancelled) {
-        setSubscription(data);
-        setLoading(false);
-      }
-    };
+      return (data ?? null) as Subscription | null;
+    },
+  });
 
-    fetchSubscription();
-
+  // Deterministic realtime channel; invalidates only the matching query.
+  useEffect(() => {
+    if (!effectiveUserId) return;
     const channel = supabase
-      .channel(createChannelName(effectiveUserId))
+      .channel(`subscription-${effectiveUserId}`)
       .on(
         "postgres_changes",
         {
@@ -102,16 +65,17 @@ export function useSubscription() {
           filter: `user_id=eq.${effectiveUserId}`,
         },
         () => {
-          if (!cancelled) fetchSubscription();
+          queryClient.invalidateQueries({ queryKey: subscriptionQueryKey(effectiveUserId) });
         },
       )
       .subscribe();
 
     return () => {
-      cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [user?.id, effectiveUserId, environment, authLoading]);
+  }, [effectiveUserId, queryClient]);
+
+  const loading = authLoading || (!!effectiveUserId && isLoading);
 
   const isActive = Boolean(
     subscription &&
