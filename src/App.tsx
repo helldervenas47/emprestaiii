@@ -107,6 +107,7 @@ const App = () => (
               <StatusBarScrollSync />
               <ViewAsBanner />
               <Suspense fallback={<PageLoader />}>
+                <LazyChunkErrorBoundary>
                 <Routes>
                   <Route
                     path="/"
