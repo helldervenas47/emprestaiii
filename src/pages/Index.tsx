@@ -701,13 +701,15 @@ const Index = () => {
   const bottomItemIds = bottomItems.map((i) => i.id);
 
   useEffect(() => {
-    // Só redireciona se a aba atual sumiu da configuração (ex: feature removida).
-    // Se existe na configuração mas o usuário não tem permissão, mantemos
-    // a aba selecionada para renderizar a tela de "acesso negado".
-    if (visibleTabs.length > 0 && !tabConfig.some((item) => item.id === tab)) {
-      setTab(visibleTabs[0].id);
-    }
-  }, [tab, visibleTabs]);
+    if (loading) return;
+    if (visibleTabs.length === 0) return;
+    const currentExists = visibleTabs.some((v) => v.id === tab);
+    if (currentExists) return;
+    const next = visibleTabs[0].id;
+    if (next !== tab) setTab(next);
+    // visibleTabsSignature intentionally used instead of visibleTabs for stable identity
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, tab, visibleTabsSignature]);
 
   // Extrato agora abre como dialog (não é mais aba)
   const [ledgerOpen, setLedgerOpen] = useState(false);
