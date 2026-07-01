@@ -2,7 +2,13 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { bootstrapAppTheme } from "./hooks/useAppTheme";
-import { USER_SUPABASE_STORAGE_KEY, USER_SUPABASE_URL } from "./integrations/supabase/userClient";
+import {
+  IS_SUPABASE_CONFIGURED,
+  MISSING_SUPABASE_ENV,
+  USER_SUPABASE_STORAGE_KEY,
+  USER_SUPABASE_URL,
+} from "./integrations/supabase/userClient";
+import { ConfigErrorScreen } from "./components/ConfigErrorScreen";
 
 bootstrapAppTheme();
 
