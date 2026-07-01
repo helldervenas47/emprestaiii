@@ -529,7 +529,8 @@ export function useExpenses(enabled = true) {
     if (expense.scope === "personal" && online) {
       supabase.functions.invoke("notify-budget-overrun").catch(() => { /* silent */ });
     }
-  }, [expenses, dataOwnerId]);
+    invalidate();
+  }, [expenses, dataOwnerId, invalidate]);
 
   const unpayExpense = useCallback(async (id: string) => {
     assertWritable();
@@ -665,7 +666,8 @@ export function useExpenses(enabled = true) {
       if (extractPiggyId(expense.notes)) { /* no-op */ }
 
     }
-  }, [expenses, dataOwnerId]);
+    invalidate();
+  }, [expenses, dataOwnerId, invalidate]);
 
   const deleteExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
     assertWritable();
@@ -695,7 +697,8 @@ export function useExpenses(enabled = true) {
 
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) await enqueueMutation({ table: "expenses", op: "delete", recordId: id });
-  }, [expenses, dataOwnerId]);
+    invalidate();
+  }, [expenses, dataOwnerId, invalidate]);
 
   const updateExpense = useCallback(async (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => {
     assertWritable();
@@ -715,7 +718,8 @@ export function useExpenses(enabled = true) {
     }
     const { error } = await supabase.from("expenses").update(updatePayload).eq("id", id);
     if (error) await enqueueMutation({ table: "expenses", op: "update", recordId: id, payload: updatePayload });
-  }, []);
+    invalidate();
+  }, [invalidate]);
 
 
   return { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense };
