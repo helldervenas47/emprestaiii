@@ -927,6 +927,7 @@ function LoanRowView({
                     onClick={async (e) => {
                       e.stopPropagation();
                       try {
+                        const { generateLoanReportPdf } = await import("@/lib/loanReportPdf");
                         await generateLoanReportPdf({
                           loan,
                           payments: allPayments,
