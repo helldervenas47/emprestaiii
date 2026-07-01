@@ -1,6 +1,6 @@
-import React, { lazy, Suspense } from "react";
+import React, { lazy, Suspense, useEffect, useRef } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { AppSonner } from "@/components/ui/app-sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
@@ -65,15 +65,86 @@ function ProtectedRoute({
   const { user, loading } = useAuth();
   const { status, loading: approvalLoading } = useUserApproval();
   const { needs: needsOnboarding, loading: onboardingLoading } = useNeedsOnboarding();
+  const location = useLocation();
+  const lastGateLogRef = useRef<string>("");
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const gate = loading
+      ? "auth.loading"
+      : approvalLoading
+        ? "approvalLoading"
+        : !user
+          ? "navigate:/auth"
+          : status === "pending"
+            ? "pendingApproval"
+            : status === "rejected"
+              ? "rejectedApproval"
+              : !skipOnboardingCheck && onboardingLoading
+                ? "onboardingLoading"
+                : !skipOnboardingCheck && needsOnboarding
+                  ? "navigate:/bem-vindo"
+                  : "ready";
+    const snapshot = JSON.stringify({
+      route: `${location.pathname}${location.search}`,
+      gate,
+      authLoading: loading,
+      approvalLoading,
+      onboardingLoading,
+      approvalStatus: status,
+      needsOnboarding,
+      skipOnboardingCheck,
+      userId: user?.id ?? null,
+    });
+    if (snapshot === lastGateLogRef.current) return;
+    lastGateLogRef.current = snapshot;
+    console.debug("[ProtectedRoute gate]", JSON.parse(snapshot));
+  }, [
+    approvalLoading,
+    loading,
+    location.pathname,
+    location.search,
+    needsOnboarding,
+    onboardingLoading,
+    skipOnboardingCheck,
+    status,
+    user?.id,
+  ]);
 
 
   if (loading || approvalLoading) return <PageLoader />;
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) {
+    if (import.meta.env.DEV) {
+      console.debug("[ProtectedRoute Navigate]", {
+        from: `${location.pathname}${location.search}`,
+        to: "/auth",
+        reason: "no-user",
+        authLoading: loading,
+        approvalLoading,
+        onboardingLoading,
+        userId: null,
+      });
+    }
+    return <Navigate to="/auth" replace />;
+  }
   if (status === "pending") return <PendingApprovalScreen />;
   if (status === "rejected") return <PendingApprovalScreen rejected />;
   if (!skipOnboardingCheck) {
     if (onboardingLoading) return <PageLoader />;
-    if (needsOnboarding) return <Navigate to="/bem-vindo" replace />;
+    if (needsOnboarding) {
+      if (import.meta.env.DEV) {
+        console.debug("[ProtectedRoute Navigate]", {
+          from: `${location.pathname}${location.search}`,
+          to: "/bem-vindo",
+          reason: "needs-onboarding",
+          authLoading: loading,
+          approvalLoading,
+          onboardingLoading,
+          userId: user.id,
+        });
+      }
+      return <Navigate to="/bem-vindo" replace />;
+    }
   }
   return (
     <TrialExpiredGate>
@@ -85,8 +156,19 @@ function ProtectedRoute({
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <PageLoader />;
-  if (user) return <Navigate to="/" replace />;
+  if (user) {
+    if (import.meta.env.DEV) {
+      console.debug("[PublicRoute Navigate]", {
+        from: `${location.pathname}${location.search}`,
+        to: "/",
+        reason: "authenticated-user",
+        userId: user.id,
+      });
+    }
+    return <Navigate to="/" replace />;
+  }
   return <>{children}</>;
 }
 
