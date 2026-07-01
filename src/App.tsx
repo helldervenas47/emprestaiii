@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from "react";
+import React, { lazy, Suspense, useEffect, useRef } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { AppSonner } from "@/components/ui/app-sonner";
@@ -65,6 +65,36 @@ function ProtectedRoute({
   const { user, loading } = useAuth();
   const { status, loading: approvalLoading } = useUserApproval();
   const { needs: needsOnboarding, loading: onboardingLoading } = useNeedsOnboarding();
+  const lastGateLogRef = useRef<string>("");
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const gate = loading
+      ? "auth.loading"
+      : approvalLoading
+        ? "approvalLoading"
+        : !user
+          ? "no-user"
+          : !skipOnboardingCheck && onboardingLoading
+            ? "onboardingLoading"
+            : !skipOnboardingCheck && needsOnboarding
+              ? "needsOnboarding"
+              : "ready";
+    const snapshot = JSON.stringify({
+      gate,
+      authLoading: loading,
+      approvalLoading,
+      onboardingLoading,
+      approvalStatus: status,
+      needsOnboarding,
+      skipOnboardingCheck,
+      userId: user?.id ?? null,
+    });
+    if (snapshot === lastGateLogRef.current) return;
+    lastGateLogRef.current = snapshot;
+    console.debug("[ProtectedRoute gate]", JSON.parse(snapshot));
+  }, [approvalLoading, loading, needsOnboarding, onboardingLoading, skipOnboardingCheck, status, user?.id]);
+
   if (loading || approvalLoading) return <PageLoader />;
   if (!user) return <Navigate to="/auth" replace />;
   if (status === "pending") return <PendingApprovalScreen />;
