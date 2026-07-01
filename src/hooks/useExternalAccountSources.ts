@@ -65,7 +65,7 @@ export function useExternalAccountSources() {
   useEffect(() => {
     if (!ownerId) return;
     const channel = supabase
-      .channel(`external-balances-${ownerId}-${Math.random().toString(36).slice(2)}`)
+      .channel(`external-balances-${ownerId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "balance", filter: `user_id=eq.${ownerId}` },
