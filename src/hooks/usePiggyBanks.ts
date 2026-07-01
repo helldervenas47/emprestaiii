@@ -194,7 +194,9 @@ export function usePiggyBanks() {
         .order("created_at"),
       supabase
         .from("taxa_referencia" as any)
-        .select("*")
+        .select(
+          "data_referencia, reference_date, atualizado_em, updated_at, taxa_anual, valor_anual, taxa, valor, annual_rate, fonte, source"
+        )
         .limit(50),
     ]);
 
