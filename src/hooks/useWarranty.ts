@@ -91,7 +91,7 @@ export function useWarranty(saleId: string | undefined) {
     setLoading(true);
     const { data: caseRows } = await supabase
       .from("warranty_cases" as any)
-      .select("*")
+      .select(WARRANTY_CASE_COLUMNS)
       .eq("sale_id", saleId)
       .order("created_at", { ascending: false });
     const list = ((caseRows as any[]) || []).map(mapCase);
@@ -103,10 +103,10 @@ export function useWarranty(saleId: string | undefined) {
       return;
     }
     const [itemsRes, movRes, attRes, histRes] = await Promise.all([
-      supabase.from("warranty_items" as any).select("*").in("warranty_case_id", ids),
-      supabase.from("warranty_movements" as any).select("*").in("warranty_case_id", ids).order("created_at", { ascending: false }),
-      supabase.from("warranty_attachments" as any).select("*").in("warranty_case_id", ids).order("created_at", { ascending: false }),
-      supabase.from("warranty_history" as any).select("*").in("warranty_case_id", ids).order("created_at", { ascending: false }),
+      supabase.from("warranty_items" as any).select(WARRANTY_ITEM_COLUMNS).in("warranty_case_id", ids),
+      supabase.from("warranty_movements" as any).select(WARRANTY_MOVEMENT_COLUMNS).in("warranty_case_id", ids).order("created_at", { ascending: false }),
+      supabase.from("warranty_attachments" as any).select(WARRANTY_ATTACHMENT_COLUMNS).in("warranty_case_id", ids).order("created_at", { ascending: false }),
+      supabase.from("warranty_history" as any).select(WARRANTY_HISTORY_COLUMNS).in("warranty_case_id", ids).order("created_at", { ascending: false }),
     ]);
     setItems(((itemsRes.data as any[]) || []).map(mapItem));
     setMovements(((movRes.data as any[]) || []).map(mapMovement));
