@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { requireAdmin, adminCors as corsHeaders } from "../_shared/require-admin.ts";
+import { adminGuard, guardCors as corsHeaders } from "../_shared/admin-guard.ts";
 
 
 
@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { status: 200, headers: corsHeaders });
   }
-  const gate = await requireAdmin(req);
+  const gate = await adminGuard(req, { action: "painel-migracao" });
   if (gate instanceof Response) return gate;
 
   try {
