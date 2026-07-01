@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -7,7 +7,9 @@ import { Loan, Sale, Payment, Expense, InstallmentSchedule, Client } from "@/typ
 import { ManagerCommissionsChart } from "@/components/ManagerCommissionsChart";
 import { GoalsCard } from "@/components/GoalsCard";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
+import { useExpenses } from "@/hooks/useExpenses";
 import { rawFormatCurrency } from "@/components/dashboard/dashboardHelpers";
+import { getExpensesPeriodForRange } from "@/components/dashboard/dashboardExpensePeriod";
 import { DashboardPeriodFilter } from "@/components/dashboard/DashboardPeriodFilter";
 import { DashboardFinancialHealthSection } from "@/components/dashboard/DashboardFinancialHealthSection";
 import { DashboardMainCards } from "@/components/dashboard/DashboardMainCards";
