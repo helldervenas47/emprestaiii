@@ -123,7 +123,9 @@ export function TelegramBotsManager() {
     setLoading(true);
     const { data, error } = await supabase
       .from("system_telegram_bots" as any)
-      .select("*")
+      .select(
+        "id, name, token, description, active, bot_username, bot_id, last_validated_at, validation_status, created_at, purpose",
+      )
       .order("created_at", { ascending: true });
     if (error) toast.error("Erro ao carregar bots", { description: error.message });
     setBots((data as any) ?? []);
