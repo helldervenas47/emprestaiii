@@ -30,15 +30,29 @@ if (!IS_SUPABASE_CONFIGURED && import.meta.env.DEV) {
 // silencioso / sessão trocada entre projetos.
 export const USER_SUPABASE_STORAGE_KEY = "sb-user-external-auth";
 
-export const supabase = createClient<Database>(USER_SUPABASE_URL, USER_SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storage: localStorage,
-    storageKey: USER_SUPABASE_STORAGE_KEY,
-    persistSession: true,
-    autoRefreshToken: true,
-    // PWA-friendly OAuth: usa PKCE (sem expor token na URL) e troca o
-    // ?code=... automaticamente no retorno do Google, sem reload extra.
-    detectSessionInUrl: true,
-    flowType: "pkce",
-  },
-});
+// Se as variáveis estiverem ausentes, exportamos um placeholder inerte para
+// evitar que o import quebre o bundle. O `main.tsx` intercepta esse estado
+// e renderiza uma tela de erro amigável antes de qualquer uso do client.
+export const supabase = IS_SUPABASE_CONFIGURED
+  ? createClient<Database>(USER_SUPABASE_URL, USER_SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        storage: localStorage,
+        storageKey: USER_SUPABASE_STORAGE_KEY,
+        persistSession: true,
+        autoRefreshToken: true,
+        // PWA-friendly OAuth: usa PKCE (sem expor token na URL) e troca o
+        // ?code=... automaticamente no retorno do Google, sem reload extra.
+        detectSessionInUrl: true,
+        flowType: "pkce",
+      },
+    })
+  : (new Proxy(
+      {},
+      {
+        get() {
+          throw new Error(
+            `[supabase] Client não inicializado. Variáveis ausentes: ${MISSING_SUPABASE_ENV.join(", ")}`,
+          );
+        },
+      },
+    ) as ReturnType<typeof createClient<Database>>);
