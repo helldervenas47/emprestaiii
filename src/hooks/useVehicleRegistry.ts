@@ -12,6 +12,9 @@ export interface VehicleInfo {
   renavam: string;
 }
 
+const VEHICLE_REGISTRY_COLUMNS =
+  "id, marca_modelo, ano, cor, placa, renavam, created_at";
+
 export function useVehicleRegistry(enabled = true) {
   const { user, dataOwnerId } = useAuth();
   const [vehicles, setVehicles] = useState<VehicleInfo[]>([]);
@@ -22,7 +25,7 @@ export function useVehicleRegistry(enabled = true) {
     setLoading(true);
     const { data } = await supabase
       .from("vehicle_registry")
-      .select("*")
+      .select(VEHICLE_REGISTRY_COLUMNS)
       .order("created_at", { ascending: false });
     if (data) {
       setVehicles(data.map((v: any) => ({
