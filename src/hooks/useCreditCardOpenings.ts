@@ -92,7 +92,10 @@ export function useCreditCardOpenings() {
         .eq("metadata->>kind", "credit_card_invoice_payment"),
     ]);
     if (error) {
+      console.error("[useCreditCardOpenings] load error", error);
       toast.error("Erro ao carregar faturas iniciais");
+      setOpenings([]);
+      setLedgerPayments({});
       setLoading(false);
       return;
     }
