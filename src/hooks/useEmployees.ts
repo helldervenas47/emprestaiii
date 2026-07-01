@@ -32,6 +32,9 @@ function rowToEmployee(r: any): Employee {
   };
 }
 
+const EMPLOYEE_COLUMNS =
+  "id, name, cpf, role, department, registration, hire_date, status, photo_url, base_salary, payment_type, hourly_rate, commission_percent, bank, agency, account, pix_key, benefits, deductions, notes, add_to_incomes, created_at, updated_at";
+
 export function useEmployees(enabled = true) {
   const { user, dataOwnerId } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -42,7 +45,7 @@ export function useEmployees(enabled = true) {
     setLoading(true);
     const { data } = await supabase
       .from("employees" as any)
-      .select("*")
+      .select(EMPLOYEE_COLUMNS)
       .order("name");
     if (data) setEmployees((data as any[]).map(rowToEmployee));
     setLoading(false);

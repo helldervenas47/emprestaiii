@@ -13,6 +13,17 @@ import type {
 
 const BUCKET = "warranty-attachments";
 
+const WARRANTY_CASE_COLUMNS =
+  "id, sale_id, opened_by, status, reason, notes, opened_at, closed_at, created_at, updated_at";
+const WARRANTY_ITEM_COLUMNS =
+  "id, warranty_case_id, product_id, product_name, quantity, created_at";
+const WARRANTY_MOVEMENT_COLUMNS =
+  "id, warranty_case_id, warranty_item_id, performed_by, direction, product_id, quantity, notes, created_at";
+const WARRANTY_ATTACHMENT_COLUMNS =
+  "id, warranty_case_id, uploaded_by, file_path, file_name, mime_type, size_bytes, created_at";
+const WARRANTY_HISTORY_COLUMNS =
+  "id, warranty_case_id, actor_id, event, from_value, to_value, payload, created_at";
+
 // ---------- mappers ----------
 const mapCase = (r: any): WarrantyCase => ({
   id: r.id,
@@ -80,7 +91,7 @@ export function useWarranty(saleId: string | undefined) {
     setLoading(true);
     const { data: caseRows } = await supabase
       .from("warranty_cases" as any)
-      .select("*")
+      .select(WARRANTY_CASE_COLUMNS)
       .eq("sale_id", saleId)
       .order("created_at", { ascending: false });
     const list = ((caseRows as any[]) || []).map(mapCase);
@@ -92,10 +103,10 @@ export function useWarranty(saleId: string | undefined) {
       return;
     }
     const [itemsRes, movRes, attRes, histRes] = await Promise.all([
-      supabase.from("warranty_items" as any).select("*").in("warranty_case_id", ids),
-      supabase.from("warranty_movements" as any).select("*").in("warranty_case_id", ids).order("created_at", { ascending: false }),
-      supabase.from("warranty_attachments" as any).select("*").in("warranty_case_id", ids).order("created_at", { ascending: false }),
-      supabase.from("warranty_history" as any).select("*").in("warranty_case_id", ids).order("created_at", { ascending: false }),
+      supabase.from("warranty_items" as any).select(WARRANTY_ITEM_COLUMNS).in("warranty_case_id", ids),
+      supabase.from("warranty_movements" as any).select(WARRANTY_MOVEMENT_COLUMNS).in("warranty_case_id", ids).order("created_at", { ascending: false }),
+      supabase.from("warranty_attachments" as any).select(WARRANTY_ATTACHMENT_COLUMNS).in("warranty_case_id", ids).order("created_at", { ascending: false }),
+      supabase.from("warranty_history" as any).select(WARRANTY_HISTORY_COLUMNS).in("warranty_case_id", ids).order("created_at", { ascending: false }),
     ]);
     setItems(((itemsRes.data as any[]) || []).map(mapItem));
     setMovements(((movRes.data as any[]) || []).map(mapMovement));
@@ -139,7 +150,7 @@ export function useWarranty(saleId: string | undefined) {
       status: "aberta",
       reason: input.reason ?? null,
       notes: input.notes ?? null,
-    } as any).select("*").single();
+    } as any).select(WARRANTY_CASE_COLUMNS).single();
     if (error || !data) throw new Error(error?.message || "Falha ao abrir garantia");
     const created = mapCase(data);
     if (input.items.length > 0) {
@@ -150,7 +161,7 @@ export function useWarranty(saleId: string | undefined) {
         product_name: it.productName,
         quantity: it.quantity,
       }));
-      const { data: itemRows } = await supabase.from("warranty_items" as any).insert(payload as any).select("*");
+      const { data: itemRows } = await supabase.from("warranty_items" as any).insert(payload as any).select(WARRANTY_ITEM_COLUMNS);
       if (itemRows) setItems((prev) => [...prev, ...(itemRows as any[]).map(mapItem)]);
     }
     setCases((prev) => [created, ...prev]);
@@ -229,7 +240,7 @@ export function useWarranty(saleId: string | undefined) {
       product_id: input.productId,
       quantity: input.quantity,
       notes: input.notes ?? null,
-    } as any).select("*").single();
+    } as any).select(WARRANTY_MOVEMENT_COLUMNS).single();
     if (movErr || !movRow) throw new Error(movErr?.message || "Falha ao registrar movimentação");
 
     // 3) Mirror to stock_movements for unified history
@@ -268,7 +279,7 @@ export function useWarranty(saleId: string | undefined) {
       file_name: file.name,
       mime_type: file.type || null,
       size_bytes: file.size,
-    } as any).select("*").single();
+    } as any).select(WARRANTY_ATTACHMENT_COLUMNS).single();
     if (insErr || !row) throw new Error(insErr?.message || "Falha ao registrar anexo");
     const mapped = mapAttachment(row);
     setAttachments((prev) => [mapped, ...prev]);

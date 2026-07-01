@@ -31,6 +31,8 @@ export interface ClientDocument {
 }
 
 const BUCKET = "client-documents";
+const CLIENT_DOCUMENT_COLUMNS =
+  "id, client_id, owner_id, category, original_name, file_path, mime_type, size_bytes, uploaded_by, uploaded_by_name, created_at, updated_at";
 const ALLOWED_MIME = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
 const ALLOWED_EXT = ["pdf", "jpg", "jpeg", "png"];
 
@@ -77,7 +79,7 @@ export function useClientDocuments(clientId: string | null | undefined) {
     setLoading(true);
     const { data, error } = await supabase
       .from("client_documents" as any)
-      .select("*")
+      .select(CLIENT_DOCUMENT_COLUMNS)
       .eq("client_id", clientId)
       .order("created_at", { ascending: false });
     setLoading(false);

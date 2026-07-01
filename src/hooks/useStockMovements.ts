@@ -33,6 +33,9 @@ const mapRow = (r: any): StockMovement => ({
   createdAt: r.created_at,
 });
 
+const STOCK_MOVEMENT_COLUMNS =
+  "id, product_id, product_name, movement_type, quantity, unit_cost, total_value, expense_id, sale_id, notes, created_at";
+
 export function useStockMovements(enabled = true) {
   const { user, dataOwnerId } = useAuth();
   const [movements, setMovements] = useState<StockMovement[]>([]);
@@ -41,7 +44,7 @@ export function useStockMovements(enabled = true) {
   const fetchData = useCallback(async () => {
     const { data } = await supabase
       .from("stock_movements" as any)
-      .select("*")
+      .select(STOCK_MOVEMENT_COLUMNS)
       .order("created_at", { ascending: false });
     if (data) setMovements((data as any[]).map(mapRow));
     setLoading(false);

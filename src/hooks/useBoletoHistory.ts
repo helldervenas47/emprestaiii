@@ -21,6 +21,8 @@ export interface BoletoHistoryItem {
 
 const LOCAL_KEY = "boleto.history.v1";
 const MAX = 30;
+const BOLETO_LOOKUP_COLUMNS =
+  "id, digits, barcode, kind, bank_code, bank_name, segment, segment_label, amount, due_date, label, parsed_at, pix_brcode";
 
 function loadLocal(): BoletoHistoryItem[] {
   try {
@@ -44,7 +46,7 @@ export function useBoletoHistory() {
     setLoading(true);
     const { data, error } = await supabase
       .from("boleto_lookups")
-      .select("*")
+      .select(BOLETO_LOOKUP_COLUMNS)
       .order("parsed_at", { ascending: false })
       .limit(MAX);
     setLoading(false);

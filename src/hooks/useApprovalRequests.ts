@@ -16,6 +16,9 @@ export interface ApprovalRequest {
   created_at: string;
 }
 
+const APPROVAL_REQUEST_COLUMNS =
+  "id, user_id, owner_id, status, email, display_name, invite_code, rejection_reason, reviewed_at, reviewed_by, created_at";
+
 export function useApprovalRequests() {
   const { user, role } = useAuth();
   const [requests, setRequests] = useState<ApprovalRequest[]>([]);
@@ -29,7 +32,7 @@ export function useApprovalRequests() {
     }
     const { data } = await (supabase as any)
       .from("user_approvals")
-      .select("*")
+      .select(APPROVAL_REQUEST_COLUMNS)
       .eq("owner_id", user.id)
       .order("created_at", { ascending: false });
     setRequests((data as ApprovalRequest[]) || []);
