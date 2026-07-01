@@ -666,32 +666,34 @@ const Index = () => {
     };
   }, [isMobileOrTablet]);
 
-  const visibleTabs = tabConfig.filter((t) => {
-    if (loading) return false;
-    // "Ajuda" é sempre visível para qualquer usuário logado.
-    if (t.id === "help") return !!user;
-    // Tabs marcadas como adminOnly são exclusivas para administradores
-    if ((t as any).adminOnly && role !== "admin") return false;
-    // Visualizador: aba de Configurações é ocultada por completo (apenas leitura
-    // não tem nada acionável aqui; backups, telegram, branding, etc. exigem escrita).
-    if (t.id === "settings" && role === "visualizador") return false;
-    // Admin sempre vê todas as abas (ignora plano e demais restrições).
-    if (role === "admin") return true;
-    if (!user) return false;
-    // Permissão por papel (role_tab_permissions): se a aba não está liberada
-    // para o papel do usuário, esconde.
-    if (Array.isArray(roleAllowedTabs) && !roleAllowedTabs.includes(t.id)) return false;
-    // Permissão por usuário (user_tab_permissions): se houver lista, exigir presença.
-    const isLegacyClientPlanTabs =
-      role === "cliente" &&
-      Array.isArray(allowedTabs) &&
-      allowedTabs.length > 0 &&
-      allowedTabs.every((id) => LEGACY_CLIENT_PLAN_TAB_IDS.has(id));
-    if (Array.isArray(allowedTabs) && !isLegacyClientPlanTabs) return allowedTabs.includes(t.id);
-    return true;
-  });
-  const visibleTabIds = visibleTabs.map((t) => t.id);
-  const visibleTabsSignature = visibleTabIds.join("|");
+  const visibleTabs = useMemo(() => {
+    return tabConfig.filter((t) => {
+      if (loading) return false;
+      // "Ajuda" é sempre visível para qualquer usuário logado.
+      if (t.id === "help") return !!user;
+      // Tabs marcadas como adminOnly são exclusivas para administradores
+      if ((t as any).adminOnly && role !== "admin") return false;
+      // Visualizador: aba de Configurações é ocultada por completo (apenas leitura
+      // não tem nada acionável aqui; backups, telegram, branding, etc. exigem escrita).
+      if (t.id === "settings" && role === "visualizador") return false;
+      // Admin sempre vê todas as abas (ignora plano e demais restrições).
+      if (role === "admin") return true;
+      if (!user) return false;
+      // Permissão por papel (role_tab_permissions): se a aba não está liberada
+      // para o papel do usuário, esconde.
+      if (Array.isArray(roleAllowedTabs) && !roleAllowedTabs.includes(t.id)) return false;
+      // Permissão por usuário (user_tab_permissions): se houver lista, exigir presença.
+      const isLegacyClientPlanTabs =
+        role === "cliente" &&
+        Array.isArray(allowedTabs) &&
+        allowedTabs.length > 0 &&
+        allowedTabs.every((id) => LEGACY_CLIENT_PLAN_TAB_IDS.has(id));
+      if (Array.isArray(allowedTabs) && !isLegacyClientPlanTabs) return allowedTabs.includes(t.id);
+      return true;
+    });
+  }, [loading, user, role, roleAllowedTabs, allowedTabs]);
+  const visibleTabIds = useMemo(() => visibleTabs.map((t) => t.id), [visibleTabs]);
+  const visibleTabsSignature = useMemo(() => visibleTabIds.join("|"), [visibleTabIds]);
 
   const isAjudaAllowed = !loading && !!user;
 
@@ -700,72 +702,33 @@ const Index = () => {
   // exibimos página de "acesso negado" em vez de redirecionar silenciosamente.
   const tabAccessDenied = !loading && tabConfig.some((t) => t.id === tab) && !visibleTabs.some((t) => t.id === tab);
 
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    const previousSignature = lastVisibleTabsSignatureRef.current;
-    const snapshot = JSON.stringify({
-      mountId: indexMountIdRef.current,
-      route: `${location.pathname}${location.search}`,
-      tab,
-      authLoading: loading,
-      userId: user?.id ?? null,
-      role,
-      allowedTabs,
-      roleAllowedTabs,
-      visibleTabs: visibleTabIds,
-      visibleTabsSignature,
-      visibleTabsChanged: previousSignature !== visibleTabsSignature,
-      tabAccessDenied,
-    });
-    lastVisibleTabsSignatureRef.current = visibleTabsSignature;
-    if (snapshot === lastIndexBootLogRef.current) return;
-    lastIndexBootLogRef.current = snapshot;
-    console.debug("[Index boot]", JSON.parse(snapshot));
-  }, [
-    allowedTabs,
-    loading,
-    location.pathname,
-    location.search,
-    role,
-    roleAllowedTabs,
-    tab,
-    tabAccessDenied,
-    user?.id,
-    visibleTabsSignature,
-  ]);
-
 
   // Itens da barra inferior mobile: prioriza pinnedTabs (ordem do usuário),
   // completa com as demais abas visíveis e limita a 4 (o 5º slot é "Mais").
-  const bottomItems = (() => {
+  const bottomItems = useMemo(() => {
     const pinnedVisible = pinnedTabs
       .map((id) => tabConfig.find((t) => t.id === id))
       .filter((t): t is (typeof tabConfig)[number] => !!t && visibleTabs.some((v) => v.id === t.id));
     const remaining = visibleTabs.filter((v) => !pinnedVisible.some((p) => p.id === v.id));
     return [...pinnedVisible, ...remaining].slice(0, 4);
-  })();
-  const bottomItemIds = bottomItems.map((i) => i.id);
+  }, [pinnedTabs, visibleTabs]);
+  const bottomItemIds = useMemo(() => bottomItems.map((i) => i.id), [bottomItems]);
 
   useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.debug("[Index tab guard effect]", {
-        mountId: indexMountIdRef.current,
-        route: `${location.pathname}${location.search}`,
-        tab,
-        visibleTabs: visibleTabIds,
-        visibleTabsSignature,
-        currentTabExistsInConfig: tabConfig.some((item) => item.id === tab),
-        willSetTab: visibleTabs.length > 0 && !tabConfig.some((item) => item.id === tab),
-        fallbackTab: visibleTabs[0]?.id ?? null,
-      });
-    }
+    // Enquanto auth/permissões estão carregando, não redirecionamos.
+    if (loading) return;
+    if (visibleTabs.length === 0) return;
     // Só redireciona se a aba atual sumiu da configuração (ex: feature removida).
     // Se existe na configuração mas o usuário não tem permissão, mantemos
     // a aba selecionada para renderizar a tela de "acesso negado".
-    if (visibleTabs.length > 0 && !tabConfig.some((item) => item.id === tab)) {
-      setTab(visibleTabs[0].id);
-    }
-  }, [tab, visibleTabs]);
+    if (tabConfig.some((item) => item.id === tab)) return;
+    const next = visibleTabs[0].id;
+    if (next === tab) return;
+    setTab(next);
+    // Depende apenas da assinatura estável dos ids visíveis + tab atual + loading.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, visibleTabsSignature, loading]);
+
 
   // Extrato agora abre como dialog (não é mais aba)
   const [ledgerOpen, setLedgerOpen] = useState(false);
