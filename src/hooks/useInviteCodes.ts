@@ -13,6 +13,9 @@ export interface InviteCode {
   created_at: string;
 }
 
+const INVITE_CODE_COLUMNS =
+  "id, code, owner_id, active, expires_at, uses_count, max_uses, created_at";
+
 function generateCode(len = 10) {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   let out = "";
@@ -33,7 +36,7 @@ export function useInviteCodes() {
     }
     const { data } = await (supabase as any)
       .from("invite_codes")
-      .select("*")
+      .select(INVITE_CODE_COLUMNS)
       .eq("owner_id", user.id)
       .order("created_at", { ascending: false });
     setCodes((data as InviteCode[]) || []);

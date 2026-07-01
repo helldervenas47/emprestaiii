@@ -80,7 +80,7 @@ export function PlanSubscribers() {
     setLoading(true);
     const { data: subs, error } = await supabase
       .from("subscriptions")
-      .select("*")
+      .select("id, user_id, product_id, price_id, status, environment, current_period_start, current_period_end, cancel_at_period_end, created_at, paddle_customer_id")
       .neq("product_id", "free_plan")
       .order("created_at", { ascending: false });
 

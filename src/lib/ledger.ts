@@ -197,12 +197,15 @@ export async function recomputeBalanceFromLedger(): Promise<number> {
   return account + cash;
 }
 
+const LEDGER_ENTRY_COLUMNS =
+  "id, user_id, direction, category, amount, occurred_on, description, loan_id, expense_id, payment_id, source, metadata, wallet, payment_method_id, transfer_group_id, created_at, updated_at";
+
 export async function listLedger(): Promise<LedgerEntry[]> {
   const ownerId = await getOwnerId();
   if (!ownerId) return [];
   const { data } = await supabase
     .from("account_ledger")
-    .select("*")
+    .select(LEDGER_ENTRY_COLUMNS)
     .eq("user_id", ownerId)
     .order("created_at", { ascending: false })
     .order("occurred_on", { ascending: false })

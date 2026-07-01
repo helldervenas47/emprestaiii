@@ -50,6 +50,12 @@ const DEFAULT: WhatsappBillingSchedule = {
   manager_summary_time: "09:00",
 };
 
+const BILLING_SCHEDULE_COLUMNS =
+  "id, owner_id, enabled, provider, base_url, instance_id, send_time, days_before_due, send_on_due_day, send_when_overdue, overdue_repeat_days, last_run_at, manager_summary_enabled, manager_summary_day_of_week, manager_summary_time, manager_last_run_at";
+
+const BILLING_LOG_COLUMNS =
+  "id, loan_id, client_id, installment_number, status_when_sent, phone, message, success, error_message, sent_date, created_at";
+
 export function useWhatsappBillingSchedule() {
   const { user, dataOwnerId } = useAuth();
   const [schedule, setSchedule] = useState<WhatsappBillingSchedule>(DEFAULT);
@@ -59,12 +65,12 @@ export function useWhatsappBillingSchedule() {
   const fetchAll = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
-      .from("whatsapp_billing_schedule").select("*").maybeSingle();
+      .from("whatsapp_billing_schedule").select(BILLING_SCHEDULE_COLUMNS).maybeSingle();
     if (data) setSchedule({ ...DEFAULT, ...(data as any) });
     else setSchedule(DEFAULT);
 
     const { data: logRows } = await supabase
-      .from("whatsapp_billing_log").select("*")
+      .from("whatsapp_billing_log").select(BILLING_LOG_COLUMNS)
       .order("created_at", { ascending: false }).limit(30);
     setLogs((logRows ?? []) as any);
     setLoading(false);

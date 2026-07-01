@@ -113,7 +113,7 @@ const Pricing = () => {
   useEffect(() => {
     (supabase as any)
       .from("plans")
-      .select("*")
+      .select("id, name, description, price, price_semestral, price_anual, discount_semestral, discount_anual, badge, promo_text, highlight_color, highlight, recommended, features, sort_order, show_monthly, show_semestral, show_anual")
       .eq("active", true)
       .order("sort_order")
       .then(({ data }: { data: any[] | null }) => {
