@@ -10,32 +10,47 @@ export function useUserApproval() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
+    if (!user?.id) {
       setStatus("none");
       setLoading(false);
       return;
     }
 
     let mounted = true;
-    const fetchStatus = async () => {
-      const { data } = await (supabase as any)
-        .from("user_approvals")
-        .select("status")
-        .eq("user_id", user.id)
-        .maybeSingle();
+    const uid = user.id;
+    const timeout = setTimeout(() => {
       if (!mounted) return;
-      setStatus((data?.status as ApprovalStatus) || "none");
+      // Fallback seguro em caso de timeout: assume "none" (não bloqueia app).
+      setStatus("none");
       setLoading(false);
+    }, 6000);
+
+    const fetchStatus = async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from("user_approvals")
+          .select("status")
+          .eq("user_id", uid)
+          .maybeSingle();
+        if (!mounted) return;
+        setStatus((data?.status as ApprovalStatus) || "none");
+      } catch (error) {
+        console.error("[useUserApproval] fetchStatus error:", error);
+        if (mounted) setStatus("none");
+      } finally {
+        clearTimeout(timeout);
+        if (mounted) setLoading(false);
+      }
     };
 
     fetchStatus();
 
     // Realtime: user sees own status flip to approved
     const channel = supabase
-      .channel(`approval-self-${user.id}-${Math.random().toString(36).slice(2)}`)
+      .channel(`approval-self-${uid}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes" as any,
-        { event: "*", schema: "public", table: "user_approvals", filter: `user_id=eq.${user.id}` },
+        { event: "*", schema: "public", table: "user_approvals", filter: `user_id=eq.${uid}` },
         (payload: any) => {
           const newStatus = payload.new?.status as ApprovalStatus | undefined;
           if (newStatus) setStatus(newStatus);
@@ -45,9 +60,10 @@ export function useUserApproval() {
 
     return () => {
       mounted = false;
+      clearTimeout(timeout);
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user?.id]);
 
   return { status, loading, isPending: status === "pending", isRejected: status === "rejected" };
 }
