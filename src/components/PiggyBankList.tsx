@@ -416,6 +416,21 @@ export function PiggyBankList({ readOnly = false }: Props) {
                       )}
                     </div>
                   </div>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        openEdit(pb);
+                      }}
+                      className="shrink-0 h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                      aria-label={`Editar ${pb.name}`}
+                      data-testid={`edit-piggy-${pb.id}`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
 
                 <div className="flex items-end justify-between gap-2 mt-1">
