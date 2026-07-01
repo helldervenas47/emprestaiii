@@ -35,7 +35,7 @@ import { AmortizationSimulator } from "@/components/AmortizationSimulator";
 import { RenegotiateLoanDialog } from "@/components/RenegotiateLoanDialog";
 import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
 import { useManagerCommissions } from "@/hooks/useManagerCommissions";
-import { generateLoanReportPdf } from "@/lib/loanReportPdf";
+// generateLoanReportPdf agora é importado dinamicamente pelos rows/cards que usam.
 import type { LoanRenegotiation } from "@/types/loan";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { useWhatsappBillingMessages } from "@/hooks/useWhatsappBillingMessages";

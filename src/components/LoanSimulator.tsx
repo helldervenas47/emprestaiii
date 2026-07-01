@@ -45,7 +45,8 @@ import { useLoanSimulations } from "@/hooks/useLoanSimulations";
 import { computeScenario, computeHighlights, formatBRL, newScenario, frequencyLabel } from "@/lib/loanSimulation";
 import type { LoanSimulation, SimulationScenario, ScenarioComputed } from "@/types/loanSimulation";
 import type { Client } from "@/types/loan";
-import { generateSimulationPdf } from "@/lib/simulationPdf";
+// generateSimulationPdf importado dinamicamente no handler para evitar
+// carregar jsPDF/autotable no bundle inicial do simulador.
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -192,12 +193,14 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
     };
 
     if (mode === "download") {
+      const { generateSimulationPdf } = await import("@/lib/simulationPdf");
       await generateSimulationPdf({ ...args, output: "save" });
       return;
     }
 
     // share
     try {
+      const { generateSimulationPdf } = await import("@/lib/simulationPdf");
       const result = await generateSimulationPdf({ ...args, output: "blob" });
       if (!result) return;
       const file = new File([result.blob], result.fileName, { type: "application/pdf" });

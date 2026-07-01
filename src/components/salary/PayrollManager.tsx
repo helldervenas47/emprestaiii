@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { useEmployees } from "@/hooks/useEmployees";
 import { usePayrolls } from "@/hooks/usePayrolls";
 import { useAppBranding } from "@/hooks/useAppBranding";
-import { generatePayslipPdf } from "@/lib/payslipPdf";
+// generatePayslipPdf importado dinamicamente no handler.
 import type { Payroll } from "@/types/salary";
 import { todayInAppTz } from "@/lib/timezone";
 import { ExtraEarningDialog } from "./ExtraEarningDialog";
@@ -211,7 +211,11 @@ export function PayrollManager({ readOnly }: Props) {
                       <History className="h-3 w-3" /> <span className="hidden md:inline">Pagamentos</span>
                     </Button>
                   )}
-                  <Button size="sm" variant="outline" onClick={() => emp && generatePayslipPdf(p, emp, { brandName: branding.brand_name })}>
+                  <Button size="sm" variant="outline" onClick={async () => {
+                    if (!emp) return;
+                    const { generatePayslipPdf } = await import("@/lib/payslipPdf");
+                    await generatePayslipPdf(p, emp, { brandName: branding.brand_name });
+                  }}>
                     <FileText className="h-3 w-3" /> <span className="hidden md:inline">Contracheque</span>
                   </Button>
                   {!readOnly && (p.closed
