@@ -286,7 +286,11 @@ export function useIncomes(enabled = true) {
       if (i.parentId) return false;
       if ((i.notes ?? "").includes("[Expanded]")) return false;
       if (processingRef.current.has(i.id)) return false;
-      return !globalRecurringBackfillLocks.has(recurringBackfillLockKey(dataOwnerId, i.id));
+      if (globalRecurringBackfillLocks.has(recurringBackfillLockKey(dataOwnerId, i.id))) {
+        processingRef.current.add(i.id);
+        return false;
+      }
+      return true;
     });
     if (parents.length === 0) return;
     const lockedParents = parents.filter((p) => {
