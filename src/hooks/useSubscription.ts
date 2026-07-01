@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -33,9 +33,26 @@ export function useSubscription() {
   const { user, dataOwnerId, loading: authLoading } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
+  const lastOwnerKeyRef = useRef<string | null>(null);
+  const fetchCountRef = useRef(0);
 
   const environment = import.meta.env.VITE_ASAAS_ENVIRONMENT === "production" ? "live" : "sandbox";
   const effectiveUserId = dataOwnerId ?? user?.id ?? null;
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    if (lastOwnerKeyRef.current === effectiveUserId) return;
+    console.debug("[OwnerKey transition]", {
+      hook: "useSubscription",
+      oldOwnerKey: lastOwnerKeyRef.current,
+      newOwnerKey: effectiveUserId,
+      queryKey: ["subscriptions", effectiveUserId ?? "anon", environment],
+      authLoading,
+      userId: user?.id ?? null,
+      dataOwnerId,
+    });
+    lastOwnerKeyRef.current = effectiveUserId;
+  }, [authLoading, dataOwnerId, effectiveUserId, environment, user?.id]);
 
   useEffect(() => {
     if (authLoading) {
@@ -51,6 +68,15 @@ export function useSubscription() {
     let cancelled = false;
 
     const fetchSubscription = async () => {
+      fetchCountRef.current += 1;
+      if (import.meta.env.DEV) {
+        console.debug("[OwnerKey fetch:start]", {
+          hook: "useSubscription",
+          count: fetchCountRef.current,
+          ownerKey: effectiveUserId,
+          queryKey: ["subscriptions", effectiveUserId, environment],
+        });
+      }
       const { data } = await supabase
         .from("subscriptions")
         .select("id, product_id, price_id, status, current_period_end, cancel_at_period_end, environment")

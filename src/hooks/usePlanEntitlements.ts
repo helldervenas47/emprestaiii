@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -41,12 +41,39 @@ export function usePlanEntitlements() {
   const [loading, setLoading] = useState(true);
   const [trialStartedAt, setTrialStartedAt] = useState<Date | null>(null);
   const effectiveUserId = dataOwnerId ?? user?.id ?? null;
+  const lastOwnerKeyRef = useRef<string | null>(null);
+  const fetchCountRef = useRef(0);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    if (lastOwnerKeyRef.current === effectiveUserId) return;
+    console.debug("[OwnerKey transition]", {
+      hook: "usePlanEntitlements",
+      oldOwnerKey: lastOwnerKeyRef.current,
+      newOwnerKey: effectiveUserId,
+      queryKey: ["plans", "profiles", effectiveUserId ?? "anon", subscription?.product_id ?? null],
+      authLoading,
+      subscriptionLoading,
+      userId: user?.id ?? null,
+      dataOwnerId,
+    });
+    lastOwnerKeyRef.current = effectiveUserId;
+  }, [authLoading, dataOwnerId, effectiveUserId, subscription?.product_id, subscriptionLoading, user?.id]);
 
   useEffect(() => {
     let cancel = false;
     (async () => {
       setLoading(true);
       if (authLoading) return;
+      fetchCountRef.current += 1;
+      if (import.meta.env.DEV) {
+        console.debug("[OwnerKey fetch:start]", {
+          hook: "usePlanEntitlements",
+          count: fetchCountRef.current,
+          ownerKey: effectiveUserId,
+          queryKey: ["plans", "profiles", effectiveUserId ?? "anon", subscription?.product_id ?? null],
+        });
+      }
 
       const [{ data: allPlans }, profileRes] = await Promise.all([
         supabase
