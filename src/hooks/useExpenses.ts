@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { todayInAppTz } from "@/lib/timezone";
 import { Expense } from "@/types/loan";
 import { supabase } from "@/integrations/supabase/userClient";
@@ -200,43 +201,72 @@ async function syncPayrollOnExpensePaid(opts: {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Fase 4 — TanStack Query shared cache para expenses.
+// Fetcher puro consumido por `useExpenses` via `useQuery`, permitindo que
+// múltiplos componentes compartilhem uma única request por queryKey.
+// ---------------------------------------------------------------------------
+export async function fetchExpensesData(): Promise<Expense[]> {
+  if (isOnline()) {
+    const { data, error } = await supabase
+      .from("expenses")
+      .select("id, description, amount, type, category, installments, paid_installments, due_date, paid, paid_date, notes, created_at, parent_expense_id, scope, payment_method_id, generate_income_on_pay, generated_income_id")
+      .order("created_at", { ascending: false })
+      .limit(5000); // safety cap — paginação por mês/página será adicionada na UI
+    if (!error && data) {
+      cacheRows("expenses", data).catch(() => { /* noop */ });
+      return data.map(rowToExpense);
+    }
+  }
+  const cached = await getCachedRows("expenses");
+  return cached
+    .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
+    .map(rowToExpense);
+}
+
+export function expensesQueryKey(ownerKey: string | null | undefined) {
+  return ["expenses", ownerKey ?? "anon"] as const;
+}
+
 export function useExpenses(enabled = true) {
   const { user, dataOwnerId } = useAuth();
+  const queryClient = useQueryClient();
+  const ownerKey = dataOwnerId ?? user?.id ?? null;
   const [expenses, setExpenses] = useState<Expense[]>([]);
+
+  const expensesQuery = useQuery({
+    queryKey: expensesQueryKey(ownerKey),
+    queryFn: fetchExpensesData,
+    enabled: !!user && enabled,
+    staleTime: 30_000,
+  });
+
+  // Sync query cache -> local state para manter setters otimistas usados
+  // pelas mutações abaixo sem alterar a API pública.
+  useEffect(() => {
+    if (expensesQuery.data) setExpenses(expensesQuery.data);
+  }, [expensesQuery.data]);
 
   const fetchExpenses = useCallback(async () => {
     if (!user) return;
-    if (isOnline()) {
-      const { data, error } = await supabase
-        .from("expenses")
-        .select("id, description, amount, type, category, installments, paid_installments, due_date, paid, paid_date, notes, created_at, parent_expense_id, scope, payment_method_id, generate_income_on_pay, generated_income_id")
-        .order("created_at", { ascending: false })
-        .limit(5000); // safety cap — paginação por mês/página será adicionada na UI
-      if (!error && data) {
-        setExpenses(data.map(rowToExpense));
-        cacheRows("expenses", data).catch(() => { /* noop */ });
-        return;
-      }
-    }
-    const cached = await getCachedRows("expenses");
-    if (cached.length > 0) {
-      setExpenses(cached
-        .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
-        .map(rowToExpense));
-    }
-  }, [user]);
+    await queryClient.invalidateQueries({ queryKey: expensesQueryKey(ownerKey) });
+  }, [queryClient, user, ownerKey]);
 
-  useEffect(() => { if (enabled) fetchExpenses(); }, [fetchExpenses, enabled]);
+  const invalidate = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: expensesQueryKey(ownerKey) });
+  }, [queryClient, ownerKey]);
 
-  // Realtime subscription
+  // Realtime subscription — invalida o cache compartilhado
   useEffect(() => {
     if (!user || !enabled) return;
     const channel = supabase
-      .channel(`expenses-realtime-${crypto.randomUUID()}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => { fetchExpenses(); })
+      .channel(`expenses-realtime-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => {
+        queryClient.invalidateQueries({ queryKey: expensesQueryKey(ownerKey) });
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, fetchExpenses, enabled]);
+  }, [user, queryClient, ownerKey, enabled]);
 
   // Refetch after offline queue flush
   useEffect(() => {
