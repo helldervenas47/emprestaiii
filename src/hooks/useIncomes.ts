@@ -63,6 +63,8 @@ export interface IncomesPeriod {
 }
 
 export async function fetchIncomesData(period?: IncomesPeriod): Promise<Income[]> {
+  if (import.meta.env.DEV) console.debug("[useIncomes fetch:start]", { period });
+  const startedAt = performance.now();
   const { startDate, endDate, limit } = period ?? {};
   let q = supabase
     .from("incomes" as any)
@@ -72,6 +74,7 @@ export async function fetchIncomesData(period?: IncomesPeriod): Promise<Income[]
   if (startDate) q = q.gte("received_date", startDate);
   if (endDate) q = q.lte("received_date", endDate);
   const { data } = await q;
+  if (import.meta.env.DEV) console.debug("[useIncomes fetch:end]", { rows: data?.length ?? 0, ms: Math.round(performance.now() - startedAt), period });
   if (!data) return [];
   return (data as any[]).map(rowToIncome);
 }
@@ -107,6 +110,7 @@ export function useIncomes(opts: boolean | UseIncomesOptions = true) {
   const queryClient = useQueryClient();
   const ownerKey = dataOwnerId ?? user?.id ?? null;
   const [incomes, setIncomes] = useState<Income[]>([]);
+  const [debugInstance] = useState(() => `useIncomes-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
   const incomesQuery = useQuery({
     queryKey: incomesQueryKey(ownerKey, period),
@@ -123,23 +127,32 @@ export function useIncomes(opts: boolean | UseIncomesOptions = true) {
 
   const fetch = useCallback(async () => {
     if (!user) return;
+    if (import.meta.env.DEV) console.debug("[useIncomes invalidateQueries]", { instance: debugInstance, ownerKey });
     await queryClient.invalidateQueries({ queryKey: incomesQueryKey(ownerKey) });
-  }, [queryClient, user, ownerKey]);
+  }, [queryClient, user, ownerKey, debugInstance]);
 
   const invalidate = useCallback(() => {
+    if (import.meta.env.DEV) console.debug("[useIncomes invalidateQueries]", { instance: debugInstance, ownerKey, source: "invalidate" });
     queryClient.invalidateQueries({ queryKey: incomesQueryKey(ownerKey) });
-  }, [queryClient, ownerKey]);
+  }, [queryClient, ownerKey, debugInstance]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    console.debug("[useIncomes lifecycle] mount/update", { instance: debugInstance, enabled, ownerKey, userId: user?.id ?? null, period });
+    return () => console.debug("[useIncomes lifecycle] unmount", { instance: debugInstance, enabled, ownerKey, userId: user?.id ?? null, period });
+  }, [debugInstance, enabled, ownerKey, user?.id, startDate, endDate, limit]);
 
   useEffect(() => {
     if (!user || !enabled) return;
     const channel = supabase
       .channel(`incomes-rt-${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "incomes" }, () => {
+        if (import.meta.env.DEV) console.debug("[useIncomes realtime]", { instance: debugInstance, table: "incomes", ownerKey });
         queryClient.invalidateQueries({ queryKey: incomesQueryKey(ownerKey) });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient, ownerKey, enabled]);
+  }, [user, queryClient, ownerKey, enabled, debugInstance]);
 
   const insertSingle = useCallback(async (
     input: Omit<Income, "id" | "createdAt">,

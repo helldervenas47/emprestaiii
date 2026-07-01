@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo } from "react";
+import { useEffect, useCallback, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
@@ -186,6 +186,8 @@ export interface PiggyBanksSnapshot {
 }
 
 export async function fetchPiggyBanksData(ownerId: string): Promise<PiggyBanksSnapshot> {
+  if (import.meta.env.DEV) console.debug("[usePiggyBanks fetch:start]", { resource: "cofrinhos", ownerId });
+  const startedAt = performance.now();
   const { data, error } = await supabase
     .from("cofrinhos" as any)
     .select(
@@ -193,7 +195,10 @@ export async function fetchPiggyBanksData(ownerId: string): Promise<PiggyBanksSn
     )
     .eq("usuario_id", ownerId)
     .order("created_at");
-  if (error || !Array.isArray(data)) return { piggyBanks: [], cofrinhoRows: {} };
+  if (error || !Array.isArray(data)) {
+    if (import.meta.env.DEV) console.debug("[usePiggyBanks fetch:end]", { resource: "cofrinhos", rows: 0, ms: Math.round(performance.now() - startedAt), error: error?.message });
+    return { piggyBanks: [], cofrinhoRows: {} };
+  }
   const rowsMap: Record<string, any> = {};
   const list: PiggyBank[] = (data as any[])
     .filter((r) => r.ativo !== false)
@@ -216,11 +221,17 @@ export async function fetchPiggyBanksData(ownerId: string): Promise<PiggyBanksSn
         createdAt: r.created_at,
       };
     });
+  if (import.meta.env.DEV) console.debug("[usePiggyBanks fetch:end]", { resource: "cofrinhos", rows: list.length, ms: Math.round(performance.now() - startedAt) });
   return { piggyBanks: list, cofrinhoRows: rowsMap };
 }
 
 export async function fetchPiggyLedgerData(activeIds: string[]): Promise<PiggyBankDeposit[]> {
-  if (activeIds.length === 0) return [];
+  if (import.meta.env.DEV) console.debug("[usePiggyBanks fetch:start]", { resource: "cofrinho_ledger", activeIds: activeIds.length });
+  const startedAt = performance.now();
+  if (activeIds.length === 0) {
+    if (import.meta.env.DEV) console.debug("[usePiggyBanks fetch:end]", { resource: "cofrinho_ledger", rows: 0, ms: Math.round(performance.now() - startedAt), skipped: true });
+    return [];
+  }
   const [ledgerRes, eventosRes] = await Promise.all([
     supabase
       .from("cofrinho_ledger" as any)
@@ -238,10 +249,13 @@ export async function fetchPiggyLedgerData(activeIds: string[]): Promise<PiggyBa
   const ledgerRows = !ledgerRes.error && Array.isArray(ledgerRes.data) ? ledgerRes.data : [];
   const eventosRows = !eventosRes.error && Array.isArray(eventosRes.data) ? eventosRes.data : [];
   const movementRows = [...ledgerRows, ...eventosRows];
-  if (movementRows.length === 0) return [];
+  if (movementRows.length === 0) {
+    if (import.meta.env.DEV) console.debug("[usePiggyBanks fetch:end]", { resource: "cofrinho_ledger", rows: 0, ms: Math.round(performance.now() - startedAt) });
+    return [];
+  }
 
   const seen = new Set<string>();
-  return (movementRows as any[]).flatMap((r) => {
+  const result = (movementRows as any[]).flatMap((r) => {
     const tipo = String(r.tipo || "").toUpperCase().replace("Ó", "O");
     if (tipo === "RENDIMENTO") return [];
     const rawDate = String(r.data_evento ?? r.created_at ?? "").slice(0, 10);
@@ -276,16 +290,23 @@ export async function fetchPiggyLedgerData(activeIds: string[]): Promise<PiggyBa
       recurrenceId: null,
     }];
   });
+  if (import.meta.env.DEV) console.debug("[usePiggyBanks fetch:end]", { resource: "cofrinho_ledger", rows: result.length, ms: Math.round(performance.now() - startedAt) });
+  return result;
 }
 
 export async function fetchMarketRateData(): Promise<MarketRate | null> {
+  if (import.meta.env.DEV) console.debug("[usePiggyBanks fetch:start]", { resource: "taxa_referencia" });
+  const startedAt = performance.now();
   const { data, error } = await supabase
     .from("taxa_referencia" as any)
     .select(
       "data_referencia, reference_date, atualizado_em, updated_at, taxa_anual, valor_anual, taxa, valor, annual_rate, fonte, source",
     )
     .limit(50);
-  if (error || !Array.isArray(data) || data.length === 0) return null;
+  if (error || !Array.isArray(data) || data.length === 0) {
+    if (import.meta.env.DEV) console.debug("[usePiggyBanks fetch:end]", { resource: "taxa_referencia", rows: 0, ms: Math.round(performance.now() - startedAt), error: error?.message });
+    return null;
+  }
   const rows = (data as any[]).slice();
   const dateOf = (r: any) =>
     r.data_referencia ?? r.reference_date ?? r.atualizado_em ?? r.updated_at ?? "";
@@ -293,14 +314,19 @@ export async function fetchMarketRateData(): Promise<MarketRate | null> {
   const r: any = rows[0];
   const annual =
     r.taxa_anual ?? r.valor_anual ?? r.taxa ?? r.valor ?? r.annual_rate ?? null;
-  if (annual == null) return null;
-  return {
+  if (annual == null) {
+    if (import.meta.env.DEV) console.debug("[usePiggyBanks fetch:end]", { resource: "taxa_referencia", rows: data.length, ms: Math.round(performance.now() - startedAt), annual: null });
+    return null;
+  }
+  const result = {
     indicator: "cdi",
     annualRate: Number(annual),
     source: r.fonte ?? r.source ?? null,
     referenceDate: r.data_referencia ?? r.reference_date ?? null,
     fetchedAt: r.atualizado_em ?? r.updated_at ?? new Date().toISOString(),
   };
+  if (import.meta.env.DEV) console.debug("[usePiggyBanks fetch:end]", { resource: "taxa_referencia", rows: data.length, ms: Math.round(performance.now() - startedAt), annualRate: result.annualRate });
+  return result;
 }
 
 export function usePiggyBanks() {
@@ -308,6 +334,7 @@ export function usePiggyBanks() {
   const dataOwnerId = useDataOwner();
   const queryClient = useQueryClient();
   const ownerKey = dataOwnerId ?? user?.id ?? null;
+  const [debugInstance] = useState(() => `usePiggyBanks-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
   // Recurrences/RateHistory ainda não migradas para a nova arquitetura.
   const recurrences: PiggyBankRecurrence[] = [];
@@ -338,6 +365,7 @@ export function usePiggyBanks() {
   // para refazer o ledger com os ids corretos.
   useEffect(() => {
     if (!dataOwnerId || activeIds.length === 0) return;
+    if (import.meta.env.DEV) console.debug("[usePiggyBanks invalidateQueries]", { instance: debugInstance, resource: "piggy-bank-ledger", ownerKey, source: "activeIdsKey", activeIdsKey });
     queryClient.invalidateQueries({ queryKey: piggyBankLedgerQueryKey(ownerKey) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIdsKey]);
@@ -355,19 +383,27 @@ export function usePiggyBanks() {
     piggyBanksQuery.isLoading || ledgerQuery.isLoading || marketRateQuery.isLoading;
 
   const invalidateAll = useCallback(() => {
+    if (import.meta.env.DEV) console.debug("[usePiggyBanks invalidateQueries]", { instance: debugInstance, resource: "all", ownerKey });
     queryClient.invalidateQueries({ queryKey: piggyBanksQueryKey(ownerKey) });
     queryClient.invalidateQueries({ queryKey: piggyBankLedgerQueryKey(ownerKey) });
     queryClient.invalidateQueries({ queryKey: piggyBankMarketRateQueryKey(ownerKey) });
-  }, [queryClient, ownerKey]);
+  }, [queryClient, ownerKey, debugInstance]);
 
   const reload = useCallback(async () => {
     if (!dataOwnerId) return;
+    if (import.meta.env.DEV) console.debug("[usePiggyBanks invalidateQueries]", { instance: debugInstance, resource: "all", ownerKey, source: "reload" });
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: piggyBanksQueryKey(ownerKey) }),
       queryClient.invalidateQueries({ queryKey: piggyBankLedgerQueryKey(ownerKey) }),
       queryClient.invalidateQueries({ queryKey: piggyBankMarketRateQueryKey(ownerKey) }),
     ]);
-  }, [queryClient, ownerKey, dataOwnerId]);
+  }, [queryClient, ownerKey, dataOwnerId, debugInstance]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    console.debug("[usePiggyBanks lifecycle] mount/update", { instance: debugInstance, enabled: !!dataOwnerId, ownerKey, userId: user?.id ?? null, dataOwnerId, activeIdsKey });
+    return () => console.debug("[usePiggyBanks lifecycle] unmount", { instance: debugInstance, enabled: !!dataOwnerId, ownerKey, userId: user?.id ?? null, dataOwnerId, activeIdsKey });
+  }, [debugInstance, dataOwnerId, ownerKey, user?.id, activeIdsKey]);
 
   // Realtime
   useEffect(() => {
@@ -375,29 +411,34 @@ export function usePiggyBanks() {
     const channel = supabase
       .channel(`cofrinhos-realtime-${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "cofrinhos" }, () => {
+        if (import.meta.env.DEV) console.debug("[usePiggyBanks realtime]", { instance: debugInstance, table: "cofrinhos", ownerKey });
         queryClient.invalidateQueries({ queryKey: piggyBanksQueryKey(ownerKey) });
         queryClient.invalidateQueries({ queryKey: piggyBankLedgerQueryKey(ownerKey) });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_aportes" }, () => {
+        if (import.meta.env.DEV) console.debug("[usePiggyBanks realtime]", { instance: debugInstance, table: "cofrinho_aportes", ownerKey });
         queryClient.invalidateQueries({ queryKey: piggyBanksQueryKey(ownerKey) });
         queryClient.invalidateQueries({ queryKey: piggyBankLedgerQueryKey(ownerKey) });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_eventos" }, () => {
+        if (import.meta.env.DEV) console.debug("[usePiggyBanks realtime]", { instance: debugInstance, table: "cofrinho_eventos", ownerKey });
         queryClient.invalidateQueries({ queryKey: piggyBanksQueryKey(ownerKey) });
         queryClient.invalidateQueries({ queryKey: piggyBankLedgerQueryKey(ownerKey) });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_ledger" }, () => {
+        if (import.meta.env.DEV) console.debug("[usePiggyBanks realtime]", { instance: debugInstance, table: "cofrinho_ledger", ownerKey });
         queryClient.invalidateQueries({ queryKey: piggyBankLedgerQueryKey(ownerKey) });
         queryClient.invalidateQueries({ queryKey: piggyBanksQueryKey(ownerKey) });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "taxa_referencia" }, () => {
+        if (import.meta.env.DEV) console.debug("[usePiggyBanks realtime]", { instance: debugInstance, table: "taxa_referencia", ownerKey });
         queryClient.invalidateQueries({ queryKey: piggyBankMarketRateQueryKey(ownerKey) });
       })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [dataOwnerId, user, queryClient, ownerKey]);
+  }, [dataOwnerId, user, queryClient, ownerKey, debugInstance]);
 
   // ---------------------------------------------------------------------------
   // CRUD de cofrinhos

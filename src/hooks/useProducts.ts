@@ -54,13 +54,18 @@ function rowToSale(s: any, prodMap: Map<string, string>): Sale {
 // Fase 6 — TanStack Query shared cache para products/sales.
 // ---------------------------------------------------------------------------
 export async function fetchProductsData(): Promise<Product[]> {
+  if (import.meta.env.DEV) console.debug("[useProducts fetch:start]", { resource: "products" });
+  const startedAt = performance.now();
   const { data } = await supabase
     .from("products").select(PRODUCT_COLUMNS).order("created_at", { ascending: false });
+  if (import.meta.env.DEV) console.debug("[useProducts fetch:end]", { resource: "products", rows: data?.length ?? 0, ms: Math.round(performance.now() - startedAt) });
   if (!data) return [];
   return (data as any[]).map(rowToProduct);
 }
 
 export async function fetchSalesData(): Promise<{ sales: Sale[]; productNameMap: Record<string, string> }> {
+  if (import.meta.env.DEV) console.debug("[useProducts fetch:start]", { resource: "sales" });
+  const startedAt = performance.now();
   const [prodRes, salesRes] = await Promise.all([
     supabase.from("products").select("id, name"),
     supabase.from("sales").select(SALE_COLUMNS).order("created_at", { ascending: false }),
@@ -69,6 +74,7 @@ export async function fetchSalesData(): Promise<{ sales: Sale[]; productNameMap:
   const sales = salesRes.data ? (salesRes.data as any[]).map((s) => rowToSale(s, prodMap)) : [];
   const productNameMap: Record<string, string> = {};
   prodMap.forEach((v, k) => { productNameMap[k] = v; });
+  if (import.meta.env.DEV) console.debug("[useProducts fetch:end]", { resource: "sales", rows: sales.length, ms: Math.round(performance.now() - startedAt) });
   return { sales, productNameMap };
 }
 
@@ -83,6 +89,7 @@ export function useProducts(enabled = true) {
   const { user, dataOwnerId } = useAuth();
   const queryClient = useQueryClient();
   const ownerKey = dataOwnerId ?? user?.id ?? null;
+  const [debugInstance] = useState(() => `useProducts-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -110,11 +117,19 @@ export function useProducts(enabled = true) {
   const loading = productsQuery.isLoading || salesQuery.isLoading;
 
   const invalidateProducts = useCallback(() => {
+    if (import.meta.env.DEV) console.debug("[useProducts invalidateQueries]", { instance: debugInstance, resource: "products", ownerKey });
     queryClient.invalidateQueries({ queryKey: productsQueryKey(ownerKey) });
-  }, [queryClient, ownerKey]);
+  }, [queryClient, ownerKey, debugInstance]);
   const invalidateSales = useCallback(() => {
+    if (import.meta.env.DEV) console.debug("[useProducts invalidateQueries]", { instance: debugInstance, resource: "sales", ownerKey });
     queryClient.invalidateQueries({ queryKey: salesQueryKey(ownerKey) });
-  }, [queryClient, ownerKey]);
+  }, [queryClient, ownerKey, debugInstance]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    console.debug("[useProducts lifecycle] mount/update", { instance: debugInstance, enabled, ownerKey, userId: user?.id ?? null });
+    return () => console.debug("[useProducts lifecycle] unmount", { instance: debugInstance, enabled, ownerKey, userId: user?.id ?? null });
+  }, [debugInstance, enabled, ownerKey, user?.id]);
 
   // Realtime — invalida o cache correto por tabela
   useEffect(() => {
@@ -122,16 +137,18 @@ export function useProducts(enabled = true) {
     const channel = supabase
       .channel(`products-sales-realtime-${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+        if (import.meta.env.DEV) console.debug("[useProducts realtime]", { instance: debugInstance, table: "products", ownerKey });
         queryClient.invalidateQueries({ queryKey: productsQueryKey(ownerKey) });
         // Sale mapping depende do nome do produto — refresca também.
         queryClient.invalidateQueries({ queryKey: salesQueryKey(ownerKey) });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => {
+        if (import.meta.env.DEV) console.debug("[useProducts realtime]", { instance: debugInstance, table: "sales", ownerKey });
         queryClient.invalidateQueries({ queryKey: salesQueryKey(ownerKey) });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient, ownerKey, enabled]);
+  }, [user, queryClient, ownerKey, enabled, debugInstance]);
 
   const addProduct = useCallback(async (p: Omit<Product, "id" | "createdAt">) => {
     assertWritable();

@@ -395,6 +395,17 @@ const Index = () => {
   const brandName = appBranding.brand_name;
   const preserveScrollYRef = useRef<number | null>(null);
   const indexMountIdRef = useRef(`index-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const renderCountRef = useRef(0);
+  renderCountRef.current += 1;
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const mountId = indexMountIdRef.current;
+    console.debug("[Index lifecycle] mount", { mountId });
+    return () => {
+      console.debug("[Index lifecycle] unmount", { mountId });
+    };
+  }, []);
 
   
   const [preservedPageHeight, setPreservedPageHeight] = useState<number | null>(null);
@@ -517,6 +528,20 @@ const Index = () => {
     tab === "settings";
   const needsVehicles = tab === "clients" || tab === "vehicles";
   const needsLocadores = tab === "vehicles" || tab === "settings" || tab === "clients";
+
+  if (import.meta.env.DEV) {
+    console.debug("[Index render]", {
+      mountId: indexMountIdRef.current,
+      renderCount: renderCountRef.current,
+      tab,
+      needsLoans,
+      needsClients,
+      needsProducts,
+      needsExpenses,
+      needsVehicles,
+      needsLocadores,
+    });
+  }
 
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } =
     useProducts(needsProducts);
