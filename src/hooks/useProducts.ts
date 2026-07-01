@@ -5,6 +5,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 import { assertWritable } from "@/lib/readOnlyState";
 
+const PRODUCT_COLUMNS =
+  "id, name, description, price, cost, last_purchase_price, suggested_stock, stock, active, created_at";
+const SALE_COLUMNS =
+  "id, product_id, description, quantity, total, customer_name, sale_date, notes, business_type, payment_mode, installments, paid_installments, frequency, installment_value, installment_amounts, installment_dates, partial_paid, payment_history, locador_id, category";
+
+
 
 export function useProducts(enabled = true) {
   const { user, dataOwnerId } = useAuth();
