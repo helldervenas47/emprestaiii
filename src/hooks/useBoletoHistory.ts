@@ -21,6 +21,8 @@ export interface BoletoHistoryItem {
 
 const LOCAL_KEY = "boleto.history.v1";
 const MAX = 30;
+const BOLETO_LOOKUP_COLUMNS =
+  "id, digits, barcode, kind, bank_code, bank_name, segment, segment_label, amount, due_date, label, parsed_at, pix_brcode";
 
 function loadLocal(): BoletoHistoryItem[] {
   try {
