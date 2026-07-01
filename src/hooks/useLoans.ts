@@ -209,6 +209,8 @@ async function recordPaymentLedgerSplit(args: {
 // components mounting `useLoans` share a single network request per key.
 // ---------------------------------------------------------------------------
 export async function fetchLoansData(): Promise<Loan[]> {
+  if (import.meta.env.DEV) console.debug("[useLoans fetch:start]", { resource: "loans" });
+  const startedAt = performance.now();
   if (isOnline()) {
     const { data, error } = await supabase
       .from("loans").select("id, borrower_name, borrower_id, amount, original_amount, interest_rate, interest_type, payment_type, start_date, due_date, original_due_date, installments, paid_installments, status, remaining_amount, custom_installment_value, custom_interest_value, tags, notes, created_at, late_interest_type, late_interest_value, penalty_value, has_manager, manager_id, manager_commission_rate, auto_billing_enabled, renegotiation_penalty_total, is_sale, payment_method_split")
@@ -216,16 +218,20 @@ export async function fetchLoansData(): Promise<Loan[]> {
       .limit(2000);
     if (!error && data) {
       cacheRows("loans", data).catch(() => { /* noop */ });
+      if (import.meta.env.DEV) console.debug("[useLoans fetch:end]", { resource: "loans", rows: data.length, ms: Math.round(performance.now() - startedAt), source: "remote" });
       return data.map(rowToLoan);
     }
   }
   const cached = await getCachedRows("loans");
+  if (import.meta.env.DEV) console.debug("[useLoans fetch:end]", { resource: "loans", rows: cached.length, ms: Math.round(performance.now() - startedAt), source: "cache" });
   return cached
     .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
     .map(rowToLoan);
 }
 
 export async function fetchPaymentsData(): Promise<Payment[]> {
+  if (import.meta.env.DEV) console.debug("[useLoans fetch:start]", { resource: "payments" });
+  const startedAt = performance.now();
   if (isOnline()) {
     const { data, error } = await supabase
       .from("payments").select("id, loan_id, amount, date, installment_number, previous_due_date, payment_method_id, metadata, created_at")
@@ -233,16 +239,20 @@ export async function fetchPaymentsData(): Promise<Payment[]> {
       .limit(5000);
     if (!error && data) {
       cacheRows("payments", data).catch(() => { /* noop */ });
+      if (import.meta.env.DEV) console.debug("[useLoans fetch:end]", { resource: "payments", rows: data.length, ms: Math.round(performance.now() - startedAt), source: "remote" });
       return data.map(rowToPayment);
     }
   }
   const cached = await getCachedRows("payments");
+  if (import.meta.env.DEV) console.debug("[useLoans fetch:end]", { resource: "payments", rows: cached.length, ms: Math.round(performance.now() - startedAt), source: "cache" });
   return cached
     .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
     .map(rowToPayment);
 }
 
 export async function fetchSchedulesData(): Promise<InstallmentSchedule[]> {
+  if (import.meta.env.DEV) console.debug("[useLoans fetch:start]", { resource: "loan_installments" });
+  const startedAt = performance.now();
   if (isOnline()) {
     const { data, error } = await supabase
       .from("loan_installments").select("id, loan_id, installment_number, due_date, amount")
@@ -250,6 +260,7 @@ export async function fetchSchedulesData(): Promise<InstallmentSchedule[]> {
       .limit(10000);
     if (!error && data) {
       cacheRows("loan_installments", data).catch(() => { /* noop */ });
+      if (import.meta.env.DEV) console.debug("[useLoans fetch:end]", { resource: "loan_installments", rows: data.length, ms: Math.round(performance.now() - startedAt), source: "remote" });
       return data.map((s: any) => ({
         id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number,
         dueDate: s.due_date, amount: Number(s.amount),
@@ -257,6 +268,7 @@ export async function fetchSchedulesData(): Promise<InstallmentSchedule[]> {
     }
   }
   const cached = await getCachedRows("loan_installments");
+  if (import.meta.env.DEV) console.debug("[useLoans fetch:end]", { resource: "loan_installments", rows: cached.length, ms: Math.round(performance.now() - startedAt), source: "cache" });
   return cached.map((s: any) => ({
     id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number,
     dueDate: s.due_date, amount: Number(s.amount),
@@ -277,6 +289,7 @@ export function useLoans(enabled: boolean = true) {
   const { user, dataOwnerId } = useAuth();
   const queryClient = useQueryClient();
   const ownerKey = dataOwnerId ?? user?.id ?? null;
+  const debugInstanceRef = useState(() => `useLoans-${Date.now()}-${Math.random().toString(36).slice(2)}`)[0];
 
   const [loans, setLoans] = useState<Loan[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -319,16 +332,25 @@ export function useLoans(enabled: boolean = true) {
   // request in-flight.
   const fetchLoans = useCallback(async () => {
     if (!user) return;
+    if (import.meta.env.DEV) console.debug("[useLoans invalidateQueries]", { instance: debugInstanceRef, resource: "loans", ownerKey });
     await queryClient.invalidateQueries({ queryKey: loansQueryKey(ownerKey) });
-  }, [queryClient, user, ownerKey]);
+  }, [queryClient, user, ownerKey, debugInstanceRef]);
   const fetchPayments = useCallback(async () => {
     if (!user) return;
+    if (import.meta.env.DEV) console.debug("[useLoans invalidateQueries]", { instance: debugInstanceRef, resource: "payments", ownerKey });
     await queryClient.invalidateQueries({ queryKey: paymentsQueryKey(ownerKey) });
-  }, [queryClient, user, ownerKey]);
+  }, [queryClient, user, ownerKey, debugInstanceRef]);
   const fetchSchedules = useCallback(async () => {
     if (!user) return;
+    if (import.meta.env.DEV) console.debug("[useLoans invalidateQueries]", { instance: debugInstanceRef, resource: "loan_installments", ownerKey });
     await queryClient.invalidateQueries({ queryKey: schedulesQueryKey(ownerKey) });
-  }, [queryClient, user, ownerKey]);
+  }, [queryClient, user, ownerKey, debugInstanceRef]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    console.debug("[useLoans lifecycle] mount/update", { instance: debugInstanceRef, enabled, ownerKey, userId: user?.id ?? null });
+    return () => console.debug("[useLoans lifecycle] unmount", { instance: debugInstanceRef, enabled, ownerKey, userId: user?.id ?? null });
+  }, [debugInstanceRef, enabled, ownerKey, user?.id]);
 
   // Refetch after offline queue flush
   useEffect(() => {
@@ -348,17 +370,20 @@ export function useLoans(enabled: boolean = true) {
     const channel = supabase
       .channel(`loans-realtime-${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, () => {
+        if (import.meta.env.DEV) console.debug("[useLoans realtime]", { instance: debugInstanceRef, table: "loans", ownerKey });
         queryClient.invalidateQueries({ queryKey: loansQueryKey(ownerKey) });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
+        if (import.meta.env.DEV) console.debug("[useLoans realtime]", { instance: debugInstanceRef, table: "payments", ownerKey });
         queryClient.invalidateQueries({ queryKey: paymentsQueryKey(ownerKey) });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'loan_installments' }, () => {
+        if (import.meta.env.DEV) console.debug("[useLoans realtime]", { instance: debugInstanceRef, table: "loan_installments", ownerKey });
         queryClient.invalidateQueries({ queryKey: schedulesQueryKey(ownerKey) });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient, ownerKey]);
+  }, [user, queryClient, ownerKey, debugInstanceRef]);
 
   const saveSchedule = useCallback(async (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => {
     assertWritable();

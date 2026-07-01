@@ -213,6 +213,8 @@ export interface ExpensesPeriod {
 }
 
 export async function fetchExpensesData(period?: ExpensesPeriod): Promise<Expense[]> {
+  if (import.meta.env.DEV) console.debug("[useExpenses fetch:start]", { period });
+  const startedAt = performance.now();
   const { startDate, endDate, limit } = period ?? {};
   const hasPeriod = !!(startDate || endDate);
   const effectiveLimit = limit ?? 5000;
@@ -227,6 +229,7 @@ export async function fetchExpensesData(period?: ExpensesPeriod): Promise<Expens
     const { data, error } = await q;
     if (!error && data) {
       if (!hasPeriod) cacheRows("expenses", data).catch(() => { /* noop */ });
+      if (import.meta.env.DEV) console.debug("[useExpenses fetch:end]", { rows: data.length, ms: Math.round(performance.now() - startedAt), source: "remote", period });
       return data.map(rowToExpense);
     }
   }
@@ -234,6 +237,7 @@ export async function fetchExpensesData(period?: ExpensesPeriod): Promise<Expens
   let rows = cached;
   if (startDate) rows = rows.filter((r: any) => (r.due_date ?? "") >= startDate);
   if (endDate) rows = rows.filter((r: any) => (r.due_date ?? "") <= endDate);
+  if (import.meta.env.DEV) console.debug("[useExpenses fetch:end]", { rows: rows.length, ms: Math.round(performance.now() - startedAt), source: "cache", period });
   return rows
     .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
     .slice(0, effectiveLimit)
@@ -271,6 +275,7 @@ export function useExpenses(opts: boolean | UseExpensesOptions = true) {
   const queryClient = useQueryClient();
   const ownerKey = dataOwnerId ?? user?.id ?? null;
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [debugInstance] = useState(() => `useExpenses-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
   const expensesQuery = useQuery({
     queryKey: expensesQueryKey(ownerKey, period),
@@ -287,12 +292,20 @@ export function useExpenses(opts: boolean | UseExpensesOptions = true) {
 
   const fetchExpenses = useCallback(async () => {
     if (!user) return;
+    if (import.meta.env.DEV) console.debug("[useExpenses invalidateQueries]", { instance: debugInstance, ownerKey });
     await queryClient.invalidateQueries({ queryKey: expensesQueryKey(ownerKey) });
-  }, [queryClient, user, ownerKey]);
+  }, [queryClient, user, ownerKey, debugInstance]);
 
   const invalidate = useCallback(() => {
+    if (import.meta.env.DEV) console.debug("[useExpenses invalidateQueries]", { instance: debugInstance, ownerKey, source: "invalidate" });
     queryClient.invalidateQueries({ queryKey: expensesQueryKey(ownerKey) });
-  }, [queryClient, ownerKey]);
+  }, [queryClient, ownerKey, debugInstance]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    console.debug("[useExpenses lifecycle] mount/update", { instance: debugInstance, enabled, ownerKey, userId: user?.id ?? null, period });
+    return () => console.debug("[useExpenses lifecycle] unmount", { instance: debugInstance, enabled, ownerKey, userId: user?.id ?? null, period });
+  }, [debugInstance, enabled, ownerKey, user?.id, startDate, endDate, limit]);
 
   // Realtime subscription — invalida o cache compartilhado
   useEffect(() => {
@@ -300,11 +313,12 @@ export function useExpenses(opts: boolean | UseExpensesOptions = true) {
     const channel = supabase
       .channel(`expenses-realtime-${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => {
+        if (import.meta.env.DEV) console.debug("[useExpenses realtime]", { instance: debugInstance, table: "expenses", ownerKey });
         queryClient.invalidateQueries({ queryKey: expensesQueryKey(ownerKey) });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient, ownerKey, enabled]);
+  }, [user, queryClient, ownerKey, enabled, debugInstance]);
 
   // Refetch after offline queue flush
   useEffect(() => {

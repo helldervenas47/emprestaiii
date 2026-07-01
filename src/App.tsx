@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useEffect, useRef } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { AppSonner } from "@/components/ui/app-sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -55,6 +55,60 @@ const PageLoader = () => (
   </div>
 );
 
+function DevQueryLogger() {
+  const client = useQueryClient();
+  const lastQuerySnapshotRef = useRef<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const watchedPrefixes = [
+      "loans",
+      "payments",
+      "loan_installments",
+      "expenses",
+      "incomes",
+      "products",
+      "sales",
+      "clients",
+      "piggy-banks",
+      "piggy-bank-ledger",
+      "piggy-bank-market-rate",
+      "user_roles",
+      "user_approvals",
+      "personal_expense_categories",
+    ];
+
+    return client.getQueryCache().subscribe((event) => {
+      const query = (event as any)?.query;
+      if (!query) return;
+      const key = query.queryKey;
+      const root = Array.isArray(key) ? String(key[0]) : String(key);
+      if (!watchedPrefixes.includes(root)) return;
+      const state = query.state;
+      const snapshot = JSON.stringify({
+        status: state.status,
+        fetchStatus: state.fetchStatus,
+        isInvalidated: state.isInvalidated,
+        dataUpdatedAt: state.dataUpdatedAt,
+        errorUpdatedAt: state.errorUpdatedAt,
+      });
+      const hash = query.queryHash;
+      if (lastQuerySnapshotRef.current[hash] === snapshot) return;
+      lastQuerySnapshotRef.current[hash] = snapshot;
+      console.debug("[TanStackQuery event]", {
+        type: (event as any).type,
+        actionType: (event as any).action?.type,
+        queryKey: key,
+        status: state.status,
+        fetchStatus: state.fetchStatus,
+        isInvalidated: state.isInvalidated,
+      });
+    });
+  }, [client]);
+
+  return null;
+}
+
 function ProtectedRoute({
   children,
   skipOnboardingCheck = false,
@@ -67,24 +121,43 @@ function ProtectedRoute({
   const { needs: needsOnboarding, loading: onboardingLoading } = useNeedsOnboarding();
   const location = useLocation();
   const lastGateLogRef = useRef<string>("");
+  const renderCountRef = useRef(0);
+  renderCountRef.current += 1;
+
+  const gate = loading
+    ? "PageLoader:auth.loading"
+    : approvalLoading
+      ? "PageLoader:approvalLoading"
+      : !user
+        ? "Navigate:/auth"
+        : status === "pending"
+          ? "PendingApprovalScreen:pending"
+          : status === "rejected"
+            ? "PendingApprovalScreen:rejected"
+            : !skipOnboardingCheck && onboardingLoading
+              ? "PageLoader:onboardingLoading"
+              : !skipOnboardingCheck && needsOnboarding
+                ? "Navigate:/bem-vindo"
+                : "children";
+
+  if (import.meta.env.DEV) {
+    console.debug("[ProtectedRoute render]", {
+      renderCount: renderCountRef.current,
+      pathname: location.pathname,
+      search: location.search,
+      authLoading: loading,
+      approvalLoading,
+      onboardingLoading,
+      userId: user?.id ?? null,
+      approvalStatus: status,
+      needsOnboarding,
+      skipOnboardingCheck,
+      returns: gate,
+    });
+  }
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
-    const gate = loading
-      ? "auth.loading"
-      : approvalLoading
-        ? "approvalLoading"
-        : !user
-          ? "navigate:/auth"
-          : status === "pending"
-            ? "pendingApproval"
-            : status === "rejected"
-              ? "rejectedApproval"
-              : !skipOnboardingCheck && onboardingLoading
-                ? "onboardingLoading"
-                : !skipOnboardingCheck && needsOnboarding
-                  ? "navigate:/bem-vindo"
-                  : "ready";
     const snapshot = JSON.stringify({
       route: `${location.pathname}${location.search}`,
       gate,
@@ -109,6 +182,7 @@ function ProtectedRoute({
     skipOnboardingCheck,
     status,
     user?.id,
+    gate,
   ]);
 
 
@@ -176,6 +250,7 @@ const App = () => (
   <DevCacheErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <DevQueryLogger />
         <Toaster />
         <AppSonner />
         <PWAInstallPrompt />

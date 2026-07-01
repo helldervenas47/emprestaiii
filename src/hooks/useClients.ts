@@ -40,10 +40,14 @@ function rowToClient(c: any): Client {
 export function useClients(enabled: boolean = true) {
   const { user, dataOwnerId } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
+  const [debugInstance] = useState(() => `useClients-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const ownerKey = dataOwnerId ?? user?.id ?? null;
 
   const fetchClients = useCallback(async () => {
     if (!user) return;
     if (!enabled) return;
+    if (import.meta.env.DEV) console.debug("[useClients fetch:start]", { instance: debugInstance, enabled, ownerKey });
+    const startedAt = performance.now();
     if (isOnline()) {
       const { data, error } = await supabase
         .from("clients")
@@ -53,6 +57,7 @@ export function useClients(enabled: boolean = true) {
       if (!error && data) {
         setClients(data.map(rowToClient));
         cacheRows("clients", data).catch(() => { /* noop */ });
+        if (import.meta.env.DEV) console.debug("[useClients fetch:end]", { instance: debugInstance, rows: data.length, ms: Math.round(performance.now() - startedAt), source: "remote" });
         return;
       }
     }
@@ -62,7 +67,14 @@ export function useClients(enabled: boolean = true) {
         .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
         .map(rowToClient));
     }
-  }, [user, enabled]);
+    if (import.meta.env.DEV) console.debug("[useClients fetch:end]", { instance: debugInstance, rows: cached.length, ms: Math.round(performance.now() - startedAt), source: "cache" });
+  }, [user, enabled, debugInstance, ownerKey]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    console.debug("[useClients lifecycle] mount/update", { instance: debugInstance, enabled, ownerKey, userId: user?.id ?? null });
+    return () => console.debug("[useClients lifecycle] unmount", { instance: debugInstance, enabled, ownerKey, userId: user?.id ?? null });
+  }, [debugInstance, enabled, ownerKey, user?.id]);
 
   useEffect(() => { fetchClients(); }, [fetchClients]);
 
@@ -70,10 +82,13 @@ export function useClients(enabled: boolean = true) {
     if (!user) return;
     const channel = supabase
       .channel(`clients-realtime-${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => { fetchClients(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => {
+        if (import.meta.env.DEV) console.debug("[useClients realtime]", { instance: debugInstance, table: "clients", ownerKey });
+        fetchClients();
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, fetchClients]);
+  }, [user, fetchClients, debugInstance, ownerKey]);
 
   useEffect(() => {
     const handler = (e: any) => {
