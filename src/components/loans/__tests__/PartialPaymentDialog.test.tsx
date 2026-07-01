@@ -114,11 +114,9 @@ describe("PartialPaymentDialog", () => {
   it("simula a distribuição: com valor 100 sem encargos, tudo vai para juros/principal", () => {
     // interestPendingCycle=50, sem encargos → 50 para juros, 50 para principal.
     renderDialog({ amount: "100" });
-    // Card "Resultado da operação"
     expect(screen.getByText(/resultado da operação/i)).toBeInTheDocument();
-    // Saldo após operação = 650 - 100 = 550.
-    expect(screen.getByText(fmt(550))).toBeInTheDocument();
-    // "Em andamento" porque ainda restam parcelas pendentes.
+    // Saldo após operação = 650 - 100 = 550. Regex por causa do NBSP do Intl.
+    expect(screen.getAllByText(/R\$\s?550,00/).length).toBeGreaterThan(0);
     expect(screen.getByText(/em andamento/i)).toBeInTheDocument();
   });
 
@@ -155,7 +153,8 @@ describe("PartialPaymentDialog", () => {
       penaltyTotal: 20,
       remainingWithFees: 695,
     });
-    expect(screen.getByText(/em atraso/i)).toBeInTheDocument();
+    // Pode aparecer em mais de um lugar (título + linhas de detalhe).
+    expect(screen.getAllByText(/em atraso/i).length).toBeGreaterThan(0);
     expect(screen.getByText("15d")).toBeInTheDocument();
     expect(screen.getByText(/multa acumulada/i)).toBeInTheDocument();
     expect(screen.getByText(/juros de atraso/i)).toBeInTheDocument();
