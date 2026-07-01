@@ -393,6 +393,7 @@ const Index = () => {
   const { branding: appBranding } = useAppBranding();
   const brandName = appBranding.brand_name;
   const preserveScrollYRef = useRef<number | null>(null);
+  const lastIndexBootLogRef = useRef<string>("");
   const [preservedPageHeight, setPreservedPageHeight] = useState<number | null>(null);
 
   // Tab state - declared early so hooks can use it for lazy loading
@@ -689,6 +690,22 @@ const Index = () => {
   // Tab existe na configuração geral mas o usuário não tem permissão →
   // exibimos página de "acesso negado" em vez de redirecionar silenciosamente.
   const tabAccessDenied = !loading && tabConfig.some((t) => t.id === tab) && !visibleTabs.some((t) => t.id === tab);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const snapshot = JSON.stringify({
+      tab,
+      authLoading: loading,
+      userId: user?.id ?? null,
+      role,
+      dataOwnerId: user ? undefined : null,
+      visibleTabs: visibleTabs.map((item) => item.id),
+      tabAccessDenied,
+    });
+    if (snapshot === lastIndexBootLogRef.current) return;
+    lastIndexBootLogRef.current = snapshot;
+    console.debug("[Index boot]", JSON.parse(snapshot));
+  }, [loading, role, tab, tabAccessDenied, user, visibleTabs]);
 
   // Itens da barra inferior mobile: prioriza pinnedTabs (ordem do usuário),
   // completa com as demais abas visíveis e limita a 4 (o 5º slot é "Mais").
