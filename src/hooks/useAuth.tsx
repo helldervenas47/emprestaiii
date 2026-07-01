@@ -14,22 +14,41 @@ const ROLE_PRIORITY: Record<string, number> = {
   visualizador: 1,
 };
 
-const invokeExternalFunction = async <T,>(functionName: string, token: string, body: Record<string, unknown>) => {
-  const response = await fetch(`${USER_SUPABASE_URL}/functions/v1/${functionName}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: USER_SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
-  });
+const EDGE_FUNCTION_TIMEOUT_MS = 8000;
 
-  const payload = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(`Edge function returned ${response.status}: ${payload ? JSON.stringify(payload) : response.statusText}`);
+const invokeExternalFunction = async <T,>(
+  functionName: string,
+  token: string,
+  body: Record<string, unknown>,
+  timeoutMs: number = EDGE_FUNCTION_TIMEOUT_MS,
+) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${USER_SUPABASE_URL}/functions/v1/${functionName}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: USER_SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(`Edge function returned ${response.status}: ${payload ? JSON.stringify(payload) : response.statusText}`);
+    }
+    return payload as T;
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      throw new Error(`Edge function "${functionName}" timed out after ${timeoutMs}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  return payload as T;
 };
 
 interface AuthContextType {
@@ -65,10 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = accessToken ?? (await supabase.auth.getSession()).data.session?.access_token;
       if (token) {
         let ensuredRole: { role?: string } | null = null;
+        let ensureRoleFailed = false;
         try {
           ensuredRole = await invokeExternalFunction<{ role?: string }>("ensure-user-role", token, { role: "cliente" });
-        } catch (ensureRoleError) {
-          console.error("[useAuth] ensure-user-role error:", ensureRoleError);
+        } catch (ensureRoleError: any) {
+          ensureRoleFailed = true;
+          console.error("[useAuth] ensure-user-role error:", ensureRoleError?.message || ensureRoleError);
         }
         const retry = await supabase
           .from("user_roles")
@@ -78,6 +99,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         roles = (data ?? []).map((r: any) => r.role as string);
         if (roles.length === 0 && ensuredRole?.role) {
           roles = [ensuredRole.role as string];
+        }
+        // Fallback seguro: se a Edge Function falhou/timeout e nada foi resolvido,
+        // assume "cliente" para não travar o app no loading.
+        if (roles.length === 0 && ensureRoleFailed) {
+          console.error("[useAuth] falling back to role 'cliente' after ensure-user-role failure");
+          setRole("cliente");
+          return;
         }
       }
     }
@@ -164,7 +192,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await syncProfile(currentUser);
     }
 
-    await Promise.all([
+    // allSettled evita que uma falha isolada (ex.: RPC lento) trave o loading.
+    await Promise.allSettled([
       fetchRole(userId, accessToken),
       fetchDataOwner(userId),
       fetchTabPermissions(userId),
@@ -187,8 +216,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (hydratedForUserId === userId) return;
       hydratedForUserId = userId;
       if (showLoading) setLoading(true);
-      await hydrateUserState(userId, currentUser, accessToken);
-      if (mounted) setLoading(false);
+      try {
+        await hydrateUserState(userId, currentUser, accessToken);
+      } catch (err) {
+        console.error("[useAuth] hydrateUserState failed:", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
@@ -227,13 +261,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Initial session check — trust localStorage (Supabase manages it).
     // Each device has its own refresh token, so multiple devices can stay logged in.
     (async () => {
-      // Guard: tokens emitidos por outro projeto Supabase (ex.: pós-migração)
-      // retornam "bad_jwt" / "invalid claim: missing sub claim". Limpamos local
-      // e seguimos sem sessão, evitando loop de 403 em /auth/v1/user.
       try {
-        const { error: userErr } = await supabase.auth.getUser();
-        if (userErr) {
-          const msg = `${(userErr as any)?.code || ""} ${userErr.message || ""}`.toLowerCase();
+        // Guard: tokens emitidos por outro projeto Supabase (ex.: pós-migração)
+        // retornam "bad_jwt" / "invalid claim: missing sub claim". Limpamos local
+        // e seguimos sem sessão, evitando loop de 403 em /auth/v1/user.
+        try {
+          const { error: userErr } = await supabase.auth.getUser();
+          if (userErr) {
+            const msg = `${(userErr as any)?.code || ""} ${userErr.message || ""}`.toLowerCase();
             if (
               msg.includes("bad_jwt") ||
               msg.includes("missing sub") ||
@@ -249,23 +284,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setSession(null);
                 setUser(null);
                 clearUserState();
-                setLoading(false);
               }
               return;
             }
+          }
+        } catch {}
+
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (!mounted) return;
+
+        if (currentSession) {
+          setSession(currentSession);
+          setUser(currentSession.user);
+          await doHydrate(currentSession.user.id, false, currentSession.user, currentSession.access_token);
         }
-      } catch {}
-
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      if (!mounted) return;
-
-      if (currentSession) {
-        setSession(currentSession);
-        setUser(currentSession.user);
-        await doHydrate(currentSession.user.id, false, currentSession.user, currentSession.access_token);
+      } catch (err) {
+        console.error("[useAuth] initial session bootstrap failed:", err);
+      } finally {
+        if (mounted) setLoading(false);
       }
-
-      if (mounted) setLoading(false);
     })();
 
     // Cross-tab sync: when auth changes in another tab of the same browser,
