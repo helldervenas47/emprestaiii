@@ -47,7 +47,7 @@ export function useAccountSettings() {
   // Realtime: pick up changes done from another device/user in the account.
   useEffect(() => {
     if (!dataOwnerId) return;
-    const channel = supabase.channel(`account-settings-${dataOwnerId}-${Math.random().toString(36).slice(2)}`);
+    const channel = supabase.channel(`account-settings-${dataOwnerId}`);
     channel.on(
       "postgres_changes" as any,
       { event: "*", schema: "public", table: "account_settings", filter: `owner_id=eq.${dataOwnerId}` },
