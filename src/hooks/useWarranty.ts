@@ -240,7 +240,7 @@ export function useWarranty(saleId: string | undefined) {
       product_id: input.productId,
       quantity: input.quantity,
       notes: input.notes ?? null,
-    } as any).select("*").single();
+    } as any).select(WARRANTY_MOVEMENT_COLUMNS).single();
     if (movErr || !movRow) throw new Error(movErr?.message || "Falha ao registrar movimentação");
 
     // 3) Mirror to stock_movements for unified history
