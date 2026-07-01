@@ -14,6 +14,9 @@ import {
 import { isOnline } from "@/lib/offline/status";
 import { assertWritable } from "@/lib/readOnlyState";
 
+const CLIENT_COLUMNS =
+  "id, name, phone, email, cpf, cnpj, rg, address, city, state, score, notes, active, created_at, is_vehicle_rental, nacionalidade, estado_civil, profissao, bairro, is_manager, default_interest_rate, auto_billing_enabled";
+
 async function triggerClientAnalysis(clientId: string) {
   await supabase.functions.invoke("sync-client-analysis", {
     body: { client_id: clientId, force: true },
