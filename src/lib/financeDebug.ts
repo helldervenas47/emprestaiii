@@ -78,8 +78,8 @@ function store(): FinanceDebugStore | null {
       fetchesByTable: {},
       repeatedFetchWarnings: {},
       repeatedMountWarnings: {},
-      summary() {
-        const firstRepeatedComponent = Object.entries(this.components)
+      summary(this: FinanceDebugStore) {
+        const firstRepeatedComponent = (Object.entries(this.components) as Array<[string, ComponentStats]>)
           .find(([, stats]) => stats.mounts > 2 || (stats.mounts > 1 && stats.unmounts > 0));
         const fetchEntries = this.entries.filter((entry) => entry.kind === "fetch start");
         let firstRepeatedHook: { scope: string; table?: string; fetchesIn10s: number; at: string } | null = null;
@@ -104,7 +104,12 @@ function store(): FinanceDebugStore | null {
           hooks: this.hooks,
           fetchesByTable: this.fetchesByTable,
           firstRepeatedComponent: firstRepeatedComponent
-            ? { name: firstRepeatedComponent[0], ...firstRepeatedComponent[1] }
+            ? {
+                name: firstRepeatedComponent[0],
+                mounts: firstRepeatedComponent[1].mounts,
+                unmounts: firstRepeatedComponent[1].unmounts,
+                renders: firstRepeatedComponent[1].renders,
+              }
             : null,
           firstRepeatedHook,
           firstEntries: this.entries.slice(0, 30),
