@@ -221,12 +221,14 @@ export function useIncomes(enabled = true) {
       if (created.length > 0) {
         setIncomes((prev) => [...created, ...prev]);
       }
+      invalidate();
       return parent;
     }
     const inc = await insertSingle(input);
     if (inc) setIncomes((prev) => [inc, ...prev]);
+    invalidate();
     return inc;
-  }, [dataOwnerId, insertSingle]);
+  }, [dataOwnerId, insertSingle, invalidate]);
 
   const updateIncome = useCallback(async (id: string, patch: Partial<Income>) => {
     assertWritable();
@@ -245,7 +247,8 @@ export function useIncomes(enabled = true) {
 
     setIncomes((arr) => arr.map((i) => i.id === id ? { ...i, ...patch, category: patch.category !== undefined ? displayIncomeCategory(patch.category) : i.category } : i));
     await supabase.from("incomes" as any).update(updatePayload).eq("id", id);
-  }, []);
+    invalidate();
+  }, [invalidate]);
 
   const deleteIncome = useCallback(async (id: string, scope: "single" | "pending" | "all" = "single") => {
     assertWritable();
@@ -255,6 +258,7 @@ export function useIncomes(enabled = true) {
     if (scope === "single") {
       setIncomes((arr) => arr.filter((i) => i.id !== id));
       await supabase.from("incomes" as any).delete().eq("id", id);
+      invalidate();
       return;
     }
 
@@ -267,7 +271,8 @@ export function useIncomes(enabled = true) {
     if (seriesIds.length === 0) return;
     setIncomes((arr) => arr.filter((i) => !seriesIds.includes(i.id)));
     await supabase.from("incomes" as any).delete().in("id", seriesIds);
-  }, [incomes]);
+    invalidate();
+  }, [incomes, invalidate]);
 
   const duplicateIncome = useCallback(async (id: string) => {
     const src = incomes.find((i) => i.id === id);
