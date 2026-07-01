@@ -155,8 +155,9 @@ import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 
 import { NotificationsFeedButton } from "@/components/NotificationsFeedButton";
-import { DashboardOverview } from "@/components/DashboardOverview";
-import { LedgerView } from "@/components/LedgerView";
+const DashboardOverview = lazy(() => import("@/components/DashboardOverview").then((m) => ({ default: m.DashboardOverview })));
+const LedgerView = lazy(() => import("@/components/LedgerView").then((m) => ({ default: m.LedgerView })));
+
 import { useApprovalRequests } from "@/hooks/useApprovalRequests";
 import { usePendingCount } from "@/lib/offline/sync";
 import { useApprovalPushAlerts } from "@/hooks/useApprovalPushAlerts";

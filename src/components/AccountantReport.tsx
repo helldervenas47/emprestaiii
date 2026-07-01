@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -72,10 +72,14 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     };
   }, [payments, sales, expenses, currentMonth, currentYear]);
 
-  const matchPeriod = (dateStr: string) => {
-    if (!dateStr) return false;
-    return period === "month" ? getMonthKey(dateStr) === monthFilter : getYearKey(dateStr) === yearFilter;
-  };
+  const matchPeriod = useCallback(
+    (dateStr: string) => {
+      if (!dateStr) return false;
+      return period === "month" ? getMonthKey(dateStr) === monthFilter : getYearKey(dateStr) === yearFilter;
+    },
+    [period, monthFilter, yearFilter],
+  );
+
 
   // ===== DRE =====
   const dre = useMemo(() => {

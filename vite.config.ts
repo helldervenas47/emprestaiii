@@ -74,7 +74,11 @@ export default defineConfig(({ mode }) => ({
           ui: ["@radix-ui/react-dialog", "@radix-ui/react-popover", "@radix-ui/react-select", "@radix-ui/react-tabs", "@radix-ui/react-tooltip"],
           charts: ["recharts"],
           query: ["@tanstack/react-query"],
+          pdf: ["jspdf", "jspdf-autotable", "html2pdf.js"],
+          excel: ["xlsx"],
+          image: ["html-to-image"],
         },
+
       },
     },
     target: "esnext",

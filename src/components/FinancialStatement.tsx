@@ -14,7 +14,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
+// XLSX is dynamically imported inside exportXLSX to keep it out of the initial chunk.
 import { Expense, Sale } from "@/types/loan";
 import { useProducts } from "@/hooks/useProducts";
 import { useCreditCards } from "@/hooks/useCreditCards";
@@ -341,7 +341,8 @@ export function FinancialStatement() {
     doc.save(`extrato-${from}_a_${to}.pdf`);
   };
 
-  const exportXLSX = () => {
+  const exportXLSX = async () => {
+    const XLSX = await import("xlsx");
     const data = filtered.map((r) => ({
       Data: r.date,
       Descrição: r.description,
@@ -356,6 +357,7 @@ export function FinancialStatement() {
     XLSX.utils.book_append_sheet(wb, ws, "Extrato");
     XLSX.writeFile(wb, `extrato-${from}_a_${to}.xlsx`);
   };
+
 
   return (
     <div className="space-y-4">
