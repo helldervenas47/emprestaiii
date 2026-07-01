@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -7,9 +7,7 @@ import { Loan, Sale, Payment, Expense, InstallmentSchedule, Client } from "@/typ
 import { ManagerCommissionsChart } from "@/components/ManagerCommissionsChart";
 import { GoalsCard } from "@/components/GoalsCard";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
-import { useExpenses } from "@/hooks/useExpenses";
 import { rawFormatCurrency } from "@/components/dashboard/dashboardHelpers";
-import { getExpensesPeriodForRange } from "@/components/dashboard/dashboardExpensePeriod";
 import { DashboardPeriodFilter } from "@/components/dashboard/DashboardPeriodFilter";
 import { DashboardFinancialHealthSection } from "@/components/dashboard/DashboardFinancialHealthSection";
 import { DashboardMainCards } from "@/components/dashboard/DashboardMainCards";
@@ -72,21 +70,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     getGoal,
   } = controller;
 
-  // Fase de performance: Dashboard consome despesas com escopo por período,
-  // mantendo full-fetch da prop como fallback (indicadores históricos e
-  // despesas com paid_date muito distante do due_date). Merge por id.
-  const expensesPeriod = useMemo(() => getExpensesPeriodForRange(range), [range]);
-  const { expenses: periodExpenses } = useExpenses({
-    startDate: expensesPeriod.startDate,
-    endDate: expensesPeriod.endDate,
-  });
-  const dashboardExpenses = useMemo<Expense[]>(() => {
-    const byId = new Map<string, Expense>();
-    for (const e of periodExpenses ?? []) byId.set(e.id, e);
-    for (const e of expenses ?? []) if (!byId.has(e.id)) byId.set(e.id, e);
-    return Array.from(byId.values());
-  }, [periodExpenses, expenses]);
-
   const {
     data,
     receivedByMethod,
@@ -101,7 +84,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     interestChartBase,
     interestChart,
   } = useDashboardMetrics({
-    loans, sales, payments, expenses: dashboardExpenses, installmentSchedules, ledgerEntries,
+    loans, sales, payments, expenses, installmentSchedules, ledgerEntries,
     range, period, includeSales, comparisonWindow,
     chartOverrides, interestOverrides,
     paymentMethods, profitGoal, receivedDetailMethodId,

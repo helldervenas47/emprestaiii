@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { displayIncomeCategory } from "@/lib/incomeCategory";
@@ -53,106 +52,33 @@ function rowToIncome(r: any): Income {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Fase 5 — TanStack Query shared cache para incomes.
-// ---------------------------------------------------------------------------
-export interface IncomesPeriod {
-  startDate?: string;
-  endDate?: string;
-  limit?: number;
-}
-
-export async function fetchIncomesData(period?: IncomesPeriod): Promise<Income[]> {
-  if (import.meta.env.DEV) console.debug("[useIncomes fetch:start]", { period });
-  const startedAt = performance.now();
-  const { startDate, endDate, limit } = period ?? {};
-  let q = supabase
-    .from("incomes" as any)
-    .select("id, description, amount, category, client_id, source, payment_method_id, received_date, actual_received_date, status, notes, recurrence, parent_id, created_at")
-    .order("received_date", { ascending: false })
-    .limit(limit ?? 5000);
-  if (startDate) q = q.gte("received_date", startDate);
-  if (endDate) q = q.lte("received_date", endDate);
-  const { data } = await q;
-  if (import.meta.env.DEV) console.debug("[useIncomes fetch:end]", { rows: data?.length ?? 0, ms: Math.round(performance.now() - startedAt), period });
-  if (!data) return [];
-  return (data as any[]).map(rowToIncome);
-}
-
-export function incomesQueryKey(
-  ownerKey: string | null | undefined,
-  period?: IncomesPeriod,
-) {
-  const owner = ownerKey ?? "anon";
-  if (!period || (!period.startDate && !period.endDate && period.limit === undefined)) {
-    return ["incomes", owner] as const;
-  }
-  return [
-    "incomes",
-    owner,
-    period.startDate ?? null,
-    period.endDate ?? null,
-    period.limit ?? null,
-  ] as const;
-}
-
-export interface UseIncomesOptions extends IncomesPeriod {
-  enabled?: boolean;
-}
-
-export function useIncomes(opts: boolean | UseIncomesOptions = true) {
-  const parsed: UseIncomesOptions = typeof opts === "boolean" ? { enabled: opts } : opts;
-  const { enabled = true, startDate, endDate, limit } = parsed;
-  const period: IncomesPeriod | undefined =
-    startDate || endDate || limit !== undefined ? { startDate, endDate, limit } : undefined;
-
+export function useIncomes(enabled = true) {
   const { user, dataOwnerId } = useAuth();
-  const queryClient = useQueryClient();
-  const ownerKey = dataOwnerId ?? user?.id ?? null;
   const [incomes, setIncomes] = useState<Income[]>([]);
-  const [debugInstance] = useState(() => `useIncomes-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-
-  const incomesQuery = useQuery({
-    queryKey: incomesQueryKey(ownerKey, period),
-    queryFn: () => fetchIncomesData(period),
-    enabled: !!user && enabled,
-    staleTime: 30_000,
-  });
-
-  useEffect(() => {
-    if (incomesQuery.data) setIncomes(incomesQuery.data);
-  }, [incomesQuery.data]);
-
-  const loading = incomesQuery.isLoading;
+  const [loading, setLoading] = useState(false);
 
   const fetch = useCallback(async () => {
     if (!user) return;
-    if (import.meta.env.DEV) console.debug("[useIncomes invalidateQueries]", { instance: debugInstance, ownerKey });
-    await queryClient.invalidateQueries({ queryKey: incomesQueryKey(ownerKey) });
-  }, [queryClient, user, ownerKey, debugInstance]);
+    setLoading(true);
+    const { data } = await supabase
+      .from("incomes" as any)
+      .select("id, description, amount, category, client_id, source, payment_method_id, received_date, actual_received_date, status, notes, recurrence, parent_id, created_at")
+      .order("received_date", { ascending: false })
+      .limit(5000); // safety cap
+    if (data) setIncomes((data as any[]).map(rowToIncome));
+    setLoading(false);
+  }, [user]);
 
-  const invalidate = useCallback(() => {
-    if (import.meta.env.DEV) console.debug("[useIncomes invalidateQueries]", { instance: debugInstance, ownerKey, source: "invalidate" });
-    queryClient.invalidateQueries({ queryKey: incomesQueryKey(ownerKey) });
-  }, [queryClient, ownerKey, debugInstance]);
-
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    console.debug("[useIncomes lifecycle] mount/update", { instance: debugInstance, enabled, ownerKey, userId: user?.id ?? null, period });
-    return () => console.debug("[useIncomes lifecycle] unmount", { instance: debugInstance, enabled, ownerKey, userId: user?.id ?? null, period });
-  }, [debugInstance, enabled, ownerKey, user?.id, startDate, endDate, limit]);
+  useEffect(() => { if (enabled) fetch(); }, [fetch, enabled]);
 
   useEffect(() => {
     if (!user || !enabled) return;
     const channel = supabase
-      .channel(`incomes-rt-${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "incomes" }, () => {
-        if (import.meta.env.DEV) console.debug("[useIncomes realtime]", { instance: debugInstance, table: "incomes", ownerKey });
-        queryClient.invalidateQueries({ queryKey: incomesQueryKey(ownerKey) });
-      })
+      .channel(`incomes-rt-${crypto.randomUUID()}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "incomes" }, () => fetch())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient, ownerKey, enabled, debugInstance]);
+  }, [user, fetch, enabled]);
 
   const insertSingle = useCallback(async (
     input: Omit<Income, "id" | "createdAt">,
@@ -266,14 +192,12 @@ export function useIncomes(opts: boolean | UseIncomesOptions = true) {
       if (created.length > 0) {
         setIncomes((prev) => [...created, ...prev]);
       }
-      invalidate();
       return parent;
     }
     const inc = await insertSingle(input);
     if (inc) setIncomes((prev) => [inc, ...prev]);
-    invalidate();
     return inc;
-  }, [dataOwnerId, insertSingle, invalidate]);
+  }, [dataOwnerId, insertSingle]);
 
   const updateIncome = useCallback(async (id: string, patch: Partial<Income>) => {
     assertWritable();
@@ -292,8 +216,7 @@ export function useIncomes(opts: boolean | UseIncomesOptions = true) {
 
     setIncomes((arr) => arr.map((i) => i.id === id ? { ...i, ...patch, category: patch.category !== undefined ? displayIncomeCategory(patch.category) : i.category } : i));
     await supabase.from("incomes" as any).update(updatePayload).eq("id", id);
-    invalidate();
-  }, [invalidate]);
+  }, []);
 
   const deleteIncome = useCallback(async (id: string, scope: "single" | "pending" | "all" = "single") => {
     assertWritable();
@@ -303,7 +226,6 @@ export function useIncomes(opts: boolean | UseIncomesOptions = true) {
     if (scope === "single") {
       setIncomes((arr) => arr.filter((i) => i.id !== id));
       await supabase.from("incomes" as any).delete().eq("id", id);
-      invalidate();
       return;
     }
 
@@ -316,8 +238,7 @@ export function useIncomes(opts: boolean | UseIncomesOptions = true) {
     if (seriesIds.length === 0) return;
     setIncomes((arr) => arr.filter((i) => !seriesIds.includes(i.id)));
     await supabase.from("incomes" as any).delete().in("id", seriesIds);
-    invalidate();
-  }, [incomes, invalidate]);
+  }, [incomes]);
 
   const duplicateIncome = useCallback(async (id: string) => {
     const src = incomes.find((i) => i.id === id);

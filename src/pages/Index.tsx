@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, lazy, Suspense } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from "react";
 import {
   Plus,
   Users,
@@ -62,7 +62,7 @@ import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext"
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 // Lazy load heavy components
 const HelpChat = lazy(() => import("@/components/HelpChat"));
@@ -389,25 +389,10 @@ const Index = () => {
   const { signOut, role, allowedTabs, linkedClientIds, loading, user } = useAuth();
   const roleAllowedTabs = useMyRoleTabs(role);
   const navigate = useNavigate();
-  const location = useLocation();
   const { subscription, isActive: hasActiveSub } = useSubscription();
   const { branding: appBranding } = useAppBranding();
   const brandName = appBranding.brand_name;
   const preserveScrollYRef = useRef<number | null>(null);
-  const indexMountIdRef = useRef(`index-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  const renderCountRef = useRef(0);
-  renderCountRef.current += 1;
-
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    const mountId = indexMountIdRef.current;
-    console.debug("[Index lifecycle] mount", { mountId });
-    return () => {
-      console.debug("[Index lifecycle] unmount", { mountId });
-    };
-  }, []);
-
-  
   const [preservedPageHeight, setPreservedPageHeight] = useState<number | null>(null);
 
   // Tab state - declared early so hooks can use it for lazy loading
@@ -431,10 +416,6 @@ const Index = () => {
     setPreservedPageHeight(document.documentElement.scrollHeight || document.body.scrollHeight || null);
     setTabState(t);
   };
-
-
-
-
 
   useLayoutEffect(() => {
     const y = preserveScrollYRef.current;
@@ -489,13 +470,6 @@ const Index = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const initialLoanCategory = urlParams.get("filter") as any;
   const initialLoanView = urlParams.get("view") as any;
-  // Defer heavy hooks until their tabs are active. Loans/Clients são consumidos
-  // por quase todas as abas financeiras (overview, dashboard, calendar, overdue,
-  // accountant, expenses, products, vehicles, clients, salary). Só liberamos
-  // skip para abas totalmente independentes (boletos, help, system).
-  const NON_FINANCIAL_TABS = new Set<Tab>(["boletos", "help", "system"]);
-  const needsLoans = !NON_FINANCIAL_TABS.has(tab);
-  const needsClients = !NON_FINANCIAL_TABS.has(tab);
   const {
     loans,
     payments,
@@ -511,12 +485,13 @@ const Index = () => {
     deleteLoan,
     deletePayment,
     saveSchedule,
-  } = useLoans(needsLoans);
-  const { clients, addClient, deleteClient, updateClient } = useClients(needsClients);
+  } = useLoans();
+  const { clients, addClient, deleteClient, updateClient } = useClients();
 
   // Automatic credit-limit adjustment per client (auto mode only)
   useAutoAdjustCreditLimits(clients, loans, payments);
 
+  // Defer heavy hooks until their tabs are active
   const needsProducts =
     tab === "overview" || tab === "products" || tab === "vehicles" || tab === "calendar" || tab === "settings";
   const needsExpenses =
@@ -528,20 +503,6 @@ const Index = () => {
     tab === "settings";
   const needsVehicles = tab === "clients" || tab === "vehicles";
   const needsLocadores = tab === "vehicles" || tab === "settings" || tab === "clients";
-
-  if (import.meta.env.DEV) {
-    console.debug("[Index render]", {
-      mountId: indexMountIdRef.current,
-      renderCount: renderCountRef.current,
-      tab,
-      needsLoans,
-      needsClients,
-      needsProducts,
-      needsExpenses,
-      needsVehicles,
-      needsLocadores,
-    });
-  }
 
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } =
     useProducts(needsProducts);
@@ -691,34 +652,30 @@ const Index = () => {
     };
   }, [isMobileOrTablet]);
 
-  const visibleTabs = useMemo(() => {
-    return tabConfig.filter((t) => {
-      if (loading) return false;
-      // "Ajuda" é sempre visível para qualquer usuário logado.
-      if (t.id === "help") return !!user;
-      // Tabs marcadas como adminOnly são exclusivas para administradores
-      if ((t as any).adminOnly && role !== "admin") return false;
-      // Visualizador: aba de Configurações é ocultada por completo (apenas leitura
-      // não tem nada acionável aqui; backups, telegram, branding, etc. exigem escrita).
-      if (t.id === "settings" && role === "visualizador") return false;
-      // Admin sempre vê todas as abas (ignora plano e demais restrições).
-      if (role === "admin") return true;
-      if (!user) return false;
-      // Permissão por papel (role_tab_permissions): se a aba não está liberada
-      // para o papel do usuário, esconde.
-      if (Array.isArray(roleAllowedTabs) && !roleAllowedTabs.includes(t.id)) return false;
-      // Permissão por usuário (user_tab_permissions): se houver lista, exigir presença.
-      const isLegacyClientPlanTabs =
-        role === "cliente" &&
-        Array.isArray(allowedTabs) &&
-        allowedTabs.length > 0 &&
-        allowedTabs.every((id) => LEGACY_CLIENT_PLAN_TAB_IDS.has(id));
-      if (Array.isArray(allowedTabs) && !isLegacyClientPlanTabs) return allowedTabs.includes(t.id);
-      return true;
-    });
-  }, [loading, user, role, roleAllowedTabs, allowedTabs]);
-  const visibleTabIds = useMemo(() => visibleTabs.map((t) => t.id), [visibleTabs]);
-  const visibleTabsSignature = useMemo(() => visibleTabIds.join("|"), [visibleTabIds]);
+  const visibleTabs = tabConfig.filter((t) => {
+    if (loading) return false;
+    // "Ajuda" é sempre visível para qualquer usuário logado.
+    if (t.id === "help") return !!user;
+    // Tabs marcadas como adminOnly são exclusivas para administradores
+    if ((t as any).adminOnly && role !== "admin") return false;
+    // Visualizador: aba de Configurações é ocultada por completo (apenas leitura
+    // não tem nada acionável aqui; backups, telegram, branding, etc. exigem escrita).
+    if (t.id === "settings" && role === "visualizador") return false;
+    // Admin sempre vê todas as abas (ignora plano e demais restrições).
+    if (role === "admin") return true;
+    if (!user) return false;
+    // Permissão por papel (role_tab_permissions): se a aba não está liberada
+    // para o papel do usuário, esconde.
+    if (Array.isArray(roleAllowedTabs) && !roleAllowedTabs.includes(t.id)) return false;
+    // Permissão por usuário (user_tab_permissions): se houver lista, exigir presença.
+    const isLegacyClientPlanTabs =
+      role === "cliente" &&
+      Array.isArray(allowedTabs) &&
+      allowedTabs.length > 0 &&
+      allowedTabs.every((id) => LEGACY_CLIENT_PLAN_TAB_IDS.has(id));
+    if (Array.isArray(allowedTabs) && !isLegacyClientPlanTabs) return allowedTabs.includes(t.id);
+    return true;
+  });
 
   const isAjudaAllowed = !loading && !!user;
 
@@ -727,33 +684,25 @@ const Index = () => {
   // exibimos página de "acesso negado" em vez de redirecionar silenciosamente.
   const tabAccessDenied = !loading && tabConfig.some((t) => t.id === tab) && !visibleTabs.some((t) => t.id === tab);
 
-
   // Itens da barra inferior mobile: prioriza pinnedTabs (ordem do usuário),
   // completa com as demais abas visíveis e limita a 4 (o 5º slot é "Mais").
-  const bottomItems = useMemo(() => {
+  const bottomItems = (() => {
     const pinnedVisible = pinnedTabs
       .map((id) => tabConfig.find((t) => t.id === id))
       .filter((t): t is (typeof tabConfig)[number] => !!t && visibleTabs.some((v) => v.id === t.id));
     const remaining = visibleTabs.filter((v) => !pinnedVisible.some((p) => p.id === v.id));
     return [...pinnedVisible, ...remaining].slice(0, 4);
-  }, [pinnedTabs, visibleTabs]);
-  const bottomItemIds = useMemo(() => bottomItems.map((i) => i.id), [bottomItems]);
+  })();
+  const bottomItemIds = bottomItems.map((i) => i.id);
 
   useEffect(() => {
-    // Enquanto auth/permissões estão carregando, não redirecionamos.
-    if (loading) return;
-    if (visibleTabs.length === 0) return;
     // Só redireciona se a aba atual sumiu da configuração (ex: feature removida).
     // Se existe na configuração mas o usuário não tem permissão, mantemos
     // a aba selecionada para renderizar a tela de "acesso negado".
-    if (tabConfig.some((item) => item.id === tab)) return;
-    const next = visibleTabs[0].id;
-    if (next === tab) return;
-    setTab(next);
-    // Depende apenas da assinatura estável dos ids visíveis + tab atual + loading.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, visibleTabsSignature, loading]);
-
+    if (visibleTabs.length > 0 && !tabConfig.some((item) => item.id === tab)) {
+      setTab(visibleTabs[0].id);
+    }
+  }, [tab, visibleTabs]);
 
   // Extrato agora abre como dialog (não é mais aba)
   const [ledgerOpen, setLedgerOpen] = useState(false);

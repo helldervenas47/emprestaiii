@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { todayInAppTz } from "@/lib/timezone";
 import { Expense } from "@/types/loan";
 import { supabase } from "@/integrations/supabase/userClient";
@@ -201,124 +200,43 @@ async function syncPayrollOnExpensePaid(opts: {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Fase 4 — TanStack Query shared cache para expenses.
-// Fetcher puro consumido por `useExpenses` via `useQuery`, permitindo que
-// múltiplos componentes compartilhem uma única request por queryKey.
-// ---------------------------------------------------------------------------
-export interface ExpensesPeriod {
-  startDate?: string;
-  endDate?: string;
-  limit?: number;
-}
-
-export async function fetchExpensesData(period?: ExpensesPeriod): Promise<Expense[]> {
-  if (import.meta.env.DEV) console.debug("[useExpenses fetch:start]", { period });
-  const startedAt = performance.now();
-  const { startDate, endDate, limit } = period ?? {};
-  const hasPeriod = !!(startDate || endDate);
-  const effectiveLimit = limit ?? 5000;
-  if (isOnline()) {
-    let q = supabase
-      .from("expenses")
-      .select("id, description, amount, type, category, installments, paid_installments, due_date, paid, paid_date, notes, created_at, parent_expense_id, scope, payment_method_id, generate_income_on_pay, generated_income_id")
-      .order("created_at", { ascending: false })
-      .limit(effectiveLimit);
-    if (startDate) q = q.gte("due_date", startDate);
-    if (endDate) q = q.lte("due_date", endDate);
-    const { data, error } = await q;
-    if (!error && data) {
-      if (!hasPeriod) cacheRows("expenses", data).catch(() => { /* noop */ });
-      if (import.meta.env.DEV) console.debug("[useExpenses fetch:end]", { rows: data.length, ms: Math.round(performance.now() - startedAt), source: "remote", period });
-      return data.map(rowToExpense);
-    }
-  }
-  const cached = await getCachedRows("expenses");
-  let rows = cached;
-  if (startDate) rows = rows.filter((r: any) => (r.due_date ?? "") >= startDate);
-  if (endDate) rows = rows.filter((r: any) => (r.due_date ?? "") <= endDate);
-  if (import.meta.env.DEV) console.debug("[useExpenses fetch:end]", { rows: rows.length, ms: Math.round(performance.now() - startedAt), source: "cache", period });
-  return rows
-    .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
-    .slice(0, effectiveLimit)
-    .map(rowToExpense);
-}
-
-export function expensesQueryKey(
-  ownerKey: string | null | undefined,
-  period?: ExpensesPeriod,
-) {
-  const owner = ownerKey ?? "anon";
-  if (!period || (!period.startDate && !period.endDate && period.limit === undefined)) {
-    return ["expenses", owner] as const;
-  }
-  return [
-    "expenses",
-    owner,
-    period.startDate ?? null,
-    period.endDate ?? null,
-    period.limit ?? null,
-  ] as const;
-}
-
-export interface UseExpensesOptions extends ExpensesPeriod {
-  enabled?: boolean;
-}
-
-export function useExpenses(opts: boolean | UseExpensesOptions = true) {
-  const parsed: UseExpensesOptions = typeof opts === "boolean" ? { enabled: opts } : opts;
-  const { enabled = true, startDate, endDate, limit } = parsed;
-  const period: ExpensesPeriod | undefined =
-    startDate || endDate || limit !== undefined ? { startDate, endDate, limit } : undefined;
-
+export function useExpenses(enabled = true) {
   const { user, dataOwnerId } = useAuth();
-  const queryClient = useQueryClient();
-  const ownerKey = dataOwnerId ?? user?.id ?? null;
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [debugInstance] = useState(() => `useExpenses-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-
-  const expensesQuery = useQuery({
-    queryKey: expensesQueryKey(ownerKey, period),
-    queryFn: () => fetchExpensesData(period),
-    enabled: !!user && enabled,
-    staleTime: 30_000,
-  });
-
-  // Sync query cache -> local state para manter setters otimistas usados
-  // pelas mutações abaixo sem alterar a API pública.
-  useEffect(() => {
-    if (expensesQuery.data) setExpenses(expensesQuery.data);
-  }, [expensesQuery.data]);
 
   const fetchExpenses = useCallback(async () => {
     if (!user) return;
-    if (import.meta.env.DEV) console.debug("[useExpenses invalidateQueries]", { instance: debugInstance, ownerKey });
-    await queryClient.invalidateQueries({ queryKey: expensesQueryKey(ownerKey) });
-  }, [queryClient, user, ownerKey, debugInstance]);
+    if (isOnline()) {
+      const { data, error } = await supabase
+        .from("expenses")
+        .select("id, description, amount, type, category, installments, paid_installments, due_date, paid, paid_date, notes, created_at, parent_expense_id, scope, payment_method_id, generate_income_on_pay, generated_income_id")
+        .order("created_at", { ascending: false })
+        .limit(5000); // safety cap — paginação por mês/página será adicionada na UI
+      if (!error && data) {
+        setExpenses(data.map(rowToExpense));
+        cacheRows("expenses", data).catch(() => { /* noop */ });
+        return;
+      }
+    }
+    const cached = await getCachedRows("expenses");
+    if (cached.length > 0) {
+      setExpenses(cached
+        .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
+        .map(rowToExpense));
+    }
+  }, [user]);
 
-  const invalidate = useCallback(() => {
-    if (import.meta.env.DEV) console.debug("[useExpenses invalidateQueries]", { instance: debugInstance, ownerKey, source: "invalidate" });
-    queryClient.invalidateQueries({ queryKey: expensesQueryKey(ownerKey) });
-  }, [queryClient, ownerKey, debugInstance]);
+  useEffect(() => { if (enabled) fetchExpenses(); }, [fetchExpenses, enabled]);
 
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    console.debug("[useExpenses lifecycle] mount/update", { instance: debugInstance, enabled, ownerKey, userId: user?.id ?? null, period });
-    return () => console.debug("[useExpenses lifecycle] unmount", { instance: debugInstance, enabled, ownerKey, userId: user?.id ?? null, period });
-  }, [debugInstance, enabled, ownerKey, user?.id, startDate, endDate, limit]);
-
-  // Realtime subscription — invalida o cache compartilhado
+  // Realtime subscription
   useEffect(() => {
     if (!user || !enabled) return;
     const channel = supabase
-      .channel(`expenses-realtime-${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => {
-        if (import.meta.env.DEV) console.debug("[useExpenses realtime]", { instance: debugInstance, table: "expenses", ownerKey });
-        queryClient.invalidateQueries({ queryKey: expensesQueryKey(ownerKey) });
-      })
+      .channel(`expenses-realtime-${crypto.randomUUID()}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => { fetchExpenses(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient, ownerKey, enabled, debugInstance]);
+  }, [user, fetchExpenses, enabled]);
 
   // Refetch after offline queue flush
   useEffect(() => {
@@ -377,11 +295,10 @@ export function useExpenses(opts: boolean | UseExpensesOptions = true) {
       if ((expense.scope ?? "business") === "personal") {
         supabase.functions.invoke("notify-budget-overrun").catch(() => { /* silent */ });
       }
-      invalidate();
       return (data as any).id as string;
     }
     return tempId;
-  }, [user, dataOwnerId, invalidate]);
+  }, [user, dataOwnerId]);
 
   const payExpense = useCallback(async (id: string, skipBalanceAdjust = false, payDate?: string, paidAmount?: number) => {
     assertWritable();
@@ -581,8 +498,7 @@ export function useExpenses(opts: boolean | UseExpensesOptions = true) {
     if (expense.scope === "personal" && online) {
       supabase.functions.invoke("notify-budget-overrun").catch(() => { /* silent */ });
     }
-    invalidate();
-  }, [expenses, dataOwnerId, invalidate]);
+  }, [expenses, dataOwnerId]);
 
   const unpayExpense = useCallback(async (id: string) => {
     assertWritable();
@@ -718,8 +634,7 @@ export function useExpenses(opts: boolean | UseExpensesOptions = true) {
       if (extractPiggyId(expense.notes)) { /* no-op */ }
 
     }
-    invalidate();
-  }, [expenses, dataOwnerId, invalidate]);
+  }, [expenses, dataOwnerId]);
 
   const deleteExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
     assertWritable();
@@ -749,8 +664,7 @@ export function useExpenses(opts: boolean | UseExpensesOptions = true) {
 
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) await enqueueMutation({ table: "expenses", op: "delete", recordId: id });
-    invalidate();
-  }, [expenses, dataOwnerId, invalidate]);
+  }, [expenses, dataOwnerId]);
 
   const updateExpense = useCallback(async (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => {
     assertWritable();
@@ -770,8 +684,7 @@ export function useExpenses(opts: boolean | UseExpensesOptions = true) {
     }
     const { error } = await supabase.from("expenses").update(updatePayload).eq("id", id);
     if (error) await enqueueMutation({ table: "expenses", op: "update", recordId: id, payload: updatePayload });
-    invalidate();
-  }, [invalidate]);
+  }, []);
 
 
   return { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense };

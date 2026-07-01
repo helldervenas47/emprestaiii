@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { setAppTimezone, getAppTimezone, subscribeAppTimezone } from "@/lib/timezone";
@@ -14,21 +14,6 @@ export function useAccountSettings() {
   const [settings, setSettings] = useState<AccountSettings>({ timezone: getAppTimezone(), simulationInterestRate: 30, maxCreditLimit: null });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const lastOwnerKeyRef = useRef<string | null>(null);
-  const fetchCountRef = useRef(0);
-
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    if (lastOwnerKeyRef.current === dataOwnerId) return;
-    console.debug("[OwnerKey transition]", {
-      hook: "useAccountSettings",
-      oldOwnerKey: lastOwnerKeyRef.current,
-      newOwnerKey: dataOwnerId ?? null,
-      queryKey: ["account_settings", dataOwnerId ?? "anon"],
-      userId: user?.id ?? null,
-    });
-    lastOwnerKeyRef.current = dataOwnerId ?? null;
-  }, [dataOwnerId, user?.id]);
 
   // Keep local state in sync with global cached timezone.
   useEffect(() => {
@@ -38,15 +23,6 @@ export function useAccountSettings() {
 
   const fetchSettings = useCallback(async () => {
     if (!user || !dataOwnerId) return;
-    fetchCountRef.current += 1;
-    if (import.meta.env.DEV) {
-      console.debug("[OwnerKey fetch:start]", {
-        hook: "useAccountSettings",
-        count: fetchCountRef.current,
-        ownerKey: dataOwnerId,
-        queryKey: ["account_settings", dataOwnerId],
-      });
-    }
     setLoading(true);
     const { data } = await (supabase as any)
       .from("account_settings")
@@ -71,7 +47,7 @@ export function useAccountSettings() {
   // Realtime: pick up changes done from another device/user in the account.
   useEffect(() => {
     if (!dataOwnerId) return;
-    const channel = supabase.channel(`account-settings-${dataOwnerId}`);
+    const channel = supabase.channel(`account-settings-${dataOwnerId}-${Math.random().toString(36).slice(2)}`);
     channel.on(
       "postgres_changes" as any,
       { event: "*", schema: "public", table: "account_settings", filter: `owner_id=eq.${dataOwnerId}` },

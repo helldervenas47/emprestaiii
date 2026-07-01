@@ -4,17 +4,13 @@ import { useAuth } from "./useAuth";
 
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "none";
 
-const APPROVAL_TIMEOUT_MS = 6000;
-
 export function useUserApproval() {
   const { user } = useAuth();
   const [status, setStatus] = useState<ApprovalStatus>("none");
   const [loading, setLoading] = useState(true);
 
-  const userId = user?.id;
-
   useEffect(() => {
-    if (!userId) {
+    if (!user) {
       setStatus("none");
       setLoading(false);
       return;
@@ -22,36 +18,24 @@ export function useUserApproval() {
 
     let mounted = true;
     const fetchStatus = async () => {
-      try {
-        const query = (supabase as any)
-          .from("user_approvals")
-          .select("status")
-          .eq("user_id", userId)
-          .maybeSingle();
-
-        const timeout = new Promise<{ data: null }>((resolve) =>
-          setTimeout(() => resolve({ data: null }), APPROVAL_TIMEOUT_MS),
-        );
-
-        const { data } = (await Promise.race([query, timeout])) as { data: { status?: string } | null };
-        if (!mounted) return;
-        setStatus((data?.status as ApprovalStatus) || "none");
-      } catch {
-        if (!mounted) return;
-        setStatus("none");
-      } finally {
-        if (mounted) setLoading(false);
-      }
+      const { data } = await (supabase as any)
+        .from("user_approvals")
+        .select("status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!mounted) return;
+      setStatus((data?.status as ApprovalStatus) || "none");
+      setLoading(false);
     };
 
     fetchStatus();
 
     // Realtime: user sees own status flip to approved
     const channel = supabase
-      .channel(`approval-self-${userId}`)
+      .channel(`approval-self-${user.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes" as any,
-        { event: "*", schema: "public", table: "user_approvals", filter: `user_id=eq.${userId}` },
+        { event: "*", schema: "public", table: "user_approvals", filter: `user_id=eq.${user.id}` },
         (payload: any) => {
           const newStatus = payload.new?.status as ApprovalStatus | undefined;
           if (newStatus) setStatus(newStatus);
@@ -63,7 +47,7 @@ export function useUserApproval() {
       mounted = false;
       supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [user]);
 
   return { status, loading, isPending: status === "pending", isRejected: status === "rejected" };
 }
