@@ -101,7 +101,7 @@ export function usePaymentMethods(enabled = true) {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel(`payment-methods-${user.id}-${Math.random().toString(36).slice(2)}`)
+      .channel(`payment-methods-${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "payment_methods" }, () => {
         fetchMethods();
       })
