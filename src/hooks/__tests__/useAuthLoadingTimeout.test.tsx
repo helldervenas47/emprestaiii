@@ -1,74 +1,54 @@
 /**
  * Fix loading infinito — Etapa 1 do AuthProvider.
  *
- * Verifica que:
- *  1. Se `ensure-user-role` (Edge Function) travar/demorar, o `loading` do
- *     AuthProvider ainda resolve para `false` (não fica preso no spinner).
- *  2. O role assume o fallback seguro "cliente" nesse cenário.
+ * Verifica que se `ensure-user-role` (Edge Function) travar, o `loading`
+ * do AuthProvider ainda resolve para `false` e o role assume fallback
+ * seguro "cliente".
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import React from "react";
 import { render, waitFor, act } from "@testing-library/react";
 
-// Mock do userClient antes de importar o hook.
 const mockSession = {
   access_token: "tok",
   user: { id: "u1", email: "u@test.com", user_metadata: {} },
 };
 
-const emptyQuery = () => ({
-  select: () => ({
-    eq: () => Promise.resolve({ data: [], error: null }),
-  }),
-});
+const emptyEq = () => {
+  const p: any = Promise.resolve({ data: [], error: null });
+  p.maybeSingle = () => Promise.resolve({ data: null, error: null });
+  return p;
+};
 
 vi.mock("@/integrations/supabase/userClient", () => {
   const supabase = {
     auth: {
-      onAuthStateChange: (_cb: any) => ({
+      onAuthStateChange: () => ({
         data: { subscription: { unsubscribe: () => {} } },
       }),
       getUser: () => Promise.resolve({ data: { user: mockSession.user }, error: null }),
       getSession: () => Promise.resolve({ data: { session: mockSession }, error: null }),
       signOut: () => Promise.resolve({ error: null }),
     },
-    from: (_t: string) => ({
-      select: () => ({
-        eq: () => ({
-          maybeSingle: () => Promise.resolve({ data: null, error: null }),
-          then: (res: any) => Promise.resolve({ data: [], error: null }).then(res),
-        }),
-      }),
+    from: () => ({
+      select: () => ({ eq: () => emptyEq() }),
       upsert: () => Promise.resolve({ data: null, error: null }),
     }),
     rpc: () => Promise.resolve({ data: "u1", error: null }),
-    channel: () => ({
-      on: function () { return this; },
-      subscribe: function () { return this; },
-    }),
+    channel: () => {
+      const ch: any = {
+        on: () => ch,
+        subscribe: () => ch,
+      };
+      return ch;
+    },
     removeChannel: () => {},
   };
   return {
     supabase,
     USER_SUPABASE_URL: "http://localhost:0",
-    USER_SUPABASE_PUBLISHABLE_KEY: "anon",
+    USER_SUPABASE_PUBLISHABLE_KEY: "anon-key",
   };
-});
-
-// Reforço: garantir que from().select().eq() retorne um thenable com data:[]
-vi.mock("@/integrations/supabase/userClient", async (orig) => {
-  const mod: any = await orig();
-  mod.supabase.from = () => ({
-    select: () => ({
-      eq: () => ({
-        // suporta await direto
-        then: (res: any) => Promise.resolve({ data: [], error: null }).then(res),
-        maybeSingle: () => Promise.resolve({ data: null, error: null }),
-      }),
-    }),
-    upsert: () => Promise.resolve({ data: null, error: null }),
-  });
-  return mod;
 });
 
 import { AuthProvider, useAuth } from "../useAuth";
@@ -92,7 +72,6 @@ describe("useAuth — timeout de ensure-user-role", () => {
   });
 
   it("resolve loading=false mesmo quando ensure-user-role trava (timeout) e aplica fallback 'cliente'", async () => {
-    // fetch que respeita AbortController: rejeita AbortError quando abortado.
     global.fetch = vi.fn((_url: any, init: any) => {
       return new Promise((_resolve, reject) => {
         const signal: AbortSignal | undefined = init?.signal;
@@ -103,7 +82,6 @@ describe("useAuth — timeout de ensure-user-role", () => {
             reject(err);
           });
         }
-        // nunca resolve por si só
       });
     }) as any;
 
@@ -114,7 +92,6 @@ describe("useAuth — timeout de ensure-user-role", () => {
       </AuthProvider>,
     );
 
-    // Avança relógio para além do timeout (8s) e deixa microtasks rodarem.
     await act(async () => {
       await vi.advanceTimersByTimeAsync(9000);
     });
