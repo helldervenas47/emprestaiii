@@ -325,10 +325,11 @@ export function useExpenses(enabled = true) {
       if ((expense.scope ?? "business") === "personal") {
         supabase.functions.invoke("notify-budget-overrun").catch(() => { /* silent */ });
       }
+      invalidate();
       return (data as any).id as string;
     }
     return tempId;
-  }, [user, dataOwnerId]);
+  }, [user, dataOwnerId, invalidate]);
 
   const payExpense = useCallback(async (id: string, skipBalanceAdjust = false, payDate?: string, paidAmount?: number) => {
     assertWritable();
