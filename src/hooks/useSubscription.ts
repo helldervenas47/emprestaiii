@@ -53,7 +53,7 @@ export function useSubscription() {
     const fetchSubscription = async () => {
       const { data } = await supabase
         .from("subscriptions")
-        .select("*")
+        .select("id, product_id, price_id, status, current_period_end, cancel_at_period_end, environment, asaas_subscription_id")
         .eq("user_id", effectiveUserId)
         .eq("environment", environment)
         .maybeSingle();

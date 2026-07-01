@@ -36,7 +36,7 @@ export function useMonthlyGoals() {
     if (!ownerId) return;
     const { data, error } = await supabase
       .from("monthly_goals")
-      .select("*")
+      .select("id, goal_type, month, target_value, notes")
       .order("month", { ascending: false });
     if (error) {
       console.error("Erro ao carregar metas:", error);

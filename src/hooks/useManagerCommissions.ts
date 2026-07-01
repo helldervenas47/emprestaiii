@@ -12,7 +12,7 @@ export function useManagerCommissions(enabled: boolean = true) {
     if (!user || !enabled) return;
     const { data } = await supabase
       .from("manager_commissions")
-      .select("*")
+      .select("id, loan_id, manager_id, payment_id, commission_type, base_amount, rate, amount, generated_at, notes, created_at")
       .order("generated_at", { ascending: false });
     if (data) {
       setCommissions(

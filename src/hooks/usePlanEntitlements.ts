@@ -49,9 +49,17 @@ export function usePlanEntitlements() {
       if (authLoading) return;
 
       const [{ data: allPlans }, profileRes] = await Promise.all([
-        supabase.from("plans").select("*").eq("active", true).order("sort_order", { ascending: true }),
+        supabase
+          .from("plans")
+          .select("id, name, trial_days, limits, permissions, allowed_tabs, expiration_action, active, sort_order")
+          .eq("active", true)
+          .order("sort_order", { ascending: true }),
         effectiveUserId
-          ? supabase.from("profiles").select("*").eq("user_id", effectiveUserId).maybeSingle()
+          ? supabase
+              .from("profiles")
+              .select("created_at, trial_plan_name, trial_started_at")
+              .eq("user_id", effectiveUserId)
+              .maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
 

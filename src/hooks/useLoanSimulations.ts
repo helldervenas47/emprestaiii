@@ -32,8 +32,11 @@ export function useLoanSimulations() {
     setLoading(true);
     try {
       const [{ data: sims, error: e1 }, { data: cfg }] = await Promise.all([
-        supabase.from("loan_simulations" as any).select("*").order("simulation_date", { ascending: false }),
-        supabase.from("simulation_settings" as any).select("*").maybeSingle(),
+        supabase
+          .from("loan_simulations" as any)
+          .select("id, owner_id, user_id, client_id, name, notes, scenarios, chosen_scenario_id, simulation_date, created_at, updated_at")
+          .order("simulation_date", { ascending: false }),
+        supabase.from("simulation_settings" as any).select("retention_days").maybeSingle(),
       ]);
       if (e1) throw e1;
       const retention = (cfg as any)?.retention_days ?? 90;

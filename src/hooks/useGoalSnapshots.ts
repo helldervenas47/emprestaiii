@@ -27,7 +27,7 @@ export function useGoalSnapshots() {
     if (!ownerId) return;
     const { data, error } = await supabase
       .from("monthly_goal_snapshots")
-      .select("*")
+      .select("id, owner_id, month, goal_type, target_value, realized_value, attainment_pct, finalized, snapshot_date")
       .order("month", { ascending: false });
     if (error) {
       console.error("Erro ao carregar snapshots de metas:", error);
