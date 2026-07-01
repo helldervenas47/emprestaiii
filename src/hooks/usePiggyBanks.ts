@@ -443,23 +443,18 @@ export function usePiggyBanks() {
       // dos demais campos por triggers/policies que protegem essa coluna.
       if (patch.goalAmount !== undefined) dbPatch.meta = patch.goalAmount;
 
-      // Logs temporários para auditoria do modal Editar Cofrinho
-      console.log("[updatePiggyBank] id:", id);
-      console.log("[updatePiggyBank] payload:", dbPatch);
-
       const { data, error } = await supabase
         .from("cofrinhos" as any)
         .update(dbPatch)
         .eq("id", id)
         .select();
 
-      console.log("[updatePiggyBank] response:", { data, error });
-
       if (error) {
-        console.error("[updatePiggyBank] erro:", error);
         toast.error(error.message || "Erro ao atualizar");
         return false;
       }
+      // referência mantida para futura leitura do registro atualizado
+      void data;
       await reload();
       return true;
     },

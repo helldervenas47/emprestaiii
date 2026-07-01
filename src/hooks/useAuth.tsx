@@ -114,7 +114,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("[useAuth] fetchTabPermissions error:", error);
     }
     const tabs = (data as any)?.allowed_tabs ?? null;
-    console.debug("[useAuth] allowedTabs for", userId, "=", tabs);
     setAllowedTabs(tabs);
   };
 
