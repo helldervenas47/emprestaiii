@@ -21,6 +21,23 @@ const EXTRA_TABLES: Array<{ name: string; ownerCol: string }> = [
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Extra hardening: exige x-admin-secret + confirm ENTENDO_OS_RISCOS
+  const expectedAdminSecret =
+    Deno.env.get("X_ADMIN_SECRET") || Deno.env.get("ADMIN_SECRET");
+  if (!expectedAdminSecret) {
+    return new Response(JSON.stringify({ error: "Server missing X_ADMIN_SECRET" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const providedAdminSecret = req.headers.get("x-admin-secret") || "";
+  if (providedAdminSecret !== expectedAdminSecret) {
+    return new Response(JSON.stringify({ error: "Forbidden: invalid admin secret" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const SUPABASE_URL = Deno.env.get("EXTERNAL_SUPABASE_URL")!;
   const SERVICE_ROLE = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
   const ANON = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY")!;
@@ -46,6 +63,12 @@ Deno.serve(async (req) => {
 
   let body: any;
   try { body = await req.json(); } catch { body = {}; }
+  if (body?.confirm !== "ENTENDO_OS_RISCOS") {
+    return new Response(
+      JSON.stringify({ error: `Confirmação obrigatória: envie { "confirm": "ENTENDO_OS_RISCOS" } no body.` }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
   if (body?.confirmation !== CONFIRMATION_PHRASE) {
     return new Response(
       JSON.stringify({ error: `Confirmação inválida. Digite exatamente: ${CONFIRMATION_PHRASE}` }),
