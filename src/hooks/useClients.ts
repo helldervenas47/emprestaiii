@@ -37,12 +37,13 @@ function rowToClient(c: any): Client {
   };
 }
 
-export function useClients() {
+export function useClients(enabled: boolean = true) {
   const { user, dataOwnerId } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
 
   const fetchClients = useCallback(async () => {
     if (!user) return;
+    if (!enabled) return;
     if (isOnline()) {
       const { data, error } = await supabase
         .from("clients")
@@ -61,7 +62,7 @@ export function useClients() {
         .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
         .map(rowToClient));
     }
-  }, [user]);
+  }, [user, enabled]);
 
   useEffect(() => { fetchClients(); }, [fetchClients]);
 
