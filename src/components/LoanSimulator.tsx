@@ -45,7 +45,8 @@ import { useLoanSimulations } from "@/hooks/useLoanSimulations";
 import { computeScenario, computeHighlights, formatBRL, newScenario, frequencyLabel } from "@/lib/loanSimulation";
 import type { LoanSimulation, SimulationScenario, ScenarioComputed } from "@/types/loanSimulation";
 import type { Client } from "@/types/loan";
-import { generateSimulationPdf } from "@/lib/simulationPdf";
+// generateSimulationPdf importado dinamicamente no handler para evitar
+// carregar jsPDF/autotable no bundle inicial do simulador.
 import { cn } from "@/lib/utils";
 
 interface Props {
