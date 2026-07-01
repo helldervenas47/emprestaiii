@@ -72,6 +72,21 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     getGoal,
   } = controller;
 
+  // Fase de performance: Dashboard consome despesas com escopo por período,
+  // mantendo full-fetch da prop como fallback (indicadores históricos e
+  // despesas com paid_date muito distante do due_date). Merge por id.
+  const expensesPeriod = useMemo(() => getExpensesPeriodForRange(range), [range]);
+  const { expenses: periodExpenses } = useExpenses({
+    startDate: expensesPeriod.startDate,
+    endDate: expensesPeriod.endDate,
+  });
+  const dashboardExpenses = useMemo<Expense[]>(() => {
+    const byId = new Map<string, Expense>();
+    for (const e of periodExpenses ?? []) byId.set(e.id, e);
+    for (const e of expenses ?? []) if (!byId.has(e.id)) byId.set(e.id, e);
+    return Array.from(byId.values());
+  }, [periodExpenses, expenses]);
+
   const {
     data,
     receivedByMethod,
@@ -86,7 +101,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     interestChartBase,
     interestChart,
   } = useDashboardMetrics({
-    loans, sales, payments, expenses, installmentSchedules, ledgerEntries,
+    loans, sales, payments, expenses: dashboardExpenses, installmentSchedules, ledgerEntries,
     range, period, includeSales, comparisonWindow,
     chartOverrides, interestOverrides,
     paymentMethods, profitGoal, receivedDetailMethodId,
