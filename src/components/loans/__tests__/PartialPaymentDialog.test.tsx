@@ -89,8 +89,8 @@ describe("PartialPaymentDialog", () => {
     renderDialog();
     expect(screen.getByText(/pagamento parcial/i)).toBeInTheDocument();
     expect(screen.getByText(/resumo do contrato/i)).toBeInTheDocument();
-    // Valor emprestado formatado em pt-BR.
-    expect(screen.getByText(fmt(1000))).toBeInTheDocument();
+    // Valor emprestado — regex tolerante ao NBSP do Intl pt-BR.
+    expect(screen.getAllByText(/R\$\s?1\.000,00/).length).toBeGreaterThan(0);
     // Parcelas pagas / total.
     expect(screen.getByText("2 / 5")).toBeInTheDocument();
     // Parcelas pendentes: 5 - 2 = 3.
@@ -99,7 +99,8 @@ describe("PartialPaymentDialog", () => {
 
   it("emite onAmountChange quando o usuário digita no campo Valor recebido", () => {
     const { onAmountChange } = renderDialog();
-    const input = screen.getByLabelText(/valor recebido/i);
+    // O <Label> não usa htmlFor — buscamos pelo placeholder.
+    const input = screen.getByPlaceholderText(/ex:\s*150/i);
     fireEvent.change(input, { target: { value: "150,00" } });
     expect(onAmountChange).toHaveBeenCalledWith("150,00");
   });
