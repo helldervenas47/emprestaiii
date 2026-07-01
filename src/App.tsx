@@ -21,6 +21,7 @@ import { PaymentCelebrationProvider } from "./hooks/usePaymentCelebration";
 import ScrollToTop from "./components/ScrollToTop";
 import { TrialExpiredGate } from "./components/upgrade/TrialExpiredGate";
 import { ReadOnlyModeSync } from "./components/upgrade/ReadOnlyModeSync";
+import { LazyChunkErrorBoundary } from "./components/LazyChunkErrorBoundary";
 
 wireAutoSync();
 
