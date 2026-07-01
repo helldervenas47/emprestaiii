@@ -161,7 +161,7 @@ export function useWarranty(saleId: string | undefined) {
         product_name: it.productName,
         quantity: it.quantity,
       }));
-      const { data: itemRows } = await supabase.from("warranty_items" as any).insert(payload as any).select("*");
+      const { data: itemRows } = await supabase.from("warranty_items" as any).insert(payload as any).select(WARRANTY_ITEM_COLUMNS);
       if (itemRows) setItems((prev) => [...prev, ...(itemRows as any[]).map(mapItem)]);
     }
     setCases((prev) => [created, ...prev]);
