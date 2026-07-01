@@ -79,7 +79,7 @@ export function usePaymentMethods(enabled = true) {
           } else {
             const { data: refetched } = await supabase
               .from("payment_methods" as any)
-              .select("*")
+              .select(PAYMENT_METHOD_COLUMNS)
               .order("sort_order", { ascending: true })
               .order("name", { ascending: true });
             if (refetched) rows = refetched as any[];
