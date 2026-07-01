@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { status: 200, headers: corsHeaders });
   }
-  const gate = await requireAdmin(req);
+  const gate = await adminGuard(req, { action: "painel-migracao" });
   if (gate instanceof Response) return gate;
 
   try {
