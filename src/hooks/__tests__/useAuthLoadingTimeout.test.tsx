@@ -96,12 +96,12 @@ describe("useAuth — timeout de ensure-user-role", () => {
       await vi.advanceTimersByTimeAsync(9000);
     });
 
+    vi.useRealTimers();
+
     await waitFor(() => {
       const last = states[states.length - 1];
       expect(last.loading).toBe(false);
+      expect(last.role).toBe("cliente");
     });
-
-    const last = states[states.length - 1];
-    expect(last.role).toBe("cliente");
   });
 });
