@@ -7,6 +7,8 @@ import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 import { assertWritable } from "@/lib/readOnlyState";
 
+const PAYMENT_METHOD_COLUMNS = "id, name, icon, active, sort_order, kind";
+
 export type PaymentMethodKind = "account" | "cash";
 
 export interface PaymentMethod {
