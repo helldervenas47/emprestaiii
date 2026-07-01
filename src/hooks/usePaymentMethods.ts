@@ -7,6 +7,8 @@ import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 import { assertWritable } from "@/lib/readOnlyState";
 
+const PAYMENT_METHOD_COLUMNS = "id, name, icon, active, sort_order, kind";
+
 export type PaymentMethodKind = "account" | "cash";
 
 export interface PaymentMethod {
@@ -40,7 +42,7 @@ export function usePaymentMethods(enabled = true) {
     setLoading(true);
     const { data, error } = await supabase
       .from("payment_methods" as any)
-      .select("*")
+      .select(PAYMENT_METHOD_COLUMNS)
       .order("sort_order", { ascending: true })
       .order("name", { ascending: true });
     if (!error && data) {
@@ -72,12 +74,12 @@ export function usePaymentMethods(enabled = true) {
             const { data: inserted, error: insErr } = await supabase
               .from("payment_methods" as any)
               .insert(defaults as any)
-              .select("*");
+              .select(PAYMENT_METHOD_COLUMNS);
             if (!insErr && inserted) rows = inserted as any[];
           } else {
             const { data: refetched } = await supabase
               .from("payment_methods" as any)
-              .select("*")
+              .select(PAYMENT_METHOD_COLUMNS)
               .order("sort_order", { ascending: true })
               .order("name", { ascending: true });
             if (refetched) rows = refetched as any[];

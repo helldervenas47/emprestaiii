@@ -31,7 +31,7 @@ export function WebhookSettings() {
     setLoading(true);
     const { data } = await supabase
       .from("webhook_settings")
-      .select("*")
+      .select("webhook_url, enabled, send_time")
       .eq("user_id", effectiveUserId!)
       .maybeSingle();
 

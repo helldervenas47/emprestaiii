@@ -5,6 +5,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 import { assertWritable } from "@/lib/readOnlyState";
 
+const PRODUCT_COLUMNS =
+  "id, name, description, price, cost, last_purchase_price, suggested_stock, stock, active, created_at";
+const SALE_COLUMNS =
+  "id, product_id, description, quantity, total, customer_name, sale_date, notes, business_type, payment_mode, installments, paid_installments, frequency, installment_value, installment_amounts, installment_dates, partial_paid, payment_history, locador_id, category";
+
+
 
 export function useProducts(enabled = true) {
   const { user, dataOwnerId } = useAuth();
@@ -17,8 +23,8 @@ export function useProducts(enabled = true) {
     const fetchData = async () => {
       setLoading(true);
       const [prodRes, salesRes] = await Promise.all([
-        supabase.from("products").select("*").order("created_at", { ascending: false }),
-        supabase.from("sales").select("*").order("created_at", { ascending: false }),
+        supabase.from("products").select(PRODUCT_COLUMNS).order("created_at", { ascending: false }),
+        supabase.from("sales").select(SALE_COLUMNS).order("created_at", { ascending: false }),
       ]);
 
       if (prodRes.data) {
@@ -70,8 +76,8 @@ export function useProducts(enabled = true) {
     if (!user || !enabled) return;
     const fetchData = async () => {
       const [prodRes, salesRes] = await Promise.all([
-        supabase.from("products").select("*").order("created_at", { ascending: false }),
-        supabase.from("sales").select("*").order("created_at", { ascending: false }),
+        supabase.from("products").select(PRODUCT_COLUMNS).order("created_at", { ascending: false }),
+        supabase.from("sales").select(SALE_COLUMNS).order("created_at", { ascending: false }),
       ]);
       if (prodRes.data) {
         setProducts(prodRes.data.map((p: any) => ({

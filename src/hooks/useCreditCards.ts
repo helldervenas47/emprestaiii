@@ -5,6 +5,9 @@ import { useDataOwner } from "@/hooks/useDataOwner";
 import { toast } from "sonner";
 import { assertWritable } from "@/lib/readOnlyState";
 
+const CREDIT_CARD_COLUMNS =
+  "id, nickname, bank, brand, last_four, credit_limit, closing_day, due_day, active";
+
 export interface CreditCard {
   id: string;
   nickname: string;
@@ -50,7 +53,7 @@ export function useCreditCards() {
     if (!ownerId) return;
     const { data, error } = await supabase
       .from("credit_cards")
-      .select("*")
+      .select(CREDIT_CARD_COLUMNS)
       .order("created_at", { ascending: true });
     if (error) {
       toast.error("Erro ao carregar cartões");
