@@ -1,25 +1,22 @@
 // Edge function: manage-api-keys
 // Armazena/lista/atualiza/remove chaves de API do usuário SEM nunca
 // devolver o valor completo da chave ao frontend.
+//
+// Padronizado no Passo 5:
+// - client Supabase EXTERNO via helper `getExternalAdmin`
+// - CORS via `_shared/cors.ts`
+// - respostas JSON e erros via `_shared/json-response.ts`
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-};
-
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
+import { handleCorsPreflight } from "../_shared/cors.ts";
+import {
+  badRequest,
+  handleError,
+  json,
+  methodNotAllowed,
+  notFound,
+  unauthorized,
+} from "../_shared/json-response.ts";
+import { getExternalAdmin } from "../_shared/external-supabase.ts";
 
 function last4(s: string): string {
   const trimmed = (s ?? "").trim();
@@ -39,20 +36,17 @@ function sanitize(row: any) {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  const pre = handleCorsPreflight(req);
+  if (pre) return pre;
 
   const auth = req.headers.get("Authorization") ?? "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
-  if (!token) return json({ error: "missing_token" }, 401);
+  if (!token) return unauthorized("missing_token");
 
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const admin = getExternalAdmin();
 
   const { data: userRes, error: userErr } = await admin.auth.getUser(token);
-  if (userErr || !userRes?.user) return json({ error: "invalid_token" }, 401);
+  if (userErr || !userRes?.user) return unauthorized("invalid_token");
   const userId = userRes.user.id;
 
   try {
@@ -74,8 +68,8 @@ Deno.serve(async (req) => {
       const active =
         typeof body?.active === "boolean" ? body.active : undefined;
 
-      if (!name) return json({ error: "name_required" }, 400);
-      if (name.length > 80) return json({ error: "name_too_long" }, 400);
+      if (!name) return badRequest("name_required");
+      if (name.length > 80) return badRequest("name_too_long");
 
       if (id) {
         // Update — key é opcional (permite só renomear / ativar)
@@ -94,13 +88,13 @@ Deno.serve(async (req) => {
           .select("id,name,key_last4,active,created_at,last_used_at")
           .maybeSingle();
         if (error) throw error;
-        if (!data) return json({ error: "not_found" }, 404);
+        if (!data) return notFound();
         return json({ key: sanitize(data) });
       }
 
       // Insert — key obrigatória
-      if (!key) return json({ error: "key_required" }, 400);
-      if (key.length > 4096) return json({ error: "key_too_long" }, 400);
+      if (!key) return badRequest("key_required");
+      if (key.length > 4096) return badRequest("key_too_long");
 
       const { data, error } = await admin
         .from("user_api_keys")
@@ -123,7 +117,7 @@ Deno.serve(async (req) => {
     if (req.method === "DELETE") {
       const body = await req.json().catch(() => ({}));
       const id = typeof body?.id === "string" ? body.id : null;
-      if (!id) return json({ error: "id_required" }, 400);
+      if (!id) return badRequest("id_required");
       const { error } = await admin
         .from("user_api_keys")
         .delete()
@@ -133,10 +127,9 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
-    return json({ error: "method_not_allowed" }, 405);
+    return methodNotAllowed();
   } catch (e) {
     // Nunca logar a `key` em texto puro
-    console.error("[manage-api-keys]", (e as Error)?.message);
-    return json({ error: "internal_error" }, 500);
+    return handleError("manage-api-keys", e);
   }
 });

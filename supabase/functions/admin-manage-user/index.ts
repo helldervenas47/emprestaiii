@@ -1,14 +1,9 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { getExternalAdmin } from "../_shared/external-supabase.ts";
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const pre = handleCorsPreflight(req);
+  if (pre) return pre;
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -21,16 +16,10 @@ Deno.serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
 
-    // The app authenticates users against the external project, so validate the
-    // incoming JWT there first. Using the Cloud env vars here rejects valid app
-    // sessions with 401 because they belong to a different auth project.
-    const supabaseUrl =
-      Deno.env.get("EXTERNAL_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey =
-      Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ??
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    // Client Supabase EXTERNO padronizado (Passo 5).
+    // Toda autenticação e escrita passa pelo mesmo projeto externo.
+    const adminClient = getExternalAdmin();
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     // Validate the caller JWT against the same external auth project used by the
     // admin client. Using a separate anon client can falsely reject valid app
