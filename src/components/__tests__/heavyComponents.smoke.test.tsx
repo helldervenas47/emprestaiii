@@ -28,8 +28,7 @@ vi.mock("@/integrations/supabase/userClient", () => {
     order: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
     range: vi.fn().mockReturnThis(),
-    maybeSingle: vi.fn().resolvesTo?.({ data: null, error: null }) ??
-      vi.fn().mockResolvedValue({ data: null, error: null }),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
     single: vi.fn().mockResolvedValue({ data: null, error: null }),
     then: (resolve: (v: any) => void) => resolve({ data: [], error: null }),
   };
@@ -89,22 +88,22 @@ beforeAll(() => {
 
 describe("heavy component modules — import smoke", () => {
   it("DashboardOverview module loads", async () => {
-    const mod = await import("@/components/DashboardOverview");
+    const mod: any = await import("@/components/DashboardOverview");
     expect(mod.default || mod.DashboardOverview).toBeDefined();
   });
 
   it("LoanList module loads", async () => {
-    const mod = await import("@/components/LoanList");
+    const mod: any = await import("@/components/LoanList");
     expect(mod.default || mod.LoanList).toBeDefined();
   });
 
   it("ProductSalesView module loads", async () => {
-    const mod = await import("@/components/ProductSalesView");
+    const mod: any = await import("@/components/ProductSalesView");
     expect(mod.default || mod.ProductSalesView).toBeDefined();
   });
 
   it("PiggyBankList module loads", async () => {
-    const mod = await import("@/components/PiggyBankList");
+    const mod: any = await import("@/components/PiggyBankList");
     expect(mod.default || mod.PiggyBankList).toBeDefined();
   });
 });
