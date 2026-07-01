@@ -13,7 +13,10 @@ const isPreviewEnv = (() => {
   const host = window.location.hostname;
   const isPreviewHost =
     host.includes("id-preview--") ||
+    host.includes("preview--") ||
     host.includes("lovableproject.com") ||
+    host.endsWith(".lovable.app") ||
+    host.endsWith(".vercel.app") ||
     host === "localhost" ||
     host === "127.0.0.1";
   return inIframe || isPreviewHost;
