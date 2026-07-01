@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { todayInAppTz } from "@/lib/timezone";
 import { Loan, Payment, InstallmentSchedule, PaymentSplit } from "@/types/loan";
 import { adjustBalance, adjustBalanceOffline } from "@/lib/balance";
@@ -201,80 +202,133 @@ async function recordPaymentLedgerSplit(args: {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Fase 3 — TanStack Query shared cache
+//
+// Reusable fetchers below. Consumed by `useLoans` via `useQuery`, so multiple
+// components mounting `useLoans` share a single network request per key.
+// ---------------------------------------------------------------------------
+export async function fetchLoansData(): Promise<Loan[]> {
+  if (isOnline()) {
+    const { data, error } = await supabase
+      .from("loans").select("id, borrower_name, borrower_id, amount, original_amount, interest_rate, interest_type, payment_type, start_date, due_date, original_due_date, installments, paid_installments, status, remaining_amount, custom_installment_value, custom_interest_value, tags, notes, created_at, late_interest_type, late_interest_value, penalty_value, has_manager, manager_id, manager_commission_rate, auto_billing_enabled, renegotiation_penalty_total, is_sale, payment_method_split")
+      .order("created_at", { ascending: false })
+      .limit(2000);
+    if (!error && data) {
+      cacheRows("loans", data).catch(() => { /* noop */ });
+      return data.map(rowToLoan);
+    }
+  }
+  const cached = await getCachedRows("loans");
+  return cached
+    .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
+    .map(rowToLoan);
+}
+
+export async function fetchPaymentsData(): Promise<Payment[]> {
+  if (isOnline()) {
+    const { data, error } = await supabase
+      .from("payments").select("id, loan_id, amount, date, installment_number, previous_due_date, payment_method_id, metadata, created_at")
+      .order("created_at", { ascending: false })
+      .limit(5000);
+    if (!error && data) {
+      cacheRows("payments", data).catch(() => { /* noop */ });
+      return data.map(rowToPayment);
+    }
+  }
+  const cached = await getCachedRows("payments");
+  return cached
+    .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
+    .map(rowToPayment);
+}
+
+export async function fetchSchedulesData(): Promise<InstallmentSchedule[]> {
+  if (isOnline()) {
+    const { data, error } = await supabase
+      .from("loan_installments").select("id, loan_id, installment_number, due_date, amount")
+      .order("installment_number", { ascending: true })
+      .limit(10000);
+    if (!error && data) {
+      cacheRows("loan_installments", data).catch(() => { /* noop */ });
+      return data.map((s: any) => ({
+        id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number,
+        dueDate: s.due_date, amount: Number(s.amount),
+      }));
+    }
+  }
+  const cached = await getCachedRows("loan_installments");
+  return cached.map((s: any) => ({
+    id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number,
+    dueDate: s.due_date, amount: Number(s.amount),
+  }));
+}
+
+export function loansQueryKey(ownerKey: string | null | undefined) {
+  return ["loans", ownerKey ?? "anon"] as const;
+}
+export function paymentsQueryKey(ownerKey: string | null | undefined) {
+  return ["payments", ownerKey ?? "anon"] as const;
+}
+export function schedulesQueryKey(ownerKey: string | null | undefined) {
+  return ["loan_installments", ownerKey ?? "anon"] as const;
+}
+
 export function useLoans() {
   const { user, dataOwnerId } = useAuth();
+  const queryClient = useQueryClient();
+  const ownerKey = dataOwnerId ?? user?.id ?? null;
+
   const [loans, setLoans] = useState<Loan[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [installmentSchedules, setInstallmentSchedules] = useState<InstallmentSchedule[]>([]);
 
+  const loansQuery = useQuery({
+    queryKey: loansQueryKey(ownerKey),
+    queryFn: fetchLoansData,
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+  const paymentsQuery = useQuery({
+    queryKey: paymentsQueryKey(ownerKey),
+    queryFn: fetchPaymentsData,
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+  const schedulesQuery = useQuery({
+    queryKey: schedulesQueryKey(ownerKey),
+    queryFn: fetchSchedulesData,
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+
+  // Sync query cache -> local state so optimistic setters (setLoans/setPayments/
+  // setInstallmentSchedules) used by mutations abaixo continuam funcionando sem
+  // alteração de API.
+  useEffect(() => {
+    if (loansQuery.data) setLoans(loansQuery.data);
+  }, [loansQuery.data]);
+  useEffect(() => {
+    if (paymentsQuery.data) setPayments(paymentsQuery.data);
+  }, [paymentsQuery.data]);
+  useEffect(() => {
+    if (schedulesQuery.data) setInstallmentSchedules(schedulesQuery.data);
+  }, [schedulesQuery.data]);
+
+  // Compatibilidade: mantém a assinatura existente (async () => void). Dispara
+  // refetch via TanStack Query — múltiplos consumidores compartilham o mesmo
+  // request in-flight.
   const fetchLoans = useCallback(async () => {
     if (!user) return;
-    if (isOnline()) {
-      const { data, error } = await supabase
-        .from("loans").select("id, borrower_name, borrower_id, amount, original_amount, interest_rate, interest_type, payment_type, start_date, due_date, original_due_date, installments, paid_installments, status, remaining_amount, custom_installment_value, custom_interest_value, tags, notes, created_at, late_interest_type, late_interest_value, penalty_value, has_manager, manager_id, manager_commission_rate, auto_billing_enabled, renegotiation_penalty_total, is_sale, payment_method_split")
-        .order("created_at", { ascending: false })
-        .limit(2000); // safety cap — paginação por página será adicionada com UI de "carregar mais"
-      if (!error && data) {
-        setLoans(data.map(rowToLoan));
-        cacheRows("loans", data).catch(() => { /* noop */ });
-        return;
-      }
-    }
-    const cached = await getCachedRows("loans");
-    if (cached.length > 0) {
-      setLoans(cached
-        .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
-        .map(rowToLoan));
-    }
-  }, [user]);
-
+    await queryClient.invalidateQueries({ queryKey: loansQueryKey(ownerKey) });
+  }, [queryClient, user, ownerKey]);
   const fetchPayments = useCallback(async () => {
     if (!user) return;
-    if (isOnline()) {
-      const { data, error } = await supabase
-        .from("payments").select("id, loan_id, amount, date, installment_number, previous_due_date, payment_method_id, metadata, created_at")
-        .order("created_at", { ascending: false })
-        .limit(5000); // safety cap
-      if (!error && data) {
-        setPayments(data.map(rowToPayment));
-        cacheRows("payments", data).catch(() => { /* noop */ });
-        return;
-      }
-    }
-    const cached = await getCachedRows("payments");
-    if (cached.length > 0) {
-      setPayments(cached
-        .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
-        .map(rowToPayment));
-    }
-  }, [user]);
-
+    await queryClient.invalidateQueries({ queryKey: paymentsQueryKey(ownerKey) });
+  }, [queryClient, user, ownerKey]);
   const fetchSchedules = useCallback(async () => {
     if (!user) return;
-    if (isOnline()) {
-      const { data, error } = await supabase
-        .from("loan_installments").select("id, loan_id, installment_number, due_date, amount")
-        .order("installment_number", { ascending: true })
-        .limit(10000); // safety cap
-      if (!error && data) {
-        setInstallmentSchedules(data.map((s: any) => ({
-          id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number,
-          dueDate: s.due_date, amount: Number(s.amount),
-        })));
-        cacheRows("loan_installments", data).catch(() => { /* noop */ });
-        return;
-      }
-    }
-    const cached = await getCachedRows("loan_installments");
-    if (cached.length > 0) {
-      setInstallmentSchedules(cached.map((s: any) => ({
-        id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number,
-        dueDate: s.due_date, amount: Number(s.amount),
-      })));
-    }
-  }, [user]);
-
-  useEffect(() => { fetchLoans(); fetchPayments(); fetchSchedules(); }, [fetchLoans, fetchPayments, fetchSchedules]);
+    await queryClient.invalidateQueries({ queryKey: schedulesQueryKey(ownerKey) });
+  }, [queryClient, user, ownerKey]);
 
   // Refetch after offline queue flush
   useEffect(() => {
@@ -288,17 +342,23 @@ export function useLoans() {
     return () => window.removeEventListener("offline-sync:flushed", handler);
   }, [fetchLoans, fetchPayments, fetchSchedules]);
 
-  // Realtime subscriptions for auto-refresh
+  // Realtime subscriptions — invalidam o cache compartilhado.
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel(`loans-realtime-${user.id}-${Math.random().toString(36).slice(2)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, () => { fetchLoans(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => { fetchPayments(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'loan_installments' }, () => { fetchSchedules(); })
+      .channel(`loans-realtime-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, () => {
+        queryClient.invalidateQueries({ queryKey: loansQueryKey(ownerKey) });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
+        queryClient.invalidateQueries({ queryKey: paymentsQueryKey(ownerKey) });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'loan_installments' }, () => {
+        queryClient.invalidateQueries({ queryKey: schedulesQueryKey(ownerKey) });
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, fetchLoans, fetchPayments, fetchSchedules]);
+  }, [user, queryClient, ownerKey]);
 
   const saveSchedule = useCallback(async (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => {
     assertWritable();
