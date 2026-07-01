@@ -77,7 +77,7 @@ export function useClientDocuments(clientId: string | null | undefined) {
     setLoading(true);
     const { data, error } = await supabase
       .from("client_documents" as any)
-      .select("*")
+      .select(CLIENT_DOCUMENT_COLUMNS)
       .eq("client_id", clientId)
       .order("created_at", { ascending: false });
     setLoading(false);
