@@ -14,22 +14,34 @@ const ROLE_PRIORITY: Record<string, number> = {
   visualizador: 1,
 };
 
-const invokeExternalFunction = async <T,>(functionName: string, token: string, body: Record<string, unknown>) => {
-  const response = await fetch(`${USER_SUPABASE_URL}/functions/v1/${functionName}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: USER_SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
-  });
+const invokeExternalFunction = async <T,>(
+  functionName: string,
+  token: string,
+  body: Record<string, unknown>,
+  timeoutMs = 8000,
+) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${USER_SUPABASE_URL}/functions/v1/${functionName}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: USER_SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
 
-  const payload = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(`Edge function returned ${response.status}: ${payload ? JSON.stringify(payload) : response.statusText}`);
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(`Edge function returned ${response.status}: ${payload ? JSON.stringify(payload) : response.statusText}`);
+    }
+    return payload as T;
+  } finally {
+    clearTimeout(timer);
   }
-  return payload as T;
 };
 
 interface AuthContextType {
