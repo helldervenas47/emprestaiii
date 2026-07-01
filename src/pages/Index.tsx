@@ -422,25 +422,8 @@ const Index = () => {
   };
 
 
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    console.debug("[Index lifecycle]", {
-      event: "mount",
-      mountId: indexMountIdRef.current,
-      route: `${location.pathname}${location.search}`,
-      initialTab: tab,
-      userId: user?.id ?? null,
-    });
-    return () => {
-      console.debug("[Index lifecycle]", {
-        event: "unmount",
-        mountId: indexMountIdRef.current,
-        route: `${location.pathname}${location.search}`,
-        lastTab: tab,
-        userId: user?.id ?? null,
-      });
-    };
-  }, []);
+
+
 
   useLayoutEffect(() => {
     const y = preserveScrollYRef.current;
