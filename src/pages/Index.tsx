@@ -395,8 +395,7 @@ const Index = () => {
   const brandName = appBranding.brand_name;
   const preserveScrollYRef = useRef<number | null>(null);
   const indexMountIdRef = useRef(`index-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  const lastIndexBootLogRef = useRef<string>("");
-  const lastVisibleTabsSignatureRef = useRef<string>("");
+
   
   const [preservedPageHeight, setPreservedPageHeight] = useState<number | null>(null);
 
