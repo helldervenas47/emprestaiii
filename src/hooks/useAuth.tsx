@@ -14,22 +14,34 @@ const ROLE_PRIORITY: Record<string, number> = {
   visualizador: 1,
 };
 
-const invokeExternalFunction = async <T,>(functionName: string, token: string, body: Record<string, unknown>) => {
-  const response = await fetch(`${USER_SUPABASE_URL}/functions/v1/${functionName}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: USER_SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
-  });
+const invokeExternalFunction = async <T,>(
+  functionName: string,
+  token: string,
+  body: Record<string, unknown>,
+  timeoutMs = 8000,
+) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${USER_SUPABASE_URL}/functions/v1/${functionName}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: USER_SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
 
-  const payload = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(`Edge function returned ${response.status}: ${payload ? JSON.stringify(payload) : response.statusText}`);
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(`Edge function returned ${response.status}: ${payload ? JSON.stringify(payload) : response.statusText}`);
+    }
+    return payload as T;
+  } finally {
+    clearTimeout(timer);
   }
-  return payload as T;
 };
 
 interface AuthContextType {
@@ -55,40 +67,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [linkedClientIds, setLinkedClientIds] = useState<string[] | null>(null);
 
   const fetchRole = async (userId: string, accessToken?: string) => {
-    let { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
+    try {
+      let { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
 
-    let roles = (data ?? []).map((r: any) => r.role as string);
-    if (roles.length === 0) {
-      const token = accessToken ?? (await supabase.auth.getSession()).data.session?.access_token;
-      if (token) {
-        let ensuredRole: { role?: string } | null = null;
-        try {
-          ensuredRole = await invokeExternalFunction<{ role?: string }>("ensure-user-role", token, { role: "cliente" });
-        } catch (ensureRoleError) {
-          console.error("[useAuth] ensure-user-role error:", ensureRoleError);
-        }
-        const retry = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", userId);
-        data = retry.data;
-        roles = (data ?? []).map((r: any) => r.role as string);
-        if (roles.length === 0 && ensuredRole?.role) {
-          roles = [ensuredRole.role as string];
+      let roles = (data ?? []).map((r: any) => r.role as string);
+      if (roles.length === 0) {
+        const token = accessToken ?? (await supabase.auth.getSession()).data.session?.access_token;
+        if (token) {
+          let ensuredRole: { role?: string } | null = null;
+          try {
+            ensuredRole = await invokeExternalFunction<{ role?: string }>("ensure-user-role", token, { role: "cliente" });
+          } catch (ensureRoleError) {
+            console.error("[useAuth] ensure-user-role error:", ensureRoleError);
+          }
+          const retry = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", userId);
+          data = retry.data;
+          roles = (data ?? []).map((r: any) => r.role as string);
+          if (roles.length === 0 && ensuredRole?.role) {
+            roles = [ensuredRole.role as string];
+          }
         }
       }
+      if (roles.length === 0) {
+        // Fallback seguro: assume "cliente" quando não foi possível determinar
+        // o papel (edge function fora do ar, timeout, etc.). Evita travar o app.
+        setRole("cliente");
+        return;
+      }
+      const best = roles.sort(
+        (a, b) => (ROLE_PRIORITY[b] ?? 0) - (ROLE_PRIORITY[a] ?? 0),
+      )[0];
+      setRole((best as AppRole) ?? "cliente");
+    } catch (error) {
+      console.error("[useAuth] fetchRole error:", error);
+      setRole("cliente");
     }
-    if (roles.length === 0) {
-      setRole(null);
-      return;
-    }
-    const best = roles.sort(
-      (a, b) => (ROLE_PRIORITY[b] ?? 0) - (ROLE_PRIORITY[a] ?? 0),
-    )[0];
-    setRole((best as AppRole) ?? null);
   };
 
   const fetchDataOwner = async (userId: string) => {
@@ -187,8 +206,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (hydratedForUserId === userId) return;
       hydratedForUserId = userId;
       if (showLoading) setLoading(true);
-      await hydrateUserState(userId, currentUser, accessToken);
-      if (mounted) setLoading(false);
+      try {
+        await hydrateUserState(userId, currentUser, accessToken);
+      } catch (error) {
+        console.error("[useAuth] hydrateUserState error:", error);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
