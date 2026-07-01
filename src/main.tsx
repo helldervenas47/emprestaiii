@@ -121,4 +121,9 @@ if (isInStandaloneMode && !isInIframe) {
   window.addEventListener("keydown", onFirstInteraction, { once: true });
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+const rootEl = document.getElementById("root")!;
+if (!IS_SUPABASE_CONFIGURED) {
+  createRoot(rootEl).render(<ConfigErrorScreen missing={MISSING_SUPABASE_ENV} />);
+} else {
+  createRoot(rootEl).render(<App />);
+}
