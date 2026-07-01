@@ -56,7 +56,6 @@ export function PaymentMethodPicker({ value, onChange, required, label = "Forma 
       </Label>
       <div className="flex flex-wrap gap-2">
         {methods.map((m) => {
-          const Icon = getIcon(m.icon);
           const selected = m.id === value;
           return (
             <button
@@ -70,7 +69,7 @@ export function PaymentMethodPicker({ value, onChange, required, label = "Forma 
                   : "border-input bg-background hover:bg-accent",
               )}
             >
-              <Icon className="h-4 w-4" />
+              <DynamicIcon name={m.icon} className="h-4 w-4" />
               <span>{m.name}</span>
               {m.kind === "cash" ? (
                 <Banknote className={cn("h-3.5 w-3.5", selected ? "opacity-90" : "text-success")} />
