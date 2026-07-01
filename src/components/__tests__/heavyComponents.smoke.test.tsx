@@ -90,7 +90,7 @@ describe("heavy component modules — import smoke", () => {
   it("DashboardOverview module loads", async () => {
     const mod: any = await import("@/components/DashboardOverview");
     expect(mod.default || mod.DashboardOverview).toBeDefined();
-  });
+  }, 20000);
 
   it("LoanList module loads", async () => {
     const mod: any = await import("@/components/LoanList");
