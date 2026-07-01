@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { requireAdmin, adminCors as corsHeaders } from "../_shared/require-admin.ts";
+import { adminGuard, guardCors as corsHeaders } from "../_shared/admin-guard.ts";
 
 
 
