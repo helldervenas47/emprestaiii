@@ -273,7 +273,7 @@ export function schedulesQueryKey(ownerKey: string | null | undefined) {
   return ["loan_installments", ownerKey ?? "anon"] as const;
 }
 
-export function useLoans() {
+export function useLoans(enabled: boolean = true) {
   const { user, dataOwnerId } = useAuth();
   const queryClient = useQueryClient();
   const ownerKey = dataOwnerId ?? user?.id ?? null;
@@ -285,19 +285,19 @@ export function useLoans() {
   const loansQuery = useQuery({
     queryKey: loansQueryKey(ownerKey),
     queryFn: fetchLoansData,
-    enabled: !!user,
+    enabled: !!user && enabled,
     staleTime: 30_000,
   });
   const paymentsQuery = useQuery({
     queryKey: paymentsQueryKey(ownerKey),
     queryFn: fetchPaymentsData,
-    enabled: !!user,
+    enabled: !!user && enabled,
     staleTime: 30_000,
   });
   const schedulesQuery = useQuery({
     queryKey: schedulesQueryKey(ownerKey),
     queryFn: fetchSchedulesData,
-    enabled: !!user,
+    enabled: !!user && enabled,
     staleTime: 30_000,
   });
 
