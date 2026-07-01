@@ -16,6 +16,7 @@ import { useDashboardPrefs, DEFAULT_EXTRA as PREFS_DEFAULT_EXTRA, DEFAULT_VIS as
 import type { Sale } from "@/types/loan";
 import { PiggyBanksBreakdownDialog } from "./PiggyBanksBreakdownDialog";
 import { StockBreakdownDialog } from "./StockBreakdownDialog";
+import { useFinanceComponentDebug } from "@/lib/financeDebug";
 
 type MaosVisibility = {
   account: boolean;
@@ -85,6 +86,7 @@ function isSalePaid(s: Sale): boolean {
 }
 
 export function ConsolidatedBalanceCards() {
+  useFinanceComponentDebug("ConsolidatedBalanceCards");
   const { loans, installmentSchedules } = useLoans();
   const { sales, products } = useProducts(true);
   const { piggyBanks, deposits: piggyDeposits, balances: piggyBalances } = usePiggyBanks();

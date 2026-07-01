@@ -15,6 +15,7 @@ import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { isCreditCardExpense, listPaidInvoicesInRange } from "@/lib/creditCardInvoiceTotals";
 import { useMonthFlow } from "@/hooks/useMonthFlow";
+import { useFinanceComponentDebug } from "@/lib/financeDebug";
 import {
   ResponsiveContainer,
   RadialBarChart,
@@ -187,6 +188,7 @@ function computeScore(m: MonthMetrics, piggyBalance: number, avgExpense: number)
 }
 
 export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props) {
+  useFinanceComponentDebug("FinancialHealthDashboard");
   const { hidden } = useHideValues();
   const { deposits } = usePiggyBanks();
   const { sales: rawSales } = useProducts(true);

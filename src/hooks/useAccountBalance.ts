@@ -9,6 +9,7 @@ import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { creditCardInvoiceExtraPaid, creditCardLedgerHandled, cycleKeyForDate, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
 import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
 import type { Sale } from "@/types/loan";
+import { financeSetState, useFinanceHookDebug } from "@/lib/financeDebug";
 
 /**
  * Fonte oficial e única do "Saldo em Conta" do app.
@@ -32,6 +33,7 @@ function saleReceivedTotal(sale: Sale): number {
 }
 
 export function useAccountBalance() {
+  useFinanceHookDebug("useAccountBalance");
   const { incomes } = useIncomes(true);
   const { expenses } = useExpenses(true);
   const { sales } = useProducts(true);
@@ -91,7 +93,9 @@ export function useAccountBalance() {
       totalPiggyManualDeposits -
       ccExtra;
     // Soma saldos externos (Dashboard conta+dinheiro, Cofrinhos, Veículos)
-    return base + external.total;
+    const total = base + external.total;
+    financeSetState("useAccountBalance", "derived balance", { total, table: "composite", queryKey: null });
+    return total;
   }, [incomes, sales, expenses, piggyDeposits, external.total, cards, openings]);
 
   return balance;

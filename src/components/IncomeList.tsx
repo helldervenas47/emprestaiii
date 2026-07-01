@@ -33,6 +33,7 @@ import { validateIncomeDate } from "@/lib/paymentValidation";
 import { toast } from "sonner";
 import { EditScopeDialog } from "@/components/EditScopeDialog";
 import { applyIncomeScopedUpdate, isIncomeInSeries } from "@/lib/seriesEdit";
+import { useFinanceComponentDebug } from "@/lib/financeDebug";
 
 function fmtBRL(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -55,6 +56,7 @@ interface Props {
 }
 
 export function IncomeList({ readOnly }: Props) {
+  useFinanceComponentDebug("IncomeList");
   const { incomes, addIncome, updateIncome, deleteIncome, duplicateIncome, markReceived } = useIncomes();
   const { expenses: rawExpenses, payExpense } = useExpenses();
   const { sales: rawSales } = useProducts();

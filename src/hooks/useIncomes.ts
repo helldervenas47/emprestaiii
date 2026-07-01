@@ -4,6 +4,7 @@ import { useAuth } from "./useAuth";
 import { displayIncomeCategory } from "@/lib/incomeCategory";
 import { todayInAppTz } from "@/lib/timezone";
 import { assertWritable } from "@/lib/readOnlyState";
+import { financeFetchStart, financeFetchSuccess, financeInvalidate, financeRealtimeEvent, financeSetState, useFinanceHookDebug } from "@/lib/financeDebug";
 
 export type IncomeStatus = "pending" | "received" | "overdue";
 export type IncomeRecurrence = "once" | "weekly" | "biweekly" | "monthly" | "yearly";
@@ -60,29 +61,40 @@ function rowToIncome(r: any): Income {
 }
 
 export function useIncomes(enabled = true) {
+  useFinanceHookDebug("useIncomes");
   const { user, dataOwnerId } = useAuth();
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetch = useCallback(async () => {
     if (!user) return;
+    financeFetchStart("useIncomes", "incomes", { reason: "fetch/refetch" });
     setLoading(true);
     const { data } = await supabase
       .from("incomes" as any)
       .select("id, description, amount, category, client_id, source, payment_method_id, received_date, actual_received_date, status, notes, recurrence, parent_id, created_at")
       .order("received_date", { ascending: false })
       .limit(5000); // safety cap
-    if (data) setIncomes((data as any[]).map(rowToIncome));
+    if (data) {
+      financeSetState("useIncomes", "incomes", { rows: (data as any[]).length });
+      setIncomes((data as any[]).map(rowToIncome));
+    }
     setLoading(false);
+    financeSetState("useIncomes", "loading", { value: false });
+    financeFetchSuccess("useIncomes", "incomes", { rows: ((data as any[]) ?? []).length });
   }, [user]);
 
-  useEffect(() => { if (enabled) fetch(); }, [fetch, enabled]);
+  useEffect(() => { if (enabled) { financeInvalidate("useIncomes", "incomes", { reason: "initial/enabled effect" }); fetch(); } }, [fetch, enabled]);
 
   useEffect(() => {
     if (!user || !enabled) return;
     const channel = supabase
       .channel(`incomes-rt-${crypto.randomUUID()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "incomes" }, () => fetch())
+      .on("postgres_changes", { event: "*", schema: "public", table: "incomes" }, (payload) => {
+        financeRealtimeEvent("useIncomes", "incomes", { eventType: payload.eventType });
+        financeInvalidate("useIncomes", "incomes", { reason: "realtime" });
+        fetch();
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user, fetch, enabled]);
@@ -197,12 +209,16 @@ export function useIncomes(enabled = true) {
         created.push(inc);
       }
       if (created.length > 0) {
+        financeSetState("useIncomes", "optimistic recurring incomes", { rows: created.length });
         setIncomes((prev) => [...created, ...prev]);
       }
       return parent;
     }
     const inc = await insertSingle(input);
-    if (inc) setIncomes((prev) => [inc, ...prev]);
+    if (inc) {
+      financeSetState("useIncomes", "optimistic income insert", { rows: 1 });
+      setIncomes((prev) => [inc, ...prev]);
+    }
     return inc;
   }, [dataOwnerId, insertSingle]);
 
@@ -221,6 +237,7 @@ export function useIncomes(enabled = true) {
     if (patch.notes !== undefined) updatePayload.notes = patch.notes;
     if (patch.recurrence !== undefined) updatePayload.recurrence = patch.recurrence;
 
+    financeSetState("useIncomes", "optimistic income update", { id });
     setIncomes((arr) => arr.map((i) => i.id === id ? { ...i, ...patch, category: patch.category !== undefined ? displayIncomeCategory(patch.category) : i.category } : i));
     await supabase.from("incomes" as any).update(updatePayload).eq("id", id);
   }, []);
@@ -231,6 +248,7 @@ export function useIncomes(enabled = true) {
     const rootId = target?.parentId ?? id;
 
     if (scope === "single") {
+      financeSetState("useIncomes", "optimistic income delete", { id, scope });
       setIncomes((arr) => arr.filter((i) => i.id !== id));
       await supabase.from("incomes" as any).delete().eq("id", id);
       return;
@@ -243,6 +261,7 @@ export function useIncomes(enabled = true) {
       .map((i) => i.id);
 
     if (seriesIds.length === 0) return;
+    financeSetState("useIncomes", "optimistic income series delete", { rows: seriesIds.length, scope });
     setIncomes((arr) => arr.filter((i) => !seriesIds.includes(i.id)));
     await supabase.from("incomes" as any).delete().in("id", seriesIds);
   }, [incomes]);

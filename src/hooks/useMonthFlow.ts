@@ -8,6 +8,7 @@ import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { isCreditCardExpense, listPaidInvoicesInRange } from "@/lib/creditCardInvoiceTotals";
 import type { Expense, Sale } from "@/types/loan";
+import { financeFetchStart, financeFetchSuccess, financeInvalidate, financeSetState, useFinanceHookDebug } from "@/lib/financeDebug";
 
 function saleReceivedTotal(sale: Sale): number {
   const history = sale.paymentHistory || [];
@@ -50,6 +51,7 @@ export interface MonthFlow {
  * card "Entradas mês" / "Saídas mês" exibida em IncomeBalanceCard.
  */
 export function useMonthFlow(monthKey: string): MonthFlow {
+  useFinanceHookDebug("useMonthFlow");
   const ownerId = useDataOwner();
   const { incomes } = useIncomes(true);
   const { expenses } = useExpenses(true);
@@ -68,6 +70,7 @@ export function useMonthFlow(monthKey: string): MonthFlow {
     if (!ownerId) return;
     let cancelled = false;
     const load = async () => {
+      financeFetchStart("useMonthFlow", "cofrinhos/cofrinho_eventos", { ownerId: "present", monthKey });
       // Nova arquitetura: cruza cofrinhos do usuário com eventos
       // (`cofrinho_eventos`) para obter o fluxo líquido por mês usando
       // `data_evento` como data financeira real (DEPOSITO + / RESGATE -).
@@ -96,10 +99,15 @@ export function useMonthFlow(monthKey: string): MonthFlow {
         const signed = tipo === "RESGATE" ? -Math.abs(v) : Math.abs(v);
         byMonth[mk] = (byMonth[mk] ?? 0) + signed;
       }
+      financeSetState("useMonthFlow", "piggyNetByMonth", { months: Object.keys(byMonth).length, events: events.length });
       setPiggyNetByMonth(byMonth);
+      financeFetchSuccess("useMonthFlow", "cofrinhos/cofrinho_eventos", { bankRows: bankIds.length, eventRows: events.length });
     };
     load();
-    const handler = () => load();
+    const handler = (event: Event) => {
+      financeInvalidate("useMonthFlow", "cofrinhos/cofrinho_eventos", { event: event.type });
+      load();
+    };
     window.addEventListener("balance:changed", handler);
     return () => {
       cancelled = true;

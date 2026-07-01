@@ -50,6 +50,7 @@ import { toast } from "sonner";
 import { recordLedger } from "@/lib/ledger";
 import { supabase } from "@/integrations/supabase/userClient";
 import { assertWritable } from "@/lib/readOnlyState";
+import { useFinanceComponentDebug, financeFetchStart, financeFetchSuccess, financeSetState, financeInvalidate } from "@/lib/financeDebug";
 
 interface Props {
   card: CreditCard;
@@ -105,6 +106,7 @@ function getCycle(ref: Date, closingDay: number, dueDay: number) {
 }
 
 export function CreditCardInvoice({ card, onClose, referenceMonth, originRect, autoOpenPayment = false }: Props) {
+  useFinanceComponentDebug("CreditCardInvoice");
   const { expenses, payExpense, updateExpense, deleteExpense } = useExpenses();
   const { openings, getOpening, upsertOpening } = useCreditCardOpenings();
   const ownerId = useDataOwner();
@@ -321,9 +323,13 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect, a
     let cancelled = false;
     const loadInvoiceLedgerPaid = async () => {
       if (!ownerId) {
-        if (!cancelled) setInvoiceLedgerPaid(0);
+        if (!cancelled) {
+          financeSetState("CreditCardInvoice", "invoiceLedgerPaid", { value: 0, reason: "missing owner" });
+          setInvoiceLedgerPaid(0);
+        }
         return;
       }
+      financeFetchStart("CreditCardInvoice", "account_ledger", { cardId: card.id, cycleKey });
       const { data } = await supabase
         .from("account_ledger")
         .select("amount, metadata")
@@ -335,10 +341,17 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect, a
           return m.credit_card_id === card.id && m.cycle_key === cycleKey && m.kind === "credit_card_invoice_payment";
         })
         .reduce((s, r) => s + (Number(r.amount) || 0), 0);
-      if (!cancelled) setInvoiceLedgerPaid(Number(paid.toFixed(2)));
+      if (!cancelled) {
+        financeSetState("CreditCardInvoice", "invoiceLedgerPaid", { value: Number(paid.toFixed(2)), rows: ((data as any[]) ?? []).length });
+        setInvoiceLedgerPaid(Number(paid.toFixed(2)));
+        financeFetchSuccess("CreditCardInvoice", "account_ledger", { rows: ((data as any[]) ?? []).length, paid: Number(paid.toFixed(2)) });
+      }
     };
     loadInvoiceLedgerPaid();
-    const onChanged = () => loadInvoiceLedgerPaid();
+    const onChanged = () => {
+      financeInvalidate("CreditCardInvoice", "account_ledger", { event: "ledger:changed" });
+      loadInvoiceLedgerPaid();
+    };
     window.addEventListener("ledger:changed", onChanged);
     return () => {
       cancelled = true;
