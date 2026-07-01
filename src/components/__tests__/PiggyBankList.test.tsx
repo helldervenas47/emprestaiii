@@ -170,4 +170,38 @@ describe("PiggyBankList", () => {
     const patch = createPiggyBank.mock.calls[0][0];
     expect(patch.name).toBe("Nova caixinha");
   });
+
+  it("abre o modal de edição com dados preenchidos ao clicar em Editar no card", () => {
+    renderList();
+
+    // Botão de editar (ícone lápis) exposto por aria-label acessível.
+    const editBtn = screen.getByRole("button", { name: /editar reserva de emergência/i });
+    fireEvent.click(editBtn);
+
+    const dialog = screen.getByRole("dialog");
+    // Título indica modo edição.
+    expect(within(dialog).getByText(/editar cofrinho/i)).toBeInTheDocument();
+    // Campo Nome já vem preenchido com o cofrinho clicado.
+    const nameInput = within(dialog).getByLabelText(/nome/i) as HTMLInputElement;
+    expect(nameInput.value).toBe("Reserva de Emergência");
+  });
+
+  it("chama updatePiggyBank ao salvar edição a partir do card", () => {
+    renderList();
+
+    fireEvent.click(screen.getByRole("button", { name: /editar reserva de emergência/i }));
+
+    const dialog = screen.getByRole("dialog");
+    const nameInput = within(dialog).getByLabelText(/nome/i);
+    fireEvent.change(nameInput, { target: { value: "Reserva Atualizada" } });
+
+    fireEvent.click(within(dialog).getByRole("button", { name: /salvar/i }));
+
+    expect(updatePiggyBank).toHaveBeenCalledTimes(1);
+    const [id, patch] = updatePiggyBank.mock.calls[0];
+    expect(id).toBe("pb-1");
+    expect(patch.name).toBe("Reserva Atualizada");
+    // createPiggyBank NÃO deve ser chamado no fluxo de edição.
+    expect(createPiggyBank).not.toHaveBeenCalled();
+  });
 });
