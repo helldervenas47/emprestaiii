@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -34,110 +35,78 @@ type PlanEntitlementRow = PlanLite & {
   sort_order?: number | null;
 };
 
+interface EntitlementsData {
+  plan: PlanLite | null;
+  trialStartedAt: Date | null;
+}
+
+export const planEntitlementsQueryKey = (
+  userId: string | null,
+  subscriptionProductId: string | null,
+) => ["plan-entitlements", userId, subscriptionProductId ?? "free"] as const;
+
 export function usePlanEntitlements() {
   const { user, dataOwnerId, loading: authLoading } = useAuth();
   const { subscription, isActive, loading: subscriptionLoading } = useSubscription();
-  const [plan, setPlan] = useState<PlanLite | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [trialStartedAt, setTrialStartedAt] = useState<Date | null>(null);
   const effectiveUserId = dataOwnerId ?? user?.id ?? null;
-  const lastOwnerKeyRef = useRef<string | null>(null);
-  const fetchCountRef = useRef(0);
+  const subscriptionProductId = subscription?.product_id ?? null;
 
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    if (lastOwnerKeyRef.current === effectiveUserId) return;
-    console.debug("[OwnerKey transition]", {
-      hook: "usePlanEntitlements",
-      oldOwnerKey: lastOwnerKeyRef.current,
-      newOwnerKey: effectiveUserId,
-      queryKey: ["plans", "profiles", effectiveUserId ?? "anon", subscription?.product_id ?? null],
-      authLoading,
-      subscriptionLoading,
-      userId: user?.id ?? null,
-      dataOwnerId,
-    });
-    lastOwnerKeyRef.current = effectiveUserId;
-  }, [authLoading, dataOwnerId, effectiveUserId, subscription?.product_id, subscriptionLoading, user?.id]);
-
-  useEffect(() => {
-    let cancel = false;
-    (async () => {
-      setLoading(true);
-      if (authLoading) return;
-      fetchCountRef.current += 1;
-      if (import.meta.env.DEV) {
-        console.debug("[OwnerKey fetch:start]", {
-          hook: "usePlanEntitlements",
-          count: fetchCountRef.current,
-          ownerKey: effectiveUserId,
-          queryKey: ["plans", "profiles", effectiveUserId ?? "anon", subscription?.product_id ?? null],
-        });
-      }
-
+  const { data, isLoading } = useQuery<EntitlementsData>({
+    queryKey: planEntitlementsQueryKey(effectiveUserId, subscriptionProductId),
+    enabled: !authLoading && !subscriptionLoading && !!effectiveUserId,
+    queryFn: async () => {
       const [{ data: allPlans }, profileRes] = await Promise.all([
         supabase
           .from("plans")
           .select("id, name, trial_days, limits, permissions, allowed_tabs, expiration_action, active, sort_order")
           .eq("active", true)
           .order("sort_order", { ascending: true }),
-        effectiveUserId
-          ? supabase
-              .from("profiles")
-              .select("created_at, trial_plan_name, trial_started_at")
-              .eq("user_id", effectiveUserId)
-              .maybeSingle()
-          : Promise.resolve({ data: null }),
+        supabase
+          .from("profiles")
+          .select("created_at, trial_plan_name, trial_started_at")
+          .eq("user_id", effectiveUserId as string)
+          .maybeSingle(),
       ]);
 
       const list = (allPlans ?? []) as unknown as PlanEntitlementRow[];
       const prof = (profileRes?.data ?? null) as ProfilePlanFields | null;
       let picked: PlanEntitlementRow | null = null;
 
-      if (subscription?.product_id) {
-        picked = list.find((p) => (p.name || "").toLowerCase() === subscription.product_id.toLowerCase()) ?? null;
+      if (subscriptionProductId) {
+        picked = list.find((p) => (p.name || "").toLowerCase() === subscriptionProductId.toLowerCase()) ?? null;
       }
       if (!picked && prof?.trial_plan_name) {
         picked = list.find((p) => (p.name || "").toLowerCase() === String(prof.trial_plan_name).toLowerCase()) ?? null;
       }
       if (!picked) {
-        if (subscription?.product_id) {
-          console.warn(
-            "[usePlanEntitlements] Nenhum plano ativo encontrou product_id:",
-            subscription.product_id,
-            "— usando fallback list[0]. Verifique o campo 'name' dos planos no banco."
-          );
-        }
         picked = list[0] ?? null;
       }
 
-      if (!cancel) {
-        setPlan(
-          picked
-            ? {
-                id: picked.id,
-                name: picked.name,
-                trial_days: picked.trial_days ?? 0,
-                limits: picked.limits ?? {},
-                permissions: picked.permissions ?? {},
-                allowed_tabs: picked.allowed_tabs ?? null,
-                expiration_action: (picked.expiration_action ?? "force_upgrade") as ExpirationAction,
-              }
-            : null
-        );
-        const ts = prof?.trial_started_at || prof?.created_at || user?.created_at;
-        setTrialStartedAt(ts ? new Date(ts) : null);
-        setLoading(false);
-      }
-    })();
-    return () => { cancel = true; };
-  }, [effectiveUserId, user?.created_at, subscription?.product_id, authLoading]);
+      const plan: PlanLite | null = picked
+        ? {
+            id: picked.id,
+            name: picked.name,
+            trial_days: picked.trial_days ?? 0,
+            limits: picked.limits ?? {},
+            permissions: picked.permissions ?? {},
+            allowed_tabs: picked.allowed_tabs ?? null,
+            expiration_action: (picked.expiration_action ?? "force_upgrade") as ExpirationAction,
+          }
+        : null;
+
+      const ts = prof?.trial_started_at || prof?.created_at || user?.created_at;
+      return { plan, trialStartedAt: ts ? new Date(ts) : null };
+    },
+  });
+
+  const plan = data?.plan ?? null;
+  const trialStartedAt = data?.trialStartedAt ?? null;
+  const loading = authLoading || subscriptionLoading || (!!effectiveUserId && isLoading);
 
   const trial = useMemo(() => {
     const days = plan?.trial_days ?? 0;
     const action = plan?.expiration_action ?? "force_upgrade";
-    const stillResolving = authLoading || subscriptionLoading || loading;
-    if (!days || !trialStartedAt || stillResolving) {
+    if (!days || !trialStartedAt || loading) {
       return { active: false, daysLeft: 0, hoursLeft: 0, msLeft: 0, endsAt: null as Date | null, expired: false, expirationAction: action };
     }
     const endsAt = new Date(trialStartedAt.getTime() + days * 86400_000);
@@ -146,7 +115,7 @@ export function usePlanEntitlements() {
     const hoursLeft = Math.max(0, Math.ceil(msLeft / 3600_000));
     const expired = msLeft <= 0 && !isActive;
     return { active: !isActive && msLeft > 0, daysLeft, hoursLeft, msLeft: Math.max(0, msLeft), endsAt, expired, expirationAction: action };
-  }, [plan, trialStartedAt, isActive, authLoading, subscriptionLoading, loading]);
+  }, [plan, trialStartedAt, isActive, loading]);
 
   const lockdown = trial.expired && trial.expirationAction === "readonly";
 
@@ -160,7 +129,7 @@ export function usePlanEntitlements() {
   };
 
   return {
-    loading: loading || authLoading || subscriptionLoading,
+    loading,
     plan, limits: plan?.limits ?? {}, permissions: plan?.permissions ?? {},
     allowedTabs: plan?.allowed_tabs ?? null, trial, can, withinLimit,
     isPaid: isActive, allKnownPermissions: ALL_PERMISSION_KEYS,
