@@ -7,9 +7,19 @@ import type { Database } from './types';
 export const USER_SUPABASE_URL = import.meta.env.VITE_EXTERNAL_SUPABASE_URL as string;
 export const USER_SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY as string;
 
-if (!USER_SUPABASE_URL || !USER_SUPABASE_PUBLISHABLE_KEY) {
-  throw new Error(
-    '[supabase] VITE_EXTERNAL_SUPABASE_URL e VITE_EXTERNAL_SUPABASE_ANON_KEY são obrigatórios no .env. Não use VITE_SUPABASE_URL (Lovable Cloud).',
+export const MISSING_SUPABASE_ENV: string[] = [
+  !USER_SUPABASE_URL && "VITE_EXTERNAL_SUPABASE_URL",
+  !USER_SUPABASE_PUBLISHABLE_KEY && "VITE_EXTERNAL_SUPABASE_ANON_KEY",
+].filter(Boolean) as string[];
+
+export const IS_SUPABASE_CONFIGURED = MISSING_SUPABASE_ENV.length === 0;
+
+if (!IS_SUPABASE_CONFIGURED && import.meta.env.DEV) {
+  // eslint-disable-next-line no-console
+  console.error(
+    "[supabase] Variáveis de ambiente ausentes:",
+    MISSING_SUPABASE_ENV.join(", "),
+    "\nDefina-as no .env (veja .env.example). Não use VITE_SUPABASE_URL (Lovable Cloud).",
   );
 }
 
