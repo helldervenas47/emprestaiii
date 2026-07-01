@@ -84,10 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = accessToken ?? (await supabase.auth.getSession()).data.session?.access_token;
       if (token) {
         let ensuredRole: { role?: string } | null = null;
+        let ensureRoleFailed = false;
         try {
           ensuredRole = await invokeExternalFunction<{ role?: string }>("ensure-user-role", token, { role: "cliente" });
-        } catch (ensureRoleError) {
-          console.error("[useAuth] ensure-user-role error:", ensureRoleError);
+        } catch (ensureRoleError: any) {
+          ensureRoleFailed = true;
+          console.error("[useAuth] ensure-user-role error:", ensureRoleError?.message || ensureRoleError);
         }
         const retry = await supabase
           .from("user_roles")
@@ -97,6 +99,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         roles = (data ?? []).map((r: any) => r.role as string);
         if (roles.length === 0 && ensuredRole?.role) {
           roles = [ensuredRole.role as string];
+        }
+        // Fallback seguro: se a Edge Function falhou/timeout e nada foi resolvido,
+        // assume "cliente" para não travar o app no loading.
+        if (roles.length === 0 && ensureRoleFailed) {
+          console.error("[useAuth] falling back to role 'cliente' after ensure-user-role failure");
+          setRole("cliente");
+          return;
         }
       }
     }
