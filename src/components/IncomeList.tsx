@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { useIncomes, Income, IncomeStatus } from "@/hooks/useIncomes";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useClients } from "@/hooks/useClients";
@@ -23,7 +23,9 @@ import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { MonthTransactionsSheet } from "./MonthTransactionsSheet";
 import { FinancialStatement } from "./FinancialStatement";
 import { PiggyBanksSummaryCard } from "./PiggyBanksSummaryCard";
-import { IncomeTelegramBotButton } from "./IncomeTelegramBotButton";
+const IncomeTelegramBotButton = lazy(() =>
+  import("./IncomeTelegramBotButton").then((m) => ({ default: m.IncomeTelegramBotButton })),
+);
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Plus, Search, Copy, Pencil, Trash2, CheckCircle2, Clock, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, CalendarCheck, ChevronDown } from "lucide-react";
 import { RowActions } from "@/components/ui/row-actions";
@@ -190,7 +192,11 @@ export function IncomeList({ readOnly }: Props) {
         onOpenPendingIncomes={() => { setSheetInitialFilter("pending"); setSheetType("incomes"); }}
         onOpenPendingExpenses={() => { setSheetInitialFilter("pending"); setSheetType("expenses"); }}
         onOpenStatement={() => setStatementOpen(true)}
-        statementLeftSlot={!readOnly ? <IncomeTelegramBotButton /> : undefined}
+        statementLeftSlot={!readOnly ? (
+          <Suspense fallback={null}>
+            <IncomeTelegramBotButton />
+          </Suspense>
+        ) : undefined}
         onAdjust={async (delta) => {
           if (!delta) return;
           const today = todayInAppTz();
