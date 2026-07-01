@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import * as LucideIcons from "lucide-react";
+import { lazy, Suspense, useMemo } from "react";
+import dynamicIconImports from "lucide-react/dynamicIconImports";
 import { Banknote, CreditCard } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -16,10 +16,28 @@ interface Props {
   showError?: boolean;
 }
 
-function getIcon(name: string | null) {
-  if (!name) return CreditCard;
-  const Icon = (LucideIcons as any)[name];
-  return Icon || CreditCard;
+// Converte "CreditCard" (PascalCase) -> "credit-card" (kebab-case) usado por dynamicIconImports
+function toKebab(name: string): string {
+  return name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+}
+
+const iconCache = new Map<string, React.LazyExoticComponent<React.ComponentType<{ className?: string }>>>();
+
+function DynamicIcon({ name, className }: { name: string | null; className?: string }) {
+  if (!name) return <CreditCard className={className} />;
+  const key = toKebab(name);
+  const loader = (dynamicIconImports as Record<string, () => Promise<{ default: React.ComponentType<{ className?: string }> }>>)[key];
+  if (!loader) return <CreditCard className={className} />;
+  let Comp = iconCache.get(key);
+  if (!Comp) {
+    Comp = lazy(loader);
+    iconCache.set(key, Comp);
+  }
+  return (
+    <Suspense fallback={<CreditCard className={className} />}>
+      <Comp className={className} />
+    </Suspense>
+  );
 }
 
 export function PaymentMethodPicker({ value, onChange, required, label = "Forma de pagamento", className, showError }: Props) {
@@ -38,7 +56,6 @@ export function PaymentMethodPicker({ value, onChange, required, label = "Forma 
       </Label>
       <div className="flex flex-wrap gap-2">
         {methods.map((m) => {
-          const Icon = getIcon(m.icon);
           const selected = m.id === value;
           return (
             <button
@@ -52,7 +69,7 @@ export function PaymentMethodPicker({ value, onChange, required, label = "Forma 
                   : "border-input bg-background hover:bg-accent",
               )}
             >
-              <Icon className="h-4 w-4" />
+              <DynamicIcon name={m.icon} className="h-4 w-4" />
               <span>{m.name}</span>
               {m.kind === "cash" ? (
                 <Banknote className={cn("h-3.5 w-3.5", selected ? "opacity-90" : "text-success")} />
