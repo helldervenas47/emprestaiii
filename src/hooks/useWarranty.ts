@@ -150,7 +150,7 @@ export function useWarranty(saleId: string | undefined) {
       status: "aberta",
       reason: input.reason ?? null,
       notes: input.notes ?? null,
-    } as any).select("*").single();
+    } as any).select(WARRANTY_CASE_COLUMNS).single();
     if (error || !data) throw new Error(error?.message || "Falha ao abrir garantia");
     const created = mapCase(data);
     if (input.items.length > 0) {
