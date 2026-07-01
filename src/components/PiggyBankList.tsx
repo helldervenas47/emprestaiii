@@ -215,7 +215,6 @@ export function PiggyBankList({ readOnly = false }: Props) {
     }
 
     if (editing) {
-      console.log("[EditarCofrinho] submetendo edição. id:", editing.id);
       const ok = await updatePiggyBank(editing.id, {
         name: draft.name.trim(),
         color: draft.color,
@@ -226,7 +225,6 @@ export function PiggyBankList({ readOnly = false }: Props) {
         category,
         targetDate,
       });
-      console.log("[EditarCofrinho] updatePiggyBank ok?", ok);
       if (!ok) {
         // Mantém o modal aberto para o usuário tentar de novo.
         return;
