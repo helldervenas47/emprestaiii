@@ -698,7 +698,6 @@ const Index = () => {
       authLoading: loading,
       userId: user?.id ?? null,
       role,
-      dataOwnerId: user ? undefined : null,
       visibleTabs: visibleTabs.map((item) => item.id),
       tabAccessDenied,
     });
