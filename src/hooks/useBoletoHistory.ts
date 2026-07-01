@@ -44,7 +44,7 @@ export function useBoletoHistory() {
     setLoading(true);
     const { data, error } = await supabase
       .from("boleto_lookups")
-      .select("*")
+      .select(BOLETO_LOOKUP_COLUMNS)
       .order("parsed_at", { ascending: false })
       .limit(MAX);
     setLoading(false);
