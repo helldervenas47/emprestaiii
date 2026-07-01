@@ -62,7 +62,7 @@ import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext"
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 // Lazy load heavy components
 const HelpChat = lazy(() => import("@/components/HelpChat"));
@@ -389,10 +389,14 @@ const Index = () => {
   const { signOut, role, allowedTabs, linkedClientIds, loading, user } = useAuth();
   const roleAllowedTabs = useMyRoleTabs(role);
   const navigate = useNavigate();
+  const location = useLocation();
   const { subscription, isActive: hasActiveSub } = useSubscription();
   const { branding: appBranding } = useAppBranding();
   const brandName = appBranding.brand_name;
   const preserveScrollYRef = useRef<number | null>(null);
+  const indexMountIdRef = useRef(`index-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const lastIndexBootLogRef = useRef<string>("");
+  const lastVisibleTabsSignatureRef = useRef<string>("");
   
   const [preservedPageHeight, setPreservedPageHeight] = useState<number | null>(null);
 
@@ -408,6 +412,16 @@ const Index = () => {
     return isMobileViewport ? "dashboard" : "overview";
   });
   const setTab = (t: Tab) => {
+    if (import.meta.env.DEV) {
+      console.debug("[Index setTab]", {
+        mountId: indexMountIdRef.current,
+        route: `${location.pathname}${location.search}`,
+        from: tab,
+        to: t,
+        sameTab: t === tab,
+        userId: user?.id ?? null,
+      });
+    }
     sessionStorage.setItem("activeTab", t);
     if (t === tab) {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -417,6 +431,26 @@ const Index = () => {
     setPreservedPageHeight(document.documentElement.scrollHeight || document.body.scrollHeight || null);
     setTabState(t);
   };
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    console.debug("[Index lifecycle]", {
+      event: "mount",
+      mountId: indexMountIdRef.current,
+      route: `${location.pathname}${location.search}`,
+      initialTab: tab,
+      userId: user?.id ?? null,
+    });
+    return () => {
+      console.debug("[Index lifecycle]", {
+        event: "unmount",
+        mountId: indexMountIdRef.current,
+        route: `${location.pathname}${location.search}`,
+        lastTab: tab,
+        userId: user?.id ?? null,
+      });
+    };
+  }, []);
 
   useLayoutEffect(() => {
     const y = preserveScrollYRef.current;
@@ -683,6 +717,8 @@ const Index = () => {
     if (Array.isArray(allowedTabs) && !isLegacyClientPlanTabs) return allowedTabs.includes(t.id);
     return true;
   });
+  const visibleTabIds = visibleTabs.map((t) => t.id);
+  const visibleTabsSignature = visibleTabIds.join("|");
 
   const isAjudaAllowed = !loading && !!user;
 
@@ -690,6 +726,40 @@ const Index = () => {
   // Tab existe na configuração geral mas o usuário não tem permissão →
   // exibimos página de "acesso negado" em vez de redirecionar silenciosamente.
   const tabAccessDenied = !loading && tabConfig.some((t) => t.id === tab) && !visibleTabs.some((t) => t.id === tab);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const previousSignature = lastVisibleTabsSignatureRef.current;
+    const snapshot = JSON.stringify({
+      mountId: indexMountIdRef.current,
+      route: `${location.pathname}${location.search}`,
+      tab,
+      authLoading: loading,
+      userId: user?.id ?? null,
+      role,
+      allowedTabs,
+      roleAllowedTabs,
+      visibleTabs: visibleTabIds,
+      visibleTabsSignature,
+      visibleTabsChanged: previousSignature !== visibleTabsSignature,
+      tabAccessDenied,
+    });
+    lastVisibleTabsSignatureRef.current = visibleTabsSignature;
+    if (snapshot === lastIndexBootLogRef.current) return;
+    lastIndexBootLogRef.current = snapshot;
+    console.debug("[Index boot]", JSON.parse(snapshot));
+  }, [
+    allowedTabs,
+    loading,
+    location.pathname,
+    location.search,
+    role,
+    roleAllowedTabs,
+    tab,
+    tabAccessDenied,
+    user?.id,
+    visibleTabsSignature,
+  ]);
 
 
   // Itens da barra inferior mobile: prioriza pinnedTabs (ordem do usuário),
@@ -704,6 +774,18 @@ const Index = () => {
   const bottomItemIds = bottomItems.map((i) => i.id);
 
   useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.debug("[Index tab guard effect]", {
+        mountId: indexMountIdRef.current,
+        route: `${location.pathname}${location.search}`,
+        tab,
+        visibleTabs: visibleTabIds,
+        visibleTabsSignature,
+        currentTabExistsInConfig: tabConfig.some((item) => item.id === tab),
+        willSetTab: visibleTabs.length > 0 && !tabConfig.some((item) => item.id === tab),
+        fallbackTab: visibleTabs[0]?.id ?? null,
+      });
+    }
     // Só redireciona se a aba atual sumiu da configuração (ex: feature removida).
     // Se existe na configuração mas o usuário não tem permissão, mantemos
     // a aba selecionada para renderizar a tela de "acesso negado".
