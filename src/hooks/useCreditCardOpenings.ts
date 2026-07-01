@@ -66,7 +66,7 @@ export function cycleKeyFromDate(closingTo: Date): string {
 // esse evento e recarregam.
 const OPENINGS_CHANGED_EVENT = "openings:changed";
 const CREDIT_CARD_OPENING_COLUMNS =
-  "id, card_id, credit_card_id, cycle_key, month_label, opening_amount, opening_balance, notes";
+  "id, card_id, credit_card_id, cycle_key, month_label, opening_balance, notes";
 type LedgerPaymentMeta = { amount: number; paidDate: string; isFull: boolean };
 
 function notifyOpeningsChanged() {
@@ -92,7 +92,10 @@ export function useCreditCardOpenings() {
         .eq("metadata->>kind", "credit_card_invoice_payment"),
     ]);
     if (error) {
+      console.error("[useCreditCardOpenings] load error", error);
       toast.error("Erro ao carregar faturas iniciais");
+      setOpenings([]);
+      setLedgerPayments({});
       setLoading(false);
       return;
     }
@@ -196,7 +199,6 @@ export function useCreditCardOpenings() {
           credit_card_id: cardId,
           cycle_key: cycleKey,
           month_label: cycleKey,
-          opening_amount: amount,
           opening_balance: amount,
           notes: notes ?? null,
         },
