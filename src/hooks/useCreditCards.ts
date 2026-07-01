@@ -53,7 +53,7 @@ export function useCreditCards() {
     if (!ownerId) return;
     const { data, error } = await supabase
       .from("credit_cards")
-      .select("*")
+      .select(CREDIT_CARD_COLUMNS)
       .order("created_at", { ascending: true });
     if (error) {
       toast.error("Erro ao carregar cartões");
