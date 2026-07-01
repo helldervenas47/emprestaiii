@@ -101,9 +101,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       const best = roles.sort(
-      (a, b) => (ROLE_PRIORITY[b] ?? 0) - (ROLE_PRIORITY[a] ?? 0),
-    )[0];
-    setRole((best as AppRole) ?? null);
+        (a, b) => (ROLE_PRIORITY[b] ?? 0) - (ROLE_PRIORITY[a] ?? 0),
+      )[0];
+      setRole((best as AppRole) ?? "cliente");
+    } catch (error) {
+      console.error("[useAuth] fetchRole error:", error);
+      setRole("cliente");
+    }
   };
 
   const fetchDataOwner = async (userId: string) => {
