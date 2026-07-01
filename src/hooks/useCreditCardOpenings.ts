@@ -199,7 +199,6 @@ export function useCreditCardOpenings() {
           credit_card_id: cardId,
           cycle_key: cycleKey,
           month_label: cycleKey,
-          opening_amount: amount,
           opening_balance: amount,
           notes: notes ?? null,
         },
