@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const seedingInFlight = new Set<string>();
 const seededOwners = new Set<string>();
@@ -31,85 +32,107 @@ function rowToMethod(r: any): PaymentMethod {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Fase 7 — TanStack Query shared cache para payment_methods.
+// ---------------------------------------------------------------------------
+export function paymentMethodsQueryKey(ownerKey: string | null | undefined) {
+  return ["payment-methods", ownerKey ?? "anon"] as const;
+}
+
+export async function fetchPaymentMethodsData(
+  ownerId?: string | null,
+): Promise<PaymentMethod[]> {
+  const { data, error } = await supabase
+    .from("payment_methods" as any)
+    .select(PAYMENT_METHOD_COLUMNS)
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+  if (error || !data) return [];
+  let rows = data as any[];
+
+  // Seed defaults for new users (only when this user owns the data)
+  if (
+    rows.length === 0 &&
+    ownerId &&
+    !seededOwners.has(ownerId) &&
+    !seedingInFlight.has(ownerId)
+  ) {
+    seedingInFlight.add(ownerId);
+    try {
+      // Re-check inside the lock to avoid double seeding across tabs/renders
+      const { data: recheck } = await supabase
+        .from("payment_methods" as any)
+        .select("id")
+        .eq("user_id", ownerId)
+        .limit(1);
+      if (!recheck || recheck.length === 0) {
+        const defaults = [
+          { name: "Pix", kind: "account", active: true, sort_order: 1 },
+          { name: "Dinheiro", kind: "cash", active: true, sort_order: 2 },
+          { name: "Transferência", kind: "account", active: false, sort_order: 3 },
+          { name: "Cartão", kind: "account", active: false, sort_order: 4 },
+          { name: "Boleto", kind: "account", active: false, sort_order: 5 },
+        ].map((m) => ({ ...m, user_id: ownerId, icon: null }));
+        const { data: inserted, error: insErr } = await supabase
+          .from("payment_methods" as any)
+          .insert(defaults as any)
+          .select(PAYMENT_METHOD_COLUMNS);
+        if (!insErr && inserted) rows = inserted as any[];
+      } else {
+        const { data: refetched } = await supabase
+          .from("payment_methods" as any)
+          .select(PAYMENT_METHOD_COLUMNS)
+          .order("sort_order", { ascending: true })
+          .order("name", { ascending: true });
+        if (refetched) rows = refetched as any[];
+      }
+      seededOwners.add(ownerId);
+    } finally {
+      seedingInFlight.delete(ownerId);
+    }
+  }
+
+  return rows.map(rowToMethod);
+}
+
 export function usePaymentMethods(enabled = true) {
   const { user, dataOwnerId } = useAuth();
-  const [methods, setMethods] = useState<PaymentMethod[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const ownerKey = dataOwnerId ?? user?.id ?? null;
+  const canSeedOwnerId = dataOwnerId && dataOwnerId === user?.id ? dataOwnerId : null;
+
+  const methodsQuery = useQuery({
+    queryKey: paymentMethodsQueryKey(ownerKey),
+    queryFn: () => fetchPaymentMethodsData(canSeedOwnerId),
+    enabled: !!user && enabled,
+    staleTime: 30_000,
+  });
+
+  const methods = methodsQuery.data ?? [];
+  const loading = methodsQuery.isLoading;
+
+  const invalidate = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: paymentMethodsQueryKey(ownerKey) });
+  }, [queryClient, ownerKey]);
 
   const fetchMethods = useCallback(async () => {
     assertWritable();
     if (!user) return;
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("payment_methods" as any)
-      .select(PAYMENT_METHOD_COLUMNS)
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true });
-    if (!error && data) {
-      let rows = data as any[];
-      // Seed defaults for new users (only when this user owns the data)
-      if (
-        rows.length === 0 &&
-        dataOwnerId &&
-        dataOwnerId === user.id &&
-        !seededOwners.has(dataOwnerId) &&
-        !seedingInFlight.has(dataOwnerId)
-      ) {
-        seedingInFlight.add(dataOwnerId);
-        try {
-          // Re-check inside the lock to avoid double seeding across tabs/renders
-          const { data: recheck } = await supabase
-            .from("payment_methods" as any)
-            .select("id")
-            .eq("user_id", dataOwnerId)
-            .limit(1);
-          if (!recheck || recheck.length === 0) {
-            const defaults = [
-              { name: "Pix", kind: "account", active: true, sort_order: 1 },
-              { name: "Dinheiro", kind: "cash", active: true, sort_order: 2 },
-              { name: "Transferência", kind: "account", active: false, sort_order: 3 },
-              { name: "Cartão", kind: "account", active: false, sort_order: 4 },
-              { name: "Boleto", kind: "account", active: false, sort_order: 5 },
-            ].map((m) => ({ ...m, user_id: dataOwnerId, icon: null }));
-            const { data: inserted, error: insErr } = await supabase
-              .from("payment_methods" as any)
-              .insert(defaults as any)
-              .select(PAYMENT_METHOD_COLUMNS);
-            if (!insErr && inserted) rows = inserted as any[];
-          } else {
-            const { data: refetched } = await supabase
-              .from("payment_methods" as any)
-              .select(PAYMENT_METHOD_COLUMNS)
-              .order("sort_order", { ascending: true })
-              .order("name", { ascending: true });
-            if (refetched) rows = refetched as any[];
-          }
-          seededOwners.add(dataOwnerId);
-        } finally {
-          seedingInFlight.delete(dataOwnerId);
-        }
-      }
-      setMethods(rows.map(rowToMethod));
-    }
-    setLoading(false);
-  }, [user, dataOwnerId]);
+    await queryClient.invalidateQueries({ queryKey: paymentMethodsQueryKey(ownerKey) });
+  }, [queryClient, user, ownerKey]);
 
   useEffect(() => {
-    if (enabled) fetchMethods();
-  }, [enabled, fetchMethods]);
-
-  useEffect(() => {
-    if (!user) return;
+    if (!user || !enabled) return;
     const channel = supabase
       .channel(`payment-methods-${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "payment_methods" }, () => {
-        fetchMethods();
+        queryClient.invalidateQueries({ queryKey: paymentMethodsQueryKey(ownerKey) });
       })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, fetchMethods]);
+  }, [user, queryClient, ownerKey, enabled]);
 
   const add = useCallback(
     async (name: string, icon?: string, kind: PaymentMethodKind = "account") => {
@@ -131,9 +154,9 @@ export function usePaymentMethods(enabled = true) {
         return;
       }
       toast.success("Forma de pagamento criada");
-      fetchMethods();
+      invalidate();
     },
-    [user, dataOwnerId, methods, fetchMethods],
+    [user, dataOwnerId, methods, invalidate],
   );
 
   const update = useCallback(
@@ -150,9 +173,9 @@ export function usePaymentMethods(enabled = true) {
         toast.error("Erro ao atualizar forma de pagamento");
         return;
       }
-      fetchMethods();
+      invalidate();
     },
-    [fetchMethods],
+    [invalidate],
   );
 
   const remove = useCallback(
@@ -164,10 +187,18 @@ export function usePaymentMethods(enabled = true) {
         return;
       }
       toast.success("Forma de pagamento excluída");
-      fetchMethods();
+      invalidate();
     },
-    [fetchMethods],
+    [invalidate],
   );
 
-  return { methods, activeMethods: methods.filter((m) => m.active), loading, add, update, remove, refetch: fetchMethods };
+  return {
+    methods,
+    activeMethods: methods.filter((m) => m.active),
+    loading,
+    add,
+    update,
+    remove,
+    refetch: fetchMethods,
+  };
 }
