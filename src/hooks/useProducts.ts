@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/userClient";
 import { Product, Sale, BusinessType, SalePaymentRecord } from "@/types/loan";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,121 +11,127 @@ const PRODUCT_COLUMNS =
 const SALE_COLUMNS =
   "id, product_id, description, quantity, total, customer_name, sale_date, notes, business_type, payment_mode, installments, paid_installments, frequency, installment_value, installment_amounts, installment_dates, partial_paid, payment_history, locador_id, category";
 
+function rowToProduct(p: any): Product {
+  return {
+    id: p.id, name: p.name, description: p.description || "",
+    price: Number(p.price), cost: Number(p.cost || 0),
+    lastPurchasePrice: Number(p.last_purchase_price || 0),
+    suggestedStock: Number(p.suggested_stock || 0),
+    stock: p.stock, active: p.active !== false, createdAt: p.created_at,
+  };
+}
 
+function rowToSale(s: any, prodMap: Map<string, string>): Sale {
+  return {
+    id: s.id,
+    productId: s.product_id || undefined,
+    productName: s.product_id ? (prodMap.get(s.product_id) || "Produto removido") : (s.description || ""),
+    description: s.description || "",
+    quantity: s.quantity,
+    unitPrice: 0,
+    cost: 0,
+    total: Number(s.total),
+    customerName: s.customer_name || "",
+    date: s.sale_date,
+    notes: (s as any).notes || "",
+    businessType: (s.business_type as BusinessType) || "venda",
+    paymentMode: ((s as any).payment_mode || "fixa") as "fixa" | "recorrente",
+    installments: (s as any).installments || 1,
+    paidInstallments: (s as any).paid_installments || 0,
+    downPayment: 0,
+    frequency: (s as any).frequency || "Mensal",
+    installmentValue: (s as any).installment_value != null ? Number((s as any).installment_value) : null,
+    installmentAmounts: (s as any).installment_amounts || null,
+    installmentDates: (s as any).installment_dates || null,
+    partialPaid: Number((s as any).partial_paid) || 0,
+    paymentHistory: (Array.isArray(s.payment_history) ? s.payment_history : []) as unknown as SalePaymentRecord[],
+    locadorId: s.locador_id || null,
+    category: (s as any).category || null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Fase 6 — TanStack Query shared cache para products/sales.
+// ---------------------------------------------------------------------------
+export async function fetchProductsData(): Promise<Product[]> {
+  const { data } = await supabase
+    .from("products").select(PRODUCT_COLUMNS).order("created_at", { ascending: false });
+  if (!data) return [];
+  return (data as any[]).map(rowToProduct);
+}
+
+export async function fetchSalesData(): Promise<{ sales: Sale[]; productNameMap: Record<string, string> }> {
+  const [prodRes, salesRes] = await Promise.all([
+    supabase.from("products").select("id, name"),
+    supabase.from("sales").select(SALE_COLUMNS).order("created_at", { ascending: false }),
+  ]);
+  const prodMap = new Map<string, string>(((prodRes.data as any[]) || []).map((p) => [p.id, p.name]));
+  const sales = salesRes.data ? (salesRes.data as any[]).map((s) => rowToSale(s, prodMap)) : [];
+  const productNameMap: Record<string, string> = {};
+  prodMap.forEach((v, k) => { productNameMap[k] = v; });
+  return { sales, productNameMap };
+}
+
+export function productsQueryKey(ownerKey: string | null | undefined) {
+  return ["products", ownerKey ?? "anon"] as const;
+}
+export function salesQueryKey(ownerKey: string | null | undefined) {
+  return ["sales", ownerKey ?? "anon"] as const;
+}
 
 export function useProducts(enabled = true) {
   const { user, dataOwnerId } = useAuth();
+  const queryClient = useQueryClient();
+  const ownerKey = dataOwnerId ?? user?.id ?? null;
+
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  const productsQuery = useQuery({
+    queryKey: productsQueryKey(ownerKey),
+    queryFn: fetchProductsData,
+    enabled: !!user && enabled,
+    staleTime: 30_000,
+  });
+  const salesQuery = useQuery({
+    queryKey: salesQueryKey(ownerKey),
+    queryFn: fetchSalesData,
+    enabled: !!user && enabled,
+    staleTime: 30_000,
+  });
 
   useEffect(() => {
-    if (!user || !enabled) return;
-    const fetchData = async () => {
-      setLoading(true);
-      const [prodRes, salesRes] = await Promise.all([
-        supabase.from("products").select(PRODUCT_COLUMNS).order("created_at", { ascending: false }),
-        supabase.from("sales").select(SALE_COLUMNS).order("created_at", { ascending: false }),
-      ]);
+    if (productsQuery.data) setProducts(productsQuery.data);
+  }, [productsQuery.data]);
+  useEffect(() => {
+    if (salesQuery.data) setSales(salesQuery.data.sales);
+  }, [salesQuery.data]);
 
-      if (prodRes.data) {
-        setProducts(prodRes.data.map((p: any) => ({
-          id: p.id, name: p.name, description: p.description || "",
-          price: Number(p.price), cost: Number(p.cost || 0),
-          lastPurchasePrice: Number(p.last_purchase_price || 0),
-          suggestedStock: Number(p.suggested_stock || 0),
-          stock: p.stock, active: p.active !== false, createdAt: p.created_at,
-        })));
-      }
+  const loading = productsQuery.isLoading || salesQuery.isLoading;
 
-      if (salesRes.data) {
-        const prodMap = new Map((prodRes.data || []).map((p) => [p.id, p.name]));
-        setSales(salesRes.data.map((s) => ({
-          id: s.id,
-          productId: s.product_id || undefined,
-          productName: s.product_id ? (prodMap.get(s.product_id) || "Produto removido") : (s.description || ""),
-          description: s.description || "",
-          quantity: s.quantity,
-          unitPrice: 0,
-          cost: 0,
-          total: Number(s.total),
-          customerName: s.customer_name || "",
-          date: s.sale_date,
-          notes: (s as any).notes || "",
-          businessType: (s.business_type as BusinessType) || "venda",
-          paymentMode: ((s as any).payment_mode || "fixa") as "fixa" | "recorrente",
-          installments: (s as any).installments || 1,
-          paidInstallments: (s as any).paid_installments || 0,
-          downPayment: 0,
-          frequency: (s as any).frequency || "Mensal",
-          installmentValue: (s as any).installment_value != null ? Number((s as any).installment_value) : null,
-          installmentAmounts: (s as any).installment_amounts || null,
-          installmentDates: (s as any).installment_dates || null,
-          partialPaid: Number((s as any).partial_paid) || 0,
-          paymentHistory: (Array.isArray(s.payment_history) ? s.payment_history : []) as unknown as SalePaymentRecord[],
-          locadorId: s.locador_id || null,
-          category: (s as any).category || null,
-        })));
-      }
-      setLoading(false);
-    };
-    fetchData();
-  }, [user, enabled]);
+  const invalidateProducts = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: productsQueryKey(ownerKey) });
+  }, [queryClient, ownerKey]);
+  const invalidateSales = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: salesQueryKey(ownerKey) });
+  }, [queryClient, ownerKey]);
 
-  // Realtime subscriptions for products and sales
+  // Realtime — invalida o cache correto por tabela
   useEffect(() => {
     if (!user || !enabled) return;
-    const fetchData = async () => {
-      const [prodRes, salesRes] = await Promise.all([
-        supabase.from("products").select(PRODUCT_COLUMNS).order("created_at", { ascending: false }),
-        supabase.from("sales").select(SALE_COLUMNS).order("created_at", { ascending: false }),
-      ]);
-      if (prodRes.data) {
-        setProducts(prodRes.data.map((p: any) => ({
-          id: p.id, name: p.name, description: p.description || "",
-          price: Number(p.price), cost: Number(p.cost || 0),
-          lastPurchasePrice: Number(p.last_purchase_price || 0),
-          suggestedStock: Number(p.suggested_stock || 0),
-          stock: p.stock, active: p.active !== false, createdAt: p.created_at,
-        })));
-      }
-      if (salesRes.data) {
-        const prodMap = new Map((prodRes.data || []).map((p) => [p.id, p.name]));
-        setSales(salesRes.data.map((s) => ({
-          id: s.id,
-          productId: s.product_id || undefined,
-          productName: s.product_id ? (prodMap.get(s.product_id) || "Produto removido") : (s.description || ""),
-          description: s.description || "",
-          quantity: s.quantity,
-          unitPrice: 0,
-          cost: 0,
-          total: Number(s.total),
-          customerName: s.customer_name || "",
-          date: s.sale_date,
-          notes: (s as any).notes || "",
-          businessType: (s.business_type as BusinessType) || "venda",
-          paymentMode: ((s as any).payment_mode || "fixa") as "fixa" | "recorrente",
-          installments: (s as any).installments || 1,
-          paidInstallments: (s as any).paid_installments || 0,
-          downPayment: 0,
-          frequency: (s as any).frequency || "Mensal",
-          installmentValue: (s as any).installment_value != null ? Number((s as any).installment_value) : null,
-          installmentAmounts: (s as any).installment_amounts || null,
-          installmentDates: (s as any).installment_dates || null,
-          partialPaid: Number((s as any).partial_paid) || 0,
-          paymentHistory: (Array.isArray(s.payment_history) ? s.payment_history : []) as unknown as SalePaymentRecord[],
-          locadorId: s.locador_id || null,
-          category: (s as any).category || null,
-        })));
-      }
-    };
     const channel = supabase
-      .channel(`products-sales-realtime-${user.id}-${Math.random().toString(36).slice(2, 8)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => { fetchData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => { fetchData(); })
+      .channel(`products-sales-realtime-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+        queryClient.invalidateQueries({ queryKey: productsQueryKey(ownerKey) });
+        // Sale mapping depende do nome do produto — refresca também.
+        queryClient.invalidateQueries({ queryKey: salesQueryKey(ownerKey) });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => {
+        queryClient.invalidateQueries({ queryKey: salesQueryKey(ownerKey) });
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, enabled]);
+  }, [user, queryClient, ownerKey, enabled]);
 
   const addProduct = useCallback(async (p: Omit<Product, "id" | "createdAt">) => {
     assertWritable();
@@ -149,7 +156,8 @@ export function useProducts(enabled = true) {
     } else if (data) {
       setProducts((prev) => prev.map((x) => x.id === tempId ? { ...x, id: data.id, createdAt: data.created_at } : x));
     }
-  }, [user, dataOwnerId]);
+    invalidateProducts();
+  }, [user, dataOwnerId, invalidateProducts]);
 
   const updateProduct = useCallback(async (id: string, data: Partial<Omit<Product, "id" | "createdAt">>) => {
     assertWritable();
@@ -165,7 +173,8 @@ export function useProducts(enabled = true) {
     if (data.suggestedStock !== undefined) updateData.suggested_stock = data.suggestedStock;
     if (data.active !== undefined) updateData.active = data.active;
     await supabase.from("products").update(updateData as any).eq("id", id);
-  }, [user]);
+    invalidateProducts();
+  }, [user, invalidateProducts]);
 
   const deleteProduct = useCallback(async (id: string) => {
     assertWritable();
@@ -175,7 +184,9 @@ export function useProducts(enabled = true) {
     // então o product_id da venda fica nulo, mas o histórico de venda é preservado.
     setSales((prev) => prev.map((s) => (s.productId === id ? { ...s, productId: undefined } : s)));
     await supabase.from("products").delete().eq("id", id);
-  }, [user]);
+    invalidateProducts();
+    invalidateSales();
+  }, [user, invalidateProducts, invalidateSales]);
 
 
   const addSale = useCallback(async (s: Omit<Sale, "id">) => {
@@ -279,7 +290,9 @@ export function useProducts(enabled = true) {
         }
       }
     }
-  }, [user, dataOwnerId, products]);
+    invalidateSales();
+    invalidateProducts();
+  }, [user, dataOwnerId, products, invalidateSales, invalidateProducts]);
 
 
   const updateSale = useCallback(async (id: string, data: Partial<Omit<Sale, "id">>) => {
@@ -309,7 +322,8 @@ export function useProducts(enabled = true) {
     if (data.locadorId !== undefined) updateData.locador_id = data.locadorId;
     if (data.category !== undefined) updateData.category = data.category;
     await supabase.from("sales").update(updateData as any).eq("id", id);
-  }, [user, sales]);
+    invalidateSales();
+  }, [user, sales, invalidateSales]);
 
   const deleteSale = useCallback(async (id: string) => {
     assertWritable();
@@ -328,7 +342,9 @@ export function useProducts(enabled = true) {
       }
     }
     await supabase.from("sales").delete().eq("id", id);
-  }, [user, sales, products]);
+    invalidateSales();
+    invalidateProducts();
+  }, [user, sales, products, invalidateSales, invalidateProducts]);
 
   return { products, sales, loading, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale };
 }
