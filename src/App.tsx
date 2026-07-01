@@ -62,36 +62,34 @@ function DevQueryLogger() {
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
-    const watchedPrefixes = [
-      "loans",
-      "payments",
-      "loan_installments",
-      "expenses",
-      "incomes",
-      "products",
-      "sales",
-      "clients",
-      "piggy-banks",
-      "piggy-bank-ledger",
-      "piggy-bank-market-rate",
-      "user_roles",
-      "user_approvals",
-      "profiles",
-      "subscriptions",
-      "plans",
-      "user_owner",
-      "account_settings",
-      "chart_overrides",
-      "user_client_permissions",
-      "personal_expense_categories",
-    ];
+
+    const debugState = ((window as any).__lovableSupabaseLoopDebug ??= {
+      invalidations: [] as any[],
+    });
+
+    const patchedFlag = "__lovableInvalidateLoggerPatched";
+    if (!(client as any)[patchedFlag]) {
+      const originalInvalidateQueries = client.invalidateQueries.bind(client);
+      (client as any).invalidateQueries = (...args: Parameters<typeof client.invalidateQueries>) => {
+        const stack = new Error("invalidateQueries caller").stack ?? "";
+        const entry = {
+          at: new Date().toISOString(),
+          queryKey: (args[0] as any)?.queryKey ?? null,
+          caller: pickAppCaller(stack),
+          stack,
+        };
+        debugState.invalidations.push(entry);
+        debugState.invalidations = debugState.invalidations.slice(-50);
+        console.warn("[TanStackQuery invalidateQueries]", entry);
+        return originalInvalidateQueries(...args);
+      };
+      (client as any)[patchedFlag] = true;
+    }
 
     return client.getQueryCache().subscribe((event) => {
       const query = (event as any)?.query;
       if (!query) return;
       const key = query.queryKey;
-      const root = Array.isArray(key) ? String(key[0]) : String(key);
-      if (!watchedPrefixes.includes(root)) return;
       const state = query.state;
       const snapshot = JSON.stringify({
         status: state.status,
@@ -105,6 +103,7 @@ function DevQueryLogger() {
       lastQuerySnapshotRef.current[hash] = snapshot;
       eventCountRef.current[hash] = (eventCountRef.current[hash] ?? 0) + 1;
       console.debug("[TanStackQuery event]", {
+        at: new Date().toISOString(),
         count: eventCountRef.current[hash],
         type: (event as any).type,
         actionType: (event as any).action?.type,
@@ -112,6 +111,8 @@ function DevQueryLogger() {
         status: state.status,
         fetchStatus: state.fetchStatus,
         isInvalidated: state.isInvalidated,
+        observerCount: typeof query.getObserversCount === "function" ? query.getObserversCount() : query.getObservers?.().length,
+        lastInvalidations: debugState.invalidations.slice(-5),
       });
     });
   }, [client]);
@@ -119,70 +120,132 @@ function DevQueryLogger() {
   return null;
 }
 
+function getSupabaseResource(rawUrl: string) {
+  try {
+    const url = new URL(rawUrl, window.location.origin);
+    const path = url.pathname;
+    const restIndex = path.indexOf("/rest/v1/");
+    if (url.hostname.includes("supabase.co") && restIndex >= 0) {
+      const tail = decodeURIComponent(path.slice(restIndex + "/rest/v1/".length));
+      const [kind, name] = tail.split("/");
+      if (kind === "rpc" && name) return { type: "rpc", resource: `rpc:${name}`, path };
+      return { type: "table", resource: kind || "unknown-table", path };
+    }
+    const functionsIndex = path.indexOf("/functions/v1/");
+    if (functionsIndex >= 0) {
+      const tail = decodeURIComponent(path.slice(functionsIndex + "/functions/v1/".length));
+      return { type: "function", resource: `function:${tail.split("/")[0] || "unknown-function"}`, path };
+    }
+  } catch {
+    // ignore malformed urls
+  }
+  return null;
+}
+
+function pickAppCaller(stack: string) {
+  const lines = stack.split("\n").map((line) => line.trim()).filter(Boolean);
+  return (
+    lines.find((line) => /src\/(hooks|components|pages|lib)\//.test(line) && !line.includes("DevNetworkLogger") && !line.includes("DevQueryLogger"))
+    ?? lines.find((line) => line.includes("src/"))
+    ?? lines[1]
+    ?? "unknown"
+  );
+}
+
+function shortStack(stack: string) {
+  return stack
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 8)
+    .join("\n");
+}
+
 function DevNetworkLogger() {
   useEffect(() => {
     if (!import.meta.env.DEV) return;
+    const patchedFlag = "__lovableSupabaseFetchLoggerPatched";
+    if ((window as any)[patchedFlag]) return;
+    (window as any)[patchedFlag] = true;
+
     const originalFetch = window.fetch.bind(window);
-    const watched = [
-      "/rest/v1/cofrinhos",
-      "/rest/v1/cofrinho_ledger",
-      "/rest/v1/cofrinho_aportes",
-      "/rest/v1/cofrinho_eventos",
-      "/rest/v1/taxa_referencia",
-      "/rest/v1/loans",
-      "/rest/v1/payments",
-      "/rest/v1/loan_installments",
-      "/rest/v1/expenses",
-      "/rest/v1/incomes",
-      "/rest/v1/products",
-      "/rest/v1/sales",
-      "/rest/v1/clients",
-      "/rest/v1/user_roles",
-      "/rest/v1/user_approvals",
-      "/rest/v1/profiles",
-      "/rest/v1/subscriptions",
-      "/rest/v1/plans",
-      "/rest/v1/user_owner",
-      "/rest/v1/account_settings",
-      "/rest/v1/chart_overrides",
-      "/rest/v1/user_client_permissions",
-      "/rest/v1/personal_expense_categories",
-      "/auth/v1/user",
-      "/auth/v1/token",
-      "/functions/v1/ensure-user-role",
-      "get_data_owner_id",
-    ];
-    const counts: Record<string, number> = {};
+    const debugState = ((window as any).__lovableSupabaseLoopDebug ??= {
+      invalidations: [] as any[],
+    });
+    debugState.requests ??= {} as Record<string, any[]>;
+    debugState.alerted ??= {} as Record<string, boolean>;
 
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const startedAt = performance.now();
       const rawUrl = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
-      const matched = watched.find((part) => rawUrl.includes(part));
       const method = init?.method ?? (typeof input === "object" && "method" in input ? (input as Request).method : "GET");
-      let label = matched ?? "";
-      if (matched === "get_data_owner_id") label = "/rest/v1/rpc/get_data_owner_id";
-      if (matched) {
-        counts[label] = (counts[label] ?? 0) + 1;
-        console.debug("[Network watch:start]", { count: counts[label], method, resource: label });
+      const target = getSupabaseResource(rawUrl);
+      let requestEntry: any = null;
+
+      if (target) {
+        const stack = new Error("Supabase request caller").stack ?? "";
+        const now = Date.now();
+        const bucket = (debugState.requests[target.resource] ?? []).filter((entry: any) => now - entry.ts <= 10_000);
+        requestEntry = {
+          ts: now,
+          at: new Date(now).toISOString(),
+          method,
+          resource: target.resource,
+          type: target.type,
+          caller: pickAppCaller(stack),
+          shortStack: shortStack(stack),
+          stack,
+        };
+        bucket.push(requestEntry);
+        debugState.requests[target.resource] = bucket;
+
+        console.debug("[Supabase request:start]", {
+          timestamp: requestEntry.at,
+          method,
+          resource: target.resource,
+          type: target.type,
+          count10s: bucket.length,
+          caller: requestEntry.caller,
+          stack: requestEntry.shortStack,
+        });
+
+        if (bucket.length > 20 && !debugState.alerted[target.resource]) {
+          debugState.alerted[target.resource] = true;
+          console.error("[Supabase request threshold exceeded]", {
+            resource: target.resource,
+            type: target.type,
+            count10s: bucket.length,
+            firstCaller: bucket[0]?.caller,
+            latestCaller: requestEntry.caller,
+            fullStack: stack,
+            last20Callers: bucket.slice(-20).map((entry: any) => ({
+              at: entry.at,
+              method: entry.method,
+              caller: entry.caller,
+              shortStack: entry.shortStack,
+            })),
+            last20Invalidations: (debugState.invalidations ?? []).slice(-20),
+          });
+        }
       }
       try {
         const response = await originalFetch(input as any, init);
-        if (matched) {
-          console.debug("[Network watch:end]", {
-            count: counts[label],
+        if (target && requestEntry) {
+          console.debug("[Supabase request:end]", {
+            timestamp: new Date().toISOString(),
             method,
-            resource: label,
+            resource: target.resource,
             status: response.status,
             ms: Math.round(performance.now() - startedAt),
           });
         }
         return response;
       } catch (error: any) {
-        if (matched) {
-          console.debug("[Network watch:error]", {
-            count: counts[label],
+        if (target) {
+          console.debug("[Supabase request:error]", {
+            timestamp: new Date().toISOString(),
             method,
-            resource: label,
+            resource: target.resource,
             ms: Math.round(performance.now() - startedAt),
             error: error?.message ?? String(error),
           });
@@ -193,6 +256,7 @@ function DevNetworkLogger() {
 
     return () => {
       window.fetch = originalFetch;
+      delete (window as any)[patchedFlag];
     };
   }, []);
 
