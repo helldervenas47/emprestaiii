@@ -13,6 +13,17 @@ import type {
 
 const BUCKET = "warranty-attachments";
 
+const WARRANTY_CASE_COLUMNS =
+  "id, sale_id, opened_by, status, reason, notes, opened_at, closed_at, created_at, updated_at";
+const WARRANTY_ITEM_COLUMNS =
+  "id, warranty_case_id, product_id, product_name, quantity, created_at";
+const WARRANTY_MOVEMENT_COLUMNS =
+  "id, warranty_case_id, warranty_item_id, performed_by, direction, product_id, quantity, notes, created_at";
+const WARRANTY_ATTACHMENT_COLUMNS =
+  "id, warranty_case_id, uploaded_by, file_path, file_name, mime_type, size_bytes, created_at";
+const WARRANTY_HISTORY_COLUMNS =
+  "id, warranty_case_id, actor_id, event, from_value, to_value, payload, created_at";
+
 // ---------- mappers ----------
 const mapCase = (r: any): WarrantyCase => ({
   id: r.id,
