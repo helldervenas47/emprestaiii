@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FileText, Search, Download } from "lucide-react";
-import { generatePayslipPdf } from "@/lib/payslipPdf";
+// generatePayslipPdf importado dinamicamente no handler.
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
