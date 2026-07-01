@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { displayIncomeCategory } from "@/lib/incomeCategory";
@@ -52,33 +53,61 @@ function rowToIncome(r: any): Income {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Fase 5 — TanStack Query shared cache para incomes.
+// ---------------------------------------------------------------------------
+export async function fetchIncomesData(): Promise<Income[]> {
+  const { data } = await supabase
+    .from("incomes" as any)
+    .select("id, description, amount, category, client_id, source, payment_method_id, received_date, actual_received_date, status, notes, recurrence, parent_id, created_at")
+    .order("received_date", { ascending: false })
+    .limit(5000); // safety cap
+  if (!data) return [];
+  return (data as any[]).map(rowToIncome);
+}
+
+export function incomesQueryKey(ownerKey: string | null | undefined) {
+  return ["incomes", ownerKey ?? "anon"] as const;
+}
+
 export function useIncomes(enabled = true) {
   const { user, dataOwnerId } = useAuth();
+  const queryClient = useQueryClient();
+  const ownerKey = dataOwnerId ?? user?.id ?? null;
   const [incomes, setIncomes] = useState<Income[]>([]);
-  const [loading, setLoading] = useState(false);
+
+  const incomesQuery = useQuery({
+    queryKey: incomesQueryKey(ownerKey),
+    queryFn: fetchIncomesData,
+    enabled: !!user && enabled,
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    if (incomesQuery.data) setIncomes(incomesQuery.data);
+  }, [incomesQuery.data]);
+
+  const loading = incomesQuery.isLoading;
 
   const fetch = useCallback(async () => {
     if (!user) return;
-    setLoading(true);
-    const { data } = await supabase
-      .from("incomes" as any)
-      .select("id, description, amount, category, client_id, source, payment_method_id, received_date, actual_received_date, status, notes, recurrence, parent_id, created_at")
-      .order("received_date", { ascending: false })
-      .limit(5000); // safety cap
-    if (data) setIncomes((data as any[]).map(rowToIncome));
-    setLoading(false);
-  }, [user]);
+    await queryClient.invalidateQueries({ queryKey: incomesQueryKey(ownerKey) });
+  }, [queryClient, user, ownerKey]);
 
-  useEffect(() => { if (enabled) fetch(); }, [fetch, enabled]);
+  const invalidate = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: incomesQueryKey(ownerKey) });
+  }, [queryClient, ownerKey]);
 
   useEffect(() => {
     if (!user || !enabled) return;
     const channel = supabase
-      .channel(`incomes-rt-${crypto.randomUUID()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "incomes" }, () => fetch())
+      .channel(`incomes-rt-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "incomes" }, () => {
+        queryClient.invalidateQueries({ queryKey: incomesQueryKey(ownerKey) });
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, fetch, enabled]);
+  }, [user, queryClient, ownerKey, enabled]);
 
   const insertSingle = useCallback(async (
     input: Omit<Income, "id" | "createdAt">,
@@ -192,12 +221,14 @@ export function useIncomes(enabled = true) {
       if (created.length > 0) {
         setIncomes((prev) => [...created, ...prev]);
       }
+      invalidate();
       return parent;
     }
     const inc = await insertSingle(input);
     if (inc) setIncomes((prev) => [inc, ...prev]);
+    invalidate();
     return inc;
-  }, [dataOwnerId, insertSingle]);
+  }, [dataOwnerId, insertSingle, invalidate]);
 
   const updateIncome = useCallback(async (id: string, patch: Partial<Income>) => {
     assertWritable();
@@ -216,7 +247,8 @@ export function useIncomes(enabled = true) {
 
     setIncomes((arr) => arr.map((i) => i.id === id ? { ...i, ...patch, category: patch.category !== undefined ? displayIncomeCategory(patch.category) : i.category } : i));
     await supabase.from("incomes" as any).update(updatePayload).eq("id", id);
-  }, []);
+    invalidate();
+  }, [invalidate]);
 
   const deleteIncome = useCallback(async (id: string, scope: "single" | "pending" | "all" = "single") => {
     assertWritable();
@@ -226,6 +258,7 @@ export function useIncomes(enabled = true) {
     if (scope === "single") {
       setIncomes((arr) => arr.filter((i) => i.id !== id));
       await supabase.from("incomes" as any).delete().eq("id", id);
+      invalidate();
       return;
     }
 
@@ -238,7 +271,8 @@ export function useIncomes(enabled = true) {
     if (seriesIds.length === 0) return;
     setIncomes((arr) => arr.filter((i) => !seriesIds.includes(i.id)));
     await supabase.from("incomes" as any).delete().in("id", seriesIds);
-  }, [incomes]);
+    invalidate();
+  }, [incomes, invalidate]);
 
   const duplicateIncome = useCallback(async (id: string) => {
     const src = incomes.find((i) => i.id === id);
