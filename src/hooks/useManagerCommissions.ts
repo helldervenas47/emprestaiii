@@ -39,7 +39,7 @@ export function useManagerCommissions(enabled: boolean = true) {
 
   useEffect(() => {
     if (!user || !enabled) return;
-    const channelName = `manager-commissions-realtime-${user.id}-${Math.random().toString(36).slice(2, 8)}`;
+    const channelName = `manager-commissions-realtime-${user.id}`;
     const channel = supabase
       .channel(channelName)
       .on(
