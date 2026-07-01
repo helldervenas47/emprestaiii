@@ -5,6 +5,9 @@ import { useDataOwner } from "@/hooks/useDataOwner";
 import { toast } from "sonner";
 import { assertWritable } from "@/lib/readOnlyState";
 
+const CREDIT_CARD_COLUMNS =
+  "id, nickname, bank, brand, last_four, credit_limit, closing_day, due_day, active";
+
 export interface CreditCard {
   id: string;
   nickname: string;
