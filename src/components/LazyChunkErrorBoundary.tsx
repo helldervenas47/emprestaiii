@@ -6,6 +6,7 @@ interface Props {
 
 interface State {
   error: Error | null;
+  diagnostics: string | null;
 }
 
 const LAZY_CHUNK_PATTERNS = [
@@ -19,6 +20,26 @@ const LAZY_CHUNK_PATTERNS = [
 function isLazyChunkError(error: Error): boolean {
   const msg = `${error?.message || ""}\n${error?.stack || ""}`;
   return LAZY_CHUNK_PATTERNS.some((re) => re.test(msg));
+}
+
+/**
+ * Extract the failing chunk URL from an error message/stack.
+ * Vite formats these errors as:
+ *   "Failed to fetch dynamically imported module: https://.../assets/IncomeList-abc.js"
+ */
+function extractChunkUrl(error: Error): string | null {
+  const text = `${error?.message || ""}\n${error?.stack || ""}`;
+  const match = text.match(/https?:\/\/[^\s'")]+\.(?:js|mjs|css)/i);
+  return match ? match[0] : null;
+}
+
+async function probeChunk(url: string): Promise<string> {
+  try {
+    const res = await fetch(url, { method: "GET", cache: "no-store" });
+    return `HTTP ${res.status} ${res.statusText} (content-type: ${res.headers.get("content-type") || "n/a"})`;
+  } catch (e: any) {
+    return `network error: ${e?.message || e}`;
+  }
 }
 
 async function clearCachesAndReload() {
@@ -40,16 +61,41 @@ async function clearCachesAndReload() {
 }
 
 export class LazyChunkErrorBoundary extends Component<Props, State> {
-  state: State = { error: null };
+  state: State = { error: null, diagnostics: null };
 
   static getDerivedStateFromError(error: Error): State {
-    return { error };
+    return { error, diagnostics: null };
   }
 
-  componentDidCatch(error: Error) {
+  async componentDidCatch(error: Error, info: React.ErrorInfo) {
     if (!isLazyChunkError(error)) return;
 
-    // Auto-reload once per session to try recovering from stale chunks
+    const chunkUrl = extractChunkUrl(error);
+    const probe = chunkUrl ? await probeChunk(chunkUrl) : "no URL found in error";
+
+    // Structured diagnostics (visible in DevTools + on-screen in dev)
+    const diag = {
+      message: error.message,
+      chunkUrl,
+      probe,
+      stack: error.stack,
+      componentStack: info?.componentStack,
+      href: window.location.href,
+      ua: navigator.userAgent,
+      swControlled: !!navigator.serviceWorker?.controller,
+      time: new Date().toISOString(),
+    };
+    // eslint-disable-next-line no-console
+    console.error("[LazyChunkErrorBoundary]", diag);
+    try {
+      (window as any).__LAZY_CHUNK_ERROR__ = diag;
+    } catch { /* noop */ }
+
+    this.setState({
+      diagnostics: `chunk: ${chunkUrl || "unknown"}\nprobe: ${probe}\nmessage: ${error.message}`,
+    });
+
+    // Auto-reload once per 30s to try recovering from stale chunks
     const KEY = "lazy-chunk-auto-reload";
     const last = Number(sessionStorage.getItem(KEY) || 0);
     if (Date.now() - last > 30_000) {
@@ -59,13 +105,15 @@ export class LazyChunkErrorBoundary extends Component<Props, State> {
   }
 
   render() {
-    const { error } = this.state;
+    const { error, diagnostics } = this.state;
     if (!error) return this.props.children;
     if (!isLazyChunkError(error)) throw error;
 
+    const isDev = import.meta.env.DEV;
+
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <div className="max-w-md w-full rounded-lg border border-border bg-card p-6 shadow-lg space-y-4">
+        <div className="max-w-xl w-full rounded-lg border border-border bg-card p-6 shadow-lg space-y-4">
           <div className="space-y-1">
             <h2 className="text-lg font-semibold text-foreground">
               Nova versão disponível
@@ -75,6 +123,11 @@ export class LazyChunkErrorBoundary extends Component<Props, State> {
               carregar os arquivos atualizados.
             </p>
           </div>
+          {isDev && diagnostics && (
+            <pre className="text-[11px] whitespace-pre-wrap break-all bg-muted p-3 rounded border border-border max-h-64 overflow-auto">
+              {diagnostics}
+            </pre>
+          )}
           <button
             type="button"
             onClick={clearCachesAndReload}
