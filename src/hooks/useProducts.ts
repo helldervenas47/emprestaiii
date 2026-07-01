@@ -76,8 +76,8 @@ export function useProducts(enabled = true) {
     if (!user || !enabled) return;
     const fetchData = async () => {
       const [prodRes, salesRes] = await Promise.all([
-        supabase.from("products").select("*").order("created_at", { ascending: false }),
-        supabase.from("sales").select("*").order("created_at", { ascending: false }),
+        supabase.from("products").select(PRODUCT_COLUMNS).order("created_at", { ascending: false }),
+        supabase.from("sales").select(SALE_COLUMNS).order("created_at", { ascending: false }),
       ]);
       if (prodRes.data) {
         setProducts(prodRes.data.map((p: any) => ({
