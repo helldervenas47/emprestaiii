@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Sale, BusinessType, Client, Expense } from "@/types/loan";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { addMonths, endOfMonth, format } from "date-fns";
@@ -101,7 +101,10 @@ export function ProductSalesView({
   const [selectedMonth, setSelectedMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
 
   // All vehicle-related expenses (used for "Limpar Pagamentos" actions)
-  const allVehicleExpenses = expenses.filter(isVehicleExpenseForVehicles);
+  const allVehicleExpenses = useMemo(
+    () => expenses.filter(isVehicleExpenseForVehicles),
+    [expenses],
+  );
 
   // Monthly vehicle expenses - consider installment due dates
   const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
@@ -112,28 +115,32 @@ export function ProductSalesView({
 
   // Filter expenses that have at least one due date inside the selected month
   // (considers recurring installments). Sum monthly total in the same pass.
-  let monthlyTotal = 0;
-  const vehicleExpenses = allVehicleExpenses.filter((exp) => {
-    const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
-    if (isRecorrente) {
-      const baseDate = new Date(exp.dueDate + "T00:00:00");
-      const installmentAmount = exp.amount / exp.installments!;
-      let hit = false;
-      for (let i = 0; i < exp.installments!; i++) {
-        const instDateStr = format(addMonths(baseDate, i), "yyyy-MM-dd");
-        if (instDateStr >= monthStartStr && instDateStr <= monthEndStr) {
-          monthlyTotal += installmentAmount;
-          hit = true;
+  const { vehicleExpenses, monthlyTotal } = useMemo(() => {
+    let total = 0;
+    const list = allVehicleExpenses.filter((exp) => {
+      const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
+      if (isRecorrente) {
+        const baseDate = new Date(exp.dueDate + "T00:00:00");
+        const installmentAmount = exp.amount / exp.installments!;
+        let hit = false;
+        for (let i = 0; i < exp.installments!; i++) {
+          const instDateStr = format(addMonths(baseDate, i), "yyyy-MM-dd");
+          if (instDateStr >= monthStartStr && instDateStr <= monthEndStr) {
+            total += installmentAmount;
+            hit = true;
+          }
         }
+        return hit;
       }
-      return hit;
-    }
-    if (exp.dueDate >= monthStartStr && exp.dueDate <= monthEndStr) {
-      monthlyTotal += exp.amount;
-      return true;
-    }
-    return false;
-  });
+      if (exp.dueDate >= monthStartStr && exp.dueDate <= monthEndStr) {
+        total += exp.amount;
+        return true;
+      }
+      return false;
+    });
+    return { vehicleExpenses: list, monthlyTotal: total };
+  }, [allVehicleExpenses, monthStartStr, monthEndStr]);
+
 
   // Generate month options (last 12 months + current) — used by ProductSalesHeader indirectly
   const monthOptions: { value: string; label: string }[] = [];

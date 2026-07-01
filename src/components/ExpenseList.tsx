@@ -295,34 +295,59 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
     });
   }, [expenses, selectedMonth]);
 
-  const filtered = monthFiltered
-    .filter((e) => e.description.toLowerCase().includes(search.toLowerCase()) || e.category.toLowerCase().includes(search.toLowerCase()))
-    .filter((e) => {
-      const isRecFullyPaid = e.type === "recorrente" && e.installments && e.installments > 1 && e.paid;
-      if (filter === "pending") return !e.paid && !isOverdue(e);
-      if (filter === "paid") return e.paid && !isRecFullyPaid;
-      if (filter === "overdue") return isOverdue(e);
-      // "all": hide the parent recurring record once fully paid (last installment is represented by historical child)
-      return !isRecFullyPaid;
-    })
-    .sort((a, b) => {
-      if (a.paid !== b.paid) return a.paid ? 1 : -1;
-      return b.dueDate.localeCompare(a.dueDate);
-    });
+  const isRecFullyPaid = useCallback(
+    (e: Expense) => e.type === "recorrente" && !!e.installments && e.installments > 1 && e.paid,
+    [],
+  );
 
-  const isRecFullyPaid = (e: Expense) => e.type === "recorrente" && !!e.installments && e.installments > 1 && e.paid;
-  const visibleMonth = monthFiltered.filter((e) => !isRecFullyPaid(e));
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return monthFiltered
+      .filter((e) => e.description.toLowerCase().includes(q) || e.category.toLowerCase().includes(q))
+      .filter((e) => {
+        const recFullyPaid = e.type === "recorrente" && e.installments && e.installments > 1 && e.paid;
+        if (filter === "pending") return !e.paid && !isOverdue(e);
+        if (filter === "paid") return e.paid && !recFullyPaid;
+        if (filter === "overdue") return isOverdue(e);
+        return !recFullyPaid;
+      })
+      .sort((a, b) => {
+        if (a.paid !== b.paid) return a.paid ? 1 : -1;
+        return b.dueDate.localeCompare(a.dueDate);
+      });
+  }, [monthFiltered, search, filter]);
 
-  const totalPending = visibleMonth.filter((e) => !e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
-  const totalPaid = visibleMonth.filter((e) => e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
-  const totalOverdue = visibleMonth.filter((e) => isOverdue(e)).reduce((s, e) => s + getInstallmentAmount(e), 0);
+  const visibleMonth = useMemo(
+    () => monthFiltered.filter((e) => !isRecFullyPaid(e)),
+    [monthFiltered, isRecFullyPaid],
+  );
 
-  const filters: { id: Filter; label: string; count: number }[] = [
+  const { totalPending, totalPaid, totalOverdue, countPending, countOverdue, countPaid } = useMemo(() => {
+    let tPending = 0, tPaid = 0, tOverdue = 0;
+    let cPending = 0, cOverdue = 0, cPaid = 0;
+    for (const e of visibleMonth) {
+      const amt = getInstallmentAmount(e);
+      const overdue = isOverdue(e);
+      if (!e.paid) tPending += amt;
+      if (e.paid) tPaid += amt;
+      if (overdue) tOverdue += amt;
+      if (!e.paid && !overdue) cPending += 1;
+      if (overdue) cOverdue += 1;
+      if (e.paid) cPaid += 1;
+    }
+    return {
+      totalPending: tPending, totalPaid: tPaid, totalOverdue: tOverdue,
+      countPending: cPending, countOverdue: cOverdue, countPaid: cPaid,
+    };
+  }, [visibleMonth, getInstallmentAmount]);
+
+  const filters: { id: Filter; label: string; count: number }[] = useMemo(() => ([
     { id: "all", label: "Todas", count: visibleMonth.length },
-    { id: "pending", label: "Pendentes", count: visibleMonth.filter((e) => !e.paid && !isOverdue(e)).length },
-    { id: "overdue", label: "Atrasadas", count: visibleMonth.filter((e) => isOverdue(e)).length },
-    { id: "paid", label: "Pagas", count: visibleMonth.filter((e) => e.paid).length },
-  ];
+    { id: "pending", label: "Pendentes", count: countPending },
+    { id: "overdue", label: "Atrasadas", count: countOverdue },
+    { id: "paid", label: "Pagas", count: countPaid },
+  ]), [visibleMonth.length, countPending, countOverdue, countPaid]);
+
 
   type SummaryView = "pending" | "paid" | "overdue";
   const [summaryView, setSummaryView] = useState<SummaryView | null>(null);

@@ -429,40 +429,53 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     return format(new Date(y, m - 1, 1), "MMM/yyyy", { locale: ptBR });
   };
 
-  const isBotExpense = (e: Expense) => /\[\s*bot\s*\]/i.test(e.notes ?? "");
+  const isBotExpense = useCallback((e: Expense) => /\[\s*bot\s*\]/i.test(e.notes ?? ""), []);
 
   // Despesas vinculadas a cartão de crédito NÃO aparecem na lista geral —
   // elas são exibidas exclusivamente dentro da fatura do cartão correspondente.
-  const listVisibleMonth = visibleMonth.filter((e) => !isCreditCardExpense(e));
+  const listVisibleMonth = useMemo(
+    () => visibleMonth.filter((e) => !isCreditCardExpense(e)),
+    [visibleMonth],
+  );
 
-  const filtered = listVisibleMonth
-    .filter((e) =>
-      e.description.toLowerCase().includes(search.toLowerCase()) ||
-      e.category.toLowerCase().includes(search.toLowerCase())
-    )
-    .filter((e) => (categoryFilter ? e.category === categoryFilter : true))
-    .filter((e) => {
-      if (sourceFilter === "auto") return isBotExpense(e);
-      if (sourceFilter === "manual") return !isBotExpense(e);
-      return true;
-    })
-    .filter((e) => {
-      if (filter === "pending") return !e.paid && !isOverdue(e);
-      if (filter === "paid") return e.paid;
-      if (filter === "overdue") return isOverdue(e);
-      return true;
-    })
-    .sort((a, b) => {
-      if (a.paid !== b.paid) return a.paid ? 1 : -1;
-      return b.dueDate.localeCompare(a.dueDate);
-    });
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return listVisibleMonth
+      .filter((e) => e.description.toLowerCase().includes(q) || e.category.toLowerCase().includes(q))
+      .filter((e) => (categoryFilter ? e.category === categoryFilter : true))
+      .filter((e) => {
+        if (sourceFilter === "auto") return isBotExpense(e);
+        if (sourceFilter === "manual") return !isBotExpense(e);
+        return true;
+      })
+      .filter((e) => {
+        if (filter === "pending") return !e.paid && !isOverdue(e);
+        if (filter === "paid") return e.paid;
+        if (filter === "overdue") return isOverdue(e);
+        return true;
+      })
+      .sort((a, b) => {
+        if (a.paid !== b.paid) return a.paid ? 1 : -1;
+        return b.dueDate.localeCompare(a.dueDate);
+      });
+  }, [listVisibleMonth, search, categoryFilter, sourceFilter, filter, isBotExpense]);
 
-  const filters: { id: Filter; label: string; count: number }[] = [
-    { id: "all", label: "Todas", count: listVisibleMonth.length },
-    { id: "pending", label: "Pendentes", count: listVisibleMonth.filter((e) => !e.paid && !isOverdue(e)).length },
-    { id: "overdue", label: "Atrasadas", count: listVisibleMonth.filter(isOverdue).length },
-    { id: "paid", label: "Pagas", count: listVisibleMonth.filter((e) => e.paid).length },
-  ];
+  const filters: { id: Filter; label: string; count: number }[] = useMemo(() => {
+    let cPending = 0, cOverdue = 0, cPaid = 0;
+    for (const e of listVisibleMonth) {
+      const overdue = isOverdue(e);
+      if (!e.paid && !overdue) cPending += 1;
+      if (overdue) cOverdue += 1;
+      if (e.paid) cPaid += 1;
+    }
+    return [
+      { id: "all", label: "Todas", count: listVisibleMonth.length },
+      { id: "pending", label: "Pendentes", count: cPending },
+      { id: "overdue", label: "Atrasadas", count: cOverdue },
+      { id: "paid", label: "Pagas", count: cPaid },
+    ];
+  }, [listVisibleMonth]);
+
 
   const prevMonth = () => {
     const d = new Date(selYear, selMonthNum - 2, 1);

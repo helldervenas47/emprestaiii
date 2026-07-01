@@ -263,8 +263,15 @@ export function PiggyBankList({ readOnly = false }: Props) {
   }, [cdiRate?.fetchedAt]);
 
 
-  const totalBalance = piggyBanks.reduce((s, pb) => s + (balances.get(pb.id)?.balance ?? 0), 0);
-  const totalYield = piggyBanks.reduce((s, pb) => s + (balances.get(pb.id)?.yield ?? 0), 0);
+  const totalBalance = useMemo(
+    () => piggyBanks.reduce((s, pb) => s + (balances.get(pb.id)?.balance ?? 0), 0),
+    [piggyBanks, balances],
+  );
+  const totalYield = useMemo(
+    () => piggyBanks.reduce((s, pb) => s + (balances.get(pb.id)?.yield ?? 0), 0),
+    [piggyBanks, balances],
+  );
+
 
   return (
     <div className="space-y-3">
