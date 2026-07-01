@@ -7,7 +7,15 @@
  * All Supabase access is mocked — no real network / DB calls.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import React from "react";
 import { renderHook, act, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const makeWrapper = () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client }, children);
+};
 
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
@@ -136,7 +144,7 @@ import { usePiggyBanks } from "@/hooks/usePiggyBanks";
 
 describe("usePiggyBanks — data loading", () => {
   it("carrega cofrinhos da tabela `cofrinhos`", async () => {
-    const { result } = renderHook(() => usePiggyBanks());
+    const { result } = renderHook(() => usePiggyBanks(), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.piggyBanks.length).toBe(1));
     expect(result.current.piggyBanks[0].id).toBe("cof-1");
     expect(result.current.piggyBanks[0].name).toBe("Viagem");
@@ -144,7 +152,7 @@ describe("usePiggyBanks — data loading", () => {
   });
 
   it("carrega timeline via `cofrinho_ledger`", async () => {
-    const { result } = renderHook(() => usePiggyBanks());
+    const { result } = renderHook(() => usePiggyBanks(), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.deposits.length).toBe(2));
     expect(fromCalls).toContain("cofrinho_ledger");
     const dep = result.current.deposits.find((d) => d.source === "transfer_in");
@@ -154,14 +162,14 @@ describe("usePiggyBanks — data loading", () => {
   });
 
   it("NUNCA consulta as tabelas legadas `piggy_banks` / `piggy_bank_deposits`", async () => {
-    const { result } = renderHook(() => usePiggyBanks());
+    const { result } = renderHook(() => usePiggyBanks(), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.piggyBanks.length).toBe(1));
     expect(fromCalls).not.toContain("piggy_banks");
     expect(fromCalls).not.toContain("piggy_bank_deposits");
   });
 
   it("trata `descricao = null` sem quebrar (aplica cor/ícone padrão)", async () => {
-    const { result } = renderHook(() => usePiggyBanks());
+    const { result } = renderHook(() => usePiggyBanks(), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.piggyBanks.length).toBe(1));
     const pb = result.current.piggyBanks[0];
     expect(pb.color).toBeTruthy();
@@ -173,7 +181,7 @@ describe("usePiggyBanks — data loading", () => {
 
 describe("usePiggyBanks — mutações via Edge Function", () => {
   it("storeMoney chama a edge function `processar-deposito-cofrinho`", async () => {
-    const { result } = renderHook(() => usePiggyBanks());
+    const { result } = renderHook(() => usePiggyBanks(), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.piggyBanks.length).toBe(1));
 
     let ok: boolean | undefined;
@@ -191,7 +199,7 @@ describe("usePiggyBanks — mutações via Edge Function", () => {
   });
 
   it("withdrawMoney chama a edge function `processar-resgate-cofrinho`", async () => {
-    const { result } = renderHook(() => usePiggyBanks());
+    const { result } = renderHook(() => usePiggyBanks(), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.piggyBanks.length).toBe(1));
 
     let ok: boolean | undefined;
@@ -205,7 +213,7 @@ describe("usePiggyBanks — mutações via Edge Function", () => {
   });
 
   it("recarrega dados após sucesso de storeMoney", async () => {
-    const { result } = renderHook(() => usePiggyBanks());
+    const { result } = renderHook(() => usePiggyBanks(), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.piggyBanks.length).toBe(1));
     const before = fromCalls.filter((t) => t === "cofrinhos").length;
 
@@ -223,7 +231,7 @@ describe("usePiggyBanks — mutações via Edge Function", () => {
       status: 500,
       text: async () => JSON.stringify({ error: "boom" }),
     });
-    const { result } = renderHook(() => usePiggyBanks());
+    const { result } = renderHook(() => usePiggyBanks(), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.piggyBanks.length).toBe(1));
 
     let ok: boolean | undefined;
@@ -235,7 +243,7 @@ describe("usePiggyBanks — mutações via Edge Function", () => {
   });
 
   it("updatePiggyBank grava em `cofrinhos.update`", async () => {
-    const { result } = renderHook(() => usePiggyBanks());
+    const { result } = renderHook(() => usePiggyBanks(), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.piggyBanks.length).toBe(1));
 
     await act(async () => {
