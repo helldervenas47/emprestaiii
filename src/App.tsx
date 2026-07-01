@@ -58,6 +58,7 @@ const PageLoader = () => (
 function DevQueryLogger() {
   const client = useQueryClient();
   const lastQuerySnapshotRef = useRef<Record<string, string>>({});
+  const eventCountRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -95,7 +96,9 @@ function DevQueryLogger() {
       const hash = query.queryHash;
       if (lastQuerySnapshotRef.current[hash] === snapshot) return;
       lastQuerySnapshotRef.current[hash] = snapshot;
+      eventCountRef.current[hash] = (eventCountRef.current[hash] ?? 0) + 1;
       console.debug("[TanStackQuery event]", {
+        count: eventCountRef.current[hash],
         type: (event as any).type,
         actionType: (event as any).action?.type,
         queryKey: key,
@@ -105,6 +108,79 @@ function DevQueryLogger() {
       });
     });
   }, [client]);
+
+  return null;
+}
+
+function DevNetworkLogger() {
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const originalFetch = window.fetch.bind(window);
+    const watched = [
+      "/rest/v1/cofrinhos",
+      "/rest/v1/cofrinho_ledger",
+      "/rest/v1/cofrinho_aportes",
+      "/rest/v1/cofrinho_eventos",
+      "/rest/v1/taxa_referencia",
+      "/rest/v1/loans",
+      "/rest/v1/payments",
+      "/rest/v1/loan_installments",
+      "/rest/v1/expenses",
+      "/rest/v1/incomes",
+      "/rest/v1/products",
+      "/rest/v1/sales",
+      "/rest/v1/clients",
+      "/rest/v1/user_roles",
+      "/rest/v1/user_approvals",
+      "/rest/v1/personal_expense_categories",
+      "/auth/v1/user",
+      "/auth/v1/token",
+      "/functions/v1/ensure-user-role",
+      "get_data_owner_id",
+    ];
+    const counts: Record<string, number> = {};
+
+    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const startedAt = performance.now();
+      const rawUrl = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      const matched = watched.find((part) => rawUrl.includes(part));
+      const method = init?.method ?? (typeof input === "object" && "method" in input ? (input as Request).method : "GET");
+      let label = matched ?? "";
+      if (matched === "get_data_owner_id") label = "/rest/v1/rpc/get_data_owner_id";
+      if (matched) {
+        counts[label] = (counts[label] ?? 0) + 1;
+        console.debug("[Network watch:start]", { count: counts[label], method, resource: label });
+      }
+      try {
+        const response = await originalFetch(input as any, init);
+        if (matched) {
+          console.debug("[Network watch:end]", {
+            count: counts[label],
+            method,
+            resource: label,
+            status: response.status,
+            ms: Math.round(performance.now() - startedAt),
+          });
+        }
+        return response;
+      } catch (error: any) {
+        if (matched) {
+          console.debug("[Network watch:error]", {
+            count: counts[label],
+            method,
+            resource: label,
+            ms: Math.round(performance.now() - startedAt),
+            error: error?.message ?? String(error),
+          });
+        }
+        throw error;
+      }
+    };
+
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, []);
 
   return null;
 }
@@ -251,6 +327,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <DevQueryLogger />
+        <DevNetworkLogger />
         <Toaster />
         <AppSonner />
         <PWAInstallPrompt />
