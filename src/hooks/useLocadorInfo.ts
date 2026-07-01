@@ -21,6 +21,9 @@ const emptyLocador: LocadorInfo = {
   endereco: "", bairro: "", cidade: "", estado: "",
 };
 
+const LOCADOR_INFO_COLUMNS =
+  "id, nome, rg, cpf, nacionalidade, profissao, endereco, bairro, cidade, estado";
+
 export function useLocadorInfo(enabled = true) {
   const { user, dataOwnerId } = useAuth();
   const [locadores, setLocadores] = useState<LocadorInfo[]>([]);
@@ -34,7 +37,7 @@ export function useLocadorInfo(enabled = true) {
     setLoading(true);
     const { data } = await supabase
       .from("locador_info")
-      .select("*")
+      .select(LOCADOR_INFO_COLUMNS)
       .order("created_at", { ascending: true });
     if (data) {
       setLocadores(data.map(d => ({

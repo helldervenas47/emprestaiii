@@ -14,6 +14,9 @@ export interface AuditLogRow {
   notes: string | null;
 }
 
+const AUDIT_LOG_COLUMNS =
+  "id, executed_at, period_start, period_end, confidence_score, totals, issues, corrections, notes";
+
 export function useAccountantAuditLogs() {
   const [logs, setLogs] = useState<AuditLogRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -22,7 +25,7 @@ export function useAccountantAuditLogs() {
     setLoading(true);
     const { data, error } = await supabase
       .from("accountant_audit_logs" as any)
-      .select("*")
+      .select(AUDIT_LOG_COLUMNS)
       .order("executed_at", { ascending: false })
       .limit(50);
     if (!error && data) setLogs(data as unknown as AuditLogRow[]);

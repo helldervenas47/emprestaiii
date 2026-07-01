@@ -65,6 +65,8 @@ export function cycleKeyFromDate(closingTo: Date): string {
 // escrita dispara `openings:changed`; todas as instâncias do hook escutam
 // esse evento e recarregam.
 const OPENINGS_CHANGED_EVENT = "openings:changed";
+const CREDIT_CARD_OPENING_COLUMNS =
+  "id, card_id, credit_card_id, cycle_key, month_label, opening_amount, opening_balance, notes";
 type LedgerPaymentMeta = { amount: number; paidDate: string; isFull: boolean };
 
 function notifyOpeningsChanged() {
@@ -81,7 +83,7 @@ export function useCreditCardOpenings() {
   const load = useCallback(async () => {
     if (!ownerId) return;
     const [{ data, error }, { data: ledgerRows, error: ledgerError }] = await Promise.all([
-      supabase.from("credit_card_invoice_openings").select("*"),
+      supabase.from("credit_card_invoice_openings").select(CREDIT_CARD_OPENING_COLUMNS),
       supabase
         .from("account_ledger")
         .select("amount, occurred_on, metadata")

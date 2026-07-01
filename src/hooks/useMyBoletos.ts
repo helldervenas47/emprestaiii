@@ -56,6 +56,11 @@ export interface PaymentInput {
   notes?: string | null;
 }
 
+const BOLETO_COLUMNS =
+  "id, description, beneficiary, category, status, amount, due_date, paid_at, digits, barcode, bank_code, bank_name, segment, segment_label, kind, notes, attachment_path, pix_brcode, expense_id, income_id, created_at, updated_at";
+const BOLETO_PAYMENT_COLUMNS =
+  "id, boleto_id, paid_at, amount, payment_method, status, notes, user_name, user_id, created_at";
+
 export function useMyBoletos() {
   const { user } = useAuth();
   const [items, setItems] = useState<MyBoleto[]>([]);
@@ -66,7 +71,7 @@ export function useMyBoletos() {
     setLoading(true);
     const { data, error } = await supabase
       .from("my_boletos")
-      .select("*")
+      .select(BOLETO_COLUMNS)
       .order("due_date", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: false });
     setLoading(false);
@@ -174,7 +179,7 @@ export function useMyBoletos() {
   const listPayments = useCallback(async (boletoId: string): Promise<MyBoletoPayment[]> => {
     const { data, error } = await supabase
       .from("my_boleto_payments")
-      .select("*")
+      .select(BOLETO_PAYMENT_COLUMNS)
       .eq("boleto_id", boletoId)
       .order("paid_at", { ascending: false })
       .order("created_at", { ascending: false });

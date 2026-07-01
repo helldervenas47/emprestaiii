@@ -30,6 +30,9 @@ function mapRow(row: any): ActiveCapitalSnapshot {
   };
 }
 
+const ACTIVE_CAPITAL_COLUMNS =
+  "id, month, amount, finalized, snapshot_date, last_calculated_at";
+
 export function useActiveCapitalSnapshots(currentAmount: number) {
   const { user } = useAuth();
   const ownerId = useDataOwner();
@@ -41,7 +44,7 @@ export function useActiveCapitalSnapshots(currentAmount: number) {
     if (!ownerId) return;
     const { data, error } = await (supabase as any)
       .from("active_capital_snapshots")
-      .select("*")
+      .select(ACTIVE_CAPITAL_COLUMNS)
       .eq("owner_id", ownerId)
       .order("month", { ascending: false });
 
