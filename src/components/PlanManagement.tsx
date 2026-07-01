@@ -49,7 +49,9 @@ export function PlanManagement() {
   const fetchPlans = async () => {
     const { data, error } = await supabase
       .from("plans")
-      .select("*")
+      .select(
+        "id, name, price, highlight, features, max_loans, max_users, sort_order, active, allowed_tabs",
+      )
       .order("sort_order");
     if (!error && data) setPlans(data);
     setLoading(false);
