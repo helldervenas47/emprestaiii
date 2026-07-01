@@ -652,7 +652,7 @@ const Index = () => {
     };
   }, [isMobileOrTablet]);
 
-  const visibleTabs = tabConfig.filter((t) => {
+  const visibleTabs = React.useMemo(() => tabConfig.filter((t) => {
     if (loading) return false;
     // "Ajuda" é sempre visível para qualquer usuário logado.
     if (t.id === "help") return !!user;
@@ -675,7 +675,12 @@ const Index = () => {
       allowedTabs.every((id) => LEGACY_CLIENT_PLAN_TAB_IDS.has(id));
     if (Array.isArray(allowedTabs) && !isLegacyClientPlanTabs) return allowedTabs.includes(t.id);
     return true;
-  });
+  }), [loading, user, role, roleAllowedTabs, allowedTabs]);
+
+  const visibleTabsSignature = React.useMemo(
+    () => visibleTabs.map((t) => t.id).join(","),
+    [visibleTabs],
+  );
 
   const isAjudaAllowed = !loading && !!user;
 
