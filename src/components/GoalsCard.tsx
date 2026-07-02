@@ -485,17 +485,19 @@ function computeRenegotiationRate(
 ): number {
   const [yy, mm] = m.split("-").map(Number);
   if (!yy || !mm) return 0;
-  const monthStart = new Date(yy, mm - 1, 1);
-  const monthEnd = new Date(yy, mm, 0, 23, 59, 59, 999);
 
   // Quantidade de contratos renegociados no mês (cada contrato conta uma única vez).
+  // Usa o fuso configurado do app para não contaminar meses vizinhos (ex.: uma
+  // renegociação feita 01/jul 00:30 BRT chega como 03:30Z e, se comparada em UTC
+  // local do browser, poderia cair em junho).
   const seen = new Set<string>();
   (renegotiations || [])
     .filter((r) => {
       const ts = r.renegotiatedAt || r.createdAt;
       if (!ts) return false;
       const d = new Date(ts);
-      return d >= monthStart && d <= monthEnd;
+      if (isNaN(d.getTime())) return false;
+      return formatYmdInAppTz(d).slice(0, 7) === m;
     })
     .forEach((r) => { seen.add(r.loanId); });
 
