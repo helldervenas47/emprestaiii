@@ -15,7 +15,7 @@ import { useMonthlyGoals, GoalType, formatMonthLabel } from "@/hooks/useMonthlyG
 import { useGoalSnapshots } from "@/hooks/useGoalSnapshots";
 import { useAccountSettings } from "@/hooks/useAccountSettings";
 import { Loan, Payment, Expense, Client, InstallmentSchedule, LoanRenegotiation } from "@/types/loan";
-import { todayInAppTz } from "@/lib/timezone";
+import { todayInAppTz, formatYmdInAppTz } from "@/lib/timezone";
 import { useActiveCapitalSnapshots } from "@/hooks/useActiveCapitalSnapshots";
 import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
 import { assertWritable } from "@/lib/readOnlyState";
@@ -485,17 +485,19 @@ function computeRenegotiationRate(
 ): number {
   const [yy, mm] = m.split("-").map(Number);
   if (!yy || !mm) return 0;
-  const monthStart = new Date(yy, mm - 1, 1);
-  const monthEnd = new Date(yy, mm, 0, 23, 59, 59, 999);
 
   // Quantidade de contratos renegociados no mês (cada contrato conta uma única vez).
+  // Usa o fuso configurado do app para não contaminar meses vizinhos (ex.: uma
+  // renegociação feita 01/jul 00:30 BRT chega como 03:30Z e, se comparada em UTC
+  // local do browser, poderia cair em junho).
   const seen = new Set<string>();
   (renegotiations || [])
     .filter((r) => {
       const ts = r.renegotiatedAt || r.createdAt;
       if (!ts) return false;
       const d = new Date(ts);
-      return d >= monthStart && d <= monthEnd;
+      if (isNaN(d.getTime())) return false;
+      return formatYmdInAppTz(d).slice(0, 7) === m;
     })
     .forEach((r) => { seen.add(r.loanId); });
 
@@ -597,10 +599,12 @@ export function computeActual(
         }
         if (currentTotal == null) currentTotal = totalFrom(snaps[m]);
         const prevTotal = totalFrom(snaps[prevKey]);
-        if (currentTotal == null || prevTotal == null || prevTotal === 0) return 0;
+        // Sinaliza dado ausente com NaN para o auto-fechamento NÃO congelar 0
+        // indevidamente (ex.: mês encerrado sem snapshot de patrimônio salvo).
+        if (currentTotal == null || prevTotal == null || prevTotal === 0) return NaN;
         return ((currentTotal - prevTotal) / Math.abs(prevTotal)) * 100;
       } catch {
-        return 0;
+        return NaN;
       }
     }
     default:
@@ -760,14 +764,29 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       // o TOTAL recebido a partir dos pagamentos (snapshots antigos podem ter sido
       // gravados como média diária, gerando divisão dupla).
       let actual: number;
+      let liveComputed: number | null = null;
       if (g.goalType === "daily_received_avg") {
         actual = computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules, renegotiations);
       } else if (monthClosed && snapshot?.finalized) {
         actual = Number(snapshot.realizedValue) || 0;
+        // Para `monthly_variation`, se o snapshot travou em 0 (dado indisponível
+        // no dia do fechamento) e agora conseguimos recomputar um valor válido,
+        // preferimos o valor recomputado — o auto-fechamento sobrescreve abaixo.
+        if (g.goalType === "monthly_variation" && Math.abs(actual) < 0.0001) {
+          const recompute = computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules, renegotiations);
+          if (Number.isFinite(recompute) && Math.abs(recompute) > 0.0001) {
+            liveComputed = recompute;
+            actual = recompute;
+          }
+        }
       } else {
-        actual = g.goalType === "active_capital"
+        const computed = g.goalType === "active_capital"
           ? (computeMonth === currentMonth ? currentActiveCapital : (getSnapshotAmount(computeMonth) ?? 0))
           : computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules, renegotiations);
+        // NaN → dado indisponível (ex.: monthly_variation sem patrimônio do mês). Trata como 0
+        // para exibição, mas não deve travar o snapshot em 0.
+        actual = Number.isFinite(computed) ? computed : 0;
+        liveComputed = Number.isFinite(computed) ? computed : null;
       }
 
       let pct = 0;
@@ -801,7 +820,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         monthlyPct = pct; // mantido por compat — mesmo valor (base diária)
       }
 
-      return { ...g, actual, pct, meta, expectedReceivable, targetAmount, receivedTotal, monthlyPct, isLocked: monthClosed && !!snapshot?.finalized };
+      return { ...g, actual, pct, meta, expectedReceivable, targetAmount, receivedTotal, monthlyPct, liveComputed, isLocked: monthClosed && !!snapshot?.finalized };
     });
   }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount, getSnapshot]);
 
@@ -815,16 +834,58 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       const existing = getSnapshot(g.goalType, computeMonth);
       // Para `daily_received_avg`, snapshots antigos podem ter sido salvos como média;
       // sobrescreve se o valor armazenado diferir do TOTAL recém-computado.
-      const snapshotValue = g.goalType === "daily_received_avg"
+      const rawValue = g.goalType === "daily_received_avg"
         ? (g.receivedTotal ?? 0)
-        : g.actual;
+        : (g.liveComputed ?? g.actual);
+      // Nunca congela dado indisponível (NaN/Infinity) — evita travar metas em 0
+      // por falta de patrimônio/snapshot no dia do encerramento.
+      if (!Number.isFinite(rawValue)) return;
+      const snapshotValue = rawValue as number;
       if (existing?.finalized) {
-        if (g.goalType !== "daily_received_avg") return;
-        if (Math.abs(Number(existing.realizedValue || 0) - snapshotValue) < 0.01) return;
+        if (g.goalType === "daily_received_avg") {
+          if (Math.abs(Number(existing.realizedValue || 0) - snapshotValue) < 0.01) return;
+        } else if (g.goalType === "monthly_variation") {
+          // Sobrescreve apenas quando o snapshot antigo travou em 0 e agora temos valor válido.
+          const prev = Number(existing.realizedValue || 0);
+          if (!(Math.abs(prev) < 0.0001 && Math.abs(snapshotValue) > 0.0001)) return;
+        } else {
+          return;
+        }
       }
       void upsertSnapshot(g.goalType, computeMonth, snapshotValue, g.targetValue ?? null, g.pct ?? null);
     });
   }, [enriched, selectedMonth, getSnapshot, upsertSnapshot]);
+
+  // Auto-fechamento retroativo: percorre TODAS as metas cadastradas para meses já
+  // encerrados e grava o snapshot com o realizado calculado, garantindo que metas
+  // (ex.: junho) sejam travadas mesmo que o usuário nunca tenha aberto o Dashboard
+  // filtrando por aquele mês. Não sobrescreve snapshots já finalizados.
+  useEffect(() => {
+    if (!goals.length) return;
+    const seen = new Set<string>();
+    goals.forEach((g) => {
+      if (!isMonthClosed(g.month)) return;
+      const key = `${g.goalType}|${g.month}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      const existing = getSnapshot(g.goalType, g.month);
+      if (existing?.finalized) return;
+      const computed = g.goalType === "active_capital"
+        ? (getSnapshotAmount(g.month) ?? 0)
+        : computeActual(g.goalType, g.month, loans, payments, expenses, clients, installmentSchedules, renegotiations);
+      if (!Number.isFinite(computed)) return;
+      // Para daily_received_avg, o snapshot guarda o TOTAL recebido (não a média).
+      const value = Number(computed) || 0;
+      const target = g.targetValue > 0 ? g.targetValue : null;
+      let pct: number | null = null;
+      if (target) {
+        pct = (g.goalType === "max_default_rate" || g.goalType === "renegotiation_rate")
+          ? (value <= target ? 100 : 0)
+          : Math.min(100, (value / target) * 100);
+      }
+      void upsertSnapshot(g.goalType, g.month, value, target, pct);
+    });
+  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, getSnapshot, upsertSnapshot, getSnapshotAmount]);
 
   // Aplica preferências do usuário: filtra pelos tipos selecionados e ordena conforme a ordem definida.
   // Limita a no máximo MAX_VISIBLE_GOALS cards.
