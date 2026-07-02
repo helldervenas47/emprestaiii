@@ -197,7 +197,8 @@ export function useLoanListController({
       if (sortBy === "dueDate") {
         const aDate = getFirstPendingDate(a, installmentSchedules).getTime();
         const bDate = getFirstPendingDate(b, installmentSchedules).getTime();
-        return aDate - bDate;
+        if (aDate !== bDate) return aDate - bDate;
+        return (a.borrowerName || "").localeCompare(b.borrowerName || "", "pt-BR", { sensitivity: "base" });
       }
       if (sortBy === "startDate") return b.startDate.localeCompare(a.startDate);
       if (sortBy === "amount") {
