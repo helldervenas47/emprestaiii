@@ -74,8 +74,8 @@ export function useMonthlyOpeningBalances() {
       if (!ownerId) return;
       const prev = map;
       setMap((m) => ({ ...m, [month]: amount }));
-      const { error } = await supabase
-        .from("monthly_opening_balances")
+      const { error } = await (supabase
+        .from("monthly_opening_balances") as any)
         .upsert(
           { owner_id: ownerId, month, amount },
           { onConflict: "owner_id,month" },
