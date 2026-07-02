@@ -34,6 +34,7 @@ interface Props {
 }
 
 export function DashboardOverview({ loans, sales, payments, expenses, installmentSchedules = [], clients = [], onDeletePayment, onDeleteSale, onDeleteLoan, readOnly = false }: Props) {
+  usePatrimonioPublisher(loans);
   const { mask } = useHideValues();
   const { role } = useAuth();
   const { renegotiations } = useLoanRenegotiations();
