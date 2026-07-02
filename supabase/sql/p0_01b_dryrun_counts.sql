@@ -27,20 +27,42 @@ SELECT '3b_expenses_sem_pm', COUNT(*)::text
 FROM public.expenses e
 WHERE e.paid_date IS NOT NULL AND COALESCE(e.category,'')<>'Cartão de Crédito' AND e.payment_method_id IS NULL
 UNION ALL
--- (4) sale_payments_a_inserir
+-- (4) sale_payments_a_inserir (via payment_history)
 SELECT '4_sale_payments_a_inserir', COUNT(*)::text
-FROM public.payments p JOIN public.sales s ON s.id=p.sale_id
-WHERE COALESCE(s.business_type,'')<>'aluguel_veiculo'
+FROM public.sales s,
+     LATERAL jsonb_array_elements(COALESCE(s.payment_history,'[]'::jsonb))
+       WITH ORDINALITY AS elem(value, ordinality)
+WHERE jsonb_typeof(COALESCE(s.payment_history,'[]'::jsonb))='array'
+  AND COALESCE(s.business_type,'')<>'aluguel_veiculo'
+  AND (elem.value->>'amount') ~ '^-?[0-9]+(\.[0-9]+)?$'
+  AND (elem.value->>'amount')::numeric > 0
+  AND COALESCE(elem.value->>'date','') ~ '^\d{4}-\d{2}-\d{2}'
   AND NOT EXISTS (
     SELECT 1 FROM public.account_ledger l
     WHERE l.user_id=s.user_id
+      AND l.source='payment'
+      AND l.metadata->>'source_kind'='sale_payment'
       AND l.metadata->>'sale_id'=s.id::text
-      AND l.metadata->>'sale_payment_idx'=p.id::text)
+      AND l.metadata->>'sale_payment_idx'=elem.ordinality::text)
 UNION ALL
--- (4b) sales aluguel excluidas
+-- (4b) sales aluguel excluidas (itens)
 SELECT '4b_sale_aluguel_excluidos', COUNT(*)::text
-FROM public.payments p JOIN public.sales s ON s.id=p.sale_id
+FROM public.sales s, LATERAL jsonb_array_elements(COALESCE(s.payment_history,'[]'::jsonb)) elem
 WHERE s.business_type='aluguel_veiculo'
+UNION ALL
+-- (4c) itens com amount inválido
+SELECT '4c_sale_items_amount_invalido', COUNT(*)::text
+FROM public.sales s, LATERAL jsonb_array_elements(COALESCE(s.payment_history,'[]'::jsonb)) elem
+WHERE COALESCE(s.business_type,'')<>'aluguel_veiculo'
+  AND ((elem.value->>'amount') IS NULL
+       OR (elem.value->>'amount') !~ '^-?[0-9]+(\.[0-9]+)?$'
+       OR (elem.value->>'amount')::numeric <= 0)
+UNION ALL
+-- (4d) itens com date inválida
+SELECT '4d_sale_items_date_invalida', COUNT(*)::text
+FROM public.sales s, LATERAL jsonb_array_elements(COALESCE(s.payment_history,'[]'::jsonb)) elem
+WHERE COALESCE(s.business_type,'')<>'aluguel_veiculo'
+  AND COALESCE(elem.value->>'date','') !~ '^\d{4}-\d{2}-\d{2}'
 UNION ALL
 -- (5) adjustments a inserir
 SELECT '5_adjustments_a_inserir', COUNT(*)::text
@@ -78,7 +100,8 @@ UNION ALL
 SELECT '9_expense_cartao', COUNT(*)::text FROM public.expenses WHERE paid_date IS NOT NULL AND category='Cartão de Crédito'
 UNION ALL
 SELECT '9_sale_aluguel', COUNT(*)::text
-FROM public.payments p JOIN public.sales s ON s.id=p.sale_id WHERE s.business_type='aluguel_veiculo'
+FROM public.sales s, LATERAL jsonb_array_elements(COALESCE(s.payment_history,'[]'::jsonb)) elem
+WHERE s.business_type='aluguel_veiculo'
 UNION ALL
 SELECT '9_adjustment_delta_zero', COUNT(*)::text
 FROM public.balance_adjustments WHERE COALESCE(amount,0)-COALESCE(previous_amount,0)=0
