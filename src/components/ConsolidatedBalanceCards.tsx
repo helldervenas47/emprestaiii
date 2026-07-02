@@ -218,6 +218,15 @@ export function ConsolidatedBalanceCards() {
         localStorage.setItem(SEED_FLAG, "1");
       }
 
+      // Seed v2: valores históricos manuais fornecidos pelo usuário (imutáveis).
+      const SEED_FLAG_V2 = "patrimonio.snapshots.seed.v2";
+      if (!localStorage.getItem(SEED_FLAG_V2)) {
+        snaps["2026-05"] = { account: 0, rua: 0, total: 79235.36 };
+        snaps["2026-06"] = { account: 8848.70, rua: 78656.00, total: 87413.76 };
+        localStorage.setItem(PATRIMONIO_SNAP_KEY, JSON.stringify(snaps));
+        localStorage.setItem(SEED_FLAG_V2, "1");
+      }
+
       // Trava o snapshot do mês corrente APENAS no último dia do mês.
       if (isLastDayOfMonth(now) && snaps[currentKey] == null) {
         snaps[currentKey] = { account: contaMaisDinheiro, rua: pendingLoans, total: patrimonioTotal };
