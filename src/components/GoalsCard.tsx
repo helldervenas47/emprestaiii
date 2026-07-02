@@ -599,10 +599,12 @@ export function computeActual(
         }
         if (currentTotal == null) currentTotal = totalFrom(snaps[m]);
         const prevTotal = totalFrom(snaps[prevKey]);
-        if (currentTotal == null || prevTotal == null || prevTotal === 0) return 0;
+        // Sinaliza dado ausente com NaN para o auto-fechamento NÃO congelar 0
+        // indevidamente (ex.: mês encerrado sem snapshot de patrimônio salvo).
+        if (currentTotal == null || prevTotal == null || prevTotal === 0) return NaN;
         return ((currentTotal - prevTotal) / Math.abs(prevTotal)) * 100;
       } catch {
-        return 0;
+        return NaN;
       }
     }
     default:
