@@ -40,7 +40,7 @@ export async function getOfficialBalance(ownerId: string): Promise<number> {
     .select("amount, direction, metadata")
     .eq("user_id", ownerId);
   if (error) throw error;
-  return sumOfficialBalance((data ?? []) as OfficialBalanceRow[]);
+  return sumOfficialBalance(((data ?? []) as unknown) as OfficialBalanceRow[]);
 }
 
 /**
