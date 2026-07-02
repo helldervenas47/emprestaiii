@@ -438,11 +438,9 @@ export function useLoanListController({
           .reduce((ss, p) => ss + p.amount, 0);
         return s + Math.max(0, expected - paid);
       }
-      if (l.remainingAmount != null && l.remainingAmount > 0) return s + l.remainingAmount;
-      const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-      const loanPayments = payments.filter((p) => p.loanId === l.id);
-      const paid = loanPayments.reduce((ss, p) => ss + p.amount, 0);
-      return s + Math.max(0, expected - paid);
+      // Padrão: usa getLoanReceivable (restante + multa/juros de atraso + multa de
+      // renegociação em contratos de parcela única) — mesma base do card "Total a Receber".
+      return s + getLoanReceivable(l, payments, installmentSchedules);
     }, 0);
     const totalLent = totalLentRaw;
 
