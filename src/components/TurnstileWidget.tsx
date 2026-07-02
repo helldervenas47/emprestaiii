@@ -11,15 +11,16 @@ const isPreviewEnv = (() => {
   let inIframe = false;
   try { inIframe = window.self !== window.top; } catch { inIframe = true; }
   const host = window.location.hostname;
+  // Só usa chave de teste em preview do editor Lovable ou dev local.
+  // Produção (app.lovable.app publicado, domínios customizados, apps nativos)
+  // usa SEMPRE a chave real do Cloudflare Turnstile.
   const isPreviewHost =
     host.includes("id-preview--") ||
     host.includes("preview--") ||
     host.includes("lovableproject.com") ||
-    host.endsWith(".lovable.app") ||
-    host.endsWith(".vercel.app") ||
     host === "localhost" ||
     host === "127.0.0.1";
-  return inIframe || isPreviewHost;
+  return isPreviewHost || (inIframe && isPreviewHost);
 })();
 
 export const TURNSTILE_SITE_KEY = isPreviewEnv ? TEST_SITE_KEY : REAL_SITE_KEY;
