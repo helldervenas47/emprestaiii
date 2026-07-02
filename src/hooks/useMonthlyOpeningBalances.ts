@@ -77,7 +77,7 @@ export function useMonthlyOpeningBalances() {
       const { error } = await supabase
         .from("monthly_opening_balances")
         .upsert(
-          { user_id: user?.id || ownerId, owner_id: ownerId, month, amount },
+          { owner_id: ownerId, month, amount },
           { onConflict: "owner_id,month" },
         );
       if (error) {
