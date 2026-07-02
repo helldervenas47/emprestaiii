@@ -232,7 +232,6 @@ export function useCreditCardOpenings() {
         {
           user_id: ownerId,
           card_id: cardId,
-          credit_card_id: cardId,
           cycle_key: cycleKey,
           month_label: cycleKey,
           opening_balance: amount,
