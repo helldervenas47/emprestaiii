@@ -18,6 +18,7 @@ import { DashboardInsightsSection } from "@/components/dashboard/DashboardInsigh
 import { useDashboardOverviewController } from "@/components/dashboard/useDashboardOverviewController";
 import { useDashboardMetrics } from "@/components/dashboard/useDashboardMetrics";
 import { useDashboardAiReports } from "@/components/dashboard/useDashboardAiReports";
+import { usePatrimonioPublisher } from "@/hooks/usePatrimonioPublisher";
 
 interface Props {
   loans: Loan[];
@@ -33,6 +34,7 @@ interface Props {
 }
 
 export function DashboardOverview({ loans, sales, payments, expenses, installmentSchedules = [], clients = [], onDeletePayment, onDeleteSale, onDeleteLoan, readOnly = false }: Props) {
+  usePatrimonioPublisher(loans);
   const { mask } = useHideValues();
   const { role } = useAuth();
   const { renegotiations } = useLoanRenegotiations();
