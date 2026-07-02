@@ -34,9 +34,9 @@ sim AS (
     UNION ALL
     SELECT user_id, amount FROM sale_items
     UNION ALL
-    SELECT user_id, COALESCE(amount,0)-COALESCE(previous_amount,0)
-    FROM public.balance_adjustments
-    WHERE COALESCE(amount,0)-COALESCE(previous_amount,0)<>0
+    SELECT ba.user_id, COALESCE(ba.amount,0)-COALESCE(ba.previous_amount,0)
+    FROM public.balance_adjustments ba
+    WHERE COALESCE(ba.amount,0)-COALESCE(ba.previous_amount,0)<>0
   ) x GROUP BY user_id
 )
 SELECT '8_divergencia'::text AS bloco,

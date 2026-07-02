@@ -40,9 +40,9 @@ sim AS (
   UNION ALL
   SELECT user_id,'account',amount FROM sale_items
   UNION ALL
-  SELECT user_id,'account',COALESCE(amount,0)-COALESCE(previous_amount,0)
-  FROM public.balance_adjustments
-  WHERE COALESCE(amount,0)-COALESCE(previous_amount,0)<>0
+  SELECT ba.user_id,'account',COALESCE(ba.amount,0)-COALESCE(ba.previous_amount,0)
+  FROM public.balance_adjustments ba
+  WHERE COALESCE(ba.amount,0)-COALESCE(ba.previous_amount,0)<>0
 )
 SELECT '7_saldo_esperado'::text AS bloco,
        user_id,
