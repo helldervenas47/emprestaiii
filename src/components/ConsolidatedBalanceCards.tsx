@@ -204,7 +204,7 @@ export function ConsolidatedBalanceCards() {
     return null;
   };
 
-  const [prevSnap, setPrevSnap] = useState<Snap | null>(null);
+  const [snapsMap, setSnapsMap] = useState<Record<string, any>>({});
   useEffect(() => {
     try {
       const raw = localStorage.getItem(PATRIMONIO_SNAP_KEY);
@@ -230,18 +230,49 @@ export function ConsolidatedBalanceCards() {
           JSON.stringify({ month: currentKey, account: contaMaisDinheiro, rua: pendingLoans, total: patrimonioTotal }),
         );
       } catch {}
-      setPrevSnap(normalizeSnap(snaps[prevKey]));
+      setSnapsMap(snaps);
     } catch {
-      setPrevSnap(null);
+      setSnapsMap({});
     }
   }, [patrimonioTotal, contaMaisDinheiro, pendingLoans, currentKey, prevKey]);
 
+  // Seletor de mês para o card "Variação Mensal" (0 = mês atual, -1 = anterior, etc.)
+  const [variacaoMonthOffset, setVariacaoMonthOffset] = useState(0);
+  const selDate = useMemo(
+    () => new Date(now.getFullYear(), now.getMonth() + variacaoMonthOffset, 1),
+    [now, variacaoMonthOffset],
+  );
+  const selKey = monthKey(selDate);
+  const selPrevKey = monthKey(new Date(selDate.getFullYear(), selDate.getMonth() - 1, 1));
+  const selLabel = selDate
+    .toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+    .replace(/^./, (c) => c.toUpperCase())
+    .replace(" de ", "/");
+
+  // "Atual" do mês selecionado: usa valores ao vivo quando é o mês corrente;
+  // caso contrário, o snapshot travado do fim daquele mês.
+  const selCurrentSnap: Snap | null = useMemo(() => {
+    if (selKey === currentKey) {
+      return { account: contaMaisDinheiro, rua: pendingLoans, total: patrimonioTotal };
+    }
+    return normalizeSnap(snapsMap[selKey]);
+  }, [selKey, currentKey, contaMaisDinheiro, pendingLoans, patrimonioTotal, snapsMap]);
+
+  const selPrevSnap: Snap | null = useMemo(() => {
+    if (selPrevKey === currentKey) {
+      return { account: contaMaisDinheiro, rua: pendingLoans, total: patrimonioTotal };
+    }
+    return normalizeSnap(snapsMap[selPrevKey]);
+  }, [selPrevKey, currentKey, contaMaisDinheiro, pendingLoans, patrimonioTotal, snapsMap]);
+
+  const prevSnap = selPrevSnap;
   const prevPatrimonio = prevSnap?.total ?? null;
+  const selTotal = selCurrentSnap?.total ?? null;
 
   const variacaoPct = useMemo(() => {
-    if (prevPatrimonio == null || prevPatrimonio === 0) return null;
-    return ((patrimonioTotal - prevPatrimonio) / Math.abs(prevPatrimonio)) * 100;
-  }, [patrimonioTotal, prevPatrimonio]);
+    if (selTotal == null || prevPatrimonio == null || prevPatrimonio === 0) return null;
+    return ((selTotal - prevPatrimonio) / Math.abs(prevPatrimonio)) * 100;
+  }, [selTotal, prevPatrimonio]);
 
   const variacaoTrend: "up" | "down" | "flat" =
     variacaoPct == null || Math.abs(variacaoPct) < 0.005 ? "flat" : variacaoPct > 0 ? "up" : "down";
