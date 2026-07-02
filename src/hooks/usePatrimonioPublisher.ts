@@ -12,6 +12,10 @@ import type { Loan } from "@/types/loan";
  * os valores sejam compartilhados entre dispositivos do mesmo usuário/owner.
  */
 const SNAP_KEY = "patrimonio.snapshots.v1";
+const HISTORICAL_PATRIMONIO_SEEDS: Record<string, { account: number; rua: number; total: number }> = {
+  "2026-05": { account: 0, rua: 0, total: 79235.36 },
+  "2026-06": { account: 8848.70, rua: 78656.00, total: 87413.76 },
+};
 
 const notifyPatrimonioChanged = () => {
   if (typeof window === "undefined") return;
@@ -52,6 +56,13 @@ export function usePatrimonioPublisher(loans: Loan[]) {
             rua: Number(row.rua) || 0,
             total: Number(row.total) || 0,
           };
+        });
+        Object.entries(HISTORICAL_PATRIMONIO_SEEDS).forEach(([month, seed]) => {
+          const existingTotal = Number(snaps[month]?.total ?? snaps[month] ?? 0);
+          if (snaps[month] == null || Math.abs(existingTotal) < 0.01) {
+            snaps[month] = seed;
+            void pushSnapshot(ownerId, month, seed.account, seed.rua, seed.total, true);
+          }
         });
         localStorage.setItem(SNAP_KEY, JSON.stringify(snaps));
         notifyPatrimonioChanged();
