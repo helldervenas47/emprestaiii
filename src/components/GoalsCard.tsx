@@ -915,12 +915,20 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         if (!g) { cursor = addMonths(cursor, 1); continue; }
 
         const existing = getSnapshot(type, cursor);
-        if (!existing?.finalized) {
+        const canWrite = !existing?.finalized || type === "monthly_variation";
+        if (canWrite) {
           const computed = type === "active_capital"
             ? (getSnapshotAmount(cursor) ?? 0)
             : computeActual(type, cursor, loans, payments, expenses, clients, installmentSchedules, renegotiations);
           if (Number.isFinite(computed)) {
             const value = Number(computed) || 0;
+            if (existing?.finalized && type === "monthly_variation") {
+              const prev = Number(existing.realizedValue || 0);
+              if (!(Math.abs(prev) < 0.0001 && Math.abs(value) > 0.0001)) {
+                cursor = addMonths(cursor, 1);
+                continue;
+              }
+            }
             const target = g.targetValue > 0 ? g.targetValue : null;
             let pct: number | null = null;
             if (target) {
@@ -928,7 +936,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
                 ? (value <= target ? 100 : 0)
                 : Math.min(100, (value / target) * 100);
             }
-            void upsertSnapshot(type, cursor, value, target, pct);
+            void upsertSnapshot(type, cursor, value, target, pct, { allowFinalizedUpdate: type === "monthly_variation" });
           }
         }
         cursor = addMonths(cursor, 1);
