@@ -16,6 +16,10 @@ import { financeSetState, useFinanceHookDebug } from "@/lib/financeDebug";
  * Espelha exatamente o cálculo exibido na tela inicial da aba Receitas e Despesas
  * (IncomeBalanceCard). Todos os módulos (Dashboard, Cofrinhos, Cards consolidados,
  * indicadores, etc.) devem consumir este hook para garantir consistência.
+ * @deprecated P0-01 — fonte oficial migrou para `src/lib/accountLedgerBalance.ts`
+ * (`useOfficialAccountBalance`). Este hook permanece como legado enquanto o
+ * ledger não é backfilled (ver docs/finance-balance-source.md). Não usar em
+ * código novo.
  */
 function saleReceivedTotal(sale: Sale): number {
   const historyTotal = (sale.paymentHistory || []).reduce(
