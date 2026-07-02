@@ -51,12 +51,21 @@ WITH sim AS (
       WHERE e.paid_date IS NOT NULL AND COALESCE(e.category,'')<>'Cartão de Crédito'
         AND NOT EXISTS (SELECT 1 FROM public.account_ledger l WHERE l.source='expense' AND l.expense_id=e.id)
     UNION ALL
-    SELECT s.user_id, p.amount FROM public.payments p JOIN public.sales s ON s.id=p.sale_id
-      WHERE COALESCE(s.business_type,'')<>'aluguel_veiculo'
-        AND NOT EXISTS (
-          SELECT 1 FROM public.account_ledger l
-          WHERE l.user_id=s.user_id AND l.metadata->>'sale_id'=s.id::text
-            AND l.metadata->>'sale_payment_idx'=p.id::text)
+    SELECT s.user_id, (elem.value->>'amount')::numeric
+    FROM public.sales s,
+         LATERAL jsonb_array_elements(COALESCE(s.payment_history,'[]'::jsonb))
+           WITH ORDINALITY AS elem(value, ordinality)
+    WHERE jsonb_typeof(COALESCE(s.payment_history,'[]'::jsonb))='array'
+      AND COALESCE(s.business_type,'')<>'aluguel_veiculo'
+      AND (elem.value->>'amount') ~ '^-?[0-9]+(\.[0-9]+)?$'
+      AND (elem.value->>'amount')::numeric > 0
+      AND COALESCE(elem.value->>'date','') ~ '^\d{4}-\d{2}-\d{2}'
+      AND NOT EXISTS (
+        SELECT 1 FROM public.account_ledger l
+        WHERE l.user_id=s.user_id AND l.source='payment'
+          AND l.metadata->>'source_kind'='sale_payment'
+          AND l.metadata->>'sale_id'=s.id::text
+          AND l.metadata->>'sale_payment_idx'=elem.ordinality::text)
     UNION ALL
     SELECT user_id, COALESCE(amount,0)-COALESCE(previous_amount,0)
       FROM public.balance_adjustments
