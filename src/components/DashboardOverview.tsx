@@ -18,6 +18,7 @@ import { DashboardInsightsSection } from "@/components/dashboard/DashboardInsigh
 import { useDashboardOverviewController } from "@/components/dashboard/useDashboardOverviewController";
 import { useDashboardMetrics } from "@/components/dashboard/useDashboardMetrics";
 import { useDashboardAiReports } from "@/components/dashboard/useDashboardAiReports";
+import { usePatrimonioPublisher } from "@/hooks/usePatrimonioPublisher";
 
 interface Props {
   loans: Loan[];
