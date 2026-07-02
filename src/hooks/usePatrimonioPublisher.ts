@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { getBalances } from "@/lib/balance";
+import { supabase } from "@/integrations/supabase/userClient";
 import type { Loan } from "@/types/loan";
 
 /**
@@ -7,17 +8,69 @@ import type { Loan } from "@/types/loan";
  * snapshot do mês anterior travado, de forma global — independente de o card
  * "Extrato / Saldo Consolidado" ter sido montado.
  *
- * Consumido por GoalsCard para calcular a meta `monthly_variation`.
+ * Também sincroniza com a tabela `patrimonio_snapshots` no backend para que
+ * os valores sejam compartilhados entre dispositivos do mesmo usuário/owner.
  */
+const SNAP_KEY = "patrimonio.snapshots.v1";
+
+async function getOwnerId(): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
+  if (!user) return null;
+  const { data } = await supabase
+    .from("user_owner" as any)
+    .select("owner_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  return (data as any)?.owner_id || user.id;
+}
+
+const monthKey = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+
 export function usePatrimonioPublisher(loans: Loan[]) {
   useEffect(() => {
     let alive = true;
-    const monthKey = (d: Date) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+
+    const loadFromBackend = async (ownerId: string) => {
+      const { data, error } = await (supabase as any)
+        .from("patrimonio_snapshots")
+        .select("month, account, rua, total")
+        .eq("owner_id", ownerId);
+      if (error || !data || !alive) return;
+      try {
+        const raw = localStorage.getItem(SNAP_KEY);
+        const snaps: Record<string, any> = raw ? JSON.parse(raw) : {};
+        (data as any[]).forEach((row) => {
+          snaps[row.month] = {
+            account: Number(row.account) || 0,
+            rua: Number(row.rua) || 0,
+            total: Number(row.total) || 0,
+          };
+        });
+        localStorage.setItem(SNAP_KEY, JSON.stringify(snaps));
+      } catch { /* noop */ }
+    };
+
+    const pushSnapshot = async (
+      ownerId: string,
+      month: string,
+      account: number,
+      rua: number,
+      total: number,
+      finalize: boolean,
+    ) => {
+      await (supabase as any)
+        .from("patrimonio_snapshots")
+        .upsert(
+          { owner_id: ownerId, month, account, rua, total, finalized: finalize },
+          { onConflict: "owner_id,month" },
+        );
+    };
 
     const publish = async () => {
       try {
-        const b = await getBalances();
+        const [b, ownerId] = await Promise.all([getBalances(), getOwnerId()]);
         if (!alive) return;
         const contaMaisDinheiro = (b.account || 0) + (b.cash || 0);
         const pendingLoans = loans
@@ -32,21 +85,34 @@ export function usePatrimonioPublisher(loans: Loan[]) {
           JSON.stringify({ month: currentKey, account: contaMaisDinheiro, rua: pendingLoans, total }),
         );
 
-        // Trava snapshot apenas no último dia do mês.
+        // Trava snapshot no último dia do mês.
         const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
         const isLastDay = next.getMonth() !== now.getMonth();
-        if (isLastDay) {
-          const raw = localStorage.getItem("patrimonio.snapshots.v1");
+        if (isLastDay && ownerId) {
+          const raw = localStorage.getItem(SNAP_KEY);
           const snaps: Record<string, any> = raw ? JSON.parse(raw) : {};
           if (snaps[currentKey] == null) {
             snaps[currentKey] = { account: contaMaisDinheiro, rua: pendingLoans, total };
-            localStorage.setItem("patrimonio.snapshots.v1", JSON.stringify(snaps));
+            localStorage.setItem(SNAP_KEY, JSON.stringify(snaps));
+            void pushSnapshot(ownerId, currentKey, contaMaisDinheiro, pendingLoans, total, true);
           }
+        }
+
+        // Sincroniza sempre o patrimônio ao vivo do mês corrente (não finalizado)
+        // — permite que outros dispositivos leiam o valor mesmo sem esperar o fim do mês.
+        if (ownerId) {
+          void pushSnapshot(ownerId, currentKey, contaMaisDinheiro, pendingLoans, total, false);
         }
       } catch { /* noop */ }
     };
 
-    publish();
+    // Primeiro carrega o que já existe no backend, depois publica os dados atuais.
+    (async () => {
+      const ownerId = await getOwnerId();
+      if (ownerId) await loadFromBackend(ownerId);
+      await publish();
+    })();
+
     const onChange = () => { publish(); };
     window.addEventListener("balance:changed", onChange);
     window.addEventListener("focus", onChange);
