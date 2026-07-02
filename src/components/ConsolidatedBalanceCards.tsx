@@ -383,19 +383,62 @@ export function ConsolidatedBalanceCards() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={openVariacao} onOpenChange={setOpenVariacao}>
+      <Dialog
+        open={openVariacao}
+        onOpenChange={(o) => {
+          setOpenVariacao(o);
+          if (o) setVariacaoMonthOffset(0);
+        }}
+      >
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <BarChart3 className={`h-4 w-4 ${variacaoColor}`} /> Variação Mensal
             </DialogTitle>
           </DialogHeader>
+
+          {/* Seletor de mês */}
+          <div className="flex items-center justify-center gap-1 sm:gap-2 -mt-1">
+            <button
+              type="button"
+              onClick={() => setVariacaoMonthOffset((v) => v - 1)}
+              className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-accent transition-colors"
+              aria-label="Mês anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setVariacaoMonthOffset(0)}
+              className="text-sm font-medium capitalize min-w-[140px] text-center hover:text-primary transition-colors"
+              title="Voltar ao mês atual"
+            >
+              {selLabel}
+            </button>
+            <button
+              type="button"
+              onClick={() => setVariacaoMonthOffset((v) => v + 1)}
+              className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-accent transition-colors"
+              aria-label="Próximo mês"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+
           <div className="space-y-4">
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Mês Atual</p>
-              <Row label="Saldo em Conta" value={contaMaisDinheiro} />
-              <Row label="Pendente de Empréstimos" value={pendingLoans} />
-              <Row label="Patrimônio" value={patrimonioTotal} />
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                {variacaoMonthOffset === 0 ? "Mês Atual" : "Mês Selecionado"}
+              </p>
+              {selCurrentSnap ? (
+                <>
+                  <Row label="Saldo em Conta" value={selCurrentSnap.account} />
+                  <Row label="Pendente de Empréstimos" value={selCurrentSnap.rua} />
+                  <Row label="Patrimônio" value={selCurrentSnap.total} />
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground py-2">Sem snapshot deste mês.</p>
+              )}
             </div>
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Mês Anterior</p>
@@ -412,8 +455,8 @@ export function ConsolidatedBalanceCards() {
             <div className="pt-3 border-t border-border space-y-1">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold">Diferença</span>
-                <span className={`text-sm font-bold tabular-nums ${prevPatrimonio == null ? "text-muted-foreground" : (patrimonioTotal - prevPatrimonio) >= 0 ? "text-success" : "text-destructive"}`}>
-                  {prevPatrimonio == null ? "—" : `${(patrimonioTotal - prevPatrimonio) >= 0 ? "+" : ""}${formatBRL(patrimonioTotal - prevPatrimonio)}`}
+                <span className={`text-sm font-bold tabular-nums ${selTotal == null || prevPatrimonio == null ? "text-muted-foreground" : (selTotal - prevPatrimonio) >= 0 ? "text-success" : "text-destructive"}`}>
+                  {selTotal == null || prevPatrimonio == null ? "—" : `${(selTotal - prevPatrimonio) >= 0 ? "+" : ""}${formatBRL(selTotal - prevPatrimonio)}`}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -427,6 +470,7 @@ export function ConsolidatedBalanceCards() {
           </div>
         </DialogContent>
       </Dialog>
+
 
 
 
