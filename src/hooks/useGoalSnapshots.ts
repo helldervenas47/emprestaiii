@@ -72,7 +72,8 @@ export function useGoalSnapshots() {
     // de snapshots antigos gravados com dado indisponível.
     const existing = snapshots.find((s) => s.goalType === goalType && s.month === month);
     if (existing?.finalized && !options?.allowFinalizedUpdate) return;
-    const { error } = await supabase
+    const nowIso = new Date().toISOString();
+    const { data, error } = await supabase
       .from("monthly_goal_snapshots")
       .upsert(
         {
@@ -84,11 +85,48 @@ export function useGoalSnapshots() {
           target_value: targetValue,
           attainment_pct: attainmentPct,
           finalized: true,
-          snapshot_date: new Date().toISOString(),
+          snapshot_date: nowIso,
         },
         { onConflict: "owner_id,month,goal_type" },
-      );
-    if (error) console.error("Erro ao salvar snapshot de meta:", error);
+      )
+      .select("id, owner_id, month, goal_type, target_value, realized_value, attainment_pct, finalized, snapshot_date")
+      .maybeSingle();
+    if (error) {
+      console.error("Erro ao salvar snapshot de meta:", error);
+      return;
+    }
+    // Atualiza estado local imediatamente para refletir o snapshot recém-gravado
+    // (ex.: badge "TRAVADO" após auto-fechamento retroativo).
+    const row: GoalSnapshot = data
+      ? {
+          id: (data as any).id,
+          ownerId: (data as any).owner_id,
+          month: (data as any).month,
+          goalType: (data as any).goal_type as GoalType,
+          targetValue: (data as any).target_value != null ? Number((data as any).target_value) : null,
+          realizedValue: Number((data as any).realized_value || 0),
+          attainmentPct: (data as any).attainment_pct != null ? Number((data as any).attainment_pct) : null,
+          finalized: !!(data as any).finalized,
+          snapshotDate: (data as any).snapshot_date,
+        }
+      : {
+          id: existing?.id || `${ownerId}-${month}-${goalType}`,
+          ownerId,
+          month,
+          goalType,
+          targetValue,
+          realizedValue,
+          attainmentPct,
+          finalized: true,
+          snapshotDate: nowIso,
+        };
+    setSnapshots((prev) => {
+      const idx = prev.findIndex((s) => s.goalType === goalType && s.month === month);
+      if (idx === -1) return [...prev, row];
+      const next = prev.slice();
+      next[idx] = row;
+      return next;
+    });
   }, [ownerId, snapshots]);
 
   return { snapshots, loading, getSnapshot, upsertSnapshot, reload: load };
