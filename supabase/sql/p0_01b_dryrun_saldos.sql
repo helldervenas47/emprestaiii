@@ -5,13 +5,13 @@ WITH sim AS (
   SELECT i.user_id,
          COALESCE((SELECT pm.kind FROM public.payment_methods pm WHERE pm.id=i.payment_method_id),'account'),
          i.amount
-  FROM public.incomes i WHERE i.received_at IS NOT NULL AND i.ledger_id IS NULL
+  FROM public.incomes i WHERE i.received_date IS NOT NULL AND i.ledger_id IS NULL
   UNION ALL
   SELECT e.user_id,
          COALESCE((SELECT pm.kind FROM public.payment_methods pm WHERE pm.id=e.payment_method_id),'account'),
          -e.amount
   FROM public.expenses e
-  WHERE e.paid_at IS NOT NULL AND COALESCE(e.category,'')<>'Cartão de Crédito'
+  WHERE e.paid_date IS NOT NULL AND COALESCE(e.category,'')<>'Cartão de Crédito'
     AND NOT EXISTS (SELECT 1 FROM public.account_ledger l WHERE l.source='expense' AND l.expense_id=e.id)
   UNION ALL
   SELECT s.user_id,'account',p.amount
@@ -37,10 +37,10 @@ WITH sim AS (
     SELECT user_id, amount FROM public.account_ledger
     UNION ALL
     SELECT i.user_id, i.amount FROM public.incomes i
-      WHERE i.received_at IS NOT NULL AND i.ledger_id IS NULL
+      WHERE i.received_date IS NOT NULL AND i.ledger_id IS NULL
     UNION ALL
     SELECT e.user_id, -e.amount FROM public.expenses e
-      WHERE e.paid_at IS NOT NULL AND COALESCE(e.category,'')<>'Cartão de Crédito'
+      WHERE e.paid_date IS NOT NULL AND COALESCE(e.category,'')<>'Cartão de Crédito'
         AND NOT EXISTS (SELECT 1 FROM public.account_ledger l WHERE l.source='expense' AND l.expense_id=e.id)
     UNION ALL
     SELECT s.user_id, p.amount FROM public.payments p JOIN public.sales s ON s.id=p.sale_id

@@ -2,30 +2,30 @@
 
 -- (1) incomes_a_inserir
 SELECT '1_incomes_a_inserir' AS bloco, COUNT(*)::text AS valor
-FROM public.incomes WHERE received_at IS NOT NULL AND ledger_id IS NULL
+FROM public.incomes WHERE received_date IS NOT NULL AND ledger_id IS NULL
 UNION ALL
 -- (1b) incomes status
 SELECT '1b_incomes_com_ledger',      COUNT(*)::text FROM public.incomes WHERE ledger_id IS NOT NULL
 UNION ALL
-SELECT '1b_incomes_sem_ledger_receb',COUNT(*)::text FROM public.incomes WHERE ledger_id IS NULL AND received_at IS NOT NULL
+SELECT '1b_incomes_sem_ledger_receb',COUNT(*)::text FROM public.incomes WHERE ledger_id IS NULL AND received_date IS NOT NULL
 UNION ALL
-SELECT '1b_incomes_nao_recebidas',   COUNT(*)::text FROM public.incomes WHERE received_at IS NULL
+SELECT '1b_incomes_nao_recebidas',   COUNT(*)::text FROM public.incomes WHERE received_date IS NULL
 UNION ALL
 -- (2) expenses_a_inserir
 SELECT '2_expenses_a_inserir', COUNT(*)::text
 FROM public.expenses e
-WHERE e.paid_at IS NOT NULL
+WHERE e.paid_date IS NOT NULL
   AND COALESCE(e.category,'') <> 'Cartão de Crédito'
   AND NOT EXISTS (SELECT 1 FROM public.account_ledger l WHERE l.source='expense' AND l.expense_id=e.id)
 UNION ALL
 -- (3) expenses_cartao_excluidas
 SELECT '3_expenses_cartao_excluidas', COUNT(*)::text
-FROM public.expenses WHERE paid_at IS NOT NULL AND category='Cartão de Crédito'
+FROM public.expenses WHERE paid_date IS NOT NULL AND category='Cartão de Crédito'
 UNION ALL
 -- (3b) expenses sem payment_method
 SELECT '3b_expenses_sem_pm', COUNT(*)::text
 FROM public.expenses e
-WHERE e.paid_at IS NOT NULL AND COALESCE(e.category,'')<>'Cartão de Crédito' AND e.payment_method_id IS NULL
+WHERE e.paid_date IS NOT NULL AND COALESCE(e.category,'')<>'Cartão de Crédito' AND e.payment_method_id IS NULL
 UNION ALL
 -- (4) sale_payments_a_inserir
 SELECT '4_sale_payments_a_inserir', COUNT(*)::text
@@ -71,11 +71,11 @@ SELECT '6_adjustment_id_dup', COUNT(*)::text FROM (
   GROUP BY 1 HAVING COUNT(*)>1) x
 UNION ALL
 -- (9) descartes
-SELECT '9_income_sem_received_at', COUNT(*)::text FROM public.incomes WHERE received_at IS NULL
+SELECT '9_income_sem_received_date', COUNT(*)::text FROM public.incomes WHERE received_date IS NULL
 UNION ALL
-SELECT '9_expense_sem_paid_at', COUNT(*)::text FROM public.expenses WHERE paid_at IS NULL
+SELECT '9_expense_sem_paid_date', COUNT(*)::text FROM public.expenses WHERE paid_date IS NULL
 UNION ALL
-SELECT '9_expense_cartao', COUNT(*)::text FROM public.expenses WHERE paid_at IS NOT NULL AND category='Cartão de Crédito'
+SELECT '9_expense_cartao', COUNT(*)::text FROM public.expenses WHERE paid_date IS NOT NULL AND category='Cartão de Crédito'
 UNION ALL
 SELECT '9_sale_aluguel', COUNT(*)::text
 FROM public.payments p JOIN public.sales s ON s.id=p.sale_id WHERE s.business_type='aluguel_veiculo'
@@ -85,6 +85,6 @@ FROM public.balance_adjustments WHERE COALESCE(amount,0)-COALESCE(previous_amoun
 UNION ALL
 SELECT '9_expense_pm_kind_invalido', COUNT(*)::text
 FROM public.expenses e LEFT JOIN public.payment_methods pm ON pm.id=e.payment_method_id
-WHERE e.paid_at IS NOT NULL AND COALESCE(e.category,'')<>'Cartão de Crédito'
+WHERE e.paid_date IS NOT NULL AND COALESCE(e.category,'')<>'Cartão de Crédito'
   AND e.payment_method_id IS NOT NULL AND pm.kind IS NULL
 ORDER BY bloco;

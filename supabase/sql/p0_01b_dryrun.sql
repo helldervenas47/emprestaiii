@@ -4,20 +4,20 @@
 \echo '=== (1) Receitas recebidas que entrariam no ledger ==='
 SELECT COUNT(*) AS incomes_a_inserir
 FROM public.incomes i
-WHERE i.received_at IS NOT NULL
+WHERE i.received_date IS NOT NULL
   AND i.ledger_id IS NULL;
 
 \echo '=== (1b) Incomes já com ledger_id (não reinsere) ==='
 SELECT
   COUNT(*) FILTER (WHERE ledger_id IS NOT NULL) AS com_ledger,
-  COUNT(*) FILTER (WHERE ledger_id IS NULL AND received_at IS NOT NULL) AS sem_ledger_recebidas,
-  COUNT(*) FILTER (WHERE received_at IS NULL) AS nao_recebidas
+  COUNT(*) FILTER (WHERE ledger_id IS NULL AND received_date IS NOT NULL) AS sem_ledger_recebidas,
+  COUNT(*) FILTER (WHERE received_date IS NULL) AS nao_recebidas
 FROM public.incomes;
 
 \echo '=== (2) Despesas pagas que entrariam no ledger (exclui cartão) ==='
 SELECT COUNT(*) AS expenses_a_inserir
 FROM public.expenses e
-WHERE e.paid_at IS NOT NULL
+WHERE e.paid_date IS NOT NULL
   AND COALESCE(e.category, '') <> 'Cartão de Crédito'
   AND NOT EXISTS (
     SELECT 1 FROM public.account_ledger l
@@ -27,13 +27,13 @@ WHERE e.paid_at IS NOT NULL
 \echo '=== (3) Despesas de cartão excluídas ==='
 SELECT COUNT(*) AS expenses_cartao_excluidas
 FROM public.expenses
-WHERE paid_at IS NOT NULL
+WHERE paid_date IS NOT NULL
   AND category = 'Cartão de Crédito';
 
 \echo '=== (3b) Despesas pagas sem payment_method (wallet indefinido) ==='
 SELECT COUNT(*) AS expenses_sem_payment_method
 FROM public.expenses e
-WHERE e.paid_at IS NOT NULL
+WHERE e.paid_date IS NOT NULL
   AND COALESCE(e.category, '') <> 'Cartão de Crédito'
   AND e.payment_method_id IS NULL;
 
@@ -105,14 +105,14 @@ WITH sim AS (
          COALESCE((SELECT pm.kind FROM public.payment_methods pm WHERE pm.id = i.payment_method_id), 'account'),
          i.amount
     FROM public.incomes i
-   WHERE i.received_at IS NOT NULL AND i.ledger_id IS NULL
+   WHERE i.received_date IS NOT NULL AND i.ledger_id IS NULL
   UNION ALL
   -- expenses que serão inseridos
   SELECT e.user_id,
          COALESCE((SELECT pm.kind FROM public.payment_methods pm WHERE pm.id = e.payment_method_id), 'account'),
          -e.amount
     FROM public.expenses e
-   WHERE e.paid_at IS NOT NULL
+   WHERE e.paid_date IS NOT NULL
      AND COALESCE(e.category,'') <> 'Cartão de Crédito'
      AND NOT EXISTS (SELECT 1 FROM public.account_ledger l WHERE l.source='expense' AND l.expense_id = e.id)
   UNION ALL
@@ -147,10 +147,10 @@ WITH sim AS (
     SELECT user_id, amount FROM public.account_ledger
     UNION ALL
     SELECT i.user_id, i.amount FROM public.incomes i
-      WHERE i.received_at IS NOT NULL AND i.ledger_id IS NULL
+      WHERE i.received_date IS NOT NULL AND i.ledger_id IS NULL
     UNION ALL
     SELECT e.user_id, -e.amount FROM public.expenses e
-      WHERE e.paid_at IS NOT NULL AND COALESCE(e.category,'')<>'Cartão de Crédito'
+      WHERE e.paid_date IS NOT NULL AND COALESCE(e.category,'')<>'Cartão de Crédito'
         AND NOT EXISTS (SELECT 1 FROM public.account_ledger l WHERE l.source='expense' AND l.expense_id=e.id)
     UNION ALL
     SELECT s.user_id, p.amount FROM public.payments p JOIN public.sales s ON s.id=p.sale_id
@@ -174,17 +174,17 @@ SELECT b.user_id,
  ORDER BY ABS(COALESCE(s.oficial_esperado - b.amount, 0)) DESC;
 
 \echo '=== (9) Registros que ficariam de fora ==='
--- (9a) incomes sem received_at
-SELECT 'income_sem_received_at' AS motivo, COUNT(*) AS qtd
-  FROM public.incomes WHERE received_at IS NULL
+-- (9a) incomes sem received_date
+SELECT 'income_sem_received_date' AS motivo, COUNT(*) AS qtd
+  FROM public.incomes WHERE received_date IS NULL
 UNION ALL
--- (9b) expenses sem paid_at
-SELECT 'expense_sem_paid_at', COUNT(*)
-  FROM public.expenses WHERE paid_at IS NULL
+-- (9b) expenses sem paid_date
+SELECT 'expense_sem_paid_date', COUNT(*)
+  FROM public.expenses WHERE paid_date IS NULL
 UNION ALL
 -- (9c) expenses de cartão
 SELECT 'expense_cartao', COUNT(*)
-  FROM public.expenses WHERE paid_at IS NOT NULL AND category = 'Cartão de Crédito'
+  FROM public.expenses WHERE paid_date IS NOT NULL AND category = 'Cartão de Crédito'
 UNION ALL
 -- (9d) sales aluguel_veiculo
 SELECT 'sale_aluguel_veiculo', COUNT(*)
@@ -200,7 +200,7 @@ UNION ALL
 SELECT 'expense_pm_kind_invalido', COUNT(*)
   FROM public.expenses e
   LEFT JOIN public.payment_methods pm ON pm.id = e.payment_method_id
-  WHERE e.paid_at IS NOT NULL
+  WHERE e.paid_date IS NOT NULL
     AND COALESCE(e.category,'')<>'Cartão de Crédito'
     AND e.payment_method_id IS NOT NULL
     AND pm.kind IS NULL;
