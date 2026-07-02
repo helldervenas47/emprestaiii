@@ -12,6 +12,15 @@ import type { Loan } from "@/types/loan";
  * os valores sejam compartilhados entre dispositivos do mesmo usuário/owner.
  */
 const SNAP_KEY = "patrimonio.snapshots.v1";
+const HISTORICAL_PATRIMONIO_SEEDS: Record<string, { account: number; rua: number; total: number }> = {
+  "2026-05": { account: 0, rua: 0, total: 79235.36 },
+  "2026-06": { account: 8848.70, rua: 78656.00, total: 87413.76 },
+};
+
+const notifyPatrimonioChanged = () => {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event("patrimonio:snapshots-changed"));
+};
 
 async function getOwnerId(): Promise<string | null> {
   const { data: { session } } = await supabase.auth.getSession();
@@ -48,7 +57,15 @@ export function usePatrimonioPublisher(loans: Loan[]) {
             total: Number(row.total) || 0,
           };
         });
+        Object.entries(HISTORICAL_PATRIMONIO_SEEDS).forEach(([month, seed]) => {
+          const existingTotal = Number(snaps[month]?.total ?? snaps[month] ?? 0);
+          if (snaps[month] == null || Math.abs(existingTotal) < 0.01) {
+            snaps[month] = seed;
+            void pushSnapshot(ownerId, month, seed.account, seed.rua, seed.total, true);
+          }
+        });
         localStorage.setItem(SNAP_KEY, JSON.stringify(snaps));
+        notifyPatrimonioChanged();
       } catch { /* noop */ }
     };
 
@@ -84,6 +101,7 @@ export function usePatrimonioPublisher(loans: Loan[]) {
           "patrimonio.current.v1",
           JSON.stringify({ month: currentKey, account: contaMaisDinheiro, rua: pendingLoans, total }),
         );
+        notifyPatrimonioChanged();
 
         // Trava snapshot no último dia do mês.
         const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
@@ -94,13 +112,14 @@ export function usePatrimonioPublisher(loans: Loan[]) {
           if (snaps[currentKey] == null) {
             snaps[currentKey] = { account: contaMaisDinheiro, rua: pendingLoans, total };
             localStorage.setItem(SNAP_KEY, JSON.stringify(snaps));
+            notifyPatrimonioChanged();
             void pushSnapshot(ownerId, currentKey, contaMaisDinheiro, pendingLoans, total, true);
           }
         }
 
         // Sincroniza sempre o patrimônio ao vivo do mês corrente (não finalizado)
         // — permite que outros dispositivos leiam o valor mesmo sem esperar o fim do mês.
-        if (ownerId) {
+        if (ownerId && !isLastDay) {
           void pushSnapshot(ownerId, currentKey, contaMaisDinheiro, pendingLoans, total, false);
         }
       } catch { /* noop */ }

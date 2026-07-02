@@ -663,8 +663,14 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
   const [editingGoalType, setEditingGoalType] = useState<GoalType | null>(null);
   const [editingValue, setEditingValue] = useState<string>("");
   const [savingGoal, setSavingGoal] = useState(false);
+  const [patrimonioSyncVersion, setPatrimonioSyncVersion] = useState(0);
   // Cancela edição ao trocar de mês
   useEffect(() => { setEditingGoalType(null); }, [selectedMonth]);
+  useEffect(() => {
+    const onPatrimonioChanged = () => setPatrimonioSyncVersion((version) => version + 1);
+    window.addEventListener("patrimonio:snapshots-changed", onPatrimonioChanged);
+    return () => window.removeEventListener("patrimonio:snapshots-changed", onPatrimonioChanged);
+  }, []);
   // Cache imediato via localStorage (evita flicker enquanto sincroniza com o backend)
   const { getSnapshot, upsertSnapshot } = useGoalSnapshots();
   const [prefs, setPrefs] = useState<{ selected: GoalType[]; order: GoalType[] }>(() => loadGoalPrefs(user?.id));
@@ -829,7 +835,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
 
       return { ...g, actual, pct, meta, expectedReceivable, targetAmount, receivedTotal, monthlyPct, liveComputed, isLocked: monthClosed && !!snapshot?.finalized };
     });
-  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount, getSnapshot]);
+  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount, getSnapshot, patrimonioSyncVersion]);
 
   // Auto-fechamento: quando o mês já encerrou e ainda não há snapshot finalizado para
   // alguma meta visível, grava o snapshot com o valor realizado atualmente calculado.
@@ -843,7 +849,9 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       // sobrescreve se o valor armazenado diferir do TOTAL recém-computado.
       const rawValue = g.goalType === "daily_received_avg"
         ? (g.receivedTotal ?? 0)
-        : (g.liveComputed ?? g.actual);
+        : g.goalType === "monthly_variation"
+          ? g.liveComputed
+          : (g.liveComputed ?? g.actual);
       // Nunca congela dado indisponível (NaN/Infinity) — evita travar metas em 0
       // por falta de patrimônio/snapshot no dia do encerramento.
       if (!Number.isFinite(rawValue)) return;
@@ -859,7 +867,14 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
           return;
         }
       }
-      void upsertSnapshot(g.goalType, computeMonth, snapshotValue, g.targetValue ?? null, g.pct ?? null);
+      void upsertSnapshot(
+        g.goalType,
+        computeMonth,
+        snapshotValue,
+        g.targetValue ?? null,
+        g.pct ?? null,
+        { allowFinalizedUpdate: g.goalType === "monthly_variation" },
+      );
     });
   }, [enriched, selectedMonth, getSnapshot, upsertSnapshot]);
 
@@ -900,12 +915,20 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         if (!g) { cursor = addMonths(cursor, 1); continue; }
 
         const existing = getSnapshot(type, cursor);
-        if (!existing?.finalized) {
+        const canWrite = !existing?.finalized || type === "monthly_variation";
+        if (canWrite) {
           const computed = type === "active_capital"
             ? (getSnapshotAmount(cursor) ?? 0)
             : computeActual(type, cursor, loans, payments, expenses, clients, installmentSchedules, renegotiations);
           if (Number.isFinite(computed)) {
             const value = Number(computed) || 0;
+            if (existing?.finalized && type === "monthly_variation") {
+              const prev = Number(existing.realizedValue || 0);
+              if (!(Math.abs(prev) < 0.0001 && Math.abs(value) > 0.0001)) {
+                cursor = addMonths(cursor, 1);
+                continue;
+              }
+            }
             const target = g.targetValue > 0 ? g.targetValue : null;
             let pct: number | null = null;
             if (target) {
@@ -913,13 +936,13 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
                 ? (value <= target ? 100 : 0)
                 : Math.min(100, (value / target) * 100);
             }
-            void upsertSnapshot(type, cursor, value, target, pct);
+            void upsertSnapshot(type, cursor, value, target, pct, { allowFinalizedUpdate: type === "monthly_variation" });
           }
         }
         cursor = addMonths(cursor, 1);
       }
     });
-  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, getSnapshot, upsertSnapshot, getSnapshotAmount]);
+  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, getSnapshot, upsertSnapshot, getSnapshotAmount, patrimonioSyncVersion]);
 
   // Aplica preferências do usuário: filtra pelos tipos selecionados e ordena conforme a ordem definida.
   // Limita a no máximo MAX_VISIBLE_GOALS cards.
