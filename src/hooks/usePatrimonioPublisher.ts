@@ -119,7 +119,7 @@ export function usePatrimonioPublisher(loans: Loan[]) {
 
         // Sincroniza sempre o patrimônio ao vivo do mês corrente (não finalizado)
         // — permite que outros dispositivos leiam o valor mesmo sem esperar o fim do mês.
-        if (ownerId) {
+        if (ownerId && !isLastDay) {
           void pushSnapshot(ownerId, currentKey, contaMaisDinheiro, pendingLoans, total, false);
         }
       } catch { /* noop */ }
