@@ -23,8 +23,11 @@ import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { MonthTransactionsSheet } from "./MonthTransactionsSheet";
 import { FinancialStatement } from "./FinancialStatement";
 import { PiggyBanksSummaryCard } from "./PiggyBanksSummaryCard";
+import { SilentErrorBoundary } from "./SilentErrorBoundary";
 const IncomeTelegramBotButton = lazy(() =>
-  import("./IncomeTelegramBotButton").then((m) => ({ default: m.IncomeTelegramBotButton })),
+  import("./IncomeTelegramBotButton")
+    .then((m) => ({ default: m.IncomeTelegramBotButton }))
+    .catch(() => ({ default: () => null })),
 );
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Plus, Search, Copy, Pencil, Trash2, CheckCircle2, Clock, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, CalendarCheck, ChevronDown } from "lucide-react";
