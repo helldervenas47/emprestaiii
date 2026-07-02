@@ -236,7 +236,7 @@ export function useCreditCardOpenings() {
           month_label: cycleKey,
           opening_balance: amount,
           notes: notes ?? null,
-        },
+        } as any,
         { onConflict: "card_id,cycle_key" },
       )
       .select()
