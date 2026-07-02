@@ -16,9 +16,9 @@ export interface InvoiceOpening {
 
 const fromRow = (r: any): InvoiceOpening => ({
   id: r.id,
-  cardId: r.card_id ?? r.credit_card_id,
+  cardId: r.card_id,
   cycleKey: r.cycle_key ?? r.month_label,
-  openingAmount: Number(r.opening_amount ?? r.opening_balance ?? 0),
+  openingAmount: Number(r.opening_balance ?? 0),
   notes: r.notes ?? null,
 });
 
