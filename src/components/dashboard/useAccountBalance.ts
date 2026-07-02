@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { getBalance, setBalance } from "@/lib/balance";
 
+// @deprecated P0-01 — este hook lê a tabela `balance` (Dashboard).
+// A fonte oficial de saldo é `useOfficialAccountBalance` em
+// `src/lib/accountLedgerBalance.ts`. Este arquivo continua ativo apenas
+// para manter o comportamento atual do Dashboard até P0-01c.
 // Subscribe to balance changes via offline-sync events + light polling
 export function useAccountBalance(): [number, (v: number) => void] {
   const [bal, setBal] = useState(0);

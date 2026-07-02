@@ -20,6 +20,9 @@ function saleReceivedTotal(sale: Sale): number {
 }
 
 /**
+ * @deprecated P0-01 — usar `useOfficialAccountBalance` (src/lib/accountLedgerBalance.ts).
+ * Mantido como legado até o backfill do `account_ledger`.
+ *
  * Saldo em Conta unificado — exatamente a mesma base usada pelo
  * card "Saldo em Conta" da aba Receitas (IncomeBalanceCard):
  *
