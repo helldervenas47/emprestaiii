@@ -843,7 +843,9 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       // sobrescreve se o valor armazenado diferir do TOTAL recém-computado.
       const rawValue = g.goalType === "daily_received_avg"
         ? (g.receivedTotal ?? 0)
-        : (g.liveComputed ?? g.actual);
+        : g.goalType === "monthly_variation"
+          ? g.liveComputed
+          : (g.liveComputed ?? g.actual);
       // Nunca congela dado indisponível (NaN/Infinity) — evita travar metas em 0
       // por falta de patrimônio/snapshot no dia do encerramento.
       if (!Number.isFinite(rawValue)) return;
@@ -859,7 +861,14 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
           return;
         }
       }
-      void upsertSnapshot(g.goalType, computeMonth, snapshotValue, g.targetValue ?? null, g.pct ?? null);
+      void upsertSnapshot(
+        g.goalType,
+        computeMonth,
+        snapshotValue,
+        g.targetValue ?? null,
+        g.pct ?? null,
+        { allowFinalizedUpdate: g.goalType === "monthly_variation" },
+      );
     });
   }, [enriched, selectedMonth, getSnapshot, upsertSnapshot]);
 

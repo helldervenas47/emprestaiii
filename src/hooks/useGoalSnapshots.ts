@@ -64,12 +64,14 @@ export function useGoalSnapshots() {
     realizedValue: number,
     targetValue: number | null,
     attainmentPct: number | null,
+    options?: { allowFinalizedUpdate?: boolean },
   ) => {
     assertWritable();
     if (!ownerId) return;
-    // Se já está finalizado, não tenta sobrescrever
+    // Se já está finalizado, não tenta sobrescrever — exceto correções explícitas
+    // de snapshots antigos gravados com dado indisponível.
     const existing = snapshots.find((s) => s.goalType === goalType && s.month === month);
-    if (existing?.finalized) return;
+    if (existing?.finalized && !options?.allowFinalizedUpdate) return;
     const { error } = await supabase
       .from("monthly_goal_snapshots")
       .upsert(
