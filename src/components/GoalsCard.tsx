@@ -834,16 +834,58 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       const existing = getSnapshot(g.goalType, computeMonth);
       // Para `daily_received_avg`, snapshots antigos podem ter sido salvos como média;
       // sobrescreve se o valor armazenado diferir do TOTAL recém-computado.
-      const snapshotValue = g.goalType === "daily_received_avg"
+      const rawValue = g.goalType === "daily_received_avg"
         ? (g.receivedTotal ?? 0)
-        : g.actual;
+        : (g.liveComputed ?? g.actual);
+      // Nunca congela dado indisponível (NaN/Infinity) — evita travar metas em 0
+      // por falta de patrimônio/snapshot no dia do encerramento.
+      if (!Number.isFinite(rawValue)) return;
+      const snapshotValue = rawValue as number;
       if (existing?.finalized) {
-        if (g.goalType !== "daily_received_avg") return;
-        if (Math.abs(Number(existing.realizedValue || 0) - snapshotValue) < 0.01) return;
+        if (g.goalType === "daily_received_avg") {
+          if (Math.abs(Number(existing.realizedValue || 0) - snapshotValue) < 0.01) return;
+        } else if (g.goalType === "monthly_variation") {
+          // Sobrescreve apenas quando o snapshot antigo travou em 0 e agora temos valor válido.
+          const prev = Number(existing.realizedValue || 0);
+          if (!(Math.abs(prev) < 0.0001 && Math.abs(snapshotValue) > 0.0001)) return;
+        } else {
+          return;
+        }
       }
       void upsertSnapshot(g.goalType, computeMonth, snapshotValue, g.targetValue ?? null, g.pct ?? null);
     });
   }, [enriched, selectedMonth, getSnapshot, upsertSnapshot]);
+
+  // Auto-fechamento retroativo: percorre TODAS as metas cadastradas para meses já
+  // encerrados e grava o snapshot com o realizado calculado, garantindo que metas
+  // (ex.: junho) sejam travadas mesmo que o usuário nunca tenha aberto o Dashboard
+  // filtrando por aquele mês. Não sobrescreve snapshots já finalizados.
+  useEffect(() => {
+    if (!goals.length) return;
+    const seen = new Set<string>();
+    goals.forEach((g) => {
+      if (!isMonthClosed(g.month)) return;
+      const key = `${g.goalType}|${g.month}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      const existing = getSnapshot(g.goalType, g.month);
+      if (existing?.finalized) return;
+      const computed = g.goalType === "active_capital"
+        ? (getSnapshotAmount(g.month) ?? 0)
+        : computeActual(g.goalType, g.month, loans, payments, expenses, clients, installmentSchedules, renegotiations);
+      if (!Number.isFinite(computed)) return;
+      // Para daily_received_avg, o snapshot guarda o TOTAL recebido (não a média).
+      const value = Number(computed) || 0;
+      const target = g.targetValue > 0 ? g.targetValue : null;
+      let pct: number | null = null;
+      if (target) {
+        pct = (g.goalType === "max_default_rate" || g.goalType === "renegotiation_rate")
+          ? (value <= target ? 100 : 0)
+          : Math.min(100, (value / target) * 100);
+      }
+      void upsertSnapshot(g.goalType, g.month, value, target, pct);
+    });
+  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, getSnapshot, upsertSnapshot, getSnapshotAmount]);
 
   // Aplica preferências do usuário: filtra pelos tipos selecionados e ordena conforme a ordem definida.
   // Limita a no máximo MAX_VISIBLE_GOALS cards.
