@@ -100,7 +100,8 @@ UNION ALL
 SELECT '9_expense_cartao', COUNT(*)::text FROM public.expenses WHERE paid_date IS NOT NULL AND category='Cartão de Crédito'
 UNION ALL
 SELECT '9_sale_aluguel', COUNT(*)::text
-FROM public.payments p JOIN public.sales s ON s.id=p.sale_id WHERE s.business_type='aluguel_veiculo'
+FROM public.sales s, LATERAL jsonb_array_elements(COALESCE(s.payment_history,'[]'::jsonb)) elem
+WHERE s.business_type='aluguel_veiculo'
 UNION ALL
 SELECT '9_adjustment_delta_zero', COUNT(*)::text
 FROM public.balance_adjustments WHERE COALESCE(amount,0)-COALESCE(previous_amount,0)=0
