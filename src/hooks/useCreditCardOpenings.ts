@@ -95,9 +95,24 @@ export function useCreditCardOpenings() {
         .eq("metadata->>kind", "credit_card_invoice_payment"),
     ]);
     if (error) {
-      console.error("[useCreditCardOpenings] load error", error);
-      financeFetchError("useCreditCardOpenings", "credit_card_invoice_openings", { message: error.message, code: (error as any).code });
-      toast.error("Erro ao carregar faturas iniciais");
+      const err = error as any;
+      console.error("[useCreditCardOpenings] load error (full)", {
+        code: err?.code,
+        message: err?.message,
+        details: err?.details,
+        hint: err?.hint,
+        status: err?.status,
+      });
+      financeFetchError("useCreditCardOpenings", "credit_card_invoice_openings", {
+        message: err?.message,
+        code: err?.code,
+        details: err?.details,
+        hint: err?.hint,
+      });
+      const suffix = err?.code ? ` [${err.code}]` : "";
+      toast.error(`Erro ao carregar faturas iniciais${suffix}`, {
+        description: err?.message || err?.hint || err?.details || undefined,
+      });
       financeSetState("useCreditCardOpenings", "openings", { rows: 0, reason: "load error" });
       setOpenings([]);
       financeSetState("useCreditCardOpenings", "ledgerPayments", { rows: 0, reason: "load error" });
