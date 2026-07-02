@@ -196,9 +196,11 @@ export function IncomeList({ readOnly }: Props) {
         onOpenPendingExpenses={() => { setSheetInitialFilter("pending"); setSheetType("expenses"); }}
         onOpenStatement={() => setStatementOpen(true)}
         statementLeftSlot={!readOnly ? (
-          <Suspense fallback={null}>
-            <IncomeTelegramBotButton />
-          </Suspense>
+          <SilentErrorBoundary>
+            <Suspense fallback={null}>
+              <IncomeTelegramBotButton />
+            </Suspense>
+          </SilentErrorBoundary>
         ) : undefined}
         onAdjust={async (delta) => {
           if (!delta) return;
