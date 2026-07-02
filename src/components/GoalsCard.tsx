@@ -869,28 +869,55 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
   // filtrando por aquele mês. Não sobrescreve snapshots já finalizados.
   useEffect(() => {
     if (!goals.length) return;
-    const seen = new Set<string>();
+    const today = todayInAppTz();
+    const currentMonthKey = today.slice(0, 7);
+
+    // Agrupa metas por tipo e monta lista de meses fechados a preencher.
+    const byType = new Map<GoalType, typeof goals>();
     goals.forEach((g) => {
-      if (!isMonthClosed(g.month)) return;
-      const key = `${g.goalType}|${g.month}`;
-      if (seen.has(key)) return;
-      seen.add(key);
-      const existing = getSnapshot(g.goalType, g.month);
-      if (existing?.finalized) return;
-      const computed = g.goalType === "active_capital"
-        ? (getSnapshotAmount(g.month) ?? 0)
-        : computeActual(g.goalType, g.month, loans, payments, expenses, clients, installmentSchedules, renegotiations);
-      if (!Number.isFinite(computed)) return;
-      // Para daily_received_avg, o snapshot guarda o TOTAL recebido (não a média).
-      const value = Number(computed) || 0;
-      const target = g.targetValue > 0 ? g.targetValue : null;
-      let pct: number | null = null;
-      if (target) {
-        pct = (g.goalType === "max_default_rate" || g.goalType === "renegotiation_rate")
-          ? (value <= target ? 100 : 0)
-          : Math.min(100, (value / target) * 100);
+      const arr = byType.get(g.goalType) || [];
+      arr.push(g);
+      byType.set(g.goalType, arr);
+    });
+
+    const addMonths = (ym: string, delta: number) => {
+      const [y, m] = ym.split("-").map(Number);
+      const d = new Date(y, (m - 1) + delta, 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    };
+
+    byType.forEach((list, type) => {
+      const sorted = [...list].sort((a, b) => a.month.localeCompare(b.month));
+      const earliest = sorted[0].month;
+      // Percorre do mês mais antigo até o mês anterior ao atual (inclusive).
+      let cursor = earliest;
+      while (cursor < currentMonthKey) {
+        // Meta vigente para esse mês: exato → anterior mais recente → posterior mais próximo.
+        const exact = sorted.find((g) => g.month === cursor);
+        const earlier = [...sorted].reverse().find((g) => g.month < cursor);
+        const later = sorted.find((g) => g.month > cursor);
+        const g = exact || earlier || later;
+        if (!g) { cursor = addMonths(cursor, 1); continue; }
+
+        const existing = getSnapshot(type, cursor);
+        if (!existing?.finalized) {
+          const computed = type === "active_capital"
+            ? (getSnapshotAmount(cursor) ?? 0)
+            : computeActual(type, cursor, loans, payments, expenses, clients, installmentSchedules, renegotiations);
+          if (Number.isFinite(computed)) {
+            const value = Number(computed) || 0;
+            const target = g.targetValue > 0 ? g.targetValue : null;
+            let pct: number | null = null;
+            if (target) {
+              pct = (type === "max_default_rate" || type === "renegotiation_rate")
+                ? (value <= target ? 100 : 0)
+                : Math.min(100, (value / target) * 100);
+            }
+            void upsertSnapshot(type, cursor, value, target, pct);
+          }
+        }
+        cursor = addMonths(cursor, 1);
       }
-      void upsertSnapshot(g.goalType, g.month, value, target, pct);
     });
   }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, getSnapshot, upsertSnapshot, getSnapshotAmount]);
 
