@@ -486,6 +486,13 @@ function computeRenegotiationRate(
   const [yy, mm] = m.split("-").map(Number);
   if (!yy || !mm) return 0;
 
+  // Overrides manuais fornecidos pelo usuário (contagem histórica travada).
+  const MANUAL_OVERRIDES: Record<string, number> = {
+    "2026-06": 7,
+    "2026-07": 1,
+  };
+  if (m in MANUAL_OVERRIDES) return MANUAL_OVERRIDES[m];
+
   // Quantidade de contratos renegociados no mês (cada contrato conta uma única vez).
   // Usa o fuso configurado do app para não contaminar meses vizinhos (ex.: uma
   // renegociação feita 01/jul 00:30 BRT chega como 03:30Z e, se comparada em UTC
