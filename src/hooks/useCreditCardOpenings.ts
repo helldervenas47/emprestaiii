@@ -17,8 +17,8 @@ export interface InvoiceOpening {
 const fromRow = (r: any): InvoiceOpening => ({
   id: r.id,
   cardId: r.card_id,
-  cycleKey: r.cycle_key ?? r.month_label,
-  openingAmount: Number(r.opening_balance ?? 0),
+  cycleKey: r.cycle_key,
+  openingAmount: Number(r.opening_amount ?? 0),
   notes: r.notes ?? null,
 });
 
@@ -67,7 +67,7 @@ export function cycleKeyFromDate(closingTo: Date): string {
 // esse evento e recarregam.
 const OPENINGS_CHANGED_EVENT = "openings:changed";
 const CREDIT_CARD_OPENING_COLUMNS =
-  "id, card_id, cycle_key, month_label, opening_balance, notes";
+  "id, card_id, cycle_key, opening_amount, notes";
 type LedgerPaymentMeta = { amount: number; paidDate: string; isFull: boolean };
 
 function notifyOpeningsChanged() {
@@ -233,13 +233,12 @@ export function useCreditCardOpenings() {
           user_id: ownerId,
           card_id: cardId,
           cycle_key: cycleKey,
-          month_label: cycleKey,
-          opening_balance: amount,
+          opening_amount: amount,
           notes: notes ?? null,
         } as any,
         { onConflict: "card_id,cycle_key" },
       )
-      .select()
+      .select(CREDIT_CARD_OPENING_COLUMNS)
       .single();
     if (error) {
       toast.error("Erro ao salvar fatura inicial");
