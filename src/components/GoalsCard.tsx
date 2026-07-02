@@ -764,14 +764,29 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       // o TOTAL recebido a partir dos pagamentos (snapshots antigos podem ter sido
       // gravados como média diária, gerando divisão dupla).
       let actual: number;
+      let liveComputed: number | null = null;
       if (g.goalType === "daily_received_avg") {
         actual = computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules, renegotiations);
       } else if (monthClosed && snapshot?.finalized) {
         actual = Number(snapshot.realizedValue) || 0;
+        // Para `monthly_variation`, se o snapshot travou em 0 (dado indisponível
+        // no dia do fechamento) e agora conseguimos recomputar um valor válido,
+        // preferimos o valor recomputado — o auto-fechamento sobrescreve abaixo.
+        if (g.goalType === "monthly_variation" && Math.abs(actual) < 0.0001) {
+          const recompute = computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules, renegotiations);
+          if (Number.isFinite(recompute) && Math.abs(recompute) > 0.0001) {
+            liveComputed = recompute;
+            actual = recompute;
+          }
+        }
       } else {
-        actual = g.goalType === "active_capital"
+        const computed = g.goalType === "active_capital"
           ? (computeMonth === currentMonth ? currentActiveCapital : (getSnapshotAmount(computeMonth) ?? 0))
           : computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules, renegotiations);
+        // NaN → dado indisponível (ex.: monthly_variation sem patrimônio do mês). Trata como 0
+        // para exibição, mas não deve travar o snapshot em 0.
+        actual = Number.isFinite(computed) ? computed : 0;
+        liveComputed = Number.isFinite(computed) ? computed : null;
       }
 
       let pct = 0;
@@ -805,7 +820,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         monthlyPct = pct; // mantido por compat — mesmo valor (base diária)
       }
 
-      return { ...g, actual, pct, meta, expectedReceivable, targetAmount, receivedTotal, monthlyPct, isLocked: monthClosed && !!snapshot?.finalized };
+      return { ...g, actual, pct, meta, expectedReceivable, targetAmount, receivedTotal, monthlyPct, liveComputed, isLocked: monthClosed && !!snapshot?.finalized };
     });
   }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount, getSnapshot]);
 
