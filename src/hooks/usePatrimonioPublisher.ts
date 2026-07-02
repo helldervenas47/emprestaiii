@@ -13,6 +13,11 @@ import type { Loan } from "@/types/loan";
  */
 const SNAP_KEY = "patrimonio.snapshots.v1";
 
+const notifyPatrimonioChanged = () => {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event("patrimonio:snapshots-changed"));
+};
+
 async function getOwnerId(): Promise<string | null> {
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user;
@@ -49,6 +54,7 @@ export function usePatrimonioPublisher(loans: Loan[]) {
           };
         });
         localStorage.setItem(SNAP_KEY, JSON.stringify(snaps));
+        notifyPatrimonioChanged();
       } catch { /* noop */ }
     };
 
@@ -84,6 +90,7 @@ export function usePatrimonioPublisher(loans: Loan[]) {
           "patrimonio.current.v1",
           JSON.stringify({ month: currentKey, account: contaMaisDinheiro, rua: pendingLoans, total }),
         );
+        notifyPatrimonioChanged();
 
         // Trava snapshot no último dia do mês.
         const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
@@ -94,6 +101,7 @@ export function usePatrimonioPublisher(loans: Loan[]) {
           if (snaps[currentKey] == null) {
             snaps[currentKey] = { account: contaMaisDinheiro, rua: pendingLoans, total };
             localStorage.setItem(SNAP_KEY, JSON.stringify(snaps));
+            notifyPatrimonioChanged();
             void pushSnapshot(ownerId, currentKey, contaMaisDinheiro, pendingLoans, total, true);
           }
         }

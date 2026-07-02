@@ -663,8 +663,14 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
   const [editingGoalType, setEditingGoalType] = useState<GoalType | null>(null);
   const [editingValue, setEditingValue] = useState<string>("");
   const [savingGoal, setSavingGoal] = useState(false);
+  const [patrimonioSyncVersion, setPatrimonioSyncVersion] = useState(0);
   // Cancela edição ao trocar de mês
   useEffect(() => { setEditingGoalType(null); }, [selectedMonth]);
+  useEffect(() => {
+    const onPatrimonioChanged = () => setPatrimonioSyncVersion((version) => version + 1);
+    window.addEventListener("patrimonio:snapshots-changed", onPatrimonioChanged);
+    return () => window.removeEventListener("patrimonio:snapshots-changed", onPatrimonioChanged);
+  }, []);
   // Cache imediato via localStorage (evita flicker enquanto sincroniza com o backend)
   const { getSnapshot, upsertSnapshot } = useGoalSnapshots();
   const [prefs, setPrefs] = useState<{ selected: GoalType[]; order: GoalType[] }>(() => loadGoalPrefs(user?.id));
@@ -829,7 +835,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
 
       return { ...g, actual, pct, meta, expectedReceivable, targetAmount, receivedTotal, monthlyPct, liveComputed, isLocked: monthClosed && !!snapshot?.finalized };
     });
-  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount, getSnapshot]);
+  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount, getSnapshot, patrimonioSyncVersion]);
 
   // Auto-fechamento: quando o mês já encerrou e ainda não há snapshot finalizado para
   // alguma meta visível, grava o snapshot com o valor realizado atualmente calculado.
@@ -928,7 +934,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         cursor = addMonths(cursor, 1);
       }
     });
-  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, getSnapshot, upsertSnapshot, getSnapshotAmount]);
+  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, getSnapshot, upsertSnapshot, getSnapshotAmount, patrimonioSyncVersion]);
 
   // Aplica preferências do usuário: filtra pelos tipos selecionados e ordena conforme a ordem definida.
   // Limita a no máximo MAX_VISIBLE_GOALS cards.

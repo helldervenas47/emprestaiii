@@ -238,6 +238,7 @@ export function ConsolidatedBalanceCards() {
           "patrimonio.current.v1",
           JSON.stringify({ month: currentKey, account: contaMaisDinheiro, rua: pendingLoans, total: patrimonioTotal }),
         );
+        window.dispatchEvent(new Event("patrimonio:snapshots-changed"));
       } catch {}
       setSnapsMap(snaps);
     } catch {
