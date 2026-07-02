@@ -15,7 +15,7 @@ import { useMonthlyGoals, GoalType, formatMonthLabel } from "@/hooks/useMonthlyG
 import { useGoalSnapshots } from "@/hooks/useGoalSnapshots";
 import { useAccountSettings } from "@/hooks/useAccountSettings";
 import { Loan, Payment, Expense, Client, InstallmentSchedule, LoanRenegotiation } from "@/types/loan";
-import { todayInAppTz } from "@/lib/timezone";
+import { todayInAppTz, formatYmdInAppTz } from "@/lib/timezone";
 import { useActiveCapitalSnapshots } from "@/hooks/useActiveCapitalSnapshots";
 import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
 import { assertWritable } from "@/lib/readOnlyState";
