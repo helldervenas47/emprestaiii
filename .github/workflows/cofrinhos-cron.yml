@@ -2,13 +2,15 @@ name: Cofrinhos Cron
 
 on:
   schedule:
-    - cron: "5 3 * * *"
-    - cron: "10 3 * * *"
+    # BACEN publica a CDI do dia por volta das 09h-11h BRT.
+    # Rodamos às 14:00 UTC (11:00 BRT) e 14:05 UTC (11:05 BRT) para garantir taxa disponível.
+    - cron: "0 14 * * *"
+    - cron: "5 14 * * *"
   workflow_dispatch:
 
 jobs:
   sync-taxas:
-    if: github.event.schedule == '5 3 * * *' || github.event_name == 'workflow_dispatch'
+    if: github.event.schedule == '0 14 * * *' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Sync taxas financeiras
@@ -19,7 +21,7 @@ jobs:
           -d '{}'
 
   calcular-rendimento:
-    if: github.event.schedule == '10 3 * * *' || github.event_name == 'workflow_dispatch'
+    if: github.event.schedule == '5 14 * * *' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Calcular rendimento cofrinhos
