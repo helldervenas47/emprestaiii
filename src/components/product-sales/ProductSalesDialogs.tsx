@@ -276,7 +276,10 @@ export function RegisterSalePaymentDialog({
 
   const valNum = parseFloat(amount) || 0;
   const willComplete = valNum + jaPagoParcela >= parcelaTotal - 0.01;
-  const detectedType: "full" | "partial" = willComplete ? "full" : "partial";
+  // Se já havia parcial pago antes, o registro que fecha a parcela também é parcial
+  // (é apenas a fração restante). Marcar como "full" gera dois pagamentos aparentes
+  // no histórico — um "parcial" e outro "total" — para a mesma parcela.
+  const detectedType: "full" | "partial" = willComplete && jaPagoParcela <= 0.01 ? "full" : "partial";
   const novoSaldoParcela = Math.max(0, parcelaTotal - jaPagoParcela - valNum);
   const canSubmit = valNum > 0 && !!date && !!methodId;
 
