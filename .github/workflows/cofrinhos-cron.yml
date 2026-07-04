@@ -10,7 +10,7 @@ on:
 
 jobs:
   sync-taxas:
-    if: github.event.schedule == '5 3 * * *' || github.event_name == 'workflow_dispatch'
+    if: github.event.schedule == '0 14 * * *' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Sync taxas financeiras
