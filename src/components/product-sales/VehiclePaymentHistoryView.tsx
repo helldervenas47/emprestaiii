@@ -283,7 +283,17 @@ export function VehiclePaymentHistoryView({
               </Button>
             )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Mês</Label>
+              <Select value={monthFilter} onValueChange={setMonthFilter}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos</SelectItem>
+                  {monthOptions.map((ym) => <SelectItem key={ym} value={ym}>{monthLabel(ym)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-1">
               <Label className="text-xs">De</Label>
               <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
