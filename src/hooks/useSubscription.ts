@@ -65,25 +65,16 @@ export function useSubscription() {
 
     fetchSubscription();
 
-    const channel = supabase
-      .channel(createChannelName(effectiveUserId))
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "subscriptions",
-          filter: `user_id=eq.${effectiveUserId}`,
-        },
-        () => {
-          if (!cancelled) fetchSubscription();
-        },
-      )
-      .subscribe();
+    // Realtime removido (P0-02 egress): assinatura muda raramente.
+    // Refetch em foco e via evento local disparado pelo checkout/webhook client-side.
+    const handler = () => { if (!cancelled) fetchSubscription(); };
+    window.addEventListener("subscription:changed", handler);
+    window.addEventListener("focus", handler);
 
     return () => {
       cancelled = true;
-      supabase.removeChannel(channel);
+      window.removeEventListener("subscription:changed", handler);
+      window.removeEventListener("focus", handler);
     };
   }, [user?.id, effectiveUserId, environment, authLoading]);
 
