@@ -23,7 +23,11 @@ export function useDashboardOverviewController() {
   const [overdueDialogOpen, setOverdueDialogOpen] = useState(false);
   const [expandedInsightId, setExpandedInsightId] = useState<string | null>(null);
 
-  const [accountBalance, setAccountBalance] = useAccountBalance();
+  const accountBalance = useOfficialAccountBalance();
+  const setAccountBalance = useCallback((v: number) => {
+    writeBalance(v);
+    // useOfficialAccountBalance escuta balance:changed e recarrega.
+  }, []);
   const [editingBalance, setEditingBalance] = useState(false);
   const [tempBalance, setTempBalance] = useState("");
   const [includeSales, setIncludeSales] = useState(false);
