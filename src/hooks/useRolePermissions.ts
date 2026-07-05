@@ -123,6 +123,7 @@ export function useAllRolePermissions() {
         .upsert(changes, { onConflict: "role,module" });
       if (error) throw error;
       await refresh();
+      window.dispatchEvent(new CustomEvent("role-permissions:changed"));
     },
     [refresh],
   );
