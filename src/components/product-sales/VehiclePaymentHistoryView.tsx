@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, History, Filter, X } from "lucide-react";
+import { ArrowUpDown, History, Filter, X, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { Expense, Sale } from "@/types/loan";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { VehicleInfo } from "@/hooks/useVehicleRegistry";
