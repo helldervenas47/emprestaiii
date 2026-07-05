@@ -109,8 +109,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       return;
     }
     if (!rpcTotals) return;
+    // Comparamos contra incomeFromPayments (sem vendas) — a RPC soma apenas payments.
     const front = {
-      total_received: Number((data as any)?.totalIncome ?? (data as any)?.incomeFromPayments ?? 0),
+      total_received: Number((data as any)?.incomeFromPayments ?? 0),
       remaining_capital: Number((portfolio as any)?.capitalOnStreet ?? 0),
       overdue_count: Array.isArray((portfolio as any)?.overdueLoans) ? (portfolio as any).overdueLoans.length : 0,
     };
