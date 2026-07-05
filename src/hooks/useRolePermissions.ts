@@ -72,17 +72,10 @@ export function usePermissions() {
 
   useEffect(() => {
     refresh();
-    const ch = supabase
-      .channel("role_permissions_self")
-      .on(
-        "postgres_changes" as any,
-        { event: "*", schema: "public", table: "role_permissions" },
-        () => refresh(),
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
+    // Realtime removido (P0-02 egress): permissões mudam raramente; escuta evento local.
+    const handler = () => refresh();
+    window.addEventListener("role-permissions:changed", handler);
+    return () => window.removeEventListener("role-permissions:changed", handler);
   }, [refresh]);
 
   const can = useCallback(
