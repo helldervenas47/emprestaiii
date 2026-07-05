@@ -26,10 +26,16 @@ import {
 } from "@/hooks/useLoans";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { useHideValues } from "@/contexts/HideValuesContext";
+import { paymentsRepository } from "@/repositories/paymentsRepository";
 
 interface Props {
   loan: Loan | null;
-  payments: Payment[];
+  /**
+   * Lista de pagamentos. Opcional a partir do P0-03 (etapa B): quando não
+   * for informada, o diálogo busca por `loan.id` sob demanda (fetchByLoanId),
+   * evitando depender do carregamento global do useLoans.
+   */
+  payments?: Payment[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
