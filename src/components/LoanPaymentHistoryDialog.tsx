@@ -203,7 +203,7 @@ export function LoanPaymentHistoryDialog({
         isPaid,
       },
     };
-  }, [loan, payments, methodById]);
+  }, [loan, effectivePayments, methodById]);
 
   if (!loan || !data) return null;
 
