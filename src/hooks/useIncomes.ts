@@ -88,16 +88,35 @@ export function useIncomes(enabled = true) {
 
   useEffect(() => {
     if (!user || !enabled) return;
+    const ownerId = dataOwnerId ?? user.id;
+    const safe = (fn: () => void) => {
+      try { fn(); } catch (e) {
+        console.warn("[useIncomes realtime patch failed, refetching]", e);
+        financeInvalidate("useIncomes", "incomes", { reason: "realtime-fallback" });
+        fetch();
+      }
+    };
     const channel = supabase
       .channel(`incomes-rt-${crypto.randomUUID()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "incomes" }, (payload) => {
-        financeRealtimeEvent("useIncomes", "incomes", { eventType: payload.eventType });
-        financeInvalidate("useIncomes", "incomes", { reason: "realtime" });
-        fetch();
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "incomes", filter: `user_id=eq.${ownerId}` }, (payload) => {
+        financeRealtimeEvent("useIncomes", "incomes", { eventType: "INSERT" });
+        safe(() => setIncomes((prev) => {
+          const row = rowToIncome(payload.new as any);
+          if (prev.some((i) => i.id === row.id)) return prev;
+          return [row, ...prev];
+        }));
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "incomes", filter: `user_id=eq.${ownerId}` }, (payload) => {
+        financeRealtimeEvent("useIncomes", "incomes", { eventType: "UPDATE" });
+        safe(() => setIncomes((prev) => prev.map((i) => i.id === (payload.new as any).id ? rowToIncome(payload.new as any) : i)));
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "incomes" }, (payload) => {
+        financeRealtimeEvent("useIncomes", "incomes", { eventType: "DELETE" });
+        safe(() => setIncomes((prev) => prev.filter((i) => i.id !== (payload.old as any).id)));
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, fetch, enabled]);
+  }, [user, dataOwnerId, fetch, enabled]);
 
   const insertSingle = useCallback(async (
     input: Omit<Income, "id" | "createdAt">,
