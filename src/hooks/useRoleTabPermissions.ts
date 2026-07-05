@@ -75,22 +75,22 @@ export function useMyRoleTabs(role: string | null) {
         .select("tab_id")
         .eq("role", role);
       const loadedTabs = error ? [] : ((data as any) || []).map((r: any) => r.tab_id);
+    const loadOnce = async () => {
+      const { data, error } = await supabase
+        .from("role_tab_permissions" as any)
+        .select("tab_id")
+        .eq("role", role);
+      const loadedTabs = error ? [] : ((data as any) || []).map((r: any) => r.tab_id);
       if (!cancelled) setTabs(normalizeRoleTabs(role, loadedTabs));
-    })();
-    const ch = supabase
-      .channel(`role_tabs_${role}`)
-      .on("postgres_changes" as any,
-        { event: "*", schema: "public", table: "role_tab_permissions", filter: `role=eq.${role}` },
-        async () => {
-          const { data, error } = await supabase
-            .from("role_tab_permissions" as any)
-            .select("tab_id")
-            .eq("role", role);
-          const loadedTabs = error ? [] : ((data as any) || []).map((r: any) => r.tab_id);
-          if (!cancelled) setTabs(normalizeRoleTabs(role, loadedTabs));
-        })
-      .subscribe();
-    return () => { cancelled = true; supabase.removeChannel(ch); };
+    };
+    loadOnce();
+    // Realtime removido (P0-02 egress): reage a evento local disparado por setAllowed.
+    const handler = () => loadOnce();
+    window.addEventListener("role-tab-permissions:changed", handler);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("role-tab-permissions:changed", handler);
+    };
   }, [role]);
 
   return tabs;
