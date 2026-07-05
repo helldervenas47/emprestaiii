@@ -93,6 +93,46 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     paymentMethods, profitGoal, receivedDetailMethodId,
   });
 
+  // P0-03 (etapa A): RPC agregada em MODO COMPARAÇÃO.
+  // Não substitui os cards — apenas registra divergências no console em dev
+  // para validar a paridade antes de migrarmos os cards.
+  const { data: rpcTotals, missing: rpcMissing } = useDashboardLoanTotals({
+    start: range.start,
+    end: range.end,
+  });
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    if (rpcMissing) {
+      console.warn(
+        "[dashboard_loan_totals] RPC não publicada. Rode supabase/sql/p0_03_dashboard_loan_totals.sql.",
+      );
+      return;
+    }
+    if (!rpcTotals) return;
+    const front = {
+      total_received: Number(data?.income || 0),
+      remaining_capital: Number(portfolio?.remainingCapital || 0),
+      overdue_count: Number(portfolio?.overdueCount || 0),
+    };
+    const rpc = {
+      total_received: rpcTotals.total_received,
+      remaining_capital: rpcTotals.remaining_capital,
+      overdue_count: rpcTotals.overdue_count,
+    };
+    const diffs: Record<string, { front: number; rpc: number; delta: number }> = {};
+    (Object.keys(front) as (keyof typeof front)[]).forEach((k) => {
+      const delta = Math.abs(front[k] - rpc[k]);
+      if (delta > 0.5) diffs[k] = { front: front[k], rpc: rpc[k], delta };
+    });
+    if (Object.keys(diffs).length > 0) {
+      console.warn("[dashboard_loan_totals] divergências", {
+        range: range.label, diffs,
+      });
+    } else {
+      console.info("[dashboard_loan_totals] ✔ paridade OK", { range: range.label, rpc });
+    }
+  }, [rpcTotals, rpcMissing, data, portfolio, range.label]);
+
   const { generateRiskAiReport } = useDashboardAiReports({
     controller,
     formatCurrency,
