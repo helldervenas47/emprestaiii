@@ -343,38 +343,32 @@ export function usePiggyBanks() {
     reload();
   }, [reload]);
 
-  // Realtime
+  // Realtime — debounced fallback (agregações não permitem patch por payload sem
+  // recomputar totais; ao invés de SELECT completo por evento, agrupamos rajadas
+  // em uma única recarga a cada ~1500ms e ignoramos eventos com aba oculta.)
+  const reloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!dataOwnerId) return;
+    const scheduleReload = (source: string) => {
+      financeRealtimeEvent("usePiggyBanks", source);
+      if (typeof document !== "undefined" && document.hidden) return;
+      if (reloadTimerRef.current) return;
+      reloadTimerRef.current = setTimeout(() => {
+        reloadTimerRef.current = null;
+        financeInvalidate("usePiggyBanks", "cofrinhos/taxa_referencia/cofrinho_ledger/cofrinho_eventos", { reason: `realtime ${source} (debounced)` });
+        reload();
+      }, 1500);
+    };
     const channel = supabase
       .channel(`cofrinhos-realtime-${crypto.randomUUID()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "cofrinhos" }, () => {
-        financeRealtimeEvent("usePiggyBanks", "cofrinhos");
-        financeInvalidate("usePiggyBanks", "cofrinhos/taxa_referencia/cofrinho_ledger/cofrinho_eventos", { reason: "realtime cofrinhos" });
-        reload();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_aportes" }, () => {
-        financeRealtimeEvent("usePiggyBanks", "cofrinho_aportes");
-        financeInvalidate("usePiggyBanks", "cofrinhos/taxa_referencia/cofrinho_ledger/cofrinho_eventos", { reason: "realtime cofrinho_aportes" });
-        reload();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_eventos" }, () => {
-        financeRealtimeEvent("usePiggyBanks", "cofrinho_eventos");
-        financeInvalidate("usePiggyBanks", "cofrinhos/taxa_referencia/cofrinho_ledger/cofrinho_eventos", { reason: "realtime cofrinho_eventos" });
-        reload();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_ledger" }, () => {
-        financeRealtimeEvent("usePiggyBanks", "cofrinho_ledger");
-        financeInvalidate("usePiggyBanks", "cofrinhos/taxa_referencia/cofrinho_ledger/cofrinho_eventos", { reason: "realtime cofrinho_ledger" });
-        reload();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "taxa_referencia" }, () => {
-        financeRealtimeEvent("usePiggyBanks", "taxa_referencia");
-        financeInvalidate("usePiggyBanks", "cofrinhos/taxa_referencia/cofrinho_ledger/cofrinho_eventos", { reason: "realtime taxa_referencia" });
-        reload();
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "cofrinhos" }, () => scheduleReload("cofrinhos"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_aportes" }, () => scheduleReload("cofrinho_aportes"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_eventos" }, () => scheduleReload("cofrinho_eventos"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_ledger" }, () => scheduleReload("cofrinho_ledger"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "taxa_referencia" }, () => scheduleReload("taxa_referencia"))
       .subscribe();
     return () => {
+      if (reloadTimerRef.current) { clearTimeout(reloadTimerRef.current); reloadTimerRef.current = null; }
       supabase.removeChannel(channel);
     };
   }, [dataOwnerId, reload]);
