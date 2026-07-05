@@ -30,13 +30,10 @@ export function useRoleTabPermissions() {
 
   useEffect(() => {
     refresh();
-    const ch = supabase
-      .channel("role_tab_permissions_all")
-      .on("postgres_changes" as any,
-        { event: "*", schema: "public", table: "role_tab_permissions" },
-        () => refresh())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    // Realtime removido (P0-02 egress): abas mudam raramente; escuta evento local.
+    const handler = () => refresh();
+    window.addEventListener("role-tab-permissions:changed", handler);
+    return () => window.removeEventListener("role-tab-permissions:changed", handler);
   }, [refresh]);
 
   const setAllowed = useCallback(async (role: string, tabId: string, allowed: boolean) => {
@@ -54,6 +51,7 @@ export function useRoleTabPermissions() {
       if (error) throw error;
     }
     await refresh();
+    window.dispatchEvent(new CustomEvent("role-tab-permissions:changed"));
   }, [refresh]);
 
   const allowedFor = useCallback(
