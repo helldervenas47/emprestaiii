@@ -49,6 +49,7 @@ export function IncomeTelegramBotButton() {
   useEffect(() => {
     if (!open || !code || connected) return;
     const tick = async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       await invokeUserFunction("telegram-process").catch(() => null);
       const ok = await refresh();
       if (ok) {
@@ -58,7 +59,8 @@ export function IncomeTelegramBotButton() {
       }
     };
     tick();
-    pollRef.current = window.setInterval(tick, 5000);
+    // Polling ativo apenas com dialog aberto; pausa quando aba oculta.
+    pollRef.current = window.setInterval(tick, 8000);
     return () => { if (pollRef.current) window.clearInterval(pollRef.current); };
   }, [open, code, connected]);
 
