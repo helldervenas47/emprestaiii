@@ -178,9 +178,11 @@ export function VehiclePaymentHistoryView({
     return list;
   }, [payments, monthFilter, dateFrom, dateTo, vehicleFilter, categoryFilter, methodFilter, sortKey, sortDir]);
 
-  const total = filtered.reduce((s, p) => s + p.amount, 0);
-  const count = filtered.length;
-  const avg = count > 0 ? total / count : 0;
+  const entradas = filtered.filter((p) => p.kind === "recebimento");
+  const saidas = filtered.filter((p) => p.kind === "pagamento");
+  const totalEntradas = entradas.reduce((s, p) => s + p.amount, 0);
+  const totalSaidas = saidas.reduce((s, p) => s + p.amount, 0);
+  const saldo = totalEntradas - totalSaidas;
 
   const toggleSort = (k: SortKey) => {
     if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -188,39 +190,82 @@ export function VehiclePaymentHistoryView({
   };
 
   const clearFilters = () => {
-    setDateFrom(""); setDateTo("");
+    setDateFrom(""); setDateTo(""); setMonthFilter("__all__");
     setVehicleFilter("__all__"); setCategoryFilter("__all__"); setMethodFilter("__all__");
   };
 
-  const hasFilters = dateFrom || dateTo || vehicleFilter !== "__all__" || categoryFilter !== "__all__" || methodFilter !== "__all__";
+  const hasFilters = dateFrom || dateTo || monthFilter !== "__all__" || vehicleFilter !== "__all__" || categoryFilter !== "__all__" || methodFilter !== "__all__";
+
+  // Quick month chips (up to 6 most recent)
+  const quickMonths = monthOptions.slice(0, 6);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <History className="h-5 w-5" />
           Histórico de Pagamentos
         </h3>
+        {quickMonths.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Button
+              variant={monthFilter === "__all__" ? "default" : "outline"}
+              size="sm"
+              className="h-7 text-xs px-2.5"
+              onClick={() => setMonthFilter("__all__")}
+            >
+              Todos
+            </Button>
+            {quickMonths.map((ym) => (
+              <Button
+                key={ym}
+                variant={monthFilter === ym ? "default" : "outline"}
+                size="sm"
+                className="h-7 text-xs px-2.5"
+                onClick={() => setMonthFilter(ym)}
+              >
+                {monthLabel(ym)}
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 auto-rows-fr">
-        <Card>
+      {/* Summary — Entradas x Saídas */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 auto-rows-fr">
+        <Card className="border-success/30">
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Total pago no período</p>
-            <p className="text-lg font-bold text-success mt-1">{formatCurrency(total)}</p>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <TrendingUp className="h-3.5 w-3.5 text-success" /> Entradas
+              </p>
+              <span className="text-[10px] text-muted-foreground">{entradas.length}</span>
+            </div>
+            <p className="text-lg font-bold text-success">{formatCurrency(totalEntradas)}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-destructive/30">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <TrendingDown className="h-3.5 w-3.5 text-destructive" /> Saídas
+              </p>
+              <span className="text-[10px] text-muted-foreground">{saidas.length}</span>
+            </div>
+            <p className="text-lg font-bold text-destructive">{formatCurrency(totalSaidas)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Quantidade</p>
-            <p className="text-lg font-bold mt-1">{count}</p>
-          </CardContent>
-        </Card>
-        <Card className="col-span-2 sm:col-span-1">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Média por pagamento</p>
-            <p className="text-lg font-bold text-primary mt-1">{formatCurrency(avg)}</p>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Wallet className="h-3.5 w-3.5 text-primary" /> Saldo
+              </p>
+              <span className="text-[10px] text-muted-foreground">{filtered.length}</span>
+            </div>
+            <p className={`text-lg font-bold ${saldo >= 0 ? "text-success" : "text-destructive"}`}>
+              {formatCurrency(saldo)}
+            </p>
           </CardContent>
         </Card>
       </div>
