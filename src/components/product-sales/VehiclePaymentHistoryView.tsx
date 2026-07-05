@@ -67,59 +67,44 @@ export function VehiclePaymentHistoryView({
   const payments = useMemo<PaymentEntry[]>(() => {
     const items: PaymentEntry[] = [];
 
-    // 1) Vehicle expenses paid
+    // 1) Vehicle expenses — only rows explicitly marked as paid.
+    // Recurring parents are skipped: each installment is stored as a child
+    // expense row with its own `paid` flag, so relying on `exp.paid` avoids
+    // duplicates and prevents unpaid installments from leaking in via a
+    // stale `paidInstallments` counter.
     for (const exp of allVehicleExpenses) {
-      const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
+      if (!exp.paid) continue;
       const vehicle = detectVehicle(`${exp.description} ${exp.notes ?? ""}`, registeredVehicles);
-      if (isRecorrente) {
-        const paidCount = exp.paidInstallments || 0;
-        if (paidCount <= 0) continue;
-        const origMatch = (exp.notes ?? "").match(/\[OrigParcela:\s*([\d.]+)\]/i);
-        const installmentAmount = origMatch ? parseFloat(origMatch[1]) : exp.amount / exp.installments!;
-        for (let i = 0; i < paidCount; i++) {
-          items.push({
-            id: `${exp.id}-inst-${i + 1}`,
-            date: exp.paidDate || exp.dueDate,
-            description: `${exp.description} (${i + 1}/${exp.installments})`,
-            category: exp.category,
-            vehicle,
-            amount: installmentAmount,
-            paymentMethodId: exp.paymentMethodId,
-            paymentMethodName: methodName(exp.paymentMethodId),
-            notes: exp.notes,
-            kind: "pagamento",
-          });
-        }
-      } else if (exp.paid) {
-        items.push({
-          id: exp.id,
-          date: exp.paidDate || exp.dueDate,
-          description: exp.description,
-          category: exp.category,
-          vehicle,
-          amount: exp.amount,
-          paymentMethodId: exp.paymentMethodId,
-          paymentMethodName: methodName(exp.paymentMethodId),
-          notes: exp.notes,
-          kind: "pagamento",
-        });
-      }
+      items.push({
+        id: exp.id,
+        date: exp.paidDate || exp.dueDate,
+        description: exp.description,
+        category: exp.category,
+        vehicle,
+        amount: exp.amount,
+        paymentMethodId: exp.paymentMethodId,
+        paymentMethodName: methodName(exp.paymentMethodId),
+        notes: exp.notes,
+        kind: "pagamento",
+      });
     }
 
-    // 2) Vehicle rental sales — payment history
+    // 2) Vehicle rental sales — payment history (each entry = actual receipt).
     for (const s of sales) {
       if (s.businessType !== "aluguel_veiculo") continue;
       const vehicle = detectVehicle(`${s.description ?? ""} ${s.productName ?? ""} ${s.notes ?? ""}`, registeredVehicles);
       const history = s.paymentHistory ?? [];
       for (let i = 0; i < history.length; i++) {
         const p = history[i];
+        const amt = Number(p.amount) || 0;
+        if (amt <= 0) continue;
         items.push({
           id: `${s.id}-pay-${i}`,
           date: p.date,
           description: `${s.productName || s.description || "Aluguel"} — ${s.customerName}`,
           category: s.category || "Aluguel de Veículo",
           vehicle,
-          amount: p.amount,
+          amount: amt,
           paymentMethodId: p.paymentMethodId,
           paymentMethodName: methodName(p.paymentMethodId),
           notes: p.notes ?? undefined,
