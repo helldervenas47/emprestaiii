@@ -138,7 +138,7 @@ export function LoanPaymentHistoryDialog({
       loan.customInstallmentValue ||
       calculateInstallment(principal, loan.interestRate, loan.installments);
 
-    const loanPayments = payments
+    const loanPayments = effectivePayments
       .filter((p) => p.loanId === loan.id)
       .slice()
       .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
