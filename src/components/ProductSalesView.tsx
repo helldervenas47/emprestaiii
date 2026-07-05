@@ -2,11 +2,13 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { Sale, BusinessType, Client, Expense } from "@/types/loan";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VehiclePaymentHistoryView } from "@/components/product-sales/VehiclePaymentHistoryView";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { addMonths, endOfMonth, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+
 
 import { StockManager } from "@/components/StockManager";
 import { SalesLedger } from "@/components/SalesLedger";
