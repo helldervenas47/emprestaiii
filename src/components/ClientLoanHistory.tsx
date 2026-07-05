@@ -822,9 +822,9 @@ function ClientLoansList({ loans, payments, paymentsByLoan, lastPaymentDateByLoa
         </table>
       </div>
 
+      {/* P0-03 (B): não passamos mais `payments` — o diálogo busca sob demanda. */}
       <LoanPaymentHistoryDialog
         loan={selectedLoan}
-        payments={payments}
         open={selectedLoan !== null}
         onOpenChange={(o) => !o && setSelectedLoan(null)}
       />
