@@ -57,6 +57,7 @@ export function VehiclePaymentHistoryView({
 
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [monthFilter, setMonthFilter] = useState("__all__"); // "YYYY-MM" or "__all__"
   const [vehicleFilter, setVehicleFilter] = useState("__all__");
   const [categoryFilter, setCategoryFilter] = useState("__all__");
   const [methodFilter, setMethodFilter] = useState("__all__");
