@@ -44,30 +44,13 @@ export function useAccountSettings() {
 
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
-  // Realtime: pick up changes done from another device/user in the account.
+  // Realtime removido (P0-02 egress): updates otimistas locais já mantêm o estado.
+  // Se precisar propagar entre abas, dispatch `account-settings:changed`.
   useEffect(() => {
-    if (!dataOwnerId) return;
-    const channel = supabase.channel(`account-settings-${dataOwnerId}-${Math.random().toString(36).slice(2)}`);
-    channel.on(
-      "postgres_changes" as any,
-      { event: "*", schema: "public", table: "account_settings", filter: `owner_id=eq.${dataOwnerId}` },
-      (payload: any) => {
-        const tz = (payload.new as any)?.timezone;
-        if (tz) setAppTimezone(tz);
-        if (payload.new) {
-          const rawMax = (payload.new as any)?.max_credit_limit;
-          const maxCreditLimit = rawMax === null || rawMax === undefined ? null : Number(rawMax);
-          setSettings({
-            timezone: (payload.new as any)?.timezone || getAppTimezone(),
-            simulationInterestRate: Number((payload.new as any)?.simulation_interest_rate ?? 30) || 30,
-            maxCreditLimit: maxCreditLimit !== null && Number.isFinite(maxCreditLimit) ? maxCreditLimit : null,
-          });
-        }
-      },
-    );
-    channel.subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [dataOwnerId]);
+    const handler = () => fetchSettings();
+    window.addEventListener("account-settings:changed", handler);
+    return () => window.removeEventListener("account-settings:changed", handler);
+  }, [fetchSettings]);
 
   const updateTimezone = useCallback(async (timezone: string) => {
     if (!user || !dataOwnerId) return false;
