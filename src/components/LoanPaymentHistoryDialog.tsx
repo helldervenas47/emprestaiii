@@ -191,78 +191,39 @@ export function LoanPaymentHistoryDialog({
     .reverse();
   const hasMore = startIdx > 0;
 
+  const summaryItems: Array<{ label: string; value: string; valueClass?: string }> = [
+    { label: "Valor Original", value: mask(formatCurrency(data.summary.original)) },
+    { label: "Já Pago", value: mask(formatCurrency(data.summary.totalPaid)), valueClass: "text-success" },
+    { label: "Saldo Devedor", value: mask(formatCurrency(data.summary.remaining)), valueClass: "text-warning" },
+    { label: "Juros Recebidos", value: mask(formatCurrency(data.summary.interestPaid)), valueClass: "text-primary" },
+    { label: "Parcelas Pagas", value: `${data.summary.paidInstallments} / ${loan.installments}` },
+    { label: "Parcelas Pendentes", value: String(data.summary.pendingInstallments), valueClass: "text-warning" },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-5xl xl:max-w-6xl max-h-[92vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-base sm:text-lg">
             Histórico de Pagamentos — {loan.borrowerName}
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0 pr-2 -mr-2 [&>[data-radix-scroll-area-viewport]]:max-h-[calc(90vh-8rem)]">
+        <ScrollArea className="flex-1 min-h-0 pr-2 -mr-2 [&>[data-radix-scroll-area-viewport]]:max-h-[calc(92vh-8rem)]">
           {/* Resumo */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
-            <Card>
-              <CardContent className="p-3 text-center">
-                <div className="text-[11px] text-muted-foreground mb-0.5">
-                  Valor Original
-                </div>
-                <div className="font-semibold tabular-nums text-sm">
-                  {mask(formatCurrency(data.summary.original))}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <div className="text-[11px] text-muted-foreground mb-0.5">
-                  Já Pago
-                </div>
-                <div className="font-semibold tabular-nums text-sm text-success">
-                  {mask(formatCurrency(data.summary.totalPaid))}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <div className="text-[11px] text-muted-foreground mb-0.5">
-                  Saldo Devedor
-                </div>
-                <div className="font-semibold tabular-nums text-sm text-warning">
-                  {mask(formatCurrency(data.summary.remaining))}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <div className="text-[11px] text-muted-foreground mb-0.5">
-                  Juros Recebidos
-                </div>
-                <div className="font-semibold tabular-nums text-sm text-primary">
-                  {mask(formatCurrency(data.summary.interestPaid))}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <div className="text-[11px] text-muted-foreground mb-0.5">
-                  Parcelas Pagas
-                </div>
-                <div className="font-semibold tabular-nums text-sm">
-                  {data.summary.paidInstallments} / {loan.installments}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <div className="text-[11px] text-muted-foreground mb-0.5">
-                  Parcelas Pendentes
-                </div>
-                <div className="font-semibold tabular-nums text-sm text-warning">
-                  {data.summary.pendingInstallments}
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 mb-4">
+            {summaryItems.map((it) => (
+              <Card key={it.label}>
+                <CardContent className="p-3 text-center">
+                  <div className="text-[11px] text-muted-foreground mb-0.5 truncate">
+                    {it.label}
+                  </div>
+                  <div className={`font-semibold tabular-nums text-sm ${it.valueClass ?? ""}`}>
+                    {it.value}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           {/* Tabela desktop */}
