@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Sale, BusinessType, Client, Expense } from "@/types/loan";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { VehiclePaymentHistoryView } from "@/components/product-sales/VehiclePaymentHistoryView";
 import { addMonths, endOfMonth, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/userClient";
@@ -322,32 +323,50 @@ export function ProductSalesView({
     // Vehicles page - render without sub-tabs + vehicle expenses
     return (
       <div className="space-y-6">
-        <SalesList
-          sales={sales}
-          onDeleteSale={handleVehicleDeleteSale}
-          onUpdateSale={handleVehicleUpdateSale}
-          clients={clients}
-          hideOnTrackCard
-          renderAfterCards={secondaryCards}
-          readOnly={readOnly}
-          locadorInfo={locador}
-          registeredVehicles={registeredVehicles}
-          locadores={locadores}
-        />
+        <Tabs defaultValue="registros" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:inline-flex">
+            <TabsTrigger value="registros">Registros</TabsTrigger>
+            <TabsTrigger value="historico">Histórico de Pagamentos</TabsTrigger>
+          </TabsList>
 
-        {!readOnly && onAddExpense && (
-          <VehicleExpensesSection
-            vehicleExpenses={vehicleExpenses}
-            allVehicleExpenses={allVehicleExpenses}
-            readOnly={readOnly}
-            formatCurrency={formatCurrency}
-            onPayExpense={onPayExpense}
-            onUpdateExpense={onUpdateExpense}
-            handleVehicleUpdateExpense={handleVehicleUpdateExpense}
-            handleVehiclePayExpense={handleVehiclePayExpense}
-            handleVehicleDeleteExpense={handleVehicleDeleteExpense}
-          />
-        )}
+          <TabsContent value="registros" className="space-y-6">
+            <SalesList
+              sales={sales}
+              onDeleteSale={handleVehicleDeleteSale}
+              onUpdateSale={handleVehicleUpdateSale}
+              clients={clients}
+              hideOnTrackCard
+              renderAfterCards={secondaryCards}
+              readOnly={readOnly}
+              locadorInfo={locador}
+              registeredVehicles={registeredVehicles}
+              locadores={locadores}
+            />
+
+            {!readOnly && onAddExpense && (
+              <VehicleExpensesSection
+                vehicleExpenses={vehicleExpenses}
+                allVehicleExpenses={allVehicleExpenses}
+                readOnly={readOnly}
+                formatCurrency={formatCurrency}
+                onPayExpense={onPayExpense}
+                onUpdateExpense={onUpdateExpense}
+                handleVehicleUpdateExpense={handleVehicleUpdateExpense}
+                handleVehiclePayExpense={handleVehiclePayExpense}
+                handleVehicleDeleteExpense={handleVehicleDeleteExpense}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="historico">
+            <VehiclePaymentHistoryView
+              sales={sales}
+              allVehicleExpenses={allVehicleExpenses}
+              registeredVehicles={registeredVehicles}
+              formatCurrency={formatCurrency}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
     );
   }
