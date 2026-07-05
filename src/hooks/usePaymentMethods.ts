@@ -98,18 +98,7 @@ export function usePaymentMethods(enabled = true) {
     if (enabled) fetchMethods();
   }, [enabled, fetchMethods]);
 
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel(`payment-methods-${user.id}-${Math.random().toString(36).slice(2)}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "payment_methods" }, () => {
-        fetchMethods();
-      })
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, fetchMethods]);
+  // Realtime removido (P0-02 egress): tabela quase-estática; mutações locais já chamam fetchMethods().
 
   const add = useCallback(
     async (name: string, icon?: string, kind: PaymentMethodKind = "account") => {

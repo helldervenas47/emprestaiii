@@ -26,8 +26,6 @@ const PLAN_LIMITS: Record<string, { maxLoans: number; maxUsers: number }> = {
   empresarial_plan: { maxLoans: 9999, maxUsers: 5 },
 };
 
-const createChannelName = (userId: string) =>
-  `sub-${userId}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
 
 export function useSubscription() {
   const { user, dataOwnerId, loading: authLoading } = useAuth();
@@ -65,25 +63,16 @@ export function useSubscription() {
 
     fetchSubscription();
 
-    const channel = supabase
-      .channel(createChannelName(effectiveUserId))
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "subscriptions",
-          filter: `user_id=eq.${effectiveUserId}`,
-        },
-        () => {
-          if (!cancelled) fetchSubscription();
-        },
-      )
-      .subscribe();
+    // Realtime removido (P0-02 egress): assinatura muda raramente.
+    // Refetch em foco e via evento local disparado pelo checkout/webhook client-side.
+    const handler = () => { if (!cancelled) fetchSubscription(); };
+    window.addEventListener("subscription:changed", handler);
+    window.addEventListener("focus", handler);
 
     return () => {
       cancelled = true;
-      supabase.removeChannel(channel);
+      window.removeEventListener("subscription:changed", handler);
+      window.removeEventListener("focus", handler);
     };
   }, [user?.id, effectiveUserId, environment, authLoading]);
 

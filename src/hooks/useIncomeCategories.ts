@@ -46,14 +46,7 @@ export function useIncomeCategories() {
 
   useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel(`income-categories-realtime-${user.id}-${Math.random().toString(36).slice(2, 8)}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "income_categories" }, () => load())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user, load]);
+  // Realtime removido (P0-02 egress): mutações locais já atualizam o estado.
 
   const create = useCallback(
     async (input: { name: string; icon: string; color: string }) => {
