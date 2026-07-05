@@ -110,7 +110,10 @@ export function usePendingCount() {
     };
     refresh();
     pendingListeners.add(refresh);
-    const interval = setInterval(refresh, 5000);
+    // Poll local (IndexedDB) — pausa quando aba oculta e sobe para 15s.
+    const interval = setInterval(() => {
+      if (typeof document === "undefined" || !document.hidden) refresh();
+    }, 15000);
     return () => {
       alive = false;
       pendingListeners.delete(refresh);
