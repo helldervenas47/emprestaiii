@@ -3,7 +3,8 @@ import { useChartOverrides } from "@/hooks/useChartOverrides";
 import { useMonthlyGoals } from "@/hooks/useMonthlyGoals";
 import { listLedger, type LedgerEntry } from "@/lib/ledger";
 import { getRange, type Period } from "@/components/dashboard/dashboardHelpers";
-import { useAccountBalance } from "@/components/dashboard/useAccountBalance";
+import { useOfficialAccountBalance } from "@/lib/accountLedgerBalance";
+import { setBalance as writeBalance } from "@/lib/balance";
 
 /**
  * Controller hook do DashboardOverview.
