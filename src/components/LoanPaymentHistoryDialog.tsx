@@ -211,7 +211,7 @@ export function LoanPaymentHistoryDialog({
 
         <ScrollArea className="flex-1 min-h-0 pr-2 -mr-2 [&>[data-radix-scroll-area-viewport]]:max-h-[calc(92vh-8rem)]">
           {/* Resumo */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-4 auto-rows-fr">
             {summaryItems.map((it) => (
               <Card key={it.label}>
                 <CardContent className="p-3 text-center">
