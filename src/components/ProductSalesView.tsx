@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Sale, BusinessType, Client, Expense } from "@/types/loan";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { VehiclePaymentHistoryView } from "@/components/product-sales/VehiclePaymentHistoryView";
 import { addMonths, endOfMonth, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/userClient";
