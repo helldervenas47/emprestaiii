@@ -32,14 +32,14 @@ export const paymentsRepository = {
    * P0-03 (B): busca pagamentos de UM empréstimo apenas.
    * Uso pretendido: diálogos/telas de detalhe (Histórico, Renegociação,
    * Ajuste de vencimento) — evita transferir a lista global.
-   * Ordena por payment_date ascendente.
+   * Ordena por `date` ascendente.
    */
   async fetchByLoanId(loanId: string, columns?: string): Promise<PaymentRow[]> {
     const { data, error } = await supabase
       .from("payments")
-      .select(columns ?? "id, loan_id, amount, payment_date, installment_number, payment_method_id, metadata, created_at")
+      .select(columns ?? "id, loan_id, amount, date, installment_number, previous_due_date, payment_method_id, metadata, created_at")
       .eq("loan_id", loanId)
-      .order("payment_date", { ascending: true })
+      .order("date", { ascending: true })
       .limit(2000);
     if (error) throw error;
     return (data ?? []) as PaymentRow[];
