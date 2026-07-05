@@ -288,17 +288,60 @@ export function useLoans() {
     return () => window.removeEventListener("offline-sync:flushed", handler);
   }, [fetchLoans, fetchPayments, fetchSchedules]);
 
-  // Realtime subscriptions for auto-refresh
+  // Realtime subscriptions com patch local (evita SELECT completo por evento — P0 egress)
   useEffect(() => {
     if (!user) return;
+    const ownerId = dataOwnerId ?? user.id;
+    const safe = <T,>(fn: () => T, fallback: () => void) => {
+      try { fn(); } catch (e) { console.warn("[useLoans realtime patch failed, refetching]", e); fallback(); }
+    };
     const channel = supabase
       .channel(`loans-realtime-${user.id}-${Math.random().toString(36).slice(2)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, () => { fetchLoans(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => { fetchPayments(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'loan_installments' }, () => { fetchSchedules(); })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'loans', filter: `user_id=eq.${ownerId}` }, (payload) => {
+        safe(() => setLoans((prev) => {
+          const row = rowToLoan(payload.new as any);
+          if (prev.some((l) => l.id === row.id)) return prev;
+          return [row, ...prev];
+        }), fetchLoans);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'loans', filter: `user_id=eq.${ownerId}` }, (payload) => {
+        safe(() => setLoans((prev) => prev.map((l) => l.id === (payload.new as any).id ? rowToLoan(payload.new as any) : l)), fetchLoans);
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'loans' }, (payload) => {
+        safe(() => setLoans((prev) => prev.filter((l) => l.id !== (payload.old as any).id)), fetchLoans);
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payments' }, (payload) => {
+        safe(() => setPayments((prev) => {
+          const row = rowToPayment(payload.new as any);
+          if (prev.some((p) => p.id === row.id)) return prev;
+          return [row, ...prev];
+        }), fetchPayments);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'payments' }, (payload) => {
+        safe(() => setPayments((prev) => prev.map((p) => p.id === (payload.new as any).id ? rowToPayment(payload.new as any) : p)), fetchPayments);
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'payments' }, (payload) => {
+        safe(() => setPayments((prev) => prev.filter((p) => p.id !== (payload.old as any).id)), fetchPayments);
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'loan_installments' }, (payload) => {
+        safe(() => setInstallmentSchedules((prev) => {
+          const s: any = payload.new;
+          if (prev.some((x) => x.id === s.id)) return prev;
+          return [...prev, { id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number, dueDate: s.due_date, amount: Number(s.amount) }];
+        }), fetchSchedules);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'loan_installments' }, (payload) => {
+        safe(() => setInstallmentSchedules((prev) => prev.map((x) => {
+          const s: any = payload.new;
+          return x.id === s.id ? { id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number, dueDate: s.due_date, amount: Number(s.amount) } : x;
+        })), fetchSchedules);
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'loan_installments' }, (payload) => {
+        safe(() => setInstallmentSchedules((prev) => prev.filter((x) => x.id !== (payload.old as any).id)), fetchSchedules);
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, fetchLoans, fetchPayments, fetchSchedules]);
+  }, [user, dataOwnerId, fetchLoans, fetchPayments, fetchSchedules]);
 
   const saveSchedule = useCallback(async (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => {
     assertWritable();
