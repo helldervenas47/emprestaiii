@@ -57,7 +57,11 @@ export function VehiclePaymentHistoryView({
 
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [monthFilter, setMonthFilter] = useState("__all__"); // "YYYY-MM" or "__all__"
+  const currentYm = (() => {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
+  })();
+  const [monthFilter, setMonthFilter] = useState<string>(currentYm); // "YYYY-MM" or "__all__"
   const [vehicleFilter, setVehicleFilter] = useState("__all__");
   const [categoryFilter, setCategoryFilter] = useState("__all__");
   const [methodFilter, setMethodFilter] = useState("__all__");
