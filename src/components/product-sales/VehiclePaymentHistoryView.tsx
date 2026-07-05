@@ -150,8 +150,15 @@ export function VehiclePaymentHistoryView({
   const monthLabel = (ym: string) => {
     const [y, m] = ym.split("-").map(Number);
     const d = new Date(y, (m || 1) - 1, 1);
-    const s = d.toLocaleDateString("pt-BR", { month: "short", year: "numeric" });
+    const s = d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
     return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+
+  const shiftMonth = (delta: number) => {
+    const base = monthFilter === "__all__" ? currentYm : monthFilter;
+    const [y, m] = base.split("-").map(Number);
+    const d = new Date(y, (m || 1) - 1 + delta, 1);
+    setMonthFilter(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
   };
 
   const filtered = useMemo(() => {
