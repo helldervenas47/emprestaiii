@@ -26,8 +26,6 @@ const PLAN_LIMITS: Record<string, { maxLoans: number; maxUsers: number }> = {
   empresarial_plan: { maxLoans: 9999, maxUsers: 5 },
 };
 
-const createChannelName = (userId: string) =>
-  `sub-${userId}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
 
 export function useSubscription() {
   const { user, dataOwnerId, loading: authLoading } = useAuth();
