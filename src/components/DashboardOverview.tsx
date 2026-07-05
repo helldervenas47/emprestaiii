@@ -1,4 +1,5 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
+import { useDashboardLoanTotals } from "@/hooks/useDashboardLoanTotals";
 import { useAuth } from "@/hooks/useAuth";
 import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
 import { useIsMobile } from "@/hooks/use-mobile";
