@@ -321,57 +321,63 @@ export function ProductSalesView({
     window.dispatchEvent(new CustomEvent("products-subtab-change", { detail: currentSubTab }));
   }, [currentSubTab]);
 
+  // History dialog listener (opened from floating icon button in Index.tsx)
+  const [showVehicleHistory, setShowVehicleHistory] = useState(false);
+  useEffect(() => {
+    const handler = () => setShowVehicleHistory(true);
+    window.addEventListener("open-vehicle-history", handler);
+    return () => window.removeEventListener("open-vehicle-history", handler);
+  }, []);
+
   if (!hasSalesOrStreaming) {
     // Vehicles page - render without sub-tabs + vehicle expenses
     return (
       <div className="space-y-6">
-        <Tabs defaultValue="registros" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:inline-flex">
-            <TabsTrigger value="registros">Registros</TabsTrigger>
-            <TabsTrigger value="historico">Histórico de Pagamentos</TabsTrigger>
-          </TabsList>
+        <SalesList
+          sales={sales}
+          onDeleteSale={handleVehicleDeleteSale}
+          onUpdateSale={handleVehicleUpdateSale}
+          clients={clients}
+          hideOnTrackCard
+          renderAfterCards={secondaryCards}
+          readOnly={readOnly}
+          locadorInfo={locador}
+          registeredVehicles={registeredVehicles}
+          locadores={locadores}
+        />
 
-          <TabsContent value="registros" className="space-y-6">
-            <SalesList
-              sales={sales}
-              onDeleteSale={handleVehicleDeleteSale}
-              onUpdateSale={handleVehicleUpdateSale}
-              clients={clients}
-              hideOnTrackCard
-              renderAfterCards={secondaryCards}
-              readOnly={readOnly}
-              locadorInfo={locador}
-              registeredVehicles={registeredVehicles}
-              locadores={locadores}
-            />
+        {!readOnly && onAddExpense && (
+          <VehicleExpensesSection
+            vehicleExpenses={vehicleExpenses}
+            allVehicleExpenses={allVehicleExpenses}
+            readOnly={readOnly}
+            formatCurrency={formatCurrency}
+            onPayExpense={onPayExpense}
+            onUpdateExpense={onUpdateExpense}
+            handleVehicleUpdateExpense={handleVehicleUpdateExpense}
+            handleVehiclePayExpense={handleVehiclePayExpense}
+            handleVehicleDeleteExpense={handleVehicleDeleteExpense}
+          />
+        )}
 
-            {!readOnly && onAddExpense && (
-              <VehicleExpensesSection
-                vehicleExpenses={vehicleExpenses}
-                allVehicleExpenses={allVehicleExpenses}
-                readOnly={readOnly}
-                formatCurrency={formatCurrency}
-                onPayExpense={onPayExpense}
-                onUpdateExpense={onUpdateExpense}
-                handleVehicleUpdateExpense={handleVehicleUpdateExpense}
-                handleVehiclePayExpense={handleVehiclePayExpense}
-                handleVehicleDeleteExpense={handleVehicleDeleteExpense}
-              />
-            )}
-          </TabsContent>
-
-          <TabsContent value="historico">
+        <Dialog open={showVehicleHistory} onOpenChange={setShowVehicleHistory}>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Histórico de Pagamentos</DialogTitle>
+            </DialogHeader>
             <VehiclePaymentHistoryView
               sales={sales}
               allVehicleExpenses={allVehicleExpenses}
               registeredVehicles={registeredVehicles}
               formatCurrency={formatCurrency}
             />
-          </TabsContent>
-        </Tabs>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
+
+
 
   // Sales page - show sub-tabs for venda/streaming + extrato
 
