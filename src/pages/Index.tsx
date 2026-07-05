@@ -40,6 +40,7 @@ import {
   Barcode,
   UserPlus,
   Sparkles,
+  History,
 } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
