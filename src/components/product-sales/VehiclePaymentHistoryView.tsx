@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, History, Filter, X, TrendingUp, TrendingDown, Wallet } from "lucide-react";
+import { ArrowUpDown, History, Filter, X, TrendingUp, TrendingDown, Wallet, ChevronLeft, ChevronRight } from "lucide-react";
 import { Expense, Sale } from "@/types/loan";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { VehicleInfo } from "@/hooks/useVehicleRegistry";
@@ -57,7 +57,11 @@ export function VehiclePaymentHistoryView({
 
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [monthFilter, setMonthFilter] = useState("__all__"); // "YYYY-MM" or "__all__"
+  const currentYm = (() => {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
+  })();
+  const [monthFilter, setMonthFilter] = useState<string>(currentYm); // "YYYY-MM" or "__all__"
   const [vehicleFilter, setVehicleFilter] = useState("__all__");
   const [categoryFilter, setCategoryFilter] = useState("__all__");
   const [methodFilter, setMethodFilter] = useState("__all__");
@@ -146,8 +150,15 @@ export function VehiclePaymentHistoryView({
   const monthLabel = (ym: string) => {
     const [y, m] = ym.split("-").map(Number);
     const d = new Date(y, (m || 1) - 1, 1);
-    const s = d.toLocaleDateString("pt-BR", { month: "short", year: "numeric" });
+    const s = d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
     return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+
+  const shiftMonth = (delta: number) => {
+    const base = monthFilter === "__all__" ? currentYm : monthFilter;
+    const [y, m] = base.split("-").map(Number);
+    const d = new Date(y, (m || 1) - 1 + delta, 1);
+    setMonthFilter(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
   };
 
   const filtered = useMemo(() => {
@@ -196,9 +207,6 @@ export function VehiclePaymentHistoryView({
 
   const hasFilters = dateFrom || dateTo || monthFilter !== "__all__" || vehicleFilter !== "__all__" || categoryFilter !== "__all__" || methodFilter !== "__all__";
 
-  // Quick month chips (up to 6 most recent)
-  const quickMonths = monthOptions.slice(0, 6);
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -206,30 +214,24 @@ export function VehiclePaymentHistoryView({
           <History className="h-5 w-5" />
           Histórico de Pagamentos
         </h3>
-        {quickMonths.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Button
-              variant={monthFilter === "__all__" ? "default" : "outline"}
-              size="sm"
-              className="h-7 text-xs px-2.5"
-              onClick={() => setMonthFilter("__all__")}
-            >
-              Todos
-            </Button>
-            {quickMonths.map((ym) => (
-              <Button
-                key={ym}
-                variant={monthFilter === ym ? "default" : "outline"}
-                size="sm"
-                className="h-7 text-xs px-2.5"
-                onClick={() => setMonthFilter(ym)}
-              >
-                {monthLabel(ym)}
-              </Button>
-            ))}
-          </div>
-        )}
+        <div className="flex items-center gap-1 sm:gap-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => shiftMonth(-1)}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <button
+            type="button"
+            onClick={() => setMonthFilter(currentYm)}
+            title="Clique para voltar ao mês atual"
+            className="text-xs sm:text-sm font-medium text-foreground min-w-[140px] sm:min-w-[160px] text-center capitalize cursor-pointer hover:text-primary transition-colors"
+          >
+            {monthFilter === "__all__" ? "Todos os meses" : monthLabel(monthFilter)}
+          </button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => shiftMonth(1)}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+
 
       {/* Summary — Entradas x Saídas */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 auto-rows-fr">
