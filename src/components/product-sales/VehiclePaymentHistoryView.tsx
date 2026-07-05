@@ -136,12 +136,27 @@ export function VehiclePaymentHistoryView({
     return Array.from(set).sort();
   }, [payments]);
 
+  // Month options derived from data (YYYY-MM), most-recent first
+  const monthOptions = useMemo(() => {
+    const set = new Set<string>();
+    payments.forEach((p) => p.date && set.add(p.date.slice(0, 7)));
+    return Array.from(set).sort().reverse();
+  }, [payments]);
+
+  const monthLabel = (ym: string) => {
+    const [y, m] = ym.split("-").map(Number);
+    const d = new Date(y, (m || 1) - 1, 1);
+    const s = d.toLocaleDateString("pt-BR", { month: "short", year: "numeric" });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+
   const filtered = useMemo(() => {
     const from = dateFrom ? parseDate(dateFrom) : null;
     const to = dateTo ? parseDate(dateTo) : null;
     let list = payments.filter((p) => {
       const d = parseDate(p.date);
       if (!d) return false;
+      if (monthFilter !== "__all__" && !p.date.startsWith(monthFilter)) return false;
       if (from && d < from) return false;
       if (to && d > to) return false;
       if (vehicleFilter !== "__all__" && p.vehicle !== vehicleFilter) return false;
@@ -161,7 +176,7 @@ export function VehiclePaymentHistoryView({
       return sortDir === "asc" ? cmp : -cmp;
     });
     return list;
-  }, [payments, dateFrom, dateTo, vehicleFilter, categoryFilter, methodFilter, sortKey, sortDir]);
+  }, [payments, monthFilter, dateFrom, dateTo, vehicleFilter, categoryFilter, methodFilter, sortKey, sortDir]);
 
   const total = filtered.reduce((s, p) => s + p.amount, 0);
   const count = filtered.length;
