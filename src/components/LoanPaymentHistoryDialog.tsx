@@ -70,9 +70,49 @@ export function LoanPaymentHistoryDialog({
   const mask = (v: string) => (hidden ? "•••" : v);
 
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [lazyPayments, setLazyPayments] = useState<Payment[] | null>(null);
+  const [lazyLoading, setLazyLoading] = useState(false);
+
   useEffect(() => {
     if (open) setVisibleCount(PAGE_SIZE);
   }, [open, loan?.id]);
+
+  // P0-03 (B): quando o caller NÃO passa `payments`, buscamos apenas os
+  // pagamentos deste empréstimo ao abrir o diálogo. Isso permite migrar
+  // detalhes sem depender do carregamento global do useLoans.
+  useEffect(() => {
+    if (!open || !loan?.id) return;
+    if (payments !== undefined) { setLazyPayments(null); return; }
+    let cancelled = false;
+    setLazyLoading(true);
+    paymentsRepository
+      .fetchByLoanId(loan.id)
+      .then((rows) => {
+        if (cancelled) return;
+        setLazyPayments(
+          rows.map((p: any) => ({
+            id: p.id,
+            loanId: p.loan_id,
+            amount: Number(p.amount),
+            date: p.date,
+            installmentNumber: p.installment_number,
+            previousDueDate: p.previous_due_date,
+            paymentMethodId: p.payment_method_id ?? null,
+            metadata: p.metadata ?? null,
+            createdAt: p.created_at ?? undefined,
+          })),
+        );
+      })
+      .catch((err) => {
+        // Em erro, deixa lista vazia — o resumo ainda exibe o loan.
+        console.warn("[LoanPaymentHistoryDialog] fetchByLoanId falhou:", err);
+        if (!cancelled) setLazyPayments([]);
+      })
+      .finally(() => { if (!cancelled) setLazyLoading(false); });
+    return () => { cancelled = true; };
+  }, [open, loan?.id, payments]);
+
+  const effectivePayments: Payment[] = payments ?? lazyPayments ?? [];
 
   const methodById = useMemo(() => {
     const map: Record<string, string> = {};
