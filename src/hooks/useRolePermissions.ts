@@ -109,17 +109,10 @@ export function useAllRolePermissions() {
 
   useEffect(() => {
     refresh();
-    const ch = supabase
-      .channel("role_permissions_all")
-      .on(
-        "postgres_changes" as any,
-        { event: "*", schema: "public", table: "role_permissions" },
-        () => refresh(),
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
+    // Realtime removido (P0-02 egress): escuta evento local disparado por upsert/reset.
+    const handler = () => refresh();
+    window.addEventListener("role-permissions:changed", handler);
+    return () => window.removeEventListener("role-permissions:changed", handler);
   }, [refresh]);
 
   const upsertMany = useCallback(
