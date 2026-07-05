@@ -69,12 +69,6 @@ export function useMyRoleTabs(role: string | null) {
   useEffect(() => {
     let cancelled = false;
     if (!role) { setTabs(null); return; }
-    (async () => {
-      const { data, error } = await supabase
-        .from("role_tab_permissions" as any)
-        .select("tab_id")
-        .eq("role", role);
-      const loadedTabs = error ? [] : ((data as any) || []).map((r: any) => r.tab_id);
     const loadOnce = async () => {
       const { data, error } = await supabase
         .from("role_tab_permissions" as any)
