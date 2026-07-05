@@ -236,19 +236,38 @@ export function useExpenses(enabled = true) {
 
   useEffect(() => { if (enabled) { financeInvalidate("useExpenses", "expenses", { reason: "initial/enabled effect" }); fetchExpenses(); } }, [fetchExpenses, enabled]);
 
-  // Realtime subscription
+  // Realtime subscription com patch local (evita SELECT completo por evento — P0 egress)
   useEffect(() => {
     if (!user || !enabled) return;
+    const ownerId = dataOwnerId ?? user.id;
+    const safe = (fn: () => void) => {
+      try { fn(); } catch (e) {
+        console.warn("[useExpenses realtime patch failed, refetching]", e);
+        financeInvalidate("useExpenses", "expenses", { reason: "realtime-fallback" });
+        fetchExpenses();
+      }
+    };
     const channel = supabase
       .channel(`expenses-realtime-${crypto.randomUUID()}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, (payload) => {
-        financeRealtimeEvent("useExpenses", "expenses", { eventType: payload.eventType });
-        financeInvalidate("useExpenses", "expenses", { reason: "realtime" });
-        fetchExpenses();
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'expenses', filter: `user_id=eq.${ownerId}` }, (payload) => {
+        financeRealtimeEvent("useExpenses", "expenses", { eventType: "INSERT" });
+        safe(() => setExpenses((prev) => {
+          const row = rowToExpense(payload.new as any);
+          if (prev.some((e) => e.id === row.id)) return prev;
+          return [row, ...prev];
+        }));
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'expenses', filter: `user_id=eq.${ownerId}` }, (payload) => {
+        financeRealtimeEvent("useExpenses", "expenses", { eventType: "UPDATE" });
+        safe(() => setExpenses((prev) => prev.map((e) => e.id === (payload.new as any).id ? rowToExpense(payload.new as any) : e)));
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'expenses' }, (payload) => {
+        financeRealtimeEvent("useExpenses", "expenses", { eventType: "DELETE" });
+        safe(() => setExpenses((prev) => prev.filter((e) => e.id !== (payload.old as any).id)));
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, fetchExpenses, enabled]);
+  }, [user, dataOwnerId, fetchExpenses, enabled]);
 
   // Refetch after offline queue flush
   useEffect(() => {
