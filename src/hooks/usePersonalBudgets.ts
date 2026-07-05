@@ -69,18 +69,7 @@ export function usePersonalBudgets(enabled = true, month?: string) {
 
   useEffect(() => { if (enabled) fetchBudgets(); }, [fetchBudgets, enabled]);
 
-  useEffect(() => {
-    if (!user || !enabled) return;
-    const channel = supabase
-      .channel("personal_budgets-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "personal_budgets" },
-        () => fetchBudgets(),
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user, enabled, fetchBudgets]);
+  // Realtime removido (P0-02 egress): mutações locais chamam fetchBudgets() diretamente.
 
   const monthsWithBudgets = useMemo(() => {
     const set = new Set<string>();
