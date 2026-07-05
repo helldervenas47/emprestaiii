@@ -671,8 +671,9 @@ function ClientLoansList({ loans, payments, paymentsByLoan, lastPaymentDateByLoa
     const isPaid = l.status === "paid";
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const due = l.dueDate ? new Date(l.dueDate) : null;
+    const due = l.dueDate ? new Date(`${l.dueDate}T00:00:00`) : null;
     if (due) due.setHours(0, 0, 0, 0);
+    // Só considera vencido a partir do dia seguinte ao vencimento.
     const isExpired = !isPaid && due != null && !isNaN(due.getTime()) && due.getTime() < today.getTime();
 
     let label: string;
@@ -680,9 +681,6 @@ function ClientLoansList({ loans, payments, paymentsByLoan, lastPaymentDateByLoa
     if (isPaid) {
       label = "Pago";
       className = "bg-success/15 text-success border-success/30";
-    } else if (l.status === "overdue") {
-      label = "Atrasado";
-      className = "bg-destructive/15 text-destructive border-destructive/30";
     } else if (isExpired) {
       label = "Vencido";
       className = "bg-destructive/15 text-destructive border-destructive/30";
