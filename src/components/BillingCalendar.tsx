@@ -1314,7 +1314,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                         {r.origin} · {r.installmentInfo}
                       </p>
                     </div>
-                    <p className="text-sm font-bold text-success shrink-0">
+                    <p className={cn("text-sm font-bold shrink-0", r.dueDate < todayStr ? "text-destructive" : "text-success")}>
                       {formatCurrency(r.pendingAmount)}
                     </p>
                   </button>
