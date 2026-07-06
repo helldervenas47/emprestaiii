@@ -2862,7 +2862,7 @@ Deno.serve(async (req) => {
         const reportsBotIdEx = await getReportsBotId(admin);
         // Lookup expenses code only (exclui códigos do bot de relatórios)
         let codeQ = admin.from("telegram_link_codes")
-          .select("*")
+          .select("id, code, user_id, bot_id, expires_at, created_at")
           .eq("code", code)
           .order("created_at", { ascending: false })
           .limit(1);
