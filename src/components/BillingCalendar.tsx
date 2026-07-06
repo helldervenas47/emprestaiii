@@ -692,7 +692,9 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
               const hasReceived = !!received;
               const isOverdue = dateStr < todayStr && hasPending;
               const isUpcoming = dateStr >= todayStr && hasPending;
-              const dayTotal = pending.total + (received?.total || 0);
+              // Exibir somente valores pendentes de recebimento no calendário.
+              // Contratos quitados continuam sinalizados pelo status (bolinha verde), mas não somam.
+              const dayTotal = pending.total;
 
               return (
                 <button
