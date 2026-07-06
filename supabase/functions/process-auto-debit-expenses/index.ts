@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
   // 2. Fetch all unpaid expenses past or due today (any scope)
   const { data: candidates, error } = await supabase
     .from("expenses")
-    .select("*")
+    .select("id, user_id, description, amount, type, category, installments, paid_installments, due_date, paid, notes, scope, payment_method_id")
     .eq("paid", false)
     .lte("due_date", today);
 
