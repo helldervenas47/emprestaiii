@@ -10,6 +10,11 @@ type Entry<T> = {
   loadedAt: number;         // 0 quando nunca carregado
   inFlight: Promise<T> | null;
   subscribers: Set<() => void>;
+  /** Incrementado a cada clear/invalidate destrutivo. Fetchers em voo comparam
+   *  o valor capturado na chamada com o atual antes de escrever o resultado —
+   *  se mudou, o resultado é descartado (evita vazar dados do usuário anterior
+   *  após logout). */
+  generation: number;
 };
 
 const store = new Map<string, Entry<any>>();
@@ -17,7 +22,7 @@ const store = new Map<string, Entry<any>>();
 function ensure<T>(key: string): Entry<T> {
   let e = store.get(key) as Entry<T> | undefined;
   if (!e) {
-    e = { data: undefined, loadedAt: 0, inFlight: null, subscribers: new Set() };
+    e = { data: undefined, loadedAt: 0, inFlight: null, subscribers: new Set(), generation: 0 };
     store.set(key, e);
   }
   return e;
