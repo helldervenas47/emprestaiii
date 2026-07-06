@@ -118,7 +118,21 @@ export function useIncomes(enabled = true) {
     selfWriteRef.current = false;
   }, [incomes, cacheKey]);
 
-  useEffect(() => { if (enabled) { financeInvalidate("useIncomes", "incomes", { reason: "initial/enabled effect" }); fetch(); } }, [fetch, enabled]);
+  useEffect(() => { if (enabled) { fetch(); } }, [fetch, enabled]);
+
+  // Refetch after offline queue flush (invalidate cache first)
+  useEffect(() => {
+    if (!cacheKey) return;
+    const handler = (e: any) => {
+      if (e?.detail?.tables?.includes?.("incomes")) {
+        invalidateSharedResource(cacheKey);
+        financeInvalidate("useIncomes", "incomes", { reason: "offline-sync:flushed" });
+        fetch();
+      }
+    };
+    window.addEventListener("offline-sync:flushed", handler);
+    return () => window.removeEventListener("offline-sync:flushed", handler);
+  }, [fetch, cacheKey]);
 
   useEffect(() => {
     if (!user || !enabled) return;
