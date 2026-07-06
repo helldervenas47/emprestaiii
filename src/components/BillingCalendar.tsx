@@ -1251,58 +1251,27 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
               </p>
             ) : (
               breakdownRows.map((r) => {
-                const isOverdue = r.dueDate < todayStr;
-                const isToday = r.dueDate === todayStr;
-                const dateBadge = isOverdue
-                  ? { label: "Atrasado", className: "bg-destructive/10 text-destructive border-destructive/30" }
-                  : isToday
-                  ? { label: "Hoje", className: "bg-warning/10 text-warning border-warning/30" }
-                  : { label: "A vencer", className: "bg-primary/10 text-primary border-primary/30" };
-                const originIcon = r.origin === "Empréstimo" ? <User className="h-3.5 w-3.5" /> : r.origin === "Aluguel de veículo" ? <Car className="h-3.5 w-3.5" /> : <ShoppingBag className="h-3.5 w-3.5" />;
+                const originIcon = r.origin === "Empréstimo" ? <User className="h-5 w-5" /> : r.origin === "Aluguel de veículo" ? <Car className="h-5 w-5" /> : <ShoppingBag className="h-5 w-5" />;
                 return (
-                  <div key={r.key} className="rounded-lg border border-border/60 bg-card p-3 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-0.5">
-                          {originIcon}
-                          <span>{r.origin}</span>
-                          <span>•</span>
-                          <span>{r.installmentInfo}</span>
-                        </div>
-                        <p className="text-sm font-semibold text-foreground truncate">{r.clientName}</p>
-                        <p className="text-[11px] text-muted-foreground">
-                          Vence em {new Date(r.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}
-                        </p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className={cn("text-sm font-bold", isOverdue ? "text-destructive" : isToday ? "text-warning" : "text-primary")}>
-                          {formatCurrency(r.pendingAmount)}
-                        </p>
-                        <Badge variant="outline" className={cn("text-[9px] mt-0.5", dateBadge.className)}>
-                          {dateBadge.label}
-                        </Badge>
-                      </div>
+                  <button
+                    key={r.key}
+                    type="button"
+                    onClick={() => openBreakdownDetail(r)}
+                    className="w-full text-left rounded-2xl bg-muted/40 hover:bg-muted/60 transition-colors p-3 flex items-center gap-3"
+                  >
+                    <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                      {originIcon}
                     </div>
-                    <div className="grid grid-cols-3 gap-1.5 text-[10px]">
-                      <div className="p-1.5 rounded bg-muted/40">
-                        <p className="text-muted-foreground">Valor original</p>
-                        <p className="font-semibold text-foreground truncate">{formatCurrency(r.originalTotal)}</p>
-                      </div>
-                      <div className="p-1.5 rounded bg-muted/40">
-                        <p className="text-muted-foreground">Recebido</p>
-                        <p className="font-semibold text-success truncate">{formatCurrency(r.received)}</p>
-                      </div>
-                      <div className="p-1.5 rounded bg-muted/40">
-                        <p className="text-muted-foreground">Saldo</p>
-                        <p className="font-semibold text-foreground truncate">{formatCurrency(r.remaining)}</p>
-                      </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-foreground truncate">{r.clientName}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {r.origin} · {r.installmentInfo}
+                      </p>
                     </div>
-                    <div className="flex justify-end">
-                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openBreakdownDetail(r)}>
-                        Ver detalhes
-                      </Button>
-                    </div>
-                  </div>
+                    <p className="text-sm font-bold text-success shrink-0">
+                      {formatCurrency(r.pendingAmount)}
+                    </p>
+                  </button>
                 );
               })
             )}
