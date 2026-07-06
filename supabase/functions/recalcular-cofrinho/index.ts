@@ -59,7 +59,7 @@ serve(async (req) => {
 
       const { data: taxas, error: taxasError } = await supabase
         .from("taxa_referencia")
-        .select("*")
+        .select("data, cdi_diario")
         .gte("data", inicio)
         .lte("data", data_fim)
         .order("data", { ascending: true });
