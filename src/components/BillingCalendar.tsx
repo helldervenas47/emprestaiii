@@ -606,20 +606,28 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-        {[
+        {([
           { key: "hoje", label: "Receber hoje", tone: "text-warning", bar: "bg-warning", data: summary.hoje },
           { key: "atrasados", label: "Atrasados", tone: "text-destructive", bar: "bg-destructive", data: summary.overdue },
           { key: "amanha", label: "Receber amanhã", tone: "text-primary", bar: "bg-primary", data: summary.amanha },
           { key: "mes", label: "Este mês", tone: "text-foreground", bar: "bg-muted-foreground", data: summary.month },
-        ].map((c) => (
-          <Card key={c.key} no3d className="overflow-hidden">
-            <CardContent className="p-3">
-              <div className={`h-1 w-8 rounded-full ${c.bar} mb-2`} />
-              <p className="text-[11px] text-muted-foreground truncate">{c.label}</p>
-              <p className={`text-sm md:text-base font-bold ${c.tone} truncate`}>{formatCurrency(c.data.total)}</p>
-              <p className="text-[10px] text-muted-foreground">{c.data.count} {c.data.count === 1 ? "contrato" : "contratos"}</p>
-            </CardContent>
-          </Card>
+        ] as const).map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            onClick={() => setBreakdownCard(c.key as any)}
+            className="text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-lg"
+            aria-label={`Ver contratos: ${c.label}`}
+          >
+            <Card no3d className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="p-3">
+                <div className={`h-1 w-8 rounded-full ${c.bar} mb-2`} />
+                <p className="text-[11px] text-muted-foreground truncate">{c.label}</p>
+                <p className={`text-sm md:text-base font-bold ${c.tone} truncate`}>{formatCurrency(c.data.total)}</p>
+                <p className="text-[10px] text-muted-foreground">{c.data.count} {c.data.count === 1 ? "contrato" : "contratos"}</p>
+              </CardContent>
+            </Card>
+          </button>
         ))}
       </div>
 
