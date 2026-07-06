@@ -8,6 +8,15 @@ const TEST_SITE_KEY = "1x00000000000000000000AA";
 
 const isPreviewEnv = (() => {
   if (typeof window === "undefined") return false;
+
+  // Apps nativos (Capacitor) rodam em localhost/capacitor:// mas são PRODUÇÃO.
+  // Nunca usar chave de teste dentro do app nativo.
+  const isNative =
+    !!(window as any).Capacitor?.isNativePlatform?.() ||
+    window.location.protocol === "capacitor:" ||
+    window.location.protocol === "ionic:";
+  if (isNative) return false;
+
   let inIframe = false;
   try { inIframe = window.self !== window.top; } catch { inIframe = true; }
   const host = window.location.hostname;
