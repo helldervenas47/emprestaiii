@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     // Get all enabled webhook settings
     const { data: webhookSettings, error: wsErr } = await supabase
       .from("webhook_settings")
-      .select("*")
+      .select("user_id, webhook_url")
       .eq("enabled", true)
       .neq("webhook_url", "");
 
