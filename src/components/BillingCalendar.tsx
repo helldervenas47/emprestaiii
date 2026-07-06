@@ -1061,12 +1061,13 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
               const endStr = formatLocalDate(endOfWeek);
 
               const collect = () => {
-                const out: { date: string; kind: "loan" | "sale" | "vehicle"; name: string; subtitle: string; amount: number; status: "overdue" | "due_today" | "upcoming" }[] = [];
+                const out: { date: string; kind: "loan" | "sale" | "vehicle"; name: string; subtitle: string; amount: number; status: "overdue" | "due_today" | "upcoming"; tags?: string[] }[] = [];
                 Object.entries(filteredDueMap).forEach(([d, arr]) => arr.forEach((i) => out.push({
                   date: d, kind: "loan", name: i.borrowerName,
                   subtitle: `Empréstimo · Parcela ${i.installmentNumber}/${i.totalInstallments}`,
                   amount: i.amount,
                   status: d < todayStr ? "overdue" : d === todayStr ? "due_today" : "upcoming",
+                  tags: Array.isArray(i.loan?.tags) ? i.loan.tags.filter(Boolean) : [],
                 })));
                 Object.entries(filteredSalesDueMap).forEach(([d, arr]) => arr.forEach((s) => out.push({
                   date: d, kind: s.kind, name: s.customerName,
@@ -1113,7 +1114,12 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                             <Icon className="h-3.5 w-3.5 text-muted-foreground" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-xs font-medium text-foreground truncate">{i.name}</p>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <p className="text-xs font-medium text-foreground truncate">{i.name}</p>
+                              {i.kind === "loan" && i.tags && i.tags.length > 0 && (
+                                <span className="text-[10px] font-medium text-blue-500 truncate">{i.tags.join(", ")}</span>
+                              )}
+                            </div>
                             <p className="text-[10px] text-muted-foreground truncate">{i.subtitle}</p>
                           </div>
                         </div>
