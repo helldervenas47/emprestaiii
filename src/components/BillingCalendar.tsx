@@ -230,6 +230,27 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
     return map;
   }, [sales]);
 
+  // Filtro por origem: aplicado sobre as fontes brutas para que TODAS as leituras
+  // (cards, calendário, semana/agenda/lista, detalhes do dia e breakdown) fiquem
+  // consistentes com a origem selecionada.
+  const filteredDueMap = useMemo(() => {
+    if (originFilter === "todos" || originFilter === "emprestimos") return dueMap;
+    return {} as typeof dueMap;
+  }, [dueMap, originFilter]);
+
+  const filteredSalesDueMap = useMemo(() => {
+    if (originFilter === "emprestimos") return {} as typeof salesDueMap;
+    if (originFilter === "todos") return salesDueMap;
+    const wanted: "sale" | "vehicle" = originFilter === "veiculos" ? "vehicle" : "sale";
+    const out: typeof salesDueMap = {};
+    Object.entries(salesDueMap).forEach(([d, arr]) => {
+      const kept = arr.filter((i) => i.kind === wanted);
+      if (kept.length) out[d] = kept;
+    });
+    return out;
+  }, [salesDueMap, originFilter]);
+
+
   // Calendar grid
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
