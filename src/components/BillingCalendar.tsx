@@ -79,6 +79,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"mes" | "semana" | "agenda" | "lista">("mes");
   const [showFullDay, setShowFullDay] = useState(false);
+  const [breakdownCard, setBreakdownCard] = useState<null | "hoje" | "atrasados" | "amanha" | "mes">(null);
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [showPartial, setShowPartial] = useState<string | null>(null);
   const [partialAmount, setPartialAmount] = useState("");
@@ -590,6 +591,117 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
     });
   }, [selectedItems, todayStr]);
 
+  // ------------------------------------------------------------------
+  // Breakdown por card: usa exatamente as mesmas fontes (dueMap + salesDueMap)
+  // que alimentam os totais dos cards, garantindo paridade total.
+  // ------------------------------------------------------------------
+  type BreakdownRow = {
+    key: string;
+    clientName: string;
+    dueDate: string;
+    pendingAmount: number;
+    originalTotal: number;
+    received: number;
+    remaining: number;
+    status: string;
+    origin: "Empréstimo" | "Venda" | "Aluguel de veículo";
+    loanId?: string;
+    saleId?: string;
+    installmentInfo: string;
+  };
+
+  const breakdownLabels: Record<NonNullable<typeof breakdownCard>, string> = {
+    hoje: "Receber hoje",
+    atrasados: "Atrasados",
+    amanha: "Receber amanhã",
+    mes: `Este mês (${monthNames[month]}/${year})`,
+  };
+
+  const breakdownRows = useMemo<BreakdownRow[]>(() => {
+    if (!breakdownCard) return [];
+    const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+    const matches = (d: string) => {
+      if (breakdownCard === "hoje") return d === todayStr;
+      if (breakdownCard === "atrasados") return d < todayStr;
+      if (breakdownCard === "amanha") return d === tomorrowStr;
+      return d.startsWith(monthPrefix);
+    };
+    const rows: BreakdownRow[] = [];
+    Object.entries(dueMap).forEach(([d, arr]) => {
+      if (!matches(d)) return;
+      arr.forEach((it) => {
+        const loan = it.loan;
+        const totalWithInterest = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+        const paid = payments.filter((p) => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
+        const remaining = loan.remainingAmount != null && loan.remainingAmount > 0
+          ? loan.remainingAmount
+          : Math.max(0, totalWithInterest - paid);
+        rows.push({
+          key: `loan-${loan.id}-${it.installmentNumber}-${d}`,
+          clientName: it.borrowerName,
+          dueDate: d,
+          pendingAmount: it.amount,
+          originalTotal: loan.amount,
+          received: paid,
+          remaining,
+          status: loan.status || "active",
+          origin: "Empréstimo",
+          loanId: loan.id,
+          installmentInfo: `Parcela ${it.installmentNumber}/${it.totalInstallments}`,
+        });
+      });
+    });
+    Object.entries(salesDueMap).forEach(([d, arr]) => {
+      if (!matches(d)) return;
+      arr.forEach((it) => {
+        const sale = sales.find((s) => s.id === it.saleId);
+        const originalTotal = sale?.total || 0;
+        let received = sale?.downPayment || 0;
+        if (sale) {
+          if (sale.installmentAmounts && sale.installmentAmounts.length > 0) {
+            for (let k = 0; k < sale.paidInstallments && k < sale.installmentAmounts.length; k++) {
+              received += Number(sale.installmentAmounts[k]) || 0;
+            }
+          } else {
+            const vp = sale.installments > 0 ? Math.max(0, sale.total - (sale.downPayment || 0)) / sale.installments : sale.total;
+            received += vp * sale.paidInstallments;
+          }
+          received += sale.partialPaid || 0;
+        }
+        const remaining = Math.max(0, originalTotal - received);
+        rows.push({
+          key: `sale-${it.saleId}-${it.installmentNumber}-${d}`,
+          clientName: it.customerName,
+          dueDate: d,
+          pendingAmount: it.amount,
+          originalTotal,
+          received,
+          remaining,
+          status: (sale as any)?.status || "pending",
+          origin: it.kind === "vehicle" ? "Aluguel de veículo" : "Venda",
+          saleId: it.saleId,
+          installmentInfo: `Parcela ${it.installmentNumber}/${it.totalInstallments}`,
+        });
+      });
+    });
+    rows.sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.clientName.localeCompare(b.clientName));
+    return rows;
+  }, [breakdownCard, dueMap, salesDueMap, todayStr, tomorrowStr, year, month, payments, sales]);
+
+  const breakdownTotal = breakdownRows.reduce((s, r) => s + r.pendingAmount, 0);
+
+  const openBreakdownDetail = (row: BreakdownRow) => {
+    // Navega para o dia do vencimento e fecha o modal, revelando o painel de detalhes existente.
+    const [y, m] = row.dueDate.split("-").map(Number);
+    setYear(y);
+    setMonth(m - 1);
+    setSelectedDate(row.dueDate);
+    setViewMode("mes");
+    setBreakdownCard(null);
+  };
+
+
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -605,20 +717,28 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-        {[
+        {([
           { key: "hoje", label: "Receber hoje", tone: "text-warning", bar: "bg-warning", data: summary.hoje },
           { key: "atrasados", label: "Atrasados", tone: "text-destructive", bar: "bg-destructive", data: summary.overdue },
           { key: "amanha", label: "Receber amanhã", tone: "text-primary", bar: "bg-primary", data: summary.amanha },
           { key: "mes", label: "Este mês", tone: "text-foreground", bar: "bg-muted-foreground", data: summary.month },
-        ].map((c) => (
-          <Card key={c.key} no3d className="overflow-hidden">
-            <CardContent className="p-3">
-              <div className={`h-1 w-8 rounded-full ${c.bar} mb-2`} />
-              <p className="text-[11px] text-muted-foreground truncate">{c.label}</p>
-              <p className={`text-sm md:text-base font-bold ${c.tone} truncate`}>{formatCurrency(c.data.total)}</p>
-              <p className="text-[10px] text-muted-foreground">{c.data.count} {c.data.count === 1 ? "contrato" : "contratos"}</p>
-            </CardContent>
-          </Card>
+        ] as const).map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            onClick={() => setBreakdownCard(c.key as any)}
+            className="text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-lg"
+            aria-label={`Ver contratos: ${c.label}`}
+          >
+            <Card no3d className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="p-3">
+                <div className={`h-1 w-8 rounded-full ${c.bar} mb-2`} />
+                <p className="text-[11px] text-muted-foreground truncate">{c.label}</p>
+                <p className={`text-sm md:text-base font-bold ${c.tone} truncate`}>{formatCurrency(c.data.total)}</p>
+                <p className="text-[10px] text-muted-foreground">{c.data.count} {c.data.count === 1 ? "contrato" : "contratos"}</p>
+              </CardContent>
+            </Card>
+          </button>
         ))}
       </div>
 
@@ -1106,6 +1226,91 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
             <Button onClick={confirmPayment} disabled={paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)}>Confirmar</Button>
           </DialogFooter>
 
+        </DialogContent>
+      </Dialog>
+
+      {/* Breakdown do card: lista todos os registros que compõem o total exibido */}
+      <Dialog open={breakdownCard !== null} onOpenChange={(o) => !o && setBreakdownCard(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-4 md:px-6 pt-4 md:pt-6 pb-3 border-b border-border/40">
+            <DialogTitle className="text-base md:text-lg">
+              {breakdownCard ? breakdownLabels[breakdownCard] : ""}
+            </DialogTitle>
+            <div className="flex items-center justify-between pt-1 text-xs md:text-sm">
+              <span className="text-muted-foreground">
+                {breakdownRows.length} {breakdownRows.length === 1 ? "contrato" : "contratos"}
+              </span>
+              <span className="font-bold text-foreground">
+                Total: {formatCurrency(breakdownTotal)}
+              </span>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto px-3 md:px-6 py-3 space-y-2">
+            {breakdownRows.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Nenhum contrato pendente para este período.
+              </p>
+            ) : (
+              breakdownRows.map((r) => {
+                const isOverdue = r.dueDate < todayStr;
+                const isToday = r.dueDate === todayStr;
+                const dateBadge = isOverdue
+                  ? { label: "Atrasado", className: "bg-destructive/10 text-destructive border-destructive/30" }
+                  : isToday
+                  ? { label: "Hoje", className: "bg-warning/10 text-warning border-warning/30" }
+                  : { label: "A vencer", className: "bg-primary/10 text-primary border-primary/30" };
+                const originIcon = r.origin === "Empréstimo" ? <User className="h-3.5 w-3.5" /> : r.origin === "Aluguel de veículo" ? <Car className="h-3.5 w-3.5" /> : <ShoppingBag className="h-3.5 w-3.5" />;
+                return (
+                  <div key={r.key} className="rounded-lg border border-border/60 bg-card p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-0.5">
+                          {originIcon}
+                          <span>{r.origin}</span>
+                          <span>•</span>
+                          <span>{r.installmentInfo}</span>
+                        </div>
+                        <p className="text-sm font-semibold text-foreground truncate">{r.clientName}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Vence em {new Date(r.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className={cn("text-sm font-bold", isOverdue ? "text-destructive" : isToday ? "text-warning" : "text-primary")}>
+                          {formatCurrency(r.pendingAmount)}
+                        </p>
+                        <Badge variant="outline" className={cn("text-[9px] mt-0.5", dateBadge.className)}>
+                          {dateBadge.label}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5 text-[10px]">
+                      <div className="p-1.5 rounded bg-muted/40">
+                        <p className="text-muted-foreground">Valor original</p>
+                        <p className="font-semibold text-foreground truncate">{formatCurrency(r.originalTotal)}</p>
+                      </div>
+                      <div className="p-1.5 rounded bg-muted/40">
+                        <p className="text-muted-foreground">Recebido</p>
+                        <p className="font-semibold text-success truncate">{formatCurrency(r.received)}</p>
+                      </div>
+                      <div className="p-1.5 rounded bg-muted/40">
+                        <p className="text-muted-foreground">Saldo</p>
+                        <p className="font-semibold text-foreground truncate">{formatCurrency(r.remaining)}</p>
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openBreakdownDetail(r)}>
+                        Ver detalhes
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          <DialogFooter className="px-4 md:px-6 py-3 border-t border-border/40">
+            <Button variant="outline" onClick={() => setBreakdownCard(null)}>Fechar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
