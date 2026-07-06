@@ -99,7 +99,7 @@ serve(async (req) => {
 
     let aportesQuery = supabase
       .from("cofrinho_aportes")
-      .select("*")
+      .select("id, cofrinho_id, data_aporte, saldo_restante, percentual_cdi")
       .gt("saldo_restante", 0)
       .order("data_aporte", { ascending: true });
 
@@ -163,7 +163,7 @@ serve(async (req) => {
     for (const aporte of aportes) {
       const taxasResult = await supabase
         .from("taxa_referencia")
-        .select("*")
+        .select("data, cdi_diario")
         .gte("data", aporte.data_aporte)
         .lte("data", dataFim)
         .order("data", { ascending: true });
