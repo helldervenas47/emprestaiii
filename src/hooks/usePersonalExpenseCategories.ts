@@ -92,7 +92,7 @@ export function usePersonalExpenseCategories() {
         });
         return null;
       }
-      setCategories((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
+      commit((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
       toast({ title: "Categoria criada", description: name });
       return data;
     },
