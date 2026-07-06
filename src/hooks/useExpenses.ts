@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { todayInAppTz } from "@/lib/timezone";
 import { Expense } from "@/types/loan";
 import { supabase } from "@/integrations/supabase/userClient";
@@ -15,6 +15,12 @@ import {
 } from "@/lib/offline/sync";
 import { isOnline } from "@/lib/offline/status";
 import { assertWritable } from "@/lib/readOnlyState";
+import {
+  loadSharedResource, readSharedResource, writeSharedResource,
+  invalidateSharedResource, subscribeSharedResource,
+} from "@/lib/sharedResource";
+
+const EXPENSES_STALE_MS = 60_000;
 
 async function syncLinkedBoletoPaid(expenseId: string, paid: boolean, paidDate: string | null, amount: number) {
   assertWritable();
