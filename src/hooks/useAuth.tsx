@@ -243,6 +243,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         // TOKEN_REFRESHED with valid session: no re-hydrate needed
       } else {
+        // Sem sessão (SIGNED_OUT, sessão expirada, refresh perdido):
+        // limpa o cache global P1-01 para não vazar dados a um próximo login.
+        clearAllSharedResources();
         hydratedForUserId = null;
         clearUserState();
         setLoading(false);
