@@ -36,7 +36,7 @@ serve(async (req) => {
 
     const { data: aportes, error: aportesError } = await supabase
       .from("cofrinho_aportes")
-      .select("*")
+      .select("id, data_aporte, saldo_restante, percentual_cdi")
       .eq("cofrinho_id", cofrinho_id)
       .gt("saldo_restante", 0)
       .order("data_aporte", { ascending: true });
