@@ -737,6 +737,30 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
         <Button variant="outline" size="sm" onClick={goToToday}>Hoje</Button>
       </div>
 
+      {/* Origin filter */}
+      <div className="grid grid-cols-4 gap-1.5 md:gap-2">
+        {([
+          { v: "todos", label: "Todos" },
+          { v: "emprestimos", label: "Empréstimos" },
+          { v: "vendas", label: "Vendas" },
+          { v: "veiculos", label: "Veículos" },
+        ] as const).map((opt) => (
+          <button
+            key={opt.v}
+            type="button"
+            onClick={() => setOriginFilter(opt.v)}
+            className={cn(
+              "px-2 py-1.5 rounded-md text-[11px] md:text-xs font-medium border transition-colors whitespace-nowrap truncate",
+              originFilter === opt.v
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "bg-muted/30 text-muted-foreground border-border/60 hover:text-foreground hover:bg-background/60",
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
         {([
