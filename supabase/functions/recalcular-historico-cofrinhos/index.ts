@@ -163,7 +163,7 @@ serve(async (req) => {
     for (const aporte of aportes) {
       const taxasResult = await supabase
         .from("taxa_referencia")
-        .select("*")
+        .select("data, cdi_diario")
         .gte("data", aporte.data_aporte)
         .lte("data", dataFim)
         .order("data", { ascending: true });
