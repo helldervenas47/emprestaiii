@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  loadSharedResource,
+  invalidateSharedResource,
+  readSharedResource,
+  subscribeSharedResource,
+} from "@/lib/sharedResource";
 
 export interface Subscription {
   id: string;
@@ -26,14 +32,30 @@ const PLAN_LIMITS: Record<string, { maxLoans: number; maxUsers: number }> = {
   empresarial_plan: { maxLoans: 9999, maxUsers: 5 },
 };
 
+// P1-01: assinatura muda muito raramente; cache global evita refetch a cada
+// troca de rota / focus / remount. Um refetch a cada 5 min é mais que suficiente.
+const STALE_MS = 5 * 60_000;
+
+async function fetchSubscription(userId: string, environment: string): Promise<Subscription | null> {
+  const { data } = await supabase
+    .from("subscriptions")
+    .select("id, product_id, price_id, status, current_period_end, cancel_at_period_end, environment")
+    .eq("user_id", userId)
+    .eq("environment", environment)
+    .maybeSingle();
+  return (data ?? null) as Subscription | null;
+}
 
 export function useSubscription() {
   const { user, dataOwnerId, loading: authLoading } = useAuth();
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [loading, setLoading] = useState(true);
-
   const environment = import.meta.env.VITE_ASAAS_ENVIRONMENT === "production" ? "live" : "sandbox";
   const effectiveUserId = dataOwnerId ?? user?.id ?? null;
+  const cacheKey = effectiveUserId ? `subscription:${effectiveUserId}:${environment}` : "";
+
+  const [subscription, setSubscription] = useState<Subscription | null>(
+    () => readSharedResource<Subscription | null>(cacheKey) ?? null,
+  );
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (authLoading) {
@@ -48,33 +70,49 @@ export function useSubscription() {
 
     let cancelled = false;
 
-    const fetchSubscription = async () => {
-      const { data } = await supabase
-        .from("subscriptions")
-        .select("id, product_id, price_id, status, current_period_end, cancel_at_period_end, environment")
-        .eq("user_id", effectiveUserId)
-        .eq("environment", environment)
-        .maybeSingle();
-      if (!cancelled) {
-        setSubscription(data);
-        setLoading(false);
+    const run = async (force = false) => {
+      try {
+        const data = await loadSharedResource(
+          cacheKey,
+          () => fetchSubscription(effectiveUserId, environment),
+          { staleTime: STALE_MS, force },
+        );
+        if (!cancelled) {
+          setSubscription(data);
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) setLoading(false);
       }
     };
 
-    fetchSubscription();
+    run();
 
     // Realtime removido (P0-02 egress): assinatura muda raramente.
     // Refetch em foco e via evento local disparado pelo checkout/webhook client-side.
-    const handler = () => { if (!cancelled) fetchSubscription(); };
-    window.addEventListener("subscription:changed", handler);
-    window.addEventListener("focus", handler);
+    // Ambos passam por `loadSharedResource`, então respeitam staleTime e deduplicação.
+    const changed = () => {
+      invalidateSharedResource(cacheKey);
+      run(true);
+    };
+    const focused = () => run(false);
+    window.addEventListener("subscription:changed", changed);
+    window.addEventListener("focus", focused);
+
+    // Assina o cache para receber updates disparados por outros hooks/instâncias.
+    const unsub = subscribeSharedResource(cacheKey, () => {
+      if (cancelled) return;
+      const next = readSharedResource<Subscription | null>(cacheKey);
+      setSubscription(next ?? null);
+    });
 
     return () => {
       cancelled = true;
-      window.removeEventListener("subscription:changed", handler);
-      window.removeEventListener("focus", handler);
+      window.removeEventListener("subscription:changed", changed);
+      window.removeEventListener("focus", focused);
+      unsub();
     };
-  }, [user?.id, effectiveUserId, environment, authLoading]);
+  }, [user?.id, effectiveUserId, environment, authLoading, cacheKey]);
 
   const isActive = Boolean(
     subscription &&
