@@ -94,24 +94,24 @@ export function useAccountSettings() {
     if (!user || !dataOwnerId) return false;
     setSaving(true);
     setAppTimezone(timezone); // optimistic
-    setSettings((current) => ({ ...current, timezone }));
+    commit({ ...settings, timezone });
     const { error } = await (supabase as any)
       .from("account_settings")
       .upsert({ owner_id: dataOwnerId, timezone }, { onConflict: "owner_id" });
     setSaving(false);
     return !error;
-  }, [user, dataOwnerId]);
+  }, [user, dataOwnerId, settings, commit]);
 
   const updateSimulationInterestRate = useCallback(async (simulationInterestRate: number) => {
     if (!user || !dataOwnerId) return false;
     setSaving(true);
-    setSettings((current) => ({ ...current, simulationInterestRate }));
+    commit({ ...settings, simulationInterestRate });
     const { error } = await (supabase as any)
       .from("account_settings")
       .upsert({ owner_id: dataOwnerId, simulation_interest_rate: simulationInterestRate }, { onConflict: "owner_id" });
     setSaving(false);
     return !error;
-  }, [user, dataOwnerId]);
+  }, [user, dataOwnerId, settings, commit]);
 
   /**
    * Sets (or clears) the global maximum credit limit. Pass `null` to remove the cap.
@@ -119,13 +119,13 @@ export function useAccountSettings() {
   const updateMaxCreditLimit = useCallback(async (maxCreditLimit: number | null) => {
     if (!user || !dataOwnerId) return false;
     setSaving(true);
-    setSettings((current) => ({ ...current, maxCreditLimit }));
+    commit({ ...settings, maxCreditLimit });
     const { error } = await (supabase as any)
       .from("account_settings")
       .upsert({ owner_id: dataOwnerId, max_credit_limit: maxCreditLimit }, { onConflict: "owner_id" });
     setSaving(false);
     return !error;
-  }, [user, dataOwnerId]);
+  }, [user, dataOwnerId, settings, commit]);
 
   return { settings, loading, saving, updateTimezone, updateSimulationInterestRate, updateMaxCreditLimit };
 }
