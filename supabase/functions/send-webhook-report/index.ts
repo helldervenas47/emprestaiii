@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
         // Fetch payments made today
         const { data: paymentsToday } = await supabase
           .from("payments")
-          .select("*")
+          .select("amount")
           .eq("user_id", ws.user_id)
           .eq("date", todayStr);
 
