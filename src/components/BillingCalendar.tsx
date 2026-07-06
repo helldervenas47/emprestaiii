@@ -1051,13 +1051,12 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                     <p className="text-xs font-semibold text-foreground capitalize">
                       {new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}
                     </p>
-                    <p className="text-xs font-bold text-foreground">
+                    <p className="text-xs font-bold text-success">
                       {formatCurrency(arr.reduce((s, i) => s + i.amount, 0))}
                     </p>
                   </div>
                   {arr.map((i, idx) => {
                     const tone = i.status === "overdue" ? "border-destructive/30 bg-destructive/5" : i.status === "due_today" ? "border-warning/30 bg-warning/5" : "border-border/40 bg-muted/20";
-                    const amtColor = i.status === "overdue" ? "text-destructive" : i.status === "due_today" ? "text-warning" : "text-foreground";
                     const Icon = i.kind === "loan" ? User : i.kind === "vehicle" ? Car : ShoppingBag;
                     return (
                       <div key={`${d}-${idx}`} className={cn("flex items-center justify-between gap-2 rounded-lg border p-2.5", tone)}>
@@ -1070,7 +1069,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                             <p className="text-[10px] text-muted-foreground truncate">{i.subtitle}</p>
                           </div>
                         </div>
-                        <p className={cn("text-xs font-bold shrink-0", amtColor)}>{formatCurrency(i.amount)}</p>
+                        <p className="text-xs font-bold shrink-0 text-success">{formatCurrency(i.amount)}</p>
                       </div>
                     );
                   })}
