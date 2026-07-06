@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
         // Fetch loans for this user
         const { data: loans } = await supabase
           .from("loans")
-          .select("*")
+          .select("borrower_name, due_date, remaining_amount, status")
           .eq("user_id", ws.user_id)
           .neq("status", "paid");
 
