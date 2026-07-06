@@ -1097,7 +1097,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                     <p className="text-xs font-semibold text-foreground capitalize">
                       {new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}
                     </p>
-                    <p className="text-xs font-bold text-success">
+                    <p className={cn("text-xs font-bold", d < todayStr ? "text-destructive" : "text-success")}>
                       {formatCurrency(arr.reduce((s, i) => s + i.amount, 0))}
                     </p>
                   </div>
@@ -1314,7 +1314,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                         {r.origin} · {r.installmentInfo}
                       </p>
                     </div>
-                    <p className="text-sm font-bold text-success shrink-0">
+                    <p className={cn("text-sm font-bold shrink-0", r.dueDate < todayStr ? "text-destructive" : "text-success")}>
                       {formatCurrency(r.pendingAmount)}
                     </p>
                   </button>
