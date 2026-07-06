@@ -5,6 +5,12 @@ import { displayIncomeCategory } from "@/lib/incomeCategory";
 import { todayInAppTz } from "@/lib/timezone";
 import { assertWritable } from "@/lib/readOnlyState";
 import { financeFetchStart, financeFetchSuccess, financeInvalidate, financeRealtimeEvent, financeSetState, useFinanceHookDebug } from "@/lib/financeDebug";
+import {
+  loadSharedResource, readSharedResource, writeSharedResource,
+  invalidateSharedResource, subscribeSharedResource,
+} from "@/lib/sharedResource";
+
+const INCOMES_STALE_MS = 60_000;
 
 export type IncomeStatus = "pending" | "received" | "overdue";
 export type IncomeRecurrence = "once" | "weekly" | "biweekly" | "monthly" | "yearly";
@@ -63,28 +69,70 @@ function rowToIncome(r: any): Income {
 export function useIncomes(enabled = true) {
   useFinanceHookDebug("useIncomes");
   const { user, dataOwnerId } = useAuth();
-  const [incomes, setIncomes] = useState<Income[]>([]);
+  const ownerKey = dataOwnerId ?? user?.id ?? null;
+  const cacheKey = ownerKey ? `incomes:${ownerKey}` : null;
+  const [incomes, setIncomes] = useState<Income[]>(() =>
+    cacheKey ? (readSharedResource<Income[]>(cacheKey) ?? []) : [],
+  );
   const [loading, setLoading] = useState(false);
+  const selfWriteRef = useRef(false);
 
   const fetch = useCallback(async () => {
-    if (!user) return;
+    if (!user || !cacheKey) return;
     financeFetchStart("useIncomes", "incomes", { reason: "fetch/refetch" });
     setLoading(true);
-    const { data } = await supabase
-      .from("incomes" as any)
-      .select("id, description, amount, category, client_id, source, payment_method_id, received_date, actual_received_date, status, notes, recurrence, parent_id, created_at")
-      .order("received_date", { ascending: false })
-      .limit(5000); // safety cap
-    if (data) {
-      financeSetState("useIncomes", "incomes", { rows: (data as any[]).length });
-      setIncomes((data as any[]).map(rowToIncome));
-    }
+    const rows = await loadSharedResource<Income[]>(
+      cacheKey,
+      async () => {
+        const { data } = await supabase
+          .from("incomes" as any)
+          .select("id, description, amount, category, client_id, source, payment_method_id, received_date, actual_received_date, status, notes, recurrence, parent_id, created_at")
+          .order("received_date", { ascending: false })
+          .limit(5000);
+        return (data as any[] | null)?.map(rowToIncome) ?? [];
+      },
+      { staleTime: INCOMES_STALE_MS },
+    );
+    financeSetState("useIncomes", "incomes", { rows: rows.length });
+    setIncomes(rows);
     setLoading(false);
     financeSetState("useIncomes", "loading", { value: false });
-    financeFetchSuccess("useIncomes", "incomes", { rows: ((data as any[]) ?? []).length });
-  }, [user]);
+    financeFetchSuccess("useIncomes", "incomes", { rows: rows.length });
+  }, [user, cacheKey]);
 
-  useEffect(() => { if (enabled) { financeInvalidate("useIncomes", "incomes", { reason: "initial/enabled effect" }); fetch(); } }, [fetch, enabled]);
+  // Sync from cache when other instances update
+  useEffect(() => {
+    if (!cacheKey) return;
+    return subscribeSharedResource(cacheKey, () => {
+      if (selfWriteRef.current) return;
+      const next = readSharedResource<Income[]>(cacheKey);
+      if (next) setIncomes(next);
+    });
+  }, [cacheKey]);
+
+  // Mirror local state to shared cache
+  useEffect(() => {
+    if (!cacheKey) return;
+    selfWriteRef.current = true;
+    writeSharedResource(cacheKey, incomes);
+    selfWriteRef.current = false;
+  }, [incomes, cacheKey]);
+
+  useEffect(() => { if (enabled) { fetch(); } }, [fetch, enabled]);
+
+  // Refetch after offline queue flush (invalidate cache first)
+  useEffect(() => {
+    if (!cacheKey) return;
+    const handler = (e: any) => {
+      if (e?.detail?.tables?.includes?.("incomes")) {
+        invalidateSharedResource(cacheKey);
+        financeInvalidate("useIncomes", "incomes", { reason: "offline-sync:flushed" });
+        fetch();
+      }
+    };
+    window.addEventListener("offline-sync:flushed", handler);
+    return () => window.removeEventListener("offline-sync:flushed", handler);
+  }, [fetch, cacheKey]);
 
   useEffect(() => {
     if (!user || !enabled) return;
@@ -92,6 +140,7 @@ export function useIncomes(enabled = true) {
     const safe = (fn: () => void) => {
       try { fn(); } catch (e) {
         console.warn("[useIncomes realtime patch failed, refetching]", e);
+        if (cacheKey) invalidateSharedResource(cacheKey);
         financeInvalidate("useIncomes", "incomes", { reason: "realtime-fallback" });
         fetch();
       }
