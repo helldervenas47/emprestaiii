@@ -1,136 +1,152 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { Product, Sale, BusinessType, SalePaymentRecord } from "@/types/loan";
 import { useAuth } from "@/hooks/useAuth";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 import { assertWritable } from "@/lib/readOnlyState";
+import {
+  loadSharedResource,
+  invalidateSharedResource,
+  readSharedResource,
+  subscribeSharedResource,
+  writeSharedResource,
+} from "@/lib/sharedResource";
 
 const PRODUCT_COLUMNS =
   "id, name, description, price, cost, last_purchase_price, suggested_stock, stock, active, created_at";
 const SALE_COLUMNS =
   "id, product_id, description, quantity, total, customer_name, sale_date, notes, business_type, payment_mode, installments, paid_installments, frequency, installment_value, installment_amounts, installment_dates, partial_paid, payment_history, locador_id, category";
 
+// P1-01: staleTime médio — produtos/vendas mudam com mutações locais que já
+// escrevem no cache; realtime invalida + refaz o fetch.
+const STALE_MS = 60_000;
 
+type Bundle = { products: Product[]; sales: Sale[] };
+
+function rowToProduct(p: any): Product {
+  return {
+    id: p.id, name: p.name, description: p.description || "",
+    price: Number(p.price), cost: Number(p.cost || 0),
+    lastPurchasePrice: Number(p.last_purchase_price || 0),
+    suggestedStock: Number(p.suggested_stock || 0),
+    stock: p.stock, active: p.active !== false, createdAt: p.created_at,
+  };
+}
+
+function rowsToSales(salesRows: any[], productRows: any[]): Sale[] {
+  const prodMap = new Map((productRows || []).map((p) => [p.id, p.name]));
+  return salesRows.map((s) => ({
+    id: s.id,
+    productId: s.product_id || undefined,
+    productName: s.product_id ? (prodMap.get(s.product_id) || "Produto removido") : (s.description || ""),
+    description: s.description || "",
+    quantity: s.quantity,
+    unitPrice: 0,
+    cost: 0,
+    total: Number(s.total),
+    customerName: s.customer_name || "",
+    date: s.sale_date,
+    notes: (s as any).notes || "",
+    businessType: (s.business_type as BusinessType) || "venda",
+    paymentMode: ((s as any).payment_mode || "fixa") as "fixa" | "recorrente",
+    installments: (s as any).installments || 1,
+    paidInstallments: (s as any).paid_installments || 0,
+    downPayment: 0,
+    frequency: (s as any).frequency || "Mensal",
+    installmentValue: (s as any).installment_value != null ? Number((s as any).installment_value) : null,
+    installmentAmounts: (s as any).installment_amounts || null,
+    installmentDates: (s as any).installment_dates || null,
+    partialPaid: Number((s as any).partial_paid) || 0,
+    paymentHistory: (Array.isArray(s.payment_history) ? s.payment_history : []) as unknown as SalePaymentRecord[],
+    locadorId: s.locador_id || null,
+    category: (s as any).category || null,
+  }));
+}
+
+async function fetchProductsAndSales(): Promise<Bundle> {
+  const [prodRes, salesRes] = await Promise.all([
+    supabase.from("products").select(PRODUCT_COLUMNS).order("created_at", { ascending: false }),
+    supabase.from("sales").select(SALE_COLUMNS).order("created_at", { ascending: false }),
+  ]);
+  const products = (prodRes.data ?? []).map(rowToProduct);
+  const sales = rowsToSales(salesRes.data ?? [], prodRes.data ?? []);
+  return { products, sales };
+}
 
 export function useProducts(enabled = true) {
   const { user, dataOwnerId } = useAuth();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [sales, setSales] = useState<Sale[]>([]);
+  const ownerKey = dataOwnerId ?? user?.id ?? "";
+  const cacheKey = ownerKey ? `products_sales:${ownerKey}` : "";
+  const initial = readSharedResource<Bundle>(cacheKey);
+  const [products, setProducts] = useState<Product[]>(initial?.products ?? []);
+  const [sales, setSales] = useState<Sale[]>(initial?.sales ?? []);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!user || !enabled) return;
-    const fetchData = async () => {
-      setLoading(true);
-      const [prodRes, salesRes] = await Promise.all([
-        supabase.from("products").select(PRODUCT_COLUMNS).order("created_at", { ascending: false }),
-        supabase.from("sales").select(SALE_COLUMNS).order("created_at", { ascending: false }),
-      ]);
+  // Refs para sempre ler o valor mais recente ao escrever no cache compartilhado.
+  const productsRef = useRef(products);
+  const salesRef = useRef(sales);
+  useEffect(() => { productsRef.current = products; }, [products]);
+  useEffect(() => { salesRef.current = sales; }, [sales]);
 
-      if (prodRes.data) {
-        setProducts(prodRes.data.map((p: any) => ({
-          id: p.id, name: p.name, description: p.description || "",
-          price: Number(p.price), cost: Number(p.cost || 0),
-          lastPurchasePrice: Number(p.last_purchase_price || 0),
-          suggestedStock: Number(p.suggested_stock || 0),
-          stock: p.stock, active: p.active !== false, createdAt: p.created_at,
-        })));
-      }
-
-      if (salesRes.data) {
-        const prodMap = new Map((prodRes.data || []).map((p) => [p.id, p.name]));
-        setSales(salesRes.data.map((s) => ({
-          id: s.id,
-          productId: s.product_id || undefined,
-          productName: s.product_id ? (prodMap.get(s.product_id) || "Produto removido") : (s.description || ""),
-          description: s.description || "",
-          quantity: s.quantity,
-          unitPrice: 0,
-          cost: 0,
-          total: Number(s.total),
-          customerName: s.customer_name || "",
-          date: s.sale_date,
-          notes: (s as any).notes || "",
-          businessType: (s.business_type as BusinessType) || "venda",
-          paymentMode: ((s as any).payment_mode || "fixa") as "fixa" | "recorrente",
-          installments: (s as any).installments || 1,
-          paidInstallments: (s as any).paid_installments || 0,
-          downPayment: 0,
-          frequency: (s as any).frequency || "Mensal",
-          installmentValue: (s as any).installment_value != null ? Number((s as any).installment_value) : null,
-          installmentAmounts: (s as any).installment_amounts || null,
-          installmentDates: (s as any).installment_dates || null,
-          partialPaid: Number((s as any).partial_paid) || 0,
-          paymentHistory: (Array.isArray(s.payment_history) ? s.payment_history : []) as unknown as SalePaymentRecord[],
-          locadorId: s.locador_id || null,
-          category: (s as any).category || null,
-        })));
-      }
+  const load = useCallback(async () => {
+    if (!user || !cacheKey) return;
+    try {
+      const bundle = await loadSharedResource(cacheKey, fetchProductsAndSales, { staleTime: STALE_MS });
+      setProducts(bundle.products);
+      setSales(bundle.sales);
+    } finally {
       setLoading(false);
-    };
-    fetchData();
-  }, [user, enabled]);
+    }
+  }, [user, cacheKey]);
 
-  // Realtime subscriptions for products and sales
   useEffect(() => {
     if (!user || !enabled) return;
-    const fetchData = async () => {
-      const [prodRes, salesRes] = await Promise.all([
-        supabase.from("products").select(PRODUCT_COLUMNS).order("created_at", { ascending: false }),
-        supabase.from("sales").select(SALE_COLUMNS).order("created_at", { ascending: false }),
-      ]);
-      if (prodRes.data) {
-        setProducts(prodRes.data.map((p: any) => ({
-          id: p.id, name: p.name, description: p.description || "",
-          price: Number(p.price), cost: Number(p.cost || 0),
-          lastPurchasePrice: Number(p.last_purchase_price || 0),
-          suggestedStock: Number(p.suggested_stock || 0),
-          stock: p.stock, active: p.active !== false, createdAt: p.created_at,
-        })));
+    setLoading(true);
+    load();
+  }, [user, enabled, load]);
+
+  // Assina o cache: quando outra tela mutar produtos/vendas, esta reflete.
+  useEffect(() => {
+    if (!cacheKey) return;
+    return subscribeSharedResource(cacheKey, () => {
+      const next = readSharedResource<Bundle>(cacheKey);
+      if (next) {
+        setProducts(next.products);
+        setSales(next.sales);
       }
-      if (salesRes.data) {
-        const prodMap = new Map((prodRes.data || []).map((p) => [p.id, p.name]));
-        setSales(salesRes.data.map((s) => ({
-          id: s.id,
-          productId: s.product_id || undefined,
-          productName: s.product_id ? (prodMap.get(s.product_id) || "Produto removido") : (s.description || ""),
-          description: s.description || "",
-          quantity: s.quantity,
-          unitPrice: 0,
-          cost: 0,
-          total: Number(s.total),
-          customerName: s.customer_name || "",
-          date: s.sale_date,
-          notes: (s as any).notes || "",
-          businessType: (s.business_type as BusinessType) || "venda",
-          paymentMode: ((s as any).payment_mode || "fixa") as "fixa" | "recorrente",
-          installments: (s as any).installments || 1,
-          paidInstallments: (s as any).paid_installments || 0,
-          downPayment: 0,
-          frequency: (s as any).frequency || "Mensal",
-          installmentValue: (s as any).installment_value != null ? Number((s as any).installment_value) : null,
-          installmentAmounts: (s as any).installment_amounts || null,
-          installmentDates: (s as any).installment_dates || null,
-          partialPaid: Number((s as any).partial_paid) || 0,
-          paymentHistory: (Array.isArray(s.payment_history) ? s.payment_history : []) as unknown as SalePaymentRecord[],
-          locadorId: s.locador_id || null,
-          category: (s as any).category || null,
-        })));
-      }
+    });
+  }, [cacheKey]);
+
+  // Realtime: invalida + refetch coalescido (loadSharedResource dedup in-flight).
+  useEffect(() => {
+    if (!user || !enabled || !cacheKey) return;
+    const handler = () => {
+      invalidateSharedResource(cacheKey);
+      load();
     };
     const channel = supabase
       .channel(`products-sales-realtime-${user.id}-${Math.random().toString(36).slice(2, 8)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => { fetchData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => { fetchData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, handler)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, handler)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, enabled]);
+  }, [user, enabled, cacheKey, load]);
+
+  // Sincroniza cache compartilhado após updates otimistas locais.
+  const syncCache = useCallback(() => {
+    if (!cacheKey) return;
+    writeSharedResource<Bundle>(cacheKey, {
+      products: productsRef.current,
+      sales: salesRef.current,
+    });
+  }, [cacheKey]);
 
   const addProduct = useCallback(async (p: Omit<Product, "id" | "createdAt">) => {
     assertWritable();
     if (!user || !dataOwnerId) return;
     const tempId = crypto.randomUUID();
     setProducts((prev) => [{ ...p, id: tempId, createdAt: new Date().toISOString() }, ...prev]);
+    syncCache();
 
     const { data, error } = await supabase.from("products").insert({
       user_id: dataOwnerId,
@@ -149,12 +165,14 @@ export function useProducts(enabled = true) {
     } else if (data) {
       setProducts((prev) => prev.map((x) => x.id === tempId ? { ...x, id: data.id, createdAt: data.created_at } : x));
     }
-  }, [user, dataOwnerId]);
+    syncCache();
+  }, [user, dataOwnerId, syncCache]);
 
   const updateProduct = useCallback(async (id: string, data: Partial<Omit<Product, "id" | "createdAt">>) => {
     assertWritable();
     if (!user) return;
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...data } : p)));
+    syncCache();
     const updateData: Record<string, any> = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.description !== undefined) updateData.description = data.description;
@@ -165,7 +183,7 @@ export function useProducts(enabled = true) {
     if (data.suggestedStock !== undefined) updateData.suggested_stock = data.suggestedStock;
     if (data.active !== undefined) updateData.active = data.active;
     await supabase.from("products").update(updateData as any).eq("id", id);
-  }, [user]);
+  }, [user, syncCache]);
 
   const deleteProduct = useCallback(async (id: string) => {
     assertWritable();
@@ -174,8 +192,9 @@ export function useProducts(enabled = true) {
     // Mantém as vendas associadas; o FK no banco agora é ON DELETE SET NULL,
     // então o product_id da venda fica nulo, mas o histórico de venda é preservado.
     setSales((prev) => prev.map((s) => (s.productId === id ? { ...s, productId: undefined } : s)));
+    syncCache();
     await supabase.from("products").delete().eq("id", id);
-  }, [user]);
+  }, [user, syncCache]);
 
 
   const addSale = useCallback(async (s: Omit<Sale, "id">) => {
@@ -207,6 +226,7 @@ export function useProducts(enabled = true) {
         setProducts((prev) => prev.map((p) => (p.id === s.productId ? { ...p, stock: newStock } : p)));
       }
     }
+    syncCache();
 
     const { data, error } = await supabase.from("sales").insert({
       user_id: dataOwnerId,
@@ -238,8 +258,10 @@ export function useProducts(enabled = true) {
           setProducts((prev) => prev.map((p) => (p.id === s.productId ? { ...p, stock: product.stock } : p)));
         }
       }
+      syncCache();
     } else if (data) {
       setSales((prev) => prev.map((x) => x.id === tempId ? { ...x, id: data.id } : x));
+      syncCache();
       if (s.productId) {
         const product = products.find((p) => p.id === s.productId);
         if (product) {
@@ -279,7 +301,7 @@ export function useProducts(enabled = true) {
         }
       }
     }
-  }, [user, dataOwnerId, products]);
+  }, [user, dataOwnerId, products, syncCache]);
 
 
   const updateSale = useCallback(async (id: string, data: Partial<Omit<Sale, "id">>) => {
@@ -289,6 +311,7 @@ export function useProducts(enabled = true) {
 
 
     setSales((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
+    syncCache();
     const updateData: Record<string, any> = {};
     if (data.description !== undefined) updateData.description = data.description;
     if (data.customerName !== undefined) updateData.customer_name = data.customerName;
@@ -309,7 +332,7 @@ export function useProducts(enabled = true) {
     if (data.locadorId !== undefined) updateData.locador_id = data.locadorId;
     if (data.category !== undefined) updateData.category = data.category;
     await supabase.from("sales").update(updateData as any).eq("id", id);
-  }, [user, sales]);
+  }, [user, sales, syncCache]);
 
   const deleteSale = useCallback(async (id: string) => {
     assertWritable();
@@ -327,8 +350,9 @@ export function useProducts(enabled = true) {
         }
       }
     }
+    syncCache();
     await supabase.from("sales").delete().eq("id", id);
-  }, [user, sales, products]);
+  }, [user, sales, products, syncCache]);
 
   return { products, sales, loading, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale };
 }
