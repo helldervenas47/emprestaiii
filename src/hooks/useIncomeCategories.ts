@@ -73,7 +73,14 @@ export function useIncomeCategories() {
     });
   }, [cacheKey]);
 
-  // Realtime removido (P0-02 egress): mutações locais já atualizam o estado.
+  // Atualiza estado local + cache compartilhado atomicamente.
+  const commit = useCallback((updater: (prev: CustomIncomeCategory[]) => CustomIncomeCategory[]) => {
+    setCategories((prev) => {
+      const next = updater(prev);
+      if (cacheKey) writeSharedResource(cacheKey, next);
+      return next;
+    });
+  }, [cacheKey]);
 
   const create = useCallback(
     async (input: { name: string; icon: string; color: string }) => {
@@ -98,11 +105,11 @@ export function useIncomeCategories() {
         return null;
       }
       const created = data as any as CustomIncomeCategory;
-      setCategories((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
+      commit((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
       toast({ title: "Categoria criada", description: name });
       return created;
     },
-    [user, categories],
+    [user, categories, commit],
   );
 
   const update = useCallback(
@@ -127,13 +134,11 @@ export function useIncomeCategories() {
         return null;
       }
       const updated = data as any as CustomIncomeCategory;
-      setCategories((prev) =>
-        prev.map((c) => (c.id === id ? updated : c)).sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
-      );
+      commit((prev) => prev.map((c) => (c.id === id ? updated : c)).sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
       toast({ title: "Categoria atualizada", description: name });
       return updated;
     },
-    [user],
+    [user, commit],
   );
 
   const remove = useCallback(
@@ -149,11 +154,16 @@ export function useIncomeCategories() {
         });
         return;
       }
-      setCategories((prev) => prev.filter((c) => c.id !== id));
+      commit((prev) => prev.filter((c) => c.id !== id));
       toast({ title: "Categoria excluída" });
     },
-    [user],
+    [user, commit],
   );
 
-  return { categories, loading, create, update, remove, reload: load };
+  const reload = useCallback(() => {
+    if (cacheKey) invalidateSharedResource(cacheKey);
+    return load();
+  }, [cacheKey, load]);
+
+  return { categories, loading, create, update, remove, reload };
 }
