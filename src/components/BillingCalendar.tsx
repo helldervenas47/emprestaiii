@@ -859,13 +859,150 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                       )}
                     </p>
                   </div>
+
+                  {/* Ver todos os contratos do dia */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-2"
+                    onClick={() => setShowFullDay(true)}
+                  >
+                    Ver todos os contratos do dia
+                  </Button>
                 </div>
               )}
             </>
           )}
         </CardContent>
       </Card>
+      )}
+
+      {/* Semana / Agenda / Lista */}
+      {viewMode !== "mes" && (
+        <Card no3d>
+          <CardContent className="p-3 md:p-4 space-y-2">
+            {(() => {
+              const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+              const startOfWeek = new Date(today);
+              startOfWeek.setDate(today.getDate() - today.getDay());
+              const endOfWeek = new Date(startOfWeek);
+              endOfWeek.setDate(startOfWeek.getDate() + 6);
+              const startStr = formatLocalDate(startOfWeek);
+              const endStr = formatLocalDate(endOfWeek);
+
+              const collect = () => {
+                const out: { date: string; kind: "loan" | "sale" | "vehicle"; name: string; subtitle: string; amount: number; status: "overdue" | "due_today" | "upcoming" }[] = [];
+                Object.entries(dueMap).forEach(([d, arr]) => arr.forEach((i) => out.push({
+                  date: d, kind: "loan", name: i.borrowerName,
+                  subtitle: `Empréstimo · Parcela ${i.installmentNumber}/${i.totalInstallments}`,
+                  amount: i.amount,
+                  status: d < todayStr ? "overdue" : d === todayStr ? "due_today" : "upcoming",
+                })));
+                Object.entries(salesDueMap).forEach(([d, arr]) => arr.forEach((s) => out.push({
+                  date: d, kind: s.kind, name: s.customerName,
+                  subtitle: `${s.kind === "vehicle" ? "Veículo" : "Venda"} · ${s.description} · Parcela ${s.installmentNumber}/${s.totalInstallments}`,
+                  amount: s.amount,
+                  status: d < todayStr ? "overdue" : d === todayStr ? "due_today" : "upcoming",
+                })));
+                return out;
+              };
+
+              let items = collect();
+              if (viewMode === "semana") items = items.filter((i) => i.date >= startStr && i.date <= endStr);
+              else if (viewMode === "agenda") items = items.filter((i) => i.date >= todayStr).slice(0, 100);
+              else if (viewMode === "lista") items = items.filter((i) => i.date.startsWith(monthPrefix));
+              items.sort((a, b) => a.date.localeCompare(b.date) || b.amount - a.amount);
+
+              if (items.length === 0) {
+                return <p className="text-sm text-muted-foreground text-center py-8">Nenhum contrato para este período.</p>;
+              }
+
+              const grouped: Record<string, typeof items> = {};
+              items.forEach((i) => {
+                if (!grouped[i.date]) grouped[i.date] = [];
+                grouped[i.date].push(i);
+              });
+
+              return Object.entries(grouped).map(([d, arr]) => (
+                <div key={d} className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2 pt-2 first:pt-0">
+                    <p className="text-xs font-semibold text-foreground capitalize">
+                      {new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}
+                    </p>
+                    <p className="text-xs font-bold text-foreground">
+                      {formatCurrency(arr.reduce((s, i) => s + i.amount, 0))}
+                    </p>
+                  </div>
+                  {arr.map((i, idx) => {
+                    const tone = i.status === "overdue" ? "border-destructive/30 bg-destructive/5" : i.status === "due_today" ? "border-warning/30 bg-warning/5" : "border-border/40 bg-muted/20";
+                    const amtColor = i.status === "overdue" ? "text-destructive" : i.status === "due_today" ? "text-warning" : "text-foreground";
+                    const Icon = i.kind === "loan" ? User : i.kind === "vehicle" ? Car : ShoppingBag;
+                    return (
+                      <div key={`${d}-${idx}`} className={cn("flex items-center justify-between gap-2 rounded-lg border p-2.5", tone)}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="h-7 w-7 rounded-full bg-background/60 flex items-center justify-center shrink-0">
+                            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-foreground truncate">{i.name}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">{i.subtitle}</p>
+                          </div>
+                        </div>
+                        <p className={cn("text-xs font-bold shrink-0", amtColor)}>{formatCurrency(i.amount)}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ));
+            })()}
+          </CardContent>
+        </Card>
+      )}
       </div>
+
+      {/* Full day contracts dialog */}
+      <Dialog open={showFullDay} onOpenChange={setShowFullDay}>
+        <DialogContent className="sm:max-w-[560px] max-h-[85svh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="capitalize">
+              {selectedDate && new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-2 -mx-2 px-2">
+            {sortedSelectedItems.map((item) => (
+              <div key={`fd-l-${item.loanId}-${item.installmentNumber}`} className={cn("flex items-center justify-between gap-2 rounded-lg border p-3", item.date < todayStr ? "bg-destructive/5 border-destructive/20" : "bg-muted/30 border-border/40")}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0"><User className="h-4 w-4" /></div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{item.borrowerName}</p>
+                    <p className="text-xs text-muted-foreground truncate">Empréstimo · Parcela {item.installmentNumber}/{item.totalInstallments}</p>
+                  </div>
+                </div>
+                <p className={cn("text-sm font-bold shrink-0", item.date < todayStr ? "text-destructive" : "text-warning")}>{formatCurrency(item.amount)}</p>
+              </div>
+            ))}
+            {selectedSaleItems.map((s) => {
+              const Icon = s.kind === "vehicle" ? Car : ShoppingBag;
+              return (
+                <div key={`fd-s-${s.kind}-${s.saleId}-${s.installmentNumber}`} className={cn("flex items-center justify-between gap-2 rounded-lg border p-3", s.date < todayStr ? "bg-destructive/5 border-destructive/20" : "bg-muted/30 border-border/40")}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0"><Icon className="h-4 w-4" /></div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{s.customerName}</p>
+                      <p className="text-xs text-muted-foreground truncate">{s.kind === "vehicle" ? "Veículo" : "Venda"} · {s.description} · Parcela {s.installmentNumber}/{s.totalInstallments}</p>
+                    </div>
+                  </div>
+                  <p className={cn("text-sm font-bold shrink-0", s.date < todayStr ? "text-destructive" : "text-foreground")}>{formatCurrency(s.amount)}</p>
+                </div>
+              );
+            })}
+            {sortedSelectedItems.length === 0 && selectedSaleItems.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-6">Nenhum contrato nesta data.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Payment confirmation dialog */}
       <Dialog open={!!paymentDialog} onOpenChange={(open) => !open && setPaymentDialog(null)}>
