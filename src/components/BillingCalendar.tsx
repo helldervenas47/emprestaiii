@@ -239,6 +239,57 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
   for (let i = 1; i <= daysInMonth; i++) calendarDays.push(i);
 
   const todayStr = formatLocalDate(today);
+  const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  const tomorrowStr = formatLocalDate(tomorrow);
+
+  // Payments received per date (for green status dot)
+  const receivedByDate = useMemo(() => {
+    const m: Record<string, { total: number; count: number }> = {};
+    payments.forEach((p) => {
+      if (!p.date) return;
+      const d = String(p.date).slice(0, 10);
+      if (!m[d]) m[d] = { total: 0, count: 0 };
+      m[d].total += Number(p.amount) || 0;
+      m[d].count += 1;
+    });
+    return m;
+  }, [payments]);
+
+  // Combined pending items across loans + sales for a given date
+  const pendingForDate = useCallback(
+    (dateStr: string) => {
+      const loanItems = dueMap[dateStr] || [];
+      const saleItems = salesDueMap[dateStr] || [];
+      const total = loanItems.reduce((s, i) => s + i.amount, 0) + saleItems.reduce((s, i) => s + i.amount, 0);
+      return { total, count: loanItems.length + saleItems.length };
+    },
+    [dueMap, salesDueMap],
+  );
+
+  // Summary cards
+  const summary = useMemo(() => {
+    const hoje = pendingForDate(todayStr);
+    const amanha = pendingForDate(tomorrowStr);
+    let overdueTotal = 0, overdueCount = 0;
+    let monthTotal = 0, monthCount = 0;
+    const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+    const scan = (map: Record<string, { amount: number }[]> | Record<string, DueItem[]> | Record<string, SaleDueItem[]>) => {
+      Object.entries(map as any).forEach(([d, arr]: any) => {
+        if (d < todayStr) {
+          overdueTotal += arr.reduce((s: number, i: any) => s + i.amount, 0);
+          overdueCount += arr.length;
+        }
+        if (d.startsWith(monthPrefix)) {
+          monthTotal += arr.reduce((s: number, i: any) => s + i.amount, 0);
+          monthCount += arr.length;
+        }
+      });
+    };
+    scan(dueMap);
+    scan(salesDueMap);
+    return { hoje, amanha, overdue: { total: overdueTotal, count: overdueCount }, month: { total: monthTotal, count: monthCount } };
+  }, [dueMap, salesDueMap, todayStr, tomorrowStr, year, month, pendingForDate]);
+
 
   const goToToday = () => {
     setYear(today.getFullYear());
