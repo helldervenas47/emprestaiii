@@ -4,6 +4,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 import { assertWritable } from "@/lib/readOnlyState";
+import {
+  loadSharedResource,
+  invalidateSharedResource,
+  readSharedResource,
+  subscribeSharedResource,
+  writeSharedResource,
+} from "@/lib/sharedResource";
 
 export interface CustomPersonalCategory {
   id: string;
@@ -12,9 +19,24 @@ export interface CustomPersonalCategory {
   color: string;
 }
 
+// P1-01: staleTime alto — categorias mudam raramente.
+const STALE_MS = 5 * 60_000;
+
+async function fetchPersonalCategories(): Promise<CustomPersonalCategory[]> {
+  const { data, error } = await supabase
+    .from("personal_expense_categories")
+    .select("id, name, icon, color")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as CustomPersonalCategory[];
+}
+
 export function usePersonalExpenseCategories() {
   const { user } = useAuth();
-  const [categories, setCategories] = useState<CustomPersonalCategory[]>([]);
+  const cacheKey = user ? `personal_expense_categories:${user.id}` : "";
+  const [categories, setCategories] = useState<CustomPersonalCategory[]>(
+    () => readSharedResource<CustomPersonalCategory[]>(cacheKey) ?? [],
+  );
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -23,22 +45,33 @@ export function usePersonalExpenseCategories() {
       setLoading(false);
       return;
     }
-    const { data, error } = await supabase
-      .from("personal_expense_categories")
-      .select("id, name, icon, color")
-      .order("name", { ascending: true });
-    if (error) {
-      console.error("[personal-categories] load", error);
+    try {
+      const rows = await loadSharedResource(cacheKey, fetchPersonalCategories, { staleTime: STALE_MS });
+      setCategories(rows);
+    } catch (err) {
+      console.error("[personal-categories] load", err);
+    } finally {
       setLoading(false);
-      return;
     }
-    setCategories(data ?? []);
-    setLoading(false);
-  }, [user]);
+  }, [user, cacheKey]);
 
   useEffect(() => { load(); }, [load]);
 
-  // Realtime removido (P0-02 egress): mutações locais já atualizam o estado.
+  useEffect(() => {
+    if (!cacheKey) return;
+    return subscribeSharedResource(cacheKey, () => {
+      const next = readSharedResource<CustomPersonalCategory[]>(cacheKey);
+      if (next) setCategories(next);
+    });
+  }, [cacheKey]);
+
+  const commit = useCallback((updater: (prev: CustomPersonalCategory[]) => CustomPersonalCategory[]) => {
+    setCategories((prev) => {
+      const next = updater(prev);
+      if (cacheKey) writeSharedResource(cacheKey, next);
+      return next;
+    });
+  }, [cacheKey]);
 
   const create = useCallback(
     async (input: { name: string; icon: string; color: string }) => {
