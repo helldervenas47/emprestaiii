@@ -88,23 +88,28 @@ export async function loadSharedResource<T>(
   }
   if (e.inFlight) return e.inFlight;
 
+  const startGen = e.generation;
   e.inFlight = (async () => {
     try {
       const data = await fetcher();
+      // Se houve clearAll/invalidate destrutivo enquanto o fetch estava em voo,
+      // descarta o resultado — evita repopular cache com dados do usuário anterior.
+      if (e.generation !== startGen) return data;
       e.data = data;
       e.loadedAt = Date.now();
       e.subscribers.forEach((cb) => cb());
       return data;
     } finally {
-      e.inFlight = null;
+      if (e.generation === startGen) e.inFlight = null;
     }
   })();
   return e.inFlight;
 }
 
-/** Limpa TODO o cache (usado no logout). */
+/** Limpa TODO o cache (usado no logout). Cancela efeito de fetches em voo. */
 export function clearAllSharedResources() {
   store.forEach((e) => {
+    e.generation += 1;
     e.data = undefined;
     e.loadedAt = 0;
     e.inFlight = null;
