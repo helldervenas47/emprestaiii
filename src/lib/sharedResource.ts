@@ -10,6 +10,11 @@ type Entry<T> = {
   loadedAt: number;         // 0 quando nunca carregado
   inFlight: Promise<T> | null;
   subscribers: Set<() => void>;
+  /** Incrementado a cada clear/invalidate destrutivo. Fetchers em voo comparam
+   *  o valor capturado na chamada com o atual antes de escrever o resultado —
+   *  se mudou, o resultado é descartado (evita vazar dados do usuário anterior
+   *  após logout). */
+  generation: number;
 };
 
 const store = new Map<string, Entry<any>>();
@@ -17,7 +22,7 @@ const store = new Map<string, Entry<any>>();
 function ensure<T>(key: string): Entry<T> {
   let e = store.get(key) as Entry<T> | undefined;
   if (!e) {
-    e = { data: undefined, loadedAt: 0, inFlight: null, subscribers: new Set() };
+    e = { data: undefined, loadedAt: 0, inFlight: null, subscribers: new Set(), generation: 0 };
     store.set(key, e);
   }
   return e;
@@ -83,23 +88,28 @@ export async function loadSharedResource<T>(
   }
   if (e.inFlight) return e.inFlight;
 
+  const startGen = e.generation;
   e.inFlight = (async () => {
     try {
       const data = await fetcher();
+      // Se houve clearAll/invalidate destrutivo enquanto o fetch estava em voo,
+      // descarta o resultado — evita repopular cache com dados do usuário anterior.
+      if (e.generation !== startGen) return data;
       e.data = data;
       e.loadedAt = Date.now();
       e.subscribers.forEach((cb) => cb());
       return data;
     } finally {
-      e.inFlight = null;
+      if (e.generation === startGen) e.inFlight = null;
     }
   })();
   return e.inFlight;
 }
 
-/** Limpa TODO o cache (usado no logout). */
+/** Limpa TODO o cache (usado no logout). Cancela efeito de fetches em voo. */
 export function clearAllSharedResources() {
   store.forEach((e) => {
+    e.generation += 1;
     e.data = undefined;
     e.loadedAt = 0;
     e.inFlight = null;
