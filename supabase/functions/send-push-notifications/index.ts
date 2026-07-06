@@ -291,7 +291,7 @@ Deno.serve(async (req) => {
     // Get tokens matching the current hour
     const { data: tokens, error: tokErr } = await supabase
       .from("push_tokens")
-      .select("*")
+      .select("id, user_id, endpoint, p256dh, auth, send_time")
       .eq("send_time", currentHourStr);
 
     if (tokErr) throw new Error(`Error fetching tokens: ${tokErr.message}`);
@@ -343,7 +343,7 @@ Deno.serve(async (req) => {
         // Fetch active loans for this user
         const { data: loans } = await supabase
           .from("loans")
-          .select("*")
+          .select("due_date, remaining_amount, status")
           .eq("user_id", userId)
           .neq("status", "paid");
 

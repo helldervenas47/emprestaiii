@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     // Get all enabled webhook settings
     const { data: webhookSettings, error: wsErr } = await supabase
       .from("webhook_settings")
-      .select("*")
+      .select("user_id, webhook_url")
       .eq("enabled", true)
       .neq("webhook_url", "");
 
@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
         // Fetch loans for this user
         const { data: loans } = await supabase
           .from("loans")
-          .select("*")
+          .select("borrower_name, due_date, remaining_amount, status")
           .eq("user_id", ws.user_id)
           .neq("status", "paid");
 
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
         // Fetch payments made today
         const { data: paymentsToday } = await supabase
           .from("payments")
-          .select("*")
+          .select("amount")
           .eq("user_id", ws.user_id)
           .eq("date", todayStr);
 
