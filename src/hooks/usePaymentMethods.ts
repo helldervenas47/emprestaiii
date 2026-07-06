@@ -6,8 +6,18 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 import { assertWritable } from "@/lib/readOnlyState";
+import {
+  loadSharedResource,
+  invalidateSharedResource,
+  readSharedResource,
+  subscribeSharedResource,
+  writeSharedResource,
+} from "@/lib/sharedResource";
 
 const PAYMENT_METHOD_COLUMNS = "id, name, icon, active, sort_order, kind";
+
+// P1-01: staleTime alto — formas de pagamento mudam raramente.
+const STALE_MS = 5 * 60_000;
 
 export type PaymentMethodKind = "account" | "cash";
 
@@ -31,72 +41,91 @@ function rowToMethod(r: any): PaymentMethod {
   };
 }
 
+async function fetchPaymentMethodsRaw(): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("payment_methods" as any)
+    .select(PAYMENT_METHOD_COLUMNS)
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as any[];
+}
+
 export function usePaymentMethods(enabled = true) {
   const { user, dataOwnerId } = useAuth();
-  const [methods, setMethods] = useState<PaymentMethod[]>([]);
+  const cacheKey = user ? `payment_methods:${user.id}` : "";
+  const [methods, setMethods] = useState<PaymentMethod[]>(
+    () => readSharedResource<PaymentMethod[]>(cacheKey) ?? [],
+  );
   const [loading, setLoading] = useState(true);
 
   const fetchMethods = useCallback(async () => {
     assertWritable();
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("payment_methods" as any)
-      .select(PAYMENT_METHOD_COLUMNS)
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true });
-    if (!error && data) {
-      let rows = data as any[];
-      // Seed defaults for new users (only when this user owns the data)
-      if (
-        rows.length === 0 &&
-        dataOwnerId &&
-        dataOwnerId === user.id &&
-        !seededOwners.has(dataOwnerId) &&
-        !seedingInFlight.has(dataOwnerId)
-      ) {
-        seedingInFlight.add(dataOwnerId);
-        try {
-          // Re-check inside the lock to avoid double seeding across tabs/renders
-          const { data: recheck } = await supabase
-            .from("payment_methods" as any)
-            .select("id")
-            .eq("user_id", dataOwnerId)
-            .limit(1);
-          if (!recheck || recheck.length === 0) {
-            const defaults = [
-              { name: "Pix", kind: "account", active: true, sort_order: 1 },
-              { name: "Dinheiro", kind: "cash", active: true, sort_order: 2 },
-              { name: "Transferência", kind: "account", active: false, sort_order: 3 },
-              { name: "Cartão", kind: "account", active: false, sort_order: 4 },
-              { name: "Boleto", kind: "account", active: false, sort_order: 5 },
-            ].map((m) => ({ ...m, user_id: dataOwnerId, icon: null }));
-            const { data: inserted, error: insErr } = await supabase
-              .from("payment_methods" as any)
-              .insert(defaults as any)
-              .select(PAYMENT_METHOD_COLUMNS);
-            if (!insErr && inserted) rows = inserted as any[];
-          } else {
-            const { data: refetched } = await supabase
-              .from("payment_methods" as any)
-              .select(PAYMENT_METHOD_COLUMNS)
-              .order("sort_order", { ascending: true })
-              .order("name", { ascending: true });
-            if (refetched) rows = refetched as any[];
+    try {
+      const rows = await loadSharedResource<PaymentMethod[]>(
+        cacheKey,
+        async () => {
+          let rawRows = await fetchPaymentMethodsRaw();
+          // Seed defaults for new users (only when this user owns the data)
+          if (
+            rawRows.length === 0 &&
+            dataOwnerId &&
+            dataOwnerId === user.id &&
+            !seededOwners.has(dataOwnerId) &&
+            !seedingInFlight.has(dataOwnerId)
+          ) {
+            seedingInFlight.add(dataOwnerId);
+            try {
+              const { data: recheck } = await supabase
+                .from("payment_methods" as any)
+                .select("id")
+                .eq("user_id", dataOwnerId)
+                .limit(1);
+              if (!recheck || recheck.length === 0) {
+                const defaults = [
+                  { name: "Pix", kind: "account", active: true, sort_order: 1 },
+                  { name: "Dinheiro", kind: "cash", active: true, sort_order: 2 },
+                  { name: "Transferência", kind: "account", active: false, sort_order: 3 },
+                  { name: "Cartão", kind: "account", active: false, sort_order: 4 },
+                  { name: "Boleto", kind: "account", active: false, sort_order: 5 },
+                ].map((m) => ({ ...m, user_id: dataOwnerId, icon: null }));
+                const { data: inserted, error: insErr } = await supabase
+                  .from("payment_methods" as any)
+                  .insert(defaults as any)
+                  .select(PAYMENT_METHOD_COLUMNS);
+                if (!insErr && inserted) rawRows = inserted as any[];
+              } else {
+                rawRows = await fetchPaymentMethodsRaw();
+              }
+              seededOwners.add(dataOwnerId);
+            } finally {
+              seedingInFlight.delete(dataOwnerId);
+            }
           }
-          seededOwners.add(dataOwnerId);
-        } finally {
-          seedingInFlight.delete(dataOwnerId);
-        }
-      }
-      setMethods(rows.map(rowToMethod));
+          return rawRows.map(rowToMethod);
+        },
+        { staleTime: STALE_MS },
+      );
+      setMethods(rows);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [user, dataOwnerId]);
+  }, [user, dataOwnerId, cacheKey]);
 
   useEffect(() => {
     if (enabled) fetchMethods();
   }, [enabled, fetchMethods]);
+
+  // Assina o cache: outra tela que use este hook atualizará este também.
+  useEffect(() => {
+    if (!cacheKey) return;
+    return subscribeSharedResource(cacheKey, () => {
+      const next = readSharedResource<PaymentMethod[]>(cacheKey);
+      if (next) setMethods(next);
+    });
+  }, [cacheKey]);
 
   // Realtime removido (P0-02 egress): tabela quase-estática; mutações locais já chamam fetchMethods().
 
@@ -120,9 +149,10 @@ export function usePaymentMethods(enabled = true) {
         return;
       }
       toast.success("Forma de pagamento criada");
+      if (cacheKey) invalidateSharedResource(cacheKey);
       fetchMethods();
     },
-    [user, dataOwnerId, methods, fetchMethods],
+    [user, dataOwnerId, methods, fetchMethods, cacheKey],
   );
 
   const update = useCallback(
@@ -139,9 +169,10 @@ export function usePaymentMethods(enabled = true) {
         toast.error("Erro ao atualizar forma de pagamento");
         return;
       }
+      if (cacheKey) invalidateSharedResource(cacheKey);
       fetchMethods();
     },
-    [fetchMethods],
+    [fetchMethods, cacheKey],
   );
 
   const remove = useCallback(
@@ -153,10 +184,16 @@ export function usePaymentMethods(enabled = true) {
         return;
       }
       toast.success("Forma de pagamento excluída");
+      if (cacheKey) invalidateSharedResource(cacheKey);
       fetchMethods();
     },
-    [fetchMethods],
+    [fetchMethods, cacheKey],
   );
 
-  return { methods, activeMethods: methods.filter((m) => m.active), loading, add, update, remove, refetch: fetchMethods };
+  const refetch = useCallback(() => {
+    if (cacheKey) invalidateSharedResource(cacheKey);
+    return fetchMethods();
+  }, [fetchMethods, cacheKey]);
+
+  return { methods, activeMethods: methods.filter((m) => m.active), loading, add, update, remove, refetch };
 }

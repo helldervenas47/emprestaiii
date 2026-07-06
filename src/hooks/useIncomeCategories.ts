@@ -4,6 +4,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { displayIncomeCategory, incomeCategoryKey } from "@/lib/incomeCategory";
 import { assertWritable } from "@/lib/readOnlyState";
+import {
+  loadSharedResource,
+  invalidateSharedResource,
+  readSharedResource,
+  subscribeSharedResource,
+  writeSharedResource,
+} from "@/lib/sharedResource";
 
 export interface CustomIncomeCategory {
   id: string;
@@ -12,9 +19,31 @@ export interface CustomIncomeCategory {
   color: string;
 }
 
+// P1-01: staleTime alto — categorias mudam raramente.
+const STALE_MS = 5 * 60_000;
+
+async function fetchIncomeCategories(): Promise<CustomIncomeCategory[]> {
+  const { data, error } = await supabase
+    .from("income_categories" as any)
+    .select("id, name, icon, color")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  const seen = new Set<string>();
+  return ((data ?? []) as any[]).reduce<CustomIncomeCategory[]>((acc, row) => {
+    const key = incomeCategoryKey(row.name);
+    if (seen.has(key)) return acc;
+    seen.add(key);
+    acc.push({ ...row, name: displayIncomeCategory(row.name) });
+    return acc;
+  }, []);
+}
+
 export function useIncomeCategories() {
   const { user } = useAuth();
-  const [categories, setCategories] = useState<CustomIncomeCategory[]>([]);
+  const cacheKey = user ? `income_categories:${user.id}` : "";
+  const [categories, setCategories] = useState<CustomIncomeCategory[]>(
+    () => readSharedResource<CustomIncomeCategory[]>(cacheKey) ?? [],
+  );
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -23,30 +52,35 @@ export function useIncomeCategories() {
       setLoading(false);
       return;
     }
-    const { data, error } = await supabase
-      .from("income_categories" as any)
-      .select("id, name, icon, color")
-      .order("name", { ascending: true });
-    if (error) {
-      console.error("[income-categories] load", error);
+    try {
+      const rows = await loadSharedResource(cacheKey, fetchIncomeCategories, { staleTime: STALE_MS });
+      setCategories(rows);
+    } catch (err) {
+      console.error("[income-categories] load", err);
+    } finally {
       setLoading(false);
-      return;
     }
-    const seen = new Set<string>();
-    const normalized = ((data ?? []) as any[]).reduce<CustomIncomeCategory[]>((acc, row) => {
-      const key = incomeCategoryKey(row.name);
-      if (seen.has(key)) return acc;
-      seen.add(key);
-      acc.push({ ...row, name: displayIncomeCategory(row.name) });
-      return acc;
-    }, []);
-    setCategories(normalized);
-    setLoading(false);
-  }, [user]);
+  }, [user, cacheKey]);
 
   useEffect(() => { load(); }, [load]);
 
-  // Realtime removido (P0-02 egress): mutações locais já atualizam o estado.
+  // Assina o cache: se outro hook/tela invalidar ou atualizar, refletir aqui.
+  useEffect(() => {
+    if (!cacheKey) return;
+    return subscribeSharedResource(cacheKey, () => {
+      const next = readSharedResource<CustomIncomeCategory[]>(cacheKey);
+      if (next) setCategories(next);
+    });
+  }, [cacheKey]);
+
+  // Atualiza estado local + cache compartilhado atomicamente.
+  const commit = useCallback((updater: (prev: CustomIncomeCategory[]) => CustomIncomeCategory[]) => {
+    setCategories((prev) => {
+      const next = updater(prev);
+      if (cacheKey) writeSharedResource(cacheKey, next);
+      return next;
+    });
+  }, [cacheKey]);
 
   const create = useCallback(
     async (input: { name: string; icon: string; color: string }) => {
@@ -71,11 +105,11 @@ export function useIncomeCategories() {
         return null;
       }
       const created = data as any as CustomIncomeCategory;
-      setCategories((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
+      commit((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
       toast({ title: "Categoria criada", description: name });
       return created;
     },
-    [user, categories],
+    [user, categories, commit],
   );
 
   const update = useCallback(
@@ -100,13 +134,11 @@ export function useIncomeCategories() {
         return null;
       }
       const updated = data as any as CustomIncomeCategory;
-      setCategories((prev) =>
-        prev.map((c) => (c.id === id ? updated : c)).sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
-      );
+      commit((prev) => prev.map((c) => (c.id === id ? updated : c)).sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
       toast({ title: "Categoria atualizada", description: name });
       return updated;
     },
-    [user],
+    [user, commit],
   );
 
   const remove = useCallback(
@@ -122,11 +154,16 @@ export function useIncomeCategories() {
         });
         return;
       }
-      setCategories((prev) => prev.filter((c) => c.id !== id));
+      commit((prev) => prev.filter((c) => c.id !== id));
       toast({ title: "Categoria excluída" });
     },
-    [user],
+    [user, commit],
   );
 
-  return { categories, loading, create, update, remove, reload: load };
+  const reload = useCallback(() => {
+    if (cacheKey) invalidateSharedResource(cacheKey);
+    return load();
+  }, [cacheKey, load]);
+
+  return { categories, loading, create, update, remove, reload };
 }
