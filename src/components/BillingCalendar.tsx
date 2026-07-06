@@ -797,6 +797,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
           { v: "semana", label: "Semana" },
           { v: "agenda", label: "Agenda" },
           { v: "lista", label: "Lista" },
+          { v: "geral", label: "Geral" },
         ] as const).map((opt) => (
           <button
             key={opt.v}
