@@ -630,6 +630,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
     loanId?: string;
     saleId?: string;
     installmentInfo: string;
+    tags?: string[];
   };
 
   const breakdownLabels: Record<NonNullable<typeof breakdownCard>, string> = {
@@ -670,6 +671,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
           origin: "Empréstimo",
           loanId: loan.id,
           installmentInfo: `Parcela ${it.installmentNumber}/${it.totalInstallments}`,
+          tags: Array.isArray(loan.tags) ? loan.tags.filter(Boolean) : [],
         });
       });
     });
@@ -1310,7 +1312,15 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-foreground truncate">{r.clientName}</p>
+                      {r.origin === "Empréstimo" && r.tags && r.tags.length > 0 && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          Etiqueta: {r.tags.join(", ")}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground truncate">
+                        Vencimento: {r.dueDate.split("-").reverse().join("/")}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground/80 truncate">
                         {r.origin} · {r.installmentInfo}
                       </p>
                     </div>
