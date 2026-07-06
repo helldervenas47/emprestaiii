@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { USER_SUPABASE_PUBLISHABLE_KEY, USER_SUPABASE_URL } from "@/integrations/supabase/userClient";
+import { clearAllSharedResources } from "@/lib/sharedResource";
 
 import type { User, Session } from "@supabase/supabase-js";
 
@@ -242,6 +243,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         // TOKEN_REFRESHED with valid session: no re-hydrate needed
       } else {
+        // Sem sessão (SIGNED_OUT, sessão expirada, refresh perdido):
+        // limpa o cache global P1-01 para não vazar dados a um próximo login.
+        clearAllSharedResources();
         hydratedForUserId = null;
         clearUserState();
         setLoading(false);
@@ -348,6 +352,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user?.id]);
 
   const signOut = async () => {
+    // P1-01 (segurança): limpa cache global para não vazar dados entre contas.
+    clearAllSharedResources();
     // scope: 'local' ensures other devices remain logged in
     await supabase.auth.signOut({ scope: "local" });
   };

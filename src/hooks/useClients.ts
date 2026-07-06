@@ -13,9 +13,20 @@ import {
 } from "@/lib/offline/sync";
 import { isOnline } from "@/lib/offline/status";
 import { assertWritable } from "@/lib/readOnlyState";
+import {
+  loadSharedResource,
+  invalidateSharedResource,
+  readSharedResource,
+  subscribeSharedResource,
+  writeSharedResource,
+} from "@/lib/sharedResource";
 
 const CLIENT_COLUMNS =
   "id, name, phone, email, cpf, cnpj, rg, address, city, state, score, notes, active, created_at, is_vehicle_rental, nacionalidade, estado_civil, profissao, bairro, is_manager, default_interest_rate, auto_billing_enabled";
+
+// P1-01: clientes mudam com pouca frequência dentro de uma sessão.
+// 2 min é conservador — mutações locais invalidam o cache imediatamente.
+const STALE_MS = 2 * 60_000;
 
 async function triggerClientAnalysis(clientId: string) {
   await supabase.functions.invoke("sync-client-analysis", {
@@ -37,57 +48,96 @@ function rowToClient(c: any): Client {
   };
 }
 
+async function fetchClientsRows(): Promise<Client[]> {
+  const { data, error } = await supabase
+    .from("clients")
+    .select(CLIENT_COLUMNS)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  cacheRows("clients", data ?? []).catch(() => { /* noop */ });
+  return (data ?? []).map(rowToClient);
+}
+
 export function useClients() {
   const { user, dataOwnerId } = useAuth();
-  const [clients, setClients] = useState<Client[]>([]);
+  const ownerKey = dataOwnerId ?? user?.id ?? "";
+  const cacheKey = ownerKey ? `clients:${ownerKey}` : "";
+  const [clients, setClients] = useState<Client[]>(
+    () => readSharedResource<Client[]>(cacheKey) ?? [],
+  );
 
   const fetchClients = useCallback(async () => {
     if (!user) return;
-    if (isOnline()) {
-      const { data, error } = await supabase
-        .from("clients")
-        .select(CLIENT_COLUMNS)
-        .order("created_at", { ascending: false });
-
-      if (!error && data) {
-        setClients(data.map(rowToClient));
-        cacheRows("clients", data).catch(() => { /* noop */ });
+    if (isOnline() && cacheKey) {
+      try {
+        const rows = await loadSharedResource(cacheKey, fetchClientsRows, { staleTime: STALE_MS });
+        setClients(rows);
         return;
+      } catch {
+        // cai no fallback offline abaixo
       }
     }
     const cached = await getCachedRows("clients");
     if (cached.length > 0) {
-      setClients(cached
+      const list = cached
         .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
-        .map(rowToClient));
+        .map(rowToClient);
+      setClients(list);
+      if (cacheKey) writeSharedResource(cacheKey, list);
     }
-  }, [user]);
+  }, [user, cacheKey]);
 
   useEffect(() => { fetchClients(); }, [fetchClients]);
+
+  // Assina o cache compartilhado — se outra instância deste hook mutar,
+  // esta tela também atualiza sem novo fetch.
+  useEffect(() => {
+    if (!cacheKey) return;
+    return subscribeSharedResource(cacheKey, () => {
+      const next = readSharedResource<Client[]>(cacheKey);
+      if (next) setClients(next);
+    });
+  }, [cacheKey]);
 
   useEffect(() => {
     if (!user) return;
     const channel = supabase
       .channel(`clients-realtime-${user.id}-${Math.random().toString(36).slice(2, 8)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => { fetchClients(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => {
+        // Invalidação + refetch coalescido (loadSharedResource dedup in-flight).
+        if (cacheKey) invalidateSharedResource(cacheKey);
+        fetchClients();
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, fetchClients]);
+  }, [user, fetchClients, cacheKey]);
 
   useEffect(() => {
     const handler = (e: any) => {
-      if (e.detail?.tables?.includes("clients")) fetchClients();
+      if (e.detail?.tables?.includes("clients")) {
+        if (cacheKey) invalidateSharedResource(cacheKey);
+        fetchClients();
+      }
     };
     window.addEventListener("offline-sync:flushed", handler);
     return () => window.removeEventListener("offline-sync:flushed", handler);
-  }, [fetchClients]);
+  }, [fetchClients, cacheKey]);
+
+  // Atualiza estado local e cache compartilhado atomicamente.
+  const commit = useCallback((updater: (prev: Client[]) => Client[]) => {
+    setClients((prev) => {
+      const next = updater(prev);
+      if (cacheKey) writeSharedResource(cacheKey, next);
+      return next;
+    });
+  }, [cacheKey]);
 
   const addClient = useCallback(async (client: Omit<Client, "id" | "createdAt">): Promise<string | null> => {
     assertWritable();
     if (!user || !dataOwnerId) return null;
     const tempId = crypto.randomUUID();
     const optimistic: Client = { ...client, id: tempId, createdAt: new Date().toISOString() };
-    setClients((prev) => [optimistic, ...prev]);
+    commit((prev) => [optimistic, ...prev]);
 
     const insertPayload = {
       id: tempId,
@@ -115,12 +165,12 @@ export function useClients() {
         await enqueueMutation({ table: "clients", op: "insert", recordId: tempId, payload: insertPayload });
         return tempId;
       } else {
-        setClients((prev) => prev.filter((c) => c.id !== tempId));
+        commit((prev) => prev.filter((c) => c.id !== tempId));
         await removeCachedRow("clients", tempId);
         return null;
       }
     } else if (data) {
-      setClients((prev) => prev.map((c) => c.id === tempId ? { ...c, id: data.id, createdAt: data.created_at } : c));
+      commit((prev) => prev.map((c) => c.id === tempId ? { ...c, id: data.id, createdAt: data.created_at } : c));
       await removeCachedRow("clients", tempId);
       await upsertCachedRow("clients", data);
       await rewritePendingRecordId("clients", tempId, data.id);
@@ -128,11 +178,11 @@ export function useClients() {
       return data.id;
     }
     return tempId;
-  }, [user, dataOwnerId]);
+  }, [user, dataOwnerId, commit]);
 
   const deleteClient = useCallback(async (id: string) => {
     assertWritable();
-    setClients((prev) => prev.filter((c) => c.id !== id));
+    commit((prev) => prev.filter((c) => c.id !== id));
     await removeCachedRow("clients", id);
     if (!isOnline()) {
       await enqueueMutation({ table: "clients", op: "delete", recordId: id });
@@ -142,11 +192,11 @@ export function useClients() {
     if (error) {
       await enqueueMutation({ table: "clients", op: "delete", recordId: id });
     }
-  }, []);
+  }, [commit]);
 
   const updateClient = useCallback(async (id: string, data: Partial<Omit<Client, "id" | "createdAt">>) => {
     assertWritable();
-    setClients((prev) => prev.map((c) => c.id === id ? { ...c, ...data } : c));
+    commit((prev) => prev.map((c) => c.id === id ? { ...c, ...data } : c));
     const updatePayload: any = {
       name: data.name, phone: data.phone, email: data.email, cpf: data.cpf,
       cnpj: data.cnpj, rg: data.rg, address: data.address, city: data.city,
@@ -169,7 +219,7 @@ export function useClients() {
     } else {
       await triggerClientAnalysis(id);
     }
-  }, []);
+  }, [commit]);
 
   return { clients, addClient, deleteClient, updateClient };
 }
