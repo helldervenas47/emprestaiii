@@ -1113,7 +1113,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                       <p className="text-xs text-muted-foreground truncate">{s.kind === "vehicle" ? "Veículo" : "Venda"} · {s.description} · Parcela {s.installmentNumber}/{s.totalInstallments}</p>
                     </div>
                   </div>
-                  <p className={cn("text-sm font-bold shrink-0", s.date < todayStr ? "text-destructive" : "text-foreground")}>{formatCurrency(s.amount)}</p>
+                  <p className="text-sm font-bold shrink-0 text-success">{formatCurrency(s.amount)}</p>
                 </div>
               );
             })}
