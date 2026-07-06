@@ -671,6 +671,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
           origin: "Empréstimo",
           loanId: loan.id,
           installmentInfo: `Parcela ${it.installmentNumber}/${it.totalInstallments}`,
+          tags: Array.isArray(loan.tags) ? loan.tags.filter(Boolean) : [],
         });
       });
     });
