@@ -140,6 +140,7 @@ export function useIncomes(enabled = true) {
     const safe = (fn: () => void) => {
       try { fn(); } catch (e) {
         console.warn("[useIncomes realtime patch failed, refetching]", e);
+        if (cacheKey) invalidateSharedResource(cacheKey);
         financeInvalidate("useIncomes", "incomes", { reason: "realtime-fallback" });
         fetch();
       }
