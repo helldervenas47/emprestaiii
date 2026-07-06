@@ -1,7 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 import { assertWritable } from "@/lib/readOnlyState";
+import {
+  loadSharedResource, readSharedResource, writeSharedResource,
+  invalidateSharedResource, subscribeSharedResource,
+} from "@/lib/sharedResource";
+
+const STOCK_STALE_MS = 2 * 60_000;
 
 export type StockMovementType = "entrada_manual" | "compra" | "venda" | "ajuste";
 
