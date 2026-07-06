@@ -149,9 +149,10 @@ export function usePaymentMethods(enabled = true) {
         return;
       }
       toast.success("Forma de pagamento criada");
+      if (cacheKey) invalidateSharedResource(cacheKey);
       fetchMethods();
     },
-    [user, dataOwnerId, methods, fetchMethods],
+    [user, dataOwnerId, methods, fetchMethods, cacheKey],
   );
 
   const update = useCallback(
@@ -168,9 +169,10 @@ export function usePaymentMethods(enabled = true) {
         toast.error("Erro ao atualizar forma de pagamento");
         return;
       }
+      if (cacheKey) invalidateSharedResource(cacheKey);
       fetchMethods();
     },
-    [fetchMethods],
+    [fetchMethods, cacheKey],
   );
 
   const remove = useCallback(
@@ -182,10 +184,16 @@ export function usePaymentMethods(enabled = true) {
         return;
       }
       toast.success("Forma de pagamento excluída");
+      if (cacheKey) invalidateSharedResource(cacheKey);
       fetchMethods();
     },
-    [fetchMethods],
+    [fetchMethods, cacheKey],
   );
 
-  return { methods, activeMethods: methods.filter((m) => m.active), loading, add, update, remove, refetch: fetchMethods };
+  const refetch = useCallback(() => {
+    if (cacheKey) invalidateSharedResource(cacheKey);
+    return fetchMethods();
+  }, [fetchMethods, cacheKey]);
+
+  return { methods, activeMethods: methods.filter((m) => m.active), loading, add, update, remove, refetch };
 }
