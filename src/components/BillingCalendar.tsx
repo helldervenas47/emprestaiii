@@ -1228,6 +1228,91 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
 
         </DialogContent>
       </Dialog>
+
+      {/* Breakdown do card: lista todos os registros que compõem o total exibido */}
+      <Dialog open={breakdownCard !== null} onOpenChange={(o) => !o && setBreakdownCard(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-4 md:px-6 pt-4 md:pt-6 pb-3 border-b border-border/40">
+            <DialogTitle className="text-base md:text-lg">
+              {breakdownCard ? breakdownLabels[breakdownCard] : ""}
+            </DialogTitle>
+            <div className="flex items-center justify-between pt-1 text-xs md:text-sm">
+              <span className="text-muted-foreground">
+                {breakdownRows.length} {breakdownRows.length === 1 ? "contrato" : "contratos"}
+              </span>
+              <span className="font-bold text-foreground">
+                Total: {formatCurrency(breakdownTotal)}
+              </span>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto px-3 md:px-6 py-3 space-y-2">
+            {breakdownRows.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Nenhum contrato pendente para este período.
+              </p>
+            ) : (
+              breakdownRows.map((r) => {
+                const isOverdue = r.dueDate < todayStr;
+                const isToday = r.dueDate === todayStr;
+                const dateBadge = isOverdue
+                  ? { label: "Atrasado", className: "bg-destructive/10 text-destructive border-destructive/30" }
+                  : isToday
+                  ? { label: "Hoje", className: "bg-warning/10 text-warning border-warning/30" }
+                  : { label: "A vencer", className: "bg-primary/10 text-primary border-primary/30" };
+                const originIcon = r.origin === "Empréstimo" ? <User className="h-3.5 w-3.5" /> : r.origin === "Aluguel de veículo" ? <Car className="h-3.5 w-3.5" /> : <ShoppingBag className="h-3.5 w-3.5" />;
+                return (
+                  <div key={r.key} className="rounded-lg border border-border/60 bg-card p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-0.5">
+                          {originIcon}
+                          <span>{r.origin}</span>
+                          <span>•</span>
+                          <span>{r.installmentInfo}</span>
+                        </div>
+                        <p className="text-sm font-semibold text-foreground truncate">{r.clientName}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Vence em {new Date(r.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className={cn("text-sm font-bold", isOverdue ? "text-destructive" : isToday ? "text-warning" : "text-primary")}>
+                          {formatCurrency(r.pendingAmount)}
+                        </p>
+                        <Badge variant="outline" className={cn("text-[9px] mt-0.5", dateBadge.className)}>
+                          {dateBadge.label}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5 text-[10px]">
+                      <div className="p-1.5 rounded bg-muted/40">
+                        <p className="text-muted-foreground">Valor original</p>
+                        <p className="font-semibold text-foreground truncate">{formatCurrency(r.originalTotal)}</p>
+                      </div>
+                      <div className="p-1.5 rounded bg-muted/40">
+                        <p className="text-muted-foreground">Recebido</p>
+                        <p className="font-semibold text-success truncate">{formatCurrency(r.received)}</p>
+                      </div>
+                      <div className="p-1.5 rounded bg-muted/40">
+                        <p className="text-muted-foreground">Saldo</p>
+                        <p className="font-semibold text-foreground truncate">{formatCurrency(r.remaining)}</p>
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openBreakdownDetail(r)}>
+                        Ver detalhes
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          <DialogFooter className="px-4 md:px-6 py-3 border-t border-border/40">
+            <Button variant="outline" onClick={() => setBreakdownCard(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
