@@ -154,7 +154,6 @@ export function usePersonalExpenseCategories() {
     },
     [categories, user, commit],
   );
-
   const remove = useCallback(async (id: string) => {
     assertWritable();
     const { error } = await supabase.from("personal_expense_categories").delete().eq("id", id);
@@ -162,8 +161,13 @@ export function usePersonalExpenseCategories() {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
       return;
     }
-    setCategories((prev) => prev.filter((c) => c.id !== id));
-  }, []);
+    commit((prev) => prev.filter((c) => c.id !== id));
+  }, [commit]);
 
-  return { categories, loading, create, update, remove, reload: load };
+  const reload = useCallback(() => {
+    if (cacheKey) invalidateSharedResource(cacheKey);
+    return load();
+  }, [cacheKey, load]);
+
+  return { categories, loading, create, update, remove, reload };
 }
