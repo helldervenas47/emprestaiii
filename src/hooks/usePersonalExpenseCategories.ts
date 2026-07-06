@@ -96,7 +96,7 @@ export function usePersonalExpenseCategories() {
       toast({ title: "Categoria criada", description: name });
       return data;
     },
-    [user],
+    [user, commit],
   );
 
   const update = useCallback(
