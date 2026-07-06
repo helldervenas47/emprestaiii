@@ -592,23 +592,73 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <CalendarDays className="h-5 w-5" /> Calendário de Cobrança
-        </h2>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <CalendarDays className="h-5 w-5" /> Calendário
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Calendário de Cobrança</p>
+        </div>
         <Button variant="outline" size="sm" onClick={goToToday}>Hoje</Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+        {[
+          { key: "hoje", label: "Receber hoje", tone: "text-warning", bar: "bg-warning", data: summary.hoje },
+          { key: "atrasados", label: "Atrasados", tone: "text-destructive", bar: "bg-destructive", data: summary.overdue },
+          { key: "amanha", label: "Receber amanhã", tone: "text-primary", bar: "bg-primary", data: summary.amanha },
+          { key: "mes", label: "Este mês", tone: "text-foreground", bar: "bg-muted-foreground", data: summary.month },
+        ].map((c) => (
+          <Card key={c.key} no3d className="overflow-hidden">
+            <CardContent className="p-3">
+              <div className={`h-1 w-8 rounded-full ${c.bar} mb-2`} />
+              <p className="text-[11px] text-muted-foreground truncate">{c.label}</p>
+              <p className={`text-sm md:text-base font-bold ${c.tone} truncate`}>{formatCurrency(c.data.total)}</p>
+              <p className="text-[10px] text-muted-foreground">{c.data.count} {c.data.count === 1 ? "contrato" : "contratos"}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* View selector */}
+      <div className="inline-flex rounded-lg border border-border/60 bg-muted/30 p-1 gap-1 w-full sm:w-auto overflow-x-auto">
+        {([
+          { v: "mes", label: "Mês" },
+          { v: "semana", label: "Semana" },
+          { v: "agenda", label: "Agenda" },
+          { v: "lista", label: "Lista" },
+        ] as const).map((opt) => (
+          <button
+            key={opt.v}
+            onClick={() => setViewMode(opt.v)}
+            className={cn(
+              "flex-1 sm:flex-none px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap",
+              viewMode === opt.v
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/60",
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      <div className={cn(
+        "grid gap-4",
+        viewMode === "mes" && "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]",
+      )}>
+      {viewMode === "mes" && (
       <Card no3d className="md:sticky md:top-4 md:self-start">
-        <CardContent className="p-4">
+        <CardContent className="p-3 md:p-4">
           {/* Month navigation */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <Button variant="ghost" size="icon" onClick={prevMonth}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <button
-              className="text-sm font-semibold text-foreground hover:text-primary transition-colors"
+              className="text-sm font-semibold text-foreground hover:text-primary transition-colors capitalize"
               onClick={() => {
                 const n = new Date();
                 setMonth(n.getMonth());
@@ -625,7 +675,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
           {/* Day headers */}
           <div className="grid grid-cols-7 gap-1 mb-1">
             {dayNames.map((d) => (
-              <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>
+              <div key={d} className="text-center text-[10px] md:text-xs font-medium text-muted-foreground py-1">{d}</div>
             ))}
           </div>
 
@@ -634,34 +684,56 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
             {calendarDays.map((day, idx) => {
               if (day === null) return <div key={`empty-${idx}`} />;
               const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-              const items = dueMap[dateStr] || [];
-              const saleItems = salesDueMap[dateStr] || [];
+              const pending = pendingForDate(dateStr);
+              const received = receivedByDate[dateStr];
               const isToday = dateStr === todayStr;
               const isSelected = dateStr === selectedDate;
-              const hasDue = items.length > 0 || saleItems.length > 0;
-              const isOverdue = dateStr < todayStr && hasDue;
-              const isUpcoming = dateStr >= todayStr && hasDue;
+              const hasPending = pending.count > 0;
+              const hasReceived = !!received;
+              const isOverdue = dateStr < todayStr && hasPending;
+              const isUpcoming = dateStr >= todayStr && hasPending;
+              const dayTotal = pending.total + (received?.total || 0);
 
               return (
                 <button
                   key={day}
                   onClick={() => handleDayClick(day)}
-                  className={`relative flex flex-col items-center justify-center rounded-lg p-1.5 min-h-[48px] text-sm transition-colors
-                    ${isSelected ? "bg-primary text-primary-foreground ring-2 ring-primary" : ""}
-                    ${isToday && !isSelected ? "bg-accent font-bold" : ""}
-                    ${isOverdue && !isSelected ? "bg-destructive/10" : ""}
-                    ${!isSelected && !isToday && !isOverdue ? "hover:bg-muted" : ""}
-                  `}
+                  className={cn(
+                    "relative flex flex-col items-stretch rounded-md md:rounded-lg p-1 md:p-1.5 min-h-[52px] md:min-h-[64px] text-left transition-colors border border-transparent",
+                    isSelected && "bg-primary text-primary-foreground ring-2 ring-primary",
+                    !isSelected && isToday && "bg-accent border-accent-foreground/10",
+                    !isSelected && !isToday && isOverdue && "bg-destructive/10",
+                    !isSelected && !isToday && !isOverdue && !hasPending && !hasReceived && "hover:bg-muted",
+                    !isSelected && !isToday && isUpcoming && "hover:bg-warning/10",
+                  )}
                 >
-                  <span className={isSelected ? "text-primary-foreground" : "text-foreground"}>
-                    {day}
-                  </span>
-                  {hasDue && (
-                    <div className="flex gap-0.5 mt-0.5">
-                      <span className={`inline-block h-1.5 w-1.5 rounded-full ${
-                        isSelected ? "bg-primary-foreground" : isOverdue ? "bg-destructive" : "bg-warning"
-                      }`} />
+                  <div className="flex items-center justify-between">
+                    <span className={cn(
+                      "text-xs md:text-sm font-semibold",
+                      isSelected ? "text-primary-foreground" : isToday ? "text-primary" : "text-foreground",
+                    )}>
+                      {day}
+                    </span>
+                    <div className="flex gap-0.5">
+                      {hasReceived && <span className={cn("h-1.5 w-1.5 rounded-full", isSelected ? "bg-primary-foreground" : "bg-success")} />}
+                      {isUpcoming && <span className={cn("h-1.5 w-1.5 rounded-full", isSelected ? "bg-primary-foreground" : "bg-warning")} />}
+                      {isOverdue && <span className={cn("h-1.5 w-1.5 rounded-full", isSelected ? "bg-primary-foreground" : "bg-destructive")} />}
+                      {!hasPending && !hasReceived && <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30" />}
                     </div>
+                  </div>
+                  {dayTotal > 0 && (
+                    <span className={cn(
+                      "mt-auto text-[9px] md:text-[10px] font-semibold truncate leading-tight",
+                      isSelected
+                        ? "text-primary-foreground"
+                        : isOverdue
+                        ? "text-destructive"
+                        : hasReceived && !hasPending
+                        ? "text-success"
+                        : "text-warning",
+                    )}>
+                      {formatCurrency(dayTotal)}
+                    </span>
                   )}
                 </button>
               );
@@ -669,16 +741,16 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-destructive" /> Atrasado
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-warning" /> A vencer
-            </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 text-[10px] md:text-xs text-muted-foreground border-t border-border/40 pt-2">
+            <div className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success" /> Recebido</div>
+            <div className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-warning" /> A vencer</div>
+            <div className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-destructive" /> Atrasado</div>
+            <div className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-muted-foreground/30" /> Sem contratos</div>
           </div>
         </CardContent>
       </Card>
+      )}
+
 
       {/* Selected day details — split view on desktop/tablet, stacked on mobile */}
       <Card no3d className="md:max-h-[calc(100vh-8rem)] md:flex md:flex-col animate-fade-in">
