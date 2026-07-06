@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { USER_SUPABASE_PUBLISHABLE_KEY, USER_SUPABASE_URL } from "@/integrations/supabase/userClient";
+import { clearAllSharedResources } from "@/lib/sharedResource";
 
 import type { User, Session } from "@supabase/supabase-js";
 
