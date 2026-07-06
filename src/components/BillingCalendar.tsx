@@ -753,7 +753,9 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
 
 
       {/* Selected day details — split view on desktop/tablet, stacked on mobile */}
+      {viewMode === "mes" && (
       <Card no3d className="md:max-h-[calc(100vh-8rem)] md:flex md:flex-col animate-fade-in">
+
         <CardContent className="p-4 md:flex-1 md:overflow-y-auto">
           {!selectedDate ? (
             <div className="flex h-full min-h-[200px] flex-col items-center justify-center text-center">
