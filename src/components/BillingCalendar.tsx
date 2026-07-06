@@ -1114,7 +1114,12 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                             <Icon className="h-3.5 w-3.5 text-muted-foreground" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-xs font-medium text-foreground truncate">{i.name}</p>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <p className="text-xs font-medium text-foreground truncate">{i.name}</p>
+                              {i.kind === "loan" && i.tags && i.tags.length > 0 && (
+                                <span className="text-[10px] font-medium text-blue-500 truncate">{i.tags.join(", ")}</span>
+                              )}
+                            </div>
                             <p className="text-[10px] text-muted-foreground truncate">{i.subtitle}</p>
                           </div>
                         </div>
