@@ -147,7 +147,7 @@ Deno.serve(async (req: Request) => {
 
       const loanIds = (loans ?? []).map((l: any) => l.id);
       const { data: insts } = loanIds.length
-        ? await admin.from("loan_installments").select("*").in("loan_id", loanIds)
+        ? await admin.from("loan_installments").select("loan_id, installment_number, due_date, amount").in("loan_id", loanIds)
         : { data: [] as any[] };
 
       type Item = { name: string; amount: number; due: string; tags: string[] };
