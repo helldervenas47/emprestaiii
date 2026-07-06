@@ -209,61 +209,55 @@ export function VehiclePaymentHistoryView({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <History className="h-5 w-5" />
-          Histórico de Pagamentos
-        </h3>
-        <div className="flex items-center gap-1 sm:gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => shiftMonth(-1)}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <button
-            type="button"
-            onClick={() => setMonthFilter(currentYm)}
-            title="Clique para voltar ao mês atual"
-            className="text-xs sm:text-sm font-medium text-foreground min-w-[140px] sm:min-w-[160px] text-center capitalize cursor-pointer hover:text-primary transition-colors"
-          >
-            {monthFilter === "__all__" ? "Todos os meses" : monthLabel(monthFilter)}
-          </button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => shiftMonth(1)}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+      <div className="flex items-center justify-center sm:justify-end gap-1 sm:gap-2">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => shiftMonth(-1)}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <button
+          type="button"
+          onClick={() => setMonthFilter(currentYm)}
+          title="Clique para voltar ao mês atual"
+          className="text-xs sm:text-sm font-medium text-foreground min-w-[140px] sm:min-w-[160px] text-center capitalize cursor-pointer hover:text-primary transition-colors"
+        >
+          {monthFilter === "__all__" ? "Todos os meses" : monthLabel(monthFilter)}
+        </button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => shiftMonth(1)}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
       </div>
 
 
       {/* Summary — Entradas x Saídas */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 auto-rows-fr">
         <Card className="border-success/30">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
+          <CardContent className="p-4 text-center">
+            <div className="flex items-center justify-center gap-2 mb-1">
               <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <TrendingUp className="h-3.5 w-3.5 text-success" /> Entradas
               </p>
-              <span className="text-[10px] text-muted-foreground">{entradas.length}</span>
+              <span className="text-[10px] text-muted-foreground">({entradas.length})</span>
             </div>
             <p className="text-lg font-bold text-success">{formatCurrency(totalEntradas)}</p>
           </CardContent>
         </Card>
         <Card className="border-destructive/30">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
+          <CardContent className="p-4 text-center">
+            <div className="flex items-center justify-center gap-2 mb-1">
               <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <TrendingDown className="h-3.5 w-3.5 text-destructive" /> Saídas
               </p>
-              <span className="text-[10px] text-muted-foreground">{saidas.length}</span>
+              <span className="text-[10px] text-muted-foreground">({saidas.length})</span>
             </div>
             <p className="text-lg font-bold text-destructive">{formatCurrency(totalSaidas)}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
+          <CardContent className="p-4 text-center">
+            <div className="flex items-center justify-center gap-2 mb-1">
               <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <Wallet className="h-3.5 w-3.5 text-primary" /> Saldo
               </p>
-              <span className="text-[10px] text-muted-foreground">{filtered.length}</span>
+              <span className="text-[10px] text-muted-foreground">({filtered.length})</span>
             </div>
             <p className={`text-lg font-bold ${saldo >= 0 ? "text-success" : "text-destructive"}`}>
               {formatCurrency(saldo)}
@@ -271,6 +265,7 @@ export function VehiclePaymentHistoryView({
           </CardContent>
         </Card>
       </div>
+
 
 
       {/* Empty state */}
