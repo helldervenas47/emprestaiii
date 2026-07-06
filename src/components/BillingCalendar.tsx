@@ -80,6 +80,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
   const [viewMode, setViewMode] = useState<"mes" | "semana" | "agenda" | "lista">("mes");
   const [showFullDay, setShowFullDay] = useState(false);
   const [breakdownCard, setBreakdownCard] = useState<null | "hoje" | "atrasados" | "amanha" | "mes">(null);
+  const [originFilter, setOriginFilter] = useState<"todos" | "emprestimos" | "vendas" | "veiculos">("todos");
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [showPartial, setShowPartial] = useState<string | null>(null);
   const [partialAmount, setPartialAmount] = useState("");
@@ -229,6 +230,27 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
     return map;
   }, [sales]);
 
+  // Filtro por origem: aplicado sobre as fontes brutas para que TODAS as leituras
+  // (cards, calendário, semana/agenda/lista, detalhes do dia e breakdown) fiquem
+  // consistentes com a origem selecionada.
+  const filteredDueMap = useMemo(() => {
+    if (originFilter === "todos" || originFilter === "emprestimos") return dueMap;
+    return {} as typeof dueMap;
+  }, [dueMap, originFilter]);
+
+  const filteredSalesDueMap = useMemo(() => {
+    if (originFilter === "emprestimos") return {} as typeof salesDueMap;
+    if (originFilter === "todos") return salesDueMap;
+    const wanted: "sale" | "vehicle" = originFilter === "veiculos" ? "vehicle" : "sale";
+    const out: typeof salesDueMap = {};
+    Object.entries(salesDueMap).forEach(([d, arr]) => {
+      const kept = arr.filter((i) => i.kind === wanted);
+      if (kept.length) out[d] = kept;
+    });
+    return out;
+  }, [salesDueMap, originFilter]);
+
+
   // Calendar grid
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
@@ -259,12 +281,12 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
   // Combined pending items across loans + sales for a given date
   const pendingForDate = useCallback(
     (dateStr: string) => {
-      const loanItems = dueMap[dateStr] || [];
-      const saleItems = salesDueMap[dateStr] || [];
+      const loanItems = filteredDueMap[dateStr] || [];
+      const saleItems = filteredSalesDueMap[dateStr] || [];
       const total = loanItems.reduce((s, i) => s + i.amount, 0) + saleItems.reduce((s, i) => s + i.amount, 0);
       return { total, count: loanItems.length + saleItems.length };
     },
-    [dueMap, salesDueMap],
+    [filteredDueMap, filteredSalesDueMap],
   );
 
   // Summary cards
@@ -286,10 +308,10 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
         }
       });
     };
-    scan(dueMap);
-    scan(salesDueMap);
+    scan(filteredDueMap);
+    scan(filteredSalesDueMap);
     return { hoje, amanha, overdue: { total: overdueTotal, count: overdueCount }, month: { total: monthTotal, count: monthCount } };
-  }, [dueMap, salesDueMap, todayStr, tomorrowStr, year, month, pendingForDate]);
+  }, [filteredDueMap, filteredSalesDueMap, todayStr, tomorrowStr, year, month, pendingForDate]);
 
 
   const goToToday = () => {
@@ -315,8 +337,8 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
     setShowPartial(null);
   };
 
-  const selectedItems = selectedDate ? (dueMap[selectedDate] || []) : [];
-  const selectedSaleItems = selectedDate ? (salesDueMap[selectedDate] || []) : [];
+  const selectedItems = selectedDate ? (filteredDueMap[selectedDate] || []) : [];
+  const selectedSaleItems = selectedDate ? (filteredSalesDueMap[selectedDate] || []) : [];
   const overdueSelected = selectedItems.filter((i) => i.date < todayStr);
   const upcomingSelected = selectedItems.filter((i) => i.date >= todayStr);
 
@@ -627,7 +649,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
       return d.startsWith(monthPrefix);
     };
     const rows: BreakdownRow[] = [];
-    Object.entries(dueMap).forEach(([d, arr]) => {
+    Object.entries(filteredDueMap).forEach(([d, arr]) => {
       if (!matches(d)) return;
       arr.forEach((it) => {
         const loan = it.loan;
@@ -651,7 +673,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
         });
       });
     });
-    Object.entries(salesDueMap).forEach(([d, arr]) => {
+    Object.entries(filteredSalesDueMap).forEach(([d, arr]) => {
       if (!matches(d)) return;
       arr.forEach((it) => {
         const sale = sales.find((s) => s.id === it.saleId);
@@ -686,7 +708,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
     });
     rows.sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.clientName.localeCompare(b.clientName));
     return rows;
-  }, [breakdownCard, dueMap, salesDueMap, todayStr, tomorrowStr, year, month, payments, sales]);
+  }, [breakdownCard, filteredDueMap, filteredSalesDueMap, todayStr, tomorrowStr, year, month, payments, sales]);
 
   const breakdownTotal = breakdownRows.reduce((s, r) => s + r.pendingAmount, 0);
 
@@ -713,6 +735,30 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
           <p className="text-xs text-muted-foreground mt-0.5">Calendário de Cobrança</p>
         </div>
         <Button variant="outline" size="sm" onClick={goToToday}>Hoje</Button>
+      </div>
+
+      {/* Origin filter */}
+      <div className="grid grid-cols-4 gap-1.5 md:gap-2">
+        {([
+          { v: "todos", label: "Todos" },
+          { v: "emprestimos", label: "Empréstimos" },
+          { v: "vendas", label: "Vendas" },
+          { v: "veiculos", label: "Veículos" },
+        ] as const).map((opt) => (
+          <button
+            key={opt.v}
+            type="button"
+            onClick={() => setOriginFilter(opt.v)}
+            className={cn(
+              "px-2 py-1.5 rounded-md text-[11px] md:text-xs font-medium border transition-colors whitespace-nowrap truncate",
+              originFilter === opt.v
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "bg-muted/30 text-muted-foreground border-border/60 hover:text-foreground hover:bg-background/60",
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
 
       {/* Summary cards */}
@@ -1014,13 +1060,13 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
 
               const collect = () => {
                 const out: { date: string; kind: "loan" | "sale" | "vehicle"; name: string; subtitle: string; amount: number; status: "overdue" | "due_today" | "upcoming" }[] = [];
-                Object.entries(dueMap).forEach(([d, arr]) => arr.forEach((i) => out.push({
+                Object.entries(filteredDueMap).forEach(([d, arr]) => arr.forEach((i) => out.push({
                   date: d, kind: "loan", name: i.borrowerName,
                   subtitle: `Empréstimo · Parcela ${i.installmentNumber}/${i.totalInstallments}`,
                   amount: i.amount,
                   status: d < todayStr ? "overdue" : d === todayStr ? "due_today" : "upcoming",
                 })));
-                Object.entries(salesDueMap).forEach(([d, arr]) => arr.forEach((s) => out.push({
+                Object.entries(filteredSalesDueMap).forEach(([d, arr]) => arr.forEach((s) => out.push({
                   date: d, kind: s.kind, name: s.customerName,
                   subtitle: `${s.kind === "vehicle" ? "Veículo" : "Venda"} · ${s.description} · Parcela ${s.installmentNumber}/${s.totalInstallments}`,
                   amount: s.amount,
