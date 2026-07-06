@@ -1061,12 +1061,13 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
               const endStr = formatLocalDate(endOfWeek);
 
               const collect = () => {
-                const out: { date: string; kind: "loan" | "sale" | "vehicle"; name: string; subtitle: string; amount: number; status: "overdue" | "due_today" | "upcoming" }[] = [];
+                const out: { date: string; kind: "loan" | "sale" | "vehicle"; name: string; subtitle: string; amount: number; status: "overdue" | "due_today" | "upcoming"; tags?: string[] }[] = [];
                 Object.entries(filteredDueMap).forEach(([d, arr]) => arr.forEach((i) => out.push({
                   date: d, kind: "loan", name: i.borrowerName,
                   subtitle: `Empréstimo · Parcela ${i.installmentNumber}/${i.totalInstallments}`,
                   amount: i.amount,
                   status: d < todayStr ? "overdue" : d === todayStr ? "due_today" : "upcoming",
+                  tags: Array.isArray(i.loan?.tags) ? i.loan.tags.filter(Boolean) : [],
                 })));
                 Object.entries(filteredSalesDueMap).forEach(([d, arr]) => arr.forEach((s) => out.push({
                   date: d, kind: s.kind, name: s.customerName,
