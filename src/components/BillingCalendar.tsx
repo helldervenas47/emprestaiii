@@ -80,6 +80,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
   const [viewMode, setViewMode] = useState<"mes" | "semana" | "agenda" | "lista">("mes");
   const [showFullDay, setShowFullDay] = useState(false);
   const [breakdownCard, setBreakdownCard] = useState<null | "hoje" | "atrasados" | "amanha" | "mes">(null);
+  const [originFilter, setOriginFilter] = useState<"todos" | "emprestimos" | "vendas" | "veiculos">("todos");
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [showPartial, setShowPartial] = useState<string | null>(null);
   const [partialAmount, setPartialAmount] = useState("");
