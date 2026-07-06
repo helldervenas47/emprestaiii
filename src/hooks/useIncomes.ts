@@ -5,6 +5,12 @@ import { displayIncomeCategory } from "@/lib/incomeCategory";
 import { todayInAppTz } from "@/lib/timezone";
 import { assertWritable } from "@/lib/readOnlyState";
 import { financeFetchStart, financeFetchSuccess, financeInvalidate, financeRealtimeEvent, financeSetState, useFinanceHookDebug } from "@/lib/financeDebug";
+import {
+  loadSharedResource, readSharedResource, writeSharedResource,
+  invalidateSharedResource, subscribeSharedResource,
+} from "@/lib/sharedResource";
+
+const INCOMES_STALE_MS = 60_000;
 
 export type IncomeStatus = "pending" | "received" | "overdue";
 export type IncomeRecurrence = "once" | "weekly" | "biweekly" | "monthly" | "yearly";
