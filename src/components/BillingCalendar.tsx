@@ -1099,7 +1099,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                     <p className="text-xs text-muted-foreground truncate">Empréstimo · Parcela {item.installmentNumber}/{item.totalInstallments}</p>
                   </div>
                 </div>
-                <p className={cn("text-sm font-bold shrink-0", item.date < todayStr ? "text-destructive" : "text-warning")}>{formatCurrency(item.amount)}</p>
+                <p className="text-sm font-bold shrink-0 text-success">{formatCurrency(item.amount)}</p>
               </div>
             ))}
             {selectedSaleItems.map((s) => {
