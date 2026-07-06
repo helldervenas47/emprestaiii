@@ -99,7 +99,7 @@ serve(async (req) => {
 
     let aportesQuery = supabase
       .from("cofrinho_aportes")
-      .select("*")
+      .select("id, cofrinho_id, data_aporte, saldo_restante, percentual_cdi")
       .gt("saldo_restante", 0)
       .order("data_aporte", { ascending: true });
 
