@@ -204,7 +204,7 @@ Deno.serve(async (req: Request) => {
       const clientById = new Map((clients ?? []).map((c: any) => [c.id, c]));
 
       const { data: schedules2 } = await admin
-        .from("loan_installments").select("*").in("loan_id", loanIds);
+        .from("loan_installments").select("loan_id, installment_number, due_date, amount").in("loan_id", loanIds);
       const schedByLoan = new Map<string, any[]>();
       for (const s of schedules2 ?? []) {
         const arr = schedByLoan.get(s.loan_id) ?? [];
