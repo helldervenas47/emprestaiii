@@ -1115,7 +1115,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                             <p className="text-[10px] text-muted-foreground truncate">{i.subtitle}</p>
                           </div>
                         </div>
-                        <p className="text-xs font-bold shrink-0 text-success">{formatCurrency(i.amount)}</p>
+                        <p className="text-xs font-bold shrink-0 text-foreground">{formatCurrency(i.amount)}</p>
                       </div>
                     );
                   })}
