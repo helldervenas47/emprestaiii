@@ -151,7 +151,8 @@ Deno.serve(async (req: Request) => {
       return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
     })();
 
-    let scheduleQuery = admin.from("whatsapp_billing_schedule").select("*").eq("enabled", true);
+    const scheduleCols = "owner_id, enabled, send_time, base_url, instance_id, days_before_due, send_on_due_day, send_when_overdue, overdue_repeat_days";
+    let scheduleQuery = admin.from("whatsapp_billing_schedule").select(scheduleCols).eq("enabled", true);
     if (forceOwner) scheduleQuery = scheduleQuery.eq("owner_id", forceOwner);
     const { data: schedules, error: schedErr } = await scheduleQuery;
     if (schedErr) throw schedErr;
