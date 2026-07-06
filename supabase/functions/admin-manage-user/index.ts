@@ -67,10 +67,11 @@ Deno.serve(async (req) => {
         page += 1;
       }
 
-      const { data: roles } = await adminClient.from("user_roles").select("*");
-      const { data: profiles } = await adminClient.from("profiles").select("*");
-      const { data: tabPerms } = await adminClient.from("user_tab_permissions").select("*");
-      const { data: clientPerms } = await adminClient.from("user_client_permissions").select("*");
+      // P1-02 egress: seleciona apenas as colunas usadas na composição do payload.
+      const { data: roles } = await adminClient.from("user_roles").select("user_id, role");
+      const { data: profiles } = await adminClient.from("profiles").select("user_id, display_name, username, full_name");
+      const { data: tabPerms } = await adminClient.from("user_tab_permissions").select("user_id, allowed_tabs");
+      const { data: clientPerms } = await adminClient.from("user_client_permissions").select("user_id, client_id");
       const { data: owners } = await adminClient.from("user_owner").select("user_id, owner_id");
 
       const normalizeName = (value: string | null | undefined) =>
