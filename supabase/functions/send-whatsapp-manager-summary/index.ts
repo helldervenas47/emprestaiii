@@ -106,8 +106,9 @@ Deno.serve(async (req: Request) => {
     const currentDow = nowParts.getDay(); // 0..6
     const currentHM = `${String(nowParts.getHours()).padStart(2, "0")}:${String(nowParts.getMinutes()).padStart(2, "0")}`;
 
-    let q = admin.from("whatsapp_billing_schedule").select("*").eq("manager_summary_enabled", true);
-    if (forceOwner) q = admin.from("whatsapp_billing_schedule").select("*").eq("owner_id", forceOwner);
+    const managerScheduleCols = "owner_id, manager_summary_enabled, manager_summary_day_of_week, manager_summary_time, base_url, instance_id";
+    let q = admin.from("whatsapp_billing_schedule").select(managerScheduleCols).eq("manager_summary_enabled", true);
+    if (forceOwner) q = admin.from("whatsapp_billing_schedule").select(managerScheduleCols).eq("owner_id", forceOwner);
     const { data: schedules, error: schedErr } = await q;
     if (schedErr) throw schedErr;
 
@@ -146,7 +147,7 @@ Deno.serve(async (req: Request) => {
 
       const loanIds = (loans ?? []).map((l: any) => l.id);
       const { data: insts } = loanIds.length
-        ? await admin.from("loan_installments").select("*").in("loan_id", loanIds)
+        ? await admin.from("loan_installments").select("loan_id, installment_number, due_date, amount").in("loan_id", loanIds)
         : { data: [] as any[] };
 
       type Item = { name: string; amount: number; due: string; tags: string[] };
