@@ -872,7 +872,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                   className={cn(
                     "relative flex flex-col items-stretch rounded-md md:rounded-lg p-1 md:p-1.5 min-h-[52px] md:min-h-[64px] text-left transition-colors border border-transparent",
                     isSelected && "bg-primary text-primary-foreground ring-2 ring-primary",
-                    !isSelected && isToday && "bg-accent border-accent-foreground/10",
+                    !isSelected && isToday && "bg-background ring-2 ring-primary/60 ring-inset",
                     !isSelected && !isToday && isOverdue && "bg-destructive/10",
                     !isSelected && !isToday && !isOverdue && !hasPending && !hasReceived && "hover:bg-muted",
                     !isSelected && !isToday && isUpcoming && "hover:bg-warning/10",
