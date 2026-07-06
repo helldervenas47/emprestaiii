@@ -1311,12 +1311,14 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                       {originIcon}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-foreground truncate">{r.clientName}</p>
-                      {r.origin === "Empréstimo" && r.tags && r.tags.length > 0 && (
-                        <p className="text-xs text-muted-foreground truncate">
-                          Etiqueta: {r.tags.join(", ")}
-                        </p>
-                      )}
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{r.clientName}</p>
+                        {r.origin === "Empréstimo" && r.tags && r.tags.length > 0 && (
+                          <span className="text-xs font-medium text-blue-500 truncate">
+                            {r.tags.join(", ")}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground truncate">
                         Vencimento: {r.dueDate.split("-").reverse().join("/")}
                       </p>
