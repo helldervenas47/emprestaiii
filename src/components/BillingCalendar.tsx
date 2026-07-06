@@ -630,6 +630,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
     loanId?: string;
     saleId?: string;
     installmentInfo: string;
+    tags?: string[];
   };
 
   const breakdownLabels: Record<NonNullable<typeof breakdownCard>, string> = {
