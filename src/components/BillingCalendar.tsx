@@ -77,7 +77,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"mes" | "semana" | "agenda" | "lista">("mes");
+  const [viewMode, setViewMode] = useState<"mes" | "semana" | "agenda" | "lista" | "geral">("mes");
   const [showFullDay, setShowFullDay] = useState(false);
   const [breakdownCard, setBreakdownCard] = useState<null | "hoje" | "atrasados" | "amanha" | "mes">(null);
   const [originFilter, setOriginFilter] = useState<"todos" | "emprestimos" | "vendas" | "veiculos">("todos");
@@ -797,6 +797,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
           { v: "semana", label: "Semana" },
           { v: "agenda", label: "Agenda" },
           { v: "lista", label: "Lista" },
+          { v: "geral", label: "Geral" },
         ] as const).map((opt) => (
           <button
             key={opt.v}
@@ -871,7 +872,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                   className={cn(
                     "relative flex flex-col items-stretch rounded-md md:rounded-lg p-1 md:p-1.5 min-h-[52px] md:min-h-[64px] text-left transition-colors border border-transparent",
                     isSelected && "bg-primary text-primary-foreground ring-2 ring-primary",
-                    !isSelected && isToday && "bg-accent border-accent-foreground/10",
+                    !isSelected && isToday && "bg-background ring-2 ring-primary/60 ring-inset",
                     !isSelected && !isToday && isOverdue && "bg-destructive/10",
                     !isSelected && !isToday && !isOverdue && !hasPending && !hasReceived && "hover:bg-muted",
                     !isSelected && !isToday && isUpcoming && "hover:bg-warning/10",
@@ -1082,6 +1083,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
               if (viewMode === "semana") items = items.filter((i) => i.date >= startStr && i.date <= endStr);
               else if (viewMode === "agenda") items = items.filter((i) => i.date >= todayStr).slice(0, 100);
               else if (viewMode === "lista") items = items.filter((i) => i.date.startsWith(monthPrefix));
+              // "geral": sem filtro de data — todos os pendentes cronologicamente
               items.sort((a, b) => a.date.localeCompare(b.date) || b.amount - a.amount);
 
               if (items.length === 0) {
@@ -1094,12 +1096,18 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                 grouped[i.date].push(i);
               });
 
+              const originLabel = (k: "loan" | "sale" | "vehicle") => k === "loan" ? "Empréstimo" : k === "vehicle" ? "Veículo" : "Venda";
+              const statusLabel = (s: "overdue" | "due_today" | "upcoming") => s === "overdue" ? "Atrasado" : s === "due_today" ? "Vence hoje" : "A vencer";
+
               return Object.entries(grouped).map(([d, arr]) => (
                 <div key={d} className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2 pt-2 first:pt-0">
-                    <p className="text-xs font-semibold text-foreground capitalize">
-                      {new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-semibold text-foreground capitalize">
+                        {new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short", year: viewMode === "geral" ? "numeric" : undefined })}
+                      </p>
+                      <span className="text-[10px] text-muted-foreground">({arr.length})</span>
+                    </div>
                     <p className={cn("text-xs font-bold", d < todayStr ? "text-destructive" : "text-success")}>
                       {formatCurrency(arr.reduce((s, i) => s + i.amount, 0))}
                     </p>
@@ -1107,6 +1115,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                   {arr.map((i, idx) => {
                     const tone = i.status === "overdue" ? "border-destructive/30 bg-destructive/5" : i.status === "due_today" ? "border-warning/30 bg-warning/5" : "border-border/40 bg-muted/20";
                     const Icon = i.kind === "loan" ? User : i.kind === "vehicle" ? Car : ShoppingBag;
+                    const statusTone = i.status === "overdue" ? "text-destructive border-destructive/40" : i.status === "due_today" ? "text-warning border-warning/40" : "text-muted-foreground border-border/60";
                     return (
                       <div key={`${d}-${idx}`} className={cn("flex items-center justify-between gap-2 rounded-lg border p-2.5", tone)}>
                         <div className="flex items-center gap-2 min-w-0">
@@ -1114,16 +1123,22 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                             <Icon className="h-3.5 w-3.5 text-muted-foreground" />
                           </div>
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2 min-w-0">
+                            <div className="flex items-center gap-2 min-w-0 flex-wrap">
                               <p className="text-xs font-medium text-foreground truncate">{i.name}</p>
                               {i.kind === "loan" && i.tags && i.tags.length > 0 && (
                                 <span className="text-[10px] font-medium text-blue-500 truncate">{i.tags.join(", ")}</span>
                               )}
                             </div>
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              Vencimento: {i.date.split("-").reverse().join("/")} · {originLabel(i.kind)}
+                            </p>
                             <p className="text-[10px] text-muted-foreground truncate">{i.subtitle}</p>
                           </div>
                         </div>
-                        <p className="text-xs font-bold shrink-0 text-foreground">{formatCurrency(i.amount)}</p>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <p className={cn("text-xs font-bold", i.status === "overdue" ? "text-destructive" : "text-foreground")}>{formatCurrency(i.amount)}</p>
+                          <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0", statusTone)}>{statusLabel(i.status)}</Badge>
+                        </div>
                       </div>
                     );
                   })}
