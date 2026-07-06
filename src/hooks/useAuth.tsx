@@ -349,6 +349,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user?.id]);
 
   const signOut = async () => {
+    // P1-01 (segurança): limpa cache global para não vazar dados entre contas.
+    clearAllSharedResources();
     // scope: 'local' ensures other devices remain logged in
     await supabase.auth.signOut({ scope: "local" });
   };
