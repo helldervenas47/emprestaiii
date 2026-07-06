@@ -137,7 +137,7 @@ export function useClients() {
     if (!user || !dataOwnerId) return null;
     const tempId = crypto.randomUUID();
     const optimistic: Client = { ...client, id: tempId, createdAt: new Date().toISOString() };
-    setClients((prev) => [optimistic, ...prev]);
+    commit((prev) => [optimistic, ...prev]);
 
     const insertPayload = {
       id: tempId,
@@ -165,12 +165,12 @@ export function useClients() {
         await enqueueMutation({ table: "clients", op: "insert", recordId: tempId, payload: insertPayload });
         return tempId;
       } else {
-        setClients((prev) => prev.filter((c) => c.id !== tempId));
+        commit((prev) => prev.filter((c) => c.id !== tempId));
         await removeCachedRow("clients", tempId);
         return null;
       }
     } else if (data) {
-      setClients((prev) => prev.map((c) => c.id === tempId ? { ...c, id: data.id, createdAt: data.created_at } : c));
+      commit((prev) => prev.map((c) => c.id === tempId ? { ...c, id: data.id, createdAt: data.created_at } : c));
       await removeCachedRow("clients", tempId);
       await upsertCachedRow("clients", data);
       await rewritePendingRecordId("clients", tempId, data.id);
@@ -178,11 +178,11 @@ export function useClients() {
       return data.id;
     }
     return tempId;
-  }, [user, dataOwnerId]);
+  }, [user, dataOwnerId, commit]);
 
   const deleteClient = useCallback(async (id: string) => {
     assertWritable();
-    setClients((prev) => prev.filter((c) => c.id !== id));
+    commit((prev) => prev.filter((c) => c.id !== id));
     await removeCachedRow("clients", id);
     if (!isOnline()) {
       await enqueueMutation({ table: "clients", op: "delete", recordId: id });
@@ -192,11 +192,11 @@ export function useClients() {
     if (error) {
       await enqueueMutation({ table: "clients", op: "delete", recordId: id });
     }
-  }, []);
+  }, [commit]);
 
   const updateClient = useCallback(async (id: string, data: Partial<Omit<Client, "id" | "createdAt">>) => {
     assertWritable();
-    setClients((prev) => prev.map((c) => c.id === id ? { ...c, ...data } : c));
+    commit((prev) => prev.map((c) => c.id === id ? { ...c, ...data } : c));
     const updatePayload: any = {
       name: data.name, phone: data.phone, email: data.email, cpf: data.cpf,
       cnpj: data.cnpj, rg: data.rg, address: data.address, city: data.city,
@@ -219,7 +219,7 @@ export function useClients() {
     } else {
       await triggerClientAnalysis(id);
     }
-  }, []);
+  }, [commit]);
 
   return { clients, addClient, deleteClient, updateClient };
 }
