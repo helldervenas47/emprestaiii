@@ -79,6 +79,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"mes" | "semana" | "agenda" | "lista">("mes");
   const [showFullDay, setShowFullDay] = useState(false);
+  const [breakdownCard, setBreakdownCard] = useState<null | "hoje" | "atrasados" | "amanha" | "mes">(null);
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [showPartial, setShowPartial] = useState<string | null>(null);
   const [partialAmount, setPartialAmount] = useState("");
