@@ -123,7 +123,7 @@ Deno.serve(async (req: Request) => {
     // Fetch all auto-mode credit limits
     const { data: limits, error: limitsErr } = await supabase
       .from("credit_limits")
-      .select("*")
+      .select("id, user_id, client_id, current_limit, mode")
       .eq("mode", "auto");
 
     if (limitsErr) throw limitsErr;
