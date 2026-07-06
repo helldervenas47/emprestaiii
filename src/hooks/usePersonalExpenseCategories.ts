@@ -148,13 +148,11 @@ export function usePersonalExpenseCategories() {
         }
       }
 
-      setCategories((prev) =>
-        prev.map((c) => (c.id === id ? data : c)).sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
-      );
+      commit((prev) => prev.map((c) => (c.id === id ? data : c)).sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
       toast({ title: "Categoria atualizada", description: name });
       return data;
     },
-    [categories, user],
+    [categories, user, commit],
   );
 
   const remove = useCallback(async (id: string) => {
