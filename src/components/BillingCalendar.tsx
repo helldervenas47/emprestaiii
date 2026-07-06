@@ -591,6 +591,117 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
     });
   }, [selectedItems, todayStr]);
 
+  // ------------------------------------------------------------------
+  // Breakdown por card: usa exatamente as mesmas fontes (dueMap + salesDueMap)
+  // que alimentam os totais dos cards, garantindo paridade total.
+  // ------------------------------------------------------------------
+  type BreakdownRow = {
+    key: string;
+    clientName: string;
+    dueDate: string;
+    pendingAmount: number;
+    originalTotal: number;
+    received: number;
+    remaining: number;
+    status: string;
+    origin: "Empréstimo" | "Venda" | "Aluguel de veículo";
+    loanId?: string;
+    saleId?: string;
+    installmentInfo: string;
+  };
+
+  const breakdownLabels: Record<NonNullable<typeof breakdownCard>, string> = {
+    hoje: "Receber hoje",
+    atrasados: "Atrasados",
+    amanha: "Receber amanhã",
+    mes: `Este mês (${monthNames[month]}/${year})`,
+  };
+
+  const breakdownRows = useMemo<BreakdownRow[]>(() => {
+    if (!breakdownCard) return [];
+    const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+    const matches = (d: string) => {
+      if (breakdownCard === "hoje") return d === todayStr;
+      if (breakdownCard === "atrasados") return d < todayStr;
+      if (breakdownCard === "amanha") return d === tomorrowStr;
+      return d.startsWith(monthPrefix);
+    };
+    const rows: BreakdownRow[] = [];
+    Object.entries(dueMap).forEach(([d, arr]) => {
+      if (!matches(d)) return;
+      arr.forEach((it) => {
+        const loan = it.loan;
+        const totalWithInterest = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+        const paid = payments.filter((p) => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
+        const remaining = loan.remainingAmount != null && loan.remainingAmount > 0
+          ? loan.remainingAmount
+          : Math.max(0, totalWithInterest - paid);
+        rows.push({
+          key: `loan-${loan.id}-${it.installmentNumber}-${d}`,
+          clientName: it.borrowerName,
+          dueDate: d,
+          pendingAmount: it.amount,
+          originalTotal: loan.amount,
+          received: paid,
+          remaining,
+          status: loan.status || "active",
+          origin: "Empréstimo",
+          loanId: loan.id,
+          installmentInfo: `Parcela ${it.installmentNumber}/${it.totalInstallments}`,
+        });
+      });
+    });
+    Object.entries(salesDueMap).forEach(([d, arr]) => {
+      if (!matches(d)) return;
+      arr.forEach((it) => {
+        const sale = sales.find((s) => s.id === it.saleId);
+        const originalTotal = sale?.total || 0;
+        let received = sale?.downPayment || 0;
+        if (sale) {
+          if (sale.installmentAmounts && sale.installmentAmounts.length > 0) {
+            for (let k = 0; k < sale.paidInstallments && k < sale.installmentAmounts.length; k++) {
+              received += Number(sale.installmentAmounts[k]) || 0;
+            }
+          } else {
+            const vp = sale.installments > 0 ? Math.max(0, sale.total - (sale.downPayment || 0)) / sale.installments : sale.total;
+            received += vp * sale.paidInstallments;
+          }
+          received += sale.partialPaid || 0;
+        }
+        const remaining = Math.max(0, originalTotal - received);
+        rows.push({
+          key: `sale-${it.saleId}-${it.installmentNumber}-${d}`,
+          clientName: it.customerName,
+          dueDate: d,
+          pendingAmount: it.amount,
+          originalTotal,
+          received,
+          remaining,
+          status: (sale as any)?.status || "pending",
+          origin: it.kind === "vehicle" ? "Aluguel de veículo" : "Venda",
+          saleId: it.saleId,
+          installmentInfo: `Parcela ${it.installmentNumber}/${it.totalInstallments}`,
+        });
+      });
+    });
+    rows.sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.clientName.localeCompare(b.clientName));
+    return rows;
+  }, [breakdownCard, dueMap, salesDueMap, todayStr, tomorrowStr, year, month, payments, sales]);
+
+  const breakdownTotal = breakdownRows.reduce((s, r) => s + r.pendingAmount, 0);
+
+  const openBreakdownDetail = (row: BreakdownRow) => {
+    // Navega para o dia do vencimento e fecha o modal, revelando o painel de detalhes existente.
+    const [y, m] = row.dueDate.split("-").map(Number);
+    setYear(y);
+    setMonth(m - 1);
+    setSelectedDate(row.dueDate);
+    setViewMode("mes");
+    setBreakdownCard(null);
+  };
+
+
+
   return (
     <div className="space-y-4">
       {/* Header */}
