@@ -44,32 +44,79 @@ const STOCK_MOVEMENT_COLUMNS =
 
 export function useStockMovements(enabled = true) {
   const { user, dataOwnerId } = useAuth();
-  const [movements, setMovements] = useState<StockMovement[]>([]);
+  const ownerKey = dataOwnerId ?? user?.id ?? null;
+  const cacheKey = ownerKey ? `stock_movements:${ownerKey}` : null;
+  const [movements, setMovements] = useState<StockMovement[]>(() =>
+    cacheKey ? (readSharedResource<StockMovement[]>(cacheKey) ?? []) : [],
+  );
   const [loading, setLoading] = useState(true);
+  const selfWriteRef = useRef(false);
 
   const fetchData = useCallback(async () => {
-    const { data } = await supabase
-      .from("stock_movements" as any)
-      .select(STOCK_MOVEMENT_COLUMNS)
-      .order("created_at", { ascending: false });
-    if (data) setMovements((data as any[]).map(mapRow));
+    if (!cacheKey) return;
+    const rows = await loadSharedResource<StockMovement[]>(
+      cacheKey,
+      async () => {
+        const { data } = await supabase
+          .from("stock_movements" as any)
+          .select(STOCK_MOVEMENT_COLUMNS)
+          .order("created_at", { ascending: false });
+        return (data as any[] | null)?.map(mapRow) ?? [];
+      },
+      { staleTime: STOCK_STALE_MS },
+    );
+    setMovements(rows);
     setLoading(false);
-  }, []);
+  }, [cacheKey]);
 
   useEffect(() => {
-    if (!user || !enabled) return;
-    setLoading(true);
+    if (!user || !enabled || !cacheKey) return;
+    const cached = readSharedResource<StockMovement[]>(cacheKey);
+    if (cached) { setMovements(cached); setLoading(false); }
+    else setLoading(true);
     fetchData();
-  }, [user, enabled, fetchData]);
+  }, [user, enabled, fetchData, cacheKey]);
 
   useEffect(() => {
-    if (!user || !enabled) return;
+    if (!cacheKey) return;
+    return subscribeSharedResource(cacheKey, () => {
+      if (selfWriteRef.current) return;
+      const next = readSharedResource<StockMovement[]>(cacheKey);
+      if (next) setMovements(next);
+    });
+  }, [cacheKey]);
+
+  // Mirror local state to shared cache (self-write guarded to avoid loop)
+  useEffect(() => {
+    if (!cacheKey) return;
+    selfWriteRef.current = true;
+    writeSharedResource(cacheKey, movements);
+    selfWriteRef.current = false;
+  }, [movements, cacheKey]);
+
+  useEffect(() => {
+    if (!user || !enabled || !cacheKey) return;
     const channel = supabase
       .channel(`stock-movements-${user.id}-${Math.random().toString(36).slice(2, 8)}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "stock_movements" }, () => fetchData())
+      .on("postgres_changes", { event: "*", schema: "public", table: "stock_movements" }, () => {
+        invalidateSharedResource(cacheKey);
+        fetchData();
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, enabled, fetchData]);
+  }, [user, enabled, fetchData, cacheKey]);
+
+  useEffect(() => {
+    if (!cacheKey) return;
+    const handler = (e: any) => {
+      if (e?.detail?.tables?.includes?.("stock_movements")) {
+        invalidateSharedResource(cacheKey);
+        fetchData();
+      }
+    };
+    window.addEventListener("offline-sync:flushed", handler);
+    return () => window.removeEventListener("offline-sync:flushed", handler);
+  }, [fetchData, cacheKey]);
 
   const recordMovement = useCallback(async (input: {
     productId: string | null;
