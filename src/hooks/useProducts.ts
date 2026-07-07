@@ -88,6 +88,17 @@ export function useProducts(enabled = true) {
   useEffect(() => { productsRef.current = products; }, [products]);
   useEffect(() => { salesRef.current = sales; }, [sales]);
 
+  // Seed imediato do snapshot persistido quando o owner/cacheKey fica disponível.
+  // O fetch remoto continua acontecendo em background pelo `load()` abaixo.
+  useEffect(() => {
+    if (!cacheKey) return;
+    const persisted = readSharedResource<Bundle>(cacheKey);
+    if (!persisted) return;
+    setProducts(persisted.products);
+    setSales(persisted.sales);
+    setLoading(false);
+  }, [cacheKey]);
+
   const load = useCallback(async () => {
     if (!user || !cacheKey) return;
     try {

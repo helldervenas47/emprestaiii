@@ -187,6 +187,7 @@ import { useClients } from "@/hooks/useClients";
 import { useAutoAdjustCreditLimits } from "@/hooks/useAutoAdjustCreditLimits";
 import { useProducts } from "@/hooks/useProducts";
 import { useExpenses } from "@/hooks/useExpenses";
+import { useIncomes } from "@/hooks/useIncomes";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 
@@ -492,11 +493,12 @@ const Index = () => {
   // Automatic credit-limit adjustment per client (auto mode only)
   useAutoAdjustCreditLimits(clients, loans, payments);
 
-  // Defer heavy hooks until their tabs are active
+  // Prefetch financeiro/veículos assim que o app abre. As telas continuam usando
+  // os mesmos hooks/caches, mas os dados já chegam antes do usuário trocar de aba.
   const needsProducts =
-    tab === "overview" || tab === "products" || tab === "vehicles" || tab === "calendar" || tab === "settings";
+    true || tab === "overview" || tab === "products" || tab === "vehicles" || tab === "calendar" || tab === "settings";
   const needsExpenses =
-    tab === "overview" ||
+    true || tab === "overview" ||
     tab === "expenses" ||
     tab === "vehicles" ||
     tab === "overdue" ||
@@ -508,6 +510,8 @@ const Index = () => {
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } =
     useProducts(needsProducts);
   const { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense } = useExpenses(needsExpenses);
+  const { incomes: prefetchedIncomes } = useIncomes(true);
+  void prefetchedIncomes;
   const {
     vehicles: registeredVehicles,
     add: addVehicle,
