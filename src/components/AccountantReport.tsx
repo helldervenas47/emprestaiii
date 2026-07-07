@@ -185,10 +185,10 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
         reason = "Pagamento sem empréstimo vinculado → assume 100% juros";
       } else if (inst === -1) {
         kind = "quitacao";
-        reason = `Pagamento parcial: juros alocado via juros-primeiro = ${interest.toFixed(2)}`;
+        reason = `Pagamento parcial: juros alocado (juros-primeiro sobre saldo pendente) = ${interest.toFixed(2)}`;
       } else {
         kind = "parcela";
-        reason = `Parcela ${inst}: juros alocado via juros-primeiro = ${interest.toFixed(2)}`;
+        reason = `Parcela ${inst}: juros alocado pró-rata (installmentAmount × ratio) = ${interest.toFixed(2)}`;
       }
 
       const kindLabel = ({
