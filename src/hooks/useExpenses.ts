@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useId } from "react";
 import { todayInAppTz } from "@/lib/timezone";
 import { Expense } from "@/types/loan";
 import { supabase } from "@/integrations/supabase/userClient";
