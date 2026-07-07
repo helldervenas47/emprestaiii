@@ -24,7 +24,9 @@ const store = new Map<string, Entry<any>>();
 // pequenas são persistidas — payloads muito grandes são ignorados para não
 // estourar o quota do localStorage.
 const LS_PREFIX = "shared-res:";
-const LS_MAX_BYTES = 1_500_000; // ~1.5MB por chave
+// Alguns clientes têm milhares de receitas/despesas/vendas; 1.5MB descartava
+// snapshots válidos e fazia a tela depender 100% do fetch remoto no cold start.
+const LS_MAX_BYTES = 4_000_000; // ~4MB por chave, ainda abaixo do quota usual do browser
 
 function lsRead<T>(key: string): T | undefined {
   try {

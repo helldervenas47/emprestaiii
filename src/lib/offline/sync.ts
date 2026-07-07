@@ -13,9 +13,8 @@ import { isOnline } from "./status";
 // ---------- Cache helpers ----------
 
 export async function cacheRows(table: OfflineTable, rows: any[]) {
-  if (!rows || rows.length === 0) return;
   const now = Date.now();
-  const entries = rows.map((r) => ({
+  const entries = (rows ?? []).map((r) => ({
     id: r.id as string,
     user_id: r.user_id,
     data: r,
@@ -28,9 +27,11 @@ export async function cacheRows(table: OfflineTable, rows: any[]) {
   });
 }
 
-export async function getCachedRows(table: OfflineTable): Promise<any[]> {
+export async function getCachedRows(table: OfflineTable, userId?: string | null): Promise<any[]> {
   const all = await offlineDB[table].toArray();
-  return all.map((r) => r.data);
+  return all
+    .filter((r) => !userId || r.user_id === userId)
+    .map((r) => r.data);
 }
 
 export async function upsertCachedRow(table: OfflineTable, row: any) {

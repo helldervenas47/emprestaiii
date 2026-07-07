@@ -4,6 +4,7 @@ import { Product, Sale, BusinessType, SalePaymentRecord } from "@/types/loan";
 import { useAuth } from "@/hooks/useAuth";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 import { assertWritable } from "@/lib/readOnlyState";
+import { cacheRows, getCachedRows } from "@/lib/offline/sync";
 import {
   loadSharedResource,
   invalidateSharedResource,
@@ -13,9 +14,9 @@ import {
 } from "@/lib/sharedResource";
 
 const PRODUCT_COLUMNS =
-  "id, name, description, price, cost, last_purchase_price, suggested_stock, stock, active, created_at";
+  "id, user_id, name, description, price, cost, last_purchase_price, suggested_stock, stock, active, created_at";
 const SALE_COLUMNS =
-  "id, product_id, description, quantity, total, customer_name, sale_date, notes, business_type, payment_mode, installments, paid_installments, frequency, installment_value, installment_amounts, installment_dates, partial_paid, payment_history, locador_id, category";
+  "id, user_id, product_id, description, quantity, total, customer_name, sale_date, notes, business_type, payment_mode, installments, paid_installments, frequency, installment_value, installment_amounts, installment_dates, partial_paid, payment_history, locador_id, category";
 
 // P1-01: staleTime médio — produtos/vendas mudam com mutações locais que já
 // escrevem no cache; realtime invalida + refaz o fetch.
@@ -68,8 +69,14 @@ async function fetchProductsAndSales(): Promise<Bundle> {
     supabase.from("products").select(PRODUCT_COLUMNS).order("created_at", { ascending: false }),
     supabase.from("sales").select(SALE_COLUMNS).order("created_at", { ascending: false }),
   ]);
-  const products = (prodRes.data ?? []).map(rowToProduct);
-  const sales = rowsToSales(salesRes.data ?? [], prodRes.data ?? []);
+  if (prodRes.error) throw prodRes.error;
+  if (salesRes.error) throw salesRes.error;
+  const productRows = prodRes.data ?? [];
+  const salesRows = salesRes.data ?? [];
+  cacheRows("products", productRows).catch(() => { /* noop */ });
+  cacheRows("sales", salesRows).catch(() => { /* noop */ });
+  const products = productRows.map(rowToProduct);
+  const sales = rowsToSales(salesRows, productRows);
   return { products, sales };
 }
 
@@ -87,6 +94,25 @@ export function useProducts(enabled = true) {
   const salesRef = useRef(sales);
   useEffect(() => { productsRef.current = products; }, [products]);
   useEffect(() => { salesRef.current = sales; }, [sales]);
+
+  // Seed imediato do snapshot persistido quando o owner/cacheKey fica disponível.
+  // O fetch remoto continua acontecendo em background pelo `load()` abaixo.
+  useEffect(() => {
+    if (!cacheKey) return;
+    const persisted = readSharedResource<Bundle>(cacheKey);
+    setProducts(persisted?.products ?? []);
+    setSales(persisted?.sales ?? []);
+    setLoading(false);
+    if (!persisted) {
+      Promise.all([getCachedRows("products", ownerKey), getCachedRows("sales", ownerKey)])
+        .then(([productRows, salesRows]) => {
+          if (productRows.length === 0 && salesRows.length === 0) return;
+          setProducts(productRows.map(rowToProduct));
+          setSales(rowsToSales(salesRows, productRows));
+        })
+        .catch(() => { /* noop */ });
+    }
+  }, [cacheKey, ownerKey]);
 
   const load = useCallback(async () => {
     if (!user || !cacheKey) return;

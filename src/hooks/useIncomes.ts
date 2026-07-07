@@ -4,6 +4,7 @@ import { useAuth } from "./useAuth";
 import { displayIncomeCategory } from "@/lib/incomeCategory";
 import { todayInAppTz } from "@/lib/timezone";
 import { assertWritable } from "@/lib/readOnlyState";
+import { cacheRows, getCachedRows } from "@/lib/offline/sync";
 import { financeFetchStart, financeFetchSuccess, financeInvalidate, financeRealtimeEvent, financeSetState, useFinanceHookDebug } from "@/lib/financeDebug";
 import {
   loadSharedResource, readSharedResource, writeSharedResource,
@@ -76,49 +77,78 @@ export function useIncomes(enabled = true) {
   );
   const [loading, setLoading] = useState(false);
   const selfWriteRef = useRef(false);
+  const skipInitialMirrorRef = useRef<string | null>(null);
 
   const fetch = useCallback(async () => {
     if (!user || !cacheKey) return;
     financeFetchStart("useIncomes", "incomes", { reason: "fetch/refetch" });
     setLoading(true);
-    const rows = await loadSharedResource<Income[]>(
-      cacheKey,
-      async () => {
-        const { data } = await supabase
-          .from("incomes" as any)
-          .select("id, description, amount, category, client_id, source, payment_method_id, received_date, actual_received_date, status, notes, recurrence, parent_id, created_at")
-          .order("received_date", { ascending: false })
-          .limit(5000);
-        return (data as any[] | null)?.map(rowToIncome) ?? [];
-      },
-      { staleTime: INCOMES_STALE_MS },
-    );
-    financeSetState("useIncomes", "incomes", { rows: rows.length });
-    setIncomes(rows);
-    setLoading(false);
-    financeSetState("useIncomes", "loading", { value: false });
-    financeFetchSuccess("useIncomes", "incomes", { rows: rows.length });
-  }, [user, cacheKey]);
+    try {
+      const rows = await loadSharedResource<Income[]>(
+        cacheKey,
+        async () => {
+          const { data, error } = await supabase
+            .from("incomes" as any)
+            .select("id, user_id, description, amount, category, client_id, source, payment_method_id, received_date, actual_received_date, status, notes, recurrence, parent_id, created_at")
+            .order("received_date", { ascending: false })
+            .limit(5000);
+          if (error) throw error;
+          const list = (data as any[] | null) ?? [];
+          cacheRows("incomes", list).catch(() => { /* noop */ });
+          return list.map(rowToIncome);
+        },
+        { staleTime: INCOMES_STALE_MS },
+      );
+      financeSetState("useIncomes", "incomes", { rows: rows.length });
+      setIncomes(rows);
+      financeFetchSuccess("useIncomes", "incomes", { rows: rows.length });
+    } catch (error: any) {
+      const cached = await getCachedRows("incomes", ownerKey);
+      if (cached.length > 0) {
+        const mapped = cached
+          .sort((a, b) => (b.received_date || "").localeCompare(a.received_date || ""))
+          .map(rowToIncome);
+        financeSetState("useIncomes", "incomes", { rows: mapped.length, source: "indexeddb-cache" });
+        setIncomes(mapped);
+        financeFetchSuccess("useIncomes", "incomes", { rows: mapped.length, source: "indexeddb-cache", remoteError: error?.message });
+      }
+    } finally {
+      setLoading(false);
+      financeSetState("useIncomes", "loading", { value: false });
+    }
+  }, [user, cacheKey, ownerKey]);
 
   // Sync from cache when other instances update + seed inicial (cold reload)
   useEffect(() => {
     if (!cacheKey) return;
     const persisted = readSharedResource<Income[]>(cacheKey);
-    if (persisted && persisted.length > 0) {
-      selfWriteRef.current = true;
-      setIncomes(persisted);
-      selfWriteRef.current = false;
+    // Evita sobrescrever o snapshot persistido com o estado inicial vazio.
+    // O fetch remoto ainda roda porque o sharedResource hidratado de localStorage
+    // fica stale (loadedAt=0); a UI pinta imediatamente com o último snapshot.
+    skipInitialMirrorRef.current = cacheKey;
+    selfWriteRef.current = true;
+    setIncomes(persisted ?? []);
+    selfWriteRef.current = false;
+    if (persisted === undefined) {
+      getCachedRows("incomes", ownerKey).then((cached) => {
+        if (cached.length === 0) return;
+        setIncomes(cached.sort((a, b) => (b.received_date || "").localeCompare(a.received_date || "")).map(rowToIncome));
+      }).catch(() => { /* noop */ });
     }
     return subscribeSharedResource(cacheKey, () => {
       if (selfWriteRef.current) return;
       const next = readSharedResource<Income[]>(cacheKey);
       if (next) setIncomes(next);
     });
-  }, [cacheKey]);
+  }, [cacheKey, ownerKey]);
 
   // Mirror local state to shared cache
   useEffect(() => {
     if (!cacheKey) return;
+    if (skipInitialMirrorRef.current === cacheKey) {
+      skipInitialMirrorRef.current = null;
+      return;
+    }
     selfWriteRef.current = true;
     writeSharedResource(cacheKey, incomes);
     selfWriteRef.current = false;

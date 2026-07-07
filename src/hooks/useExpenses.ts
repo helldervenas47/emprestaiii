@@ -216,6 +216,7 @@ export function useExpenses(enabled = true) {
     cacheKey ? (readSharedResource<Expense[]>(cacheKey) ?? []) : [],
   );
   const selfWriteRef = useRef(false);
+  const skipInitialMirrorRef = useRef<string | null>(null);
 
   const fetchExpenses = useCallback(async () => {
     if (!user || !cacheKey) return;
@@ -227,7 +228,7 @@ export function useExpenses(enabled = true) {
           async () => {
             const { data, error } = await supabase
               .from("expenses")
-              .select("id, description, amount, type, category, installments, paid_installments, due_date, paid, paid_date, notes, created_at, parent_expense_id, scope, payment_method_id, generate_income_on_pay, generated_income_id")
+              .select("id, user_id, description, amount, type, category, installments, paid_installments, due_date, paid, paid_date, notes, created_at, parent_expense_id, scope, payment_method_id, generate_income_on_pay, generated_income_id")
               .order("created_at", { ascending: false })
               .limit(5000);
             if (error) throw error;
@@ -245,7 +246,7 @@ export function useExpenses(enabled = true) {
         financeFetchError("useExpenses", "expenses", { message: error?.message });
       }
     }
-    const cached = await getCachedRows("expenses");
+    const cached = await getCachedRows("expenses", ownerKey);
     if (cached.length > 0) {
       const mapped = cached
         .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
@@ -254,27 +255,39 @@ export function useExpenses(enabled = true) {
       setExpenses(mapped);
       financeFetchSuccess("useExpenses", "expenses", { rows: mapped.length, source: "cache" });
     }
-  }, [user, cacheKey]);
+  }, [user, cacheKey, ownerKey]);
 
   // Cross-instance sync + seed inicial a partir do cache persistido.
   useEffect(() => {
     if (!cacheKey) return;
     const persisted = readSharedResource<Expense[]>(cacheKey);
-    if (persisted && persisted.length > 0) {
-      selfWriteRef.current = true;
-      setExpenses(persisted);
-      selfWriteRef.current = false;
+    // Evita sobrescrever o snapshot persistido com o estado inicial vazio.
+    // O fetch remoto ainda roda porque o sharedResource hidratado de localStorage
+    // fica stale (loadedAt=0); a UI pinta imediatamente com o último snapshot.
+    skipInitialMirrorRef.current = cacheKey;
+    selfWriteRef.current = true;
+    setExpenses(persisted ?? []);
+    selfWriteRef.current = false;
+    if (persisted === undefined) {
+      getCachedRows("expenses", ownerKey).then((cached) => {
+        if (cached.length === 0) return;
+        setExpenses(cached.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || "")).map(rowToExpense));
+      }).catch(() => { /* noop */ });
     }
     return subscribeSharedResource(cacheKey, () => {
       if (selfWriteRef.current) return;
       const next = readSharedResource<Expense[]>(cacheKey);
       if (next) setExpenses(next);
     });
-  }, [cacheKey]);
+  }, [cacheKey, ownerKey]);
 
   // Mirror local state to shared cache
   useEffect(() => {
     if (!cacheKey) return;
+    if (skipInitialMirrorRef.current === cacheKey) {
+      skipInitialMirrorRef.current = null;
+      return;
+    }
     selfWriteRef.current = true;
     writeSharedResource(cacheKey, expenses);
     selfWriteRef.current = false;
