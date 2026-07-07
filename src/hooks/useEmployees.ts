@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useId } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import type { Employee, SalaryItem } from "@/types/salary";
@@ -37,6 +37,7 @@ const EMPLOYEE_COLUMNS =
 
 export function useEmployees(enabled = true) {
   const { user, dataOwnerId } = useAuth();
+  const instanceId = useId();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -56,7 +57,7 @@ export function useEmployees(enabled = true) {
   useEffect(() => {
     if (!user || !enabled || !dataOwnerId) return;
     const ch = supabase
-      .channel(`employees:${dataOwnerId}`)
+      .channel(`employees:${dataOwnerId}:${instanceId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "employees", filter: `user_id=eq.${dataOwnerId}` },
@@ -64,7 +65,7 @@ export function useEmployees(enabled = true) {
       )
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user, enabled, dataOwnerId, fetchAll]);
+  }, [user, enabled, dataOwnerId, fetchAll, instanceId]);
 
   const addEmployee = useCallback(async (e: Omit<Employee, "id" | "createdAt" | "updatedAt">) => {
     assertWritable();

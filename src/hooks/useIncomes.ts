@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useId } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { displayIncomeCategory } from "@/lib/incomeCategory";
@@ -70,6 +70,7 @@ function rowToIncome(r: any): Income {
 export function useIncomes(enabled = true) {
   useFinanceHookDebug("useIncomes");
   const { user, dataOwnerId } = useAuth();
+  const instanceId = useId();
   const ownerKey = dataOwnerId ?? user?.id ?? null;
   const cacheKey = ownerKey ? `incomes:${ownerKey}` : null;
   const [incomes, setIncomes] = useState<Income[]>(() =>
@@ -182,7 +183,7 @@ export function useIncomes(enabled = true) {
       }
     };
     const channel = supabase
-      .channel(`incomes:${ownerId}`)
+      .channel(`incomes:${ownerId}:${instanceId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "incomes", filter: `user_id=eq.${ownerId}` }, (payload) => {
         financeRealtimeEvent("useIncomes", "incomes", { eventType: "INSERT" });
         safe(() => setIncomes((prev) => {
@@ -201,7 +202,7 @@ export function useIncomes(enabled = true) {
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, dataOwnerId, fetch, enabled]);
+  }, [user, dataOwnerId, fetch, enabled, instanceId]);
 
   const insertSingle = useCallback(async (
     input: Omit<Income, "id" | "createdAt">,

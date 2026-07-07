@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useId } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { Product, Sale, BusinessType, SalePaymentRecord } from "@/types/loan";
 import { useAuth } from "@/hooks/useAuth";
@@ -82,6 +82,7 @@ async function fetchProductsAndSales(): Promise<Bundle> {
 
 export function useProducts(enabled = true) {
   const { user, dataOwnerId } = useAuth();
+  const instanceId = useId();
   const ownerKey = dataOwnerId ?? user?.id ?? "";
   const cacheKey = ownerKey ? `products_sales:${ownerKey}` : "";
   const initial = readSharedResource<Bundle>(cacheKey);
@@ -151,7 +152,7 @@ export function useProducts(enabled = true) {
       load();
     };
     const channel = supabase
-      .channel(`products-sales:${dataOwnerId}`)
+      .channel(`products-sales:${dataOwnerId}:${instanceId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'products', filter: `user_id=eq.${dataOwnerId}` },
@@ -164,7 +165,7 @@ export function useProducts(enabled = true) {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, enabled, cacheKey, dataOwnerId, load]);
+  }, [user, enabled, cacheKey, dataOwnerId, load, instanceId]);
 
   // Sincroniza cache compartilhado após updates otimistas locais.
   const syncCache = useCallback(() => {

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useId } from "react";
 import { Client } from "@/types/loan";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
@@ -60,6 +60,7 @@ async function fetchClientsRows(): Promise<Client[]> {
 
 export function useClients() {
   const { user, dataOwnerId } = useAuth();
+  const instanceId = useId();
   const ownerKey = dataOwnerId ?? user?.id ?? "";
   const cacheKey = ownerKey ? `clients:${ownerKey}` : "";
   const [clients, setClients] = useState<Client[]>(
@@ -102,7 +103,7 @@ export function useClients() {
   useEffect(() => {
     if (!user || !dataOwnerId) return;
     const channel = supabase
-      .channel(`clients:${dataOwnerId}`)
+      .channel(`clients:${dataOwnerId}:${instanceId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'clients', filter: `user_id=eq.${dataOwnerId}` },
@@ -114,7 +115,7 @@ export function useClients() {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, dataOwnerId, fetchClients, cacheKey]);
+  }, [user, dataOwnerId, fetchClients, cacheKey, instanceId]);
 
   useEffect(() => {
     const handler = (e: any) => {

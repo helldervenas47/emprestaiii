@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useId } from "react";
 import { todayInAppTz } from "@/lib/timezone";
 import { Expense } from "@/types/loan";
 import { supabase } from "@/integrations/supabase/userClient";
@@ -210,6 +210,7 @@ async function syncPayrollOnExpensePaid(opts: {
 export function useExpenses(enabled = true) {
   useFinanceHookDebug("useExpenses");
   const { user, dataOwnerId } = useAuth();
+  const instanceId = useId();
   const ownerKey = dataOwnerId ?? user?.id ?? null;
   const cacheKey = ownerKey ? `expenses:${ownerKey}` : null;
   const [expenses, setExpenses] = useState<Expense[]>(() =>
@@ -308,7 +309,7 @@ export function useExpenses(enabled = true) {
       }
     };
     const channel = supabase
-      .channel(`expenses:${ownerId}`)
+      .channel(`expenses:${ownerId}:${instanceId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'expenses', filter: `user_id=eq.${ownerId}` }, (payload) => {
         financeRealtimeEvent("useExpenses", "expenses", { eventType: "INSERT" });
         safe(() => setExpenses((prev) => {
@@ -327,7 +328,7 @@ export function useExpenses(enabled = true) {
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, dataOwnerId, fetchExpenses, enabled, cacheKey]);
+  }, [user, dataOwnerId, fetchExpenses, enabled, cacheKey, instanceId]);
 
   // Refetch after offline queue flush (invalidate cache first)
   useEffect(() => {

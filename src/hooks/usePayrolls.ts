@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useId } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { assertWritable } from "@/lib/readOnlyState";
@@ -80,6 +80,7 @@ async function removeLedgerByMetadata(key: string, value: string) {
 
 export function usePayrolls(enabled = true) {
   const { user, dataOwnerId } = useAuth();
+  const instanceId = useId();
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -103,7 +104,7 @@ export function usePayrolls(enabled = true) {
       try { fn(); } catch (e) { console.warn("[usePayrolls realtime patch failed, refetching]", e); fetchAll(); }
     };
     const ch = supabase
-      .channel(`payrolls:${ownerId}`)
+      .channel(`payrolls:${ownerId}:${instanceId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "payrolls", filter: `user_id=eq.${ownerId}` }, (payload) => {
         safe(() => setPayrolls((prev) => {
           const row = rowToPayroll(payload.new as any);
@@ -119,7 +120,7 @@ export function usePayrolls(enabled = true) {
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user, dataOwnerId, enabled, fetchAll]);
+  }, [user, dataOwnerId, enabled, fetchAll, instanceId]);
 
   /**
    * Garante que exista uma despesa vinculada a esta folha (1:1).
