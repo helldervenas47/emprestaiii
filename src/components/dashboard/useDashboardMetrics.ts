@@ -23,6 +23,7 @@ import {
   monthNames,
   summarizeMonthMetrics,
 } from "@/components/dashboard/dashboardHelpers";
+import { allocateInterestByPayment } from "@/lib/interestAllocation";
 
 interface UseDashboardMetricsInput {
   loans: Loan[];
