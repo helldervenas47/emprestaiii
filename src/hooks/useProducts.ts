@@ -145,18 +145,26 @@ export function useProducts(enabled = true) {
 
   // Realtime: invalida + refetch coalescido (loadSharedResource dedup in-flight).
   useEffect(() => {
-    if (!user || !enabled || !cacheKey) return;
+    if (!user || !enabled || !cacheKey || !dataOwnerId) return;
     const handler = () => {
       invalidateSharedResource(cacheKey);
       load();
     };
     const channel = supabase
-      .channel(`products-sales-realtime-${user.id}-${Math.random().toString(36).slice(2, 8)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, handler)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, handler)
+      .channel(`products-sales:${dataOwnerId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products', filter: `user_id=eq.${dataOwnerId}` },
+        handler,
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sales', filter: `user_id=eq.${dataOwnerId}` },
+        handler,
+      )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, enabled, cacheKey, load]);
+  }, [user, enabled, cacheKey, dataOwnerId, load]);
 
   // Sincroniza cache compartilhado após updates otimistas locais.
   const syncCache = useCallback(() => {

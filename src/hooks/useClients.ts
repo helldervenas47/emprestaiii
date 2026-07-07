@@ -100,17 +100,21 @@ export function useClients() {
   }, [cacheKey]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     const channel = supabase
-      .channel(`clients-realtime-${user.id}-${Math.random().toString(36).slice(2, 8)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => {
-        // Invalidação + refetch coalescido (loadSharedResource dedup in-flight).
-        if (cacheKey) invalidateSharedResource(cacheKey);
-        fetchClients();
-      })
+      .channel(`clients:${dataOwnerId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'clients', filter: `user_id=eq.${dataOwnerId}` },
+        () => {
+          // Invalidação + refetch coalescido (loadSharedResource dedup in-flight).
+          if (cacheKey) invalidateSharedResource(cacheKey);
+          fetchClients();
+        },
+      )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, fetchClients, cacheKey]);
+  }, [user, dataOwnerId, fetchClients, cacheKey]);
 
   useEffect(() => {
     const handler = (e: any) => {
