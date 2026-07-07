@@ -888,7 +888,8 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                               isRecorrente && expense.installments !== FIXED_RECURRING_INSTALLMENTS;
                             const isParceladaFinita = isParceladaFinitaSelf || parentIsParcelada;
                             const summaryTarget = isParceladaFinitaSelf ? expense : parentExpense;
-                            const InnerWrapper: any = isParceladaFinita ? "button" : "div";
+                            const canOpenEdit = !!onUpdate && !readOnly && !isParceladaFinita;
+                            const InnerWrapper: any = isParceladaFinita || canOpenEdit ? "button" : "div";
                             const wrapperProps = isParceladaFinita
                               ? {
                                   type: "button",
@@ -896,6 +897,14 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                                   className:
                                     "flex items-start gap-3 w-full text-left rounded-lg -m-1 p-1 hover:bg-muted/40 transition-colors cursor-pointer",
                                   "aria-label": `Ver resumo de ${expense.description}`,
+                                }
+                              : canOpenEdit
+                              ? {
+                                  type: "button",
+                                  onClick: () => setEditingExpense(expense),
+                                  className:
+                                    "flex items-start gap-3 w-full text-left rounded-lg -m-1 p-1 hover:bg-muted/40 transition-colors cursor-pointer",
+                                  "aria-label": `Editar ${expense.description}`,
                                 }
                               : { className: "flex items-start gap-3" };
                             return (
