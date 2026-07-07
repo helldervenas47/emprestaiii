@@ -1,5 +1,32 @@
 import { describe, it, expect } from "vitest";
-import { allocateInterestByPayment, computeInstallmentInterest } from "@/lib/interestAllocation";
+import { allocateInterestByPayment, buildInstallmentBreakdown, computeInstallmentInterest, getInstallmentInterest } from "@/lib/interestAllocation";
+
+describe("buildInstallmentBreakdown", () => {
+  it("distributes interest uniformly across equal installments and closes residual on last", () => {
+    const s = buildInstallmentBreakdown({ amount: 1000, interestRate: 20, installments: 6 });
+    expect(s).toHaveLength(6);
+    const sumInterest = s.reduce((a, e) => a + e.interest, 0);
+    const sumPrincipal = s.reduce((a, e) => a + e.principal, 0);
+    expect(sumInterest).toBeCloseTo(200, 2);
+    expect(sumPrincipal).toBeCloseTo(1000, 2);
+    // Parcels 1..5 identical
+    for (let i = 0; i < 5; i++) expect(s[i].interest).toBeCloseTo(s[0].interest, 2);
+  });
+
+  it("single-installment loan keeps legacy shape", () => {
+    const s = buildInstallmentBreakdown({ amount: 1000, interestRate: 20, installments: 1 });
+    expect(s).toHaveLength(1);
+    expect(s[0].interest).toBe(200);
+    expect(s[0].principal).toBe(1000);
+  });
+
+  it("O(1) lookup via getInstallmentInterest", () => {
+    const got = getInstallmentInterest({ amount: 1000, interestRate: 20, installments: 4 }, 2);
+    expect(got).not.toBeNull();
+    expect(got!.interest + got!.principal).toBeCloseTo(got!.amount, 2);
+  });
+});
+
 
 const makeLoan = (over: Partial<any> = {}) => ({
   id: "L1",
