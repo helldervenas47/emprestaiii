@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import {
   Dialog,
@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -39,6 +38,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ExpenseBoletoLinkSection } from "@/components/ExpenseBoletoLinkSection";
 
+
+
 export type EditScope = "this" | "pending" | "all";
 
 interface Props {
@@ -63,8 +64,10 @@ type PaymentMethod = typeof PAYMENT_METHODS[number];
 
 const PAYMENT_TAG_RE = /\[\s*(Dinheiro|Pix|D[ée]bito autom[áa]tico|D[ée]bito|Cr[eé]dito|Boleto)\s*\]/i;
 const CARD_LINE_RE = /\[\s*Cr[eé]dito\s*\][^\n]*Cart[ãa]o:\s*([^\n(]+?)(?:\s*\(vence[^)]*\))?\s*(?:\n|$)/i;
+// Rastreabilidade: marcador de edição
 const EDITED_RE = /\n?\[\s*Editado em [^\]]+\]\s*$/i;
 
+/** Detect current payment method from notes; defaults to Pix. */
 function detectPaymentMethod(notes: string | null | undefined): PaymentMethod {
   if (!notes) return "Pix";
   const m = notes.match(PAYMENT_TAG_RE);
@@ -79,21 +82,31 @@ function detectPaymentMethod(notes: string | null | undefined): PaymentMethod {
   return "Pix";
 }
 
+/** Detect linked credit card tag (nickname or lastFour) from notes. */
 function detectCardTag(notes: string | null | undefined): string | null {
   if (!notes) return null;
   const m = notes.match(CARD_LINE_RE);
   return m ? m[1].trim() : null;
 }
 
+/** Strip payment tag, card line, and edited marker from notes — leaving only the user's free-text. */
 function extractFreeNotes(notes: string | null | undefined): string {
   if (!notes) return "";
   let n = notes;
+  // Remove the [Crédito] Cartão: ... line entirely
   n = n.replace(CARD_LINE_RE, "").trim();
+  // Remove any [Method] tag
   n = n.replace(PAYMENT_TAG_RE, "").trim();
+  // Remove edited marker
   n = n.replace(EDITED_RE, "").trim();
   return n;
 }
 
+/**
+ * Rebuild the notes payload preserving the same conventions used by
+ * the Telegram bot and the manual form, then append an "Editado em" marker
+ * for traceability.
+ */
 function buildNotes(opts: {
   paymentMethod: PaymentMethod;
   cardTag: string | null;
@@ -110,50 +123,6 @@ function buildNotes(opts: {
   return lines.join("\n");
 }
 
-interface FormState {
-  description: string;
-  amount: string;
-  dueDate: string;
-  category: string;
-  paymentMethod: PaymentMethod;
-  cardId: string;
-  freeNotes: string;
-}
-
-function hydrateFromExpense(expense: Expense, cards: ReturnType<typeof useCreditCards>["cards"]): FormState {
-  const inst = expense.installments ?? 0;
-  const isParc = expense.type === "recorrente" && inst > 1;
-  const pm = detectPaymentMethod(expense.notes);
-  const tag = detectCardTag(expense.notes);
-  let cardId = "";
-  if (tag && cards.length) {
-    const lower = tag.toLowerCase();
-    const found = cards.find(
-      (c) =>
-        c.nickname.toLowerCase() === lower ||
-        c.lastFour === tag ||
-        c.bank.toLowerCase() === lower,
-    );
-    cardId = found?.id ?? "";
-  } else if (pm === "Crédito" && cards.length) {
-    const nubank = cards.find(
-      (c) =>
-        c.bank?.toLowerCase().includes("nubank") ||
-        c.nickname?.toLowerCase().includes("nubank"),
-    );
-    cardId = (nubank ?? cards[0]).id;
-  }
-  return {
-    description: expense.description,
-    amount: String(isParc ? expense.amount / inst : expense.amount),
-    dueDate: expense.dueDate,
-    category: expense.category ?? "",
-    paymentMethod: pm,
-    cardId,
-    freeNotes: extractFreeNotes(expense.notes),
-  };
-}
-
 export function ExpenseEditDialog({
   open,
   onOpenChange,
@@ -164,61 +133,69 @@ export function ExpenseEditDialog({
   const { cards } = useCreditCards();
   const { categories: customCategories, reload: reloadCategories } = usePersonalExpenseCategories();
 
+  // Re-fetch categories whenever the dialog opens, to pick up any newly created
+  // categories without needing to reload the page.
   useEffect(() => {
-    if (open) reloadCategories();
+    if (open) {
+      reloadCategories();
+    }
   }, [open, reloadCategories]);
 
-  const initialRef = useRef<FormState | null>(null);
-  const [form, setForm] = useState<FormState>({
-    description: "",
-    amount: "",
-    dueDate: "",
-    category: "",
-    paymentMethod: "Pix",
-    cardId: "",
-    freeNotes: "",
-  });
+
+  const [description, setDescription] = useState("");
+  const [amount, setAmount] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [category, setCategory] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("Pix");
+  const [cardId, setCardId] = useState<string>("");
+  const [freeNotes, setFreeNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [scope, setScope] = useState<EditScope>("this");
   const [confirmAllOpen, setConfirmAllOpen] = useState(false);
-  const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const descriptionRef = useRef<HTMLInputElement | null>(null);
-
+  // Hydrate from expense
   useEffect(() => {
     if (!expense) return;
-    const next = hydrateFromExpense(expense, cards);
-    initialRef.current = next;
-    setForm(next);
-    setTouched({});
-    setScope("this");
-  }, [expense, cards]);
-
-  useEffect(() => {
-    if (open) {
-      const t = setTimeout(() => descriptionRef.current?.focus(), 50);
-      return () => clearTimeout(t);
+    setDescription(expense.description);
+    const inst = expense.installments ?? 0;
+    const isParc = expense.type === "recorrente" && inst > 1;
+    setAmount(String(isParc ? expense.amount / inst : expense.amount));
+    setDueDate(expense.dueDate);
+    setCategory(expense.category ?? "");
+    const pm = detectPaymentMethod(expense.notes);
+    setPaymentMethod(pm);
+    setFreeNotes(extractFreeNotes(expense.notes));
+    // Try to map the card tag to a known card; default to Nubank when Crédito and no tag
+    const tag = detectCardTag(expense.notes);
+    if (tag && cards.length) {
+      const lower = tag.toLowerCase();
+      const found = cards.find(
+        (c) =>
+          c.nickname.toLowerCase() === lower ||
+          c.lastFour === tag ||
+          c.bank.toLowerCase() === lower,
+      );
+      setCardId(found?.id ?? "");
+    } else if (pm === "Crédito" && cards.length) {
+      const nubank = cards.find(
+        (c) =>
+          c.bank?.toLowerCase().includes("nubank") ||
+          c.nickname?.toLowerCase().includes("nubank"),
+      );
+      setCardId((nubank ?? cards[0]).id);
+    } else {
+      setCardId("");
     }
-  }, [open, expense?.id]);
+  }, [expense, cards]);
 
   const wasEdited = useMemo(
     () => !!expense?.notes && EDITED_RE.test(expense.notes),
     [expense],
   );
 
-  const isDirty = useMemo(() => {
-    if (!initialRef.current) return false;
-    const a = initialRef.current;
-    return (
-      a.description !== form.description ||
-      a.amount !== form.amount ||
-      a.dueDate !== form.dueDate ||
-      a.category !== form.category ||
-      a.paymentMethod !== form.paymentMethod ||
-      a.cardId !== form.cardId ||
-      a.freeNotes !== form.freeNotes
-    );
-  }, [form]);
+  // Reset scope whenever a different expense is loaded
+  useEffect(() => {
+    setScope("this");
+  }, [expense?.id]);
 
   const categoryOptions = useMemo(() => {
     const customNames = new Set(customCategories.map((c) => c.name.trim().toLowerCase()));
@@ -228,100 +205,29 @@ export function ExpenseEditDialog({
         .map((c) => c.name),
       ...customCategories.map((c) => c.name),
     ];
-    if (form.category && !names.some((name) => name === form.category)) {
-      names.push(form.category);
+
+    if (category && !names.some((name) => name === category)) {
+      names.push(category);
     }
+
     return names.sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [form.category, customCategories]);
+  }, [category, customCategories]);
 
   if (!expense) return null;
 
-  const isParcelada = expense.type === "recorrente" && (expense.installments ?? 0) > 1;
+  const isParcelada =
+    expense.type === "recorrente" && (expense.installments ?? 0) > 1;
   const isChildInstallment = !!expense.parentExpenseId;
+  // Show scope selector for installment parents OR for paid child installments
   const showScopeSelector = isParcelada || isChildInstallment;
-  const selectedCard = cards.find((c) => c.id === form.cardId) ?? null;
 
-  const amountNum = Number(form.amount);
-  const errors: Record<string, string | null> = {
-    description: !form.description.trim() ? "Informe uma descrição." : null,
-    amount: !form.amount ? "Informe o valor." : isNaN(amountNum) || amountNum <= 0 ? "O valor deve ser maior que zero." : null,
-    dueDate: !form.dueDate ? "Informe a data de vencimento." : null,
-    category: !form.category ? "Selecione uma categoria." : null,
-    cardId: form.paymentMethod === "Crédito" && !form.cardId ? "Selecione o cartão." : null,
-  };
-  const hasErrors = Object.values(errors).some((e) => !!e);
-
-  const update = <K extends keyof FormState>(field: K, value: FormState[K]) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    setTouched((t) => ({ ...t, [field as string]: true }));
-  };
-
-  const handleTryClose = () => {
-    if (isDirty && !saving) {
-      setConfirmDiscardOpen(true);
-    } else {
-      onOpenChange(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Enter" && !(e.target instanceof HTMLTextAreaElement)) {
-      // Só dispara se não estiver em um Select aberto etc; botão trata a validação
-      if (!hasErrors && !saving) {
-        e.preventDefault();
-        onSaveClick();
-      }
-    }
-  };
-
-  const onSaveClick = () => {
-    setTouched({
-      description: true,
-      amount: true,
-      dueDate: true,
-      category: true,
-      cardId: true,
-    });
-    if (hasErrors) return;
-    if (showScopeSelector && scope === "all") {
-      setConfirmAllOpen(true);
-      return;
-    }
-    void doSave(scope);
-  };
-
-  const fieldError = (name: keyof typeof errors) =>
-    touched[name as string] && errors[name] ? (
-      <p className="text-[11px] text-destructive mt-1">{errors[name]}</p>
-    ) : null;
+  const selectedCard = cards.find((c) => c.id === cardId) ?? null;
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(v) => {
-        if (!v) handleTryClose();
-        else onOpenChange(true);
-      }}
-    >
-      <DialogContent
-        onKeyDown={handleKeyDown}
-        onEscapeKeyDown={(e) => {
-          if (isDirty) {
-            e.preventDefault();
-            setConfirmDiscardOpen(true);
-          }
-        }}
-        className="top-0 left-0 translate-x-0 translate-y-0 w-screen h-[100dvh] max-w-none max-h-[100dvh] rounded-none border-0 overflow-y-auto z-[2147483648] sm:top-[50%] sm:left-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:w-full sm:h-auto sm:max-w-md sm:max-h-[90vh] sm:rounded-2xl sm:border"
-      >
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="top-0 left-0 translate-x-0 translate-y-0 w-screen h-[100dvh] max-w-none max-h-[100dvh] rounded-none border-0 overflow-y-auto z-[2147483648] sm:top-[50%] sm:left-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:w-full sm:h-auto sm:max-w-md sm:max-h-[90vh] sm:rounded-2xl sm:border">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            Editar lançamento
-            {isDirty && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-500/50 text-amber-600 dark:text-amber-400">
-                Alterações não salvas
-              </Badge>
-            )}
-          </DialogTitle>
+          <DialogTitle>Editar lançamento</DialogTitle>
           <DialogDescription>
             {isParcelada
               ? `Esta despesa é parcelada (${expense.installments}x). Informe o valor da parcela — o total e todas as parcelas serão atualizados.`
@@ -341,30 +247,56 @@ export function ExpenseEditDialog({
           </div>
         )}
 
-        <div className="space-y-4">
-          {/* 1. Descrição */}
+        <div className="space-y-3">
           <div>
-            <Label className="text-xs">Descrição *</Label>
+            <Label className="text-xs">Descrição</Label>
             <Input
-              ref={descriptionRef}
-              className="h-10"
-              value={form.description}
-              onChange={(e) => update("description", e.target.value)}
-              onBlur={() => setTouched((t) => ({ ...t, description: true }))}
-              aria-invalid={!!(touched.description && errors.description)}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
             />
-            {fieldError("description")}
           </div>
 
-          {/* 2. Categoria */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">
+                {isParcelada ? "Valor da parcela" : "Valor"}
+              </Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Data de vencimento</Label>
+              <DatePickerField
+                value={dueDate}
+                onChange={setDueDate}
+                placeholder="Selecione a data"
+                popoverContentClassName="z-[2147483650]"
+              />
+            </div>
+          </div>
+
+          {isParcelada && Number(amount) > 0 && (expense.installments ?? 0) > 0 && (
+            <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+              Valor total:{" "}
+              <span className="font-semibold text-foreground">
+                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                  Number(amount) * (expense.installments as number),
+                )}
+              </span>{" "}
+              ({expense.installments}x de {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(amount))})
+            </div>
+          )}
+
           <div>
-            <Label className="text-xs">Categoria *</Label>
+            <Label className="text-xs">Categoria</Label>
             <select
-              value={form.category}
-              onChange={(e) => update("category", e.target.value)}
-              onBlur={() => setTouched((t) => ({ ...t, category: true }))}
-              aria-invalid={!!(touched.category && errors.category)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-destructive"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="flex h-11 min-h-[44px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="" disabled>
                 Selecione a categoria
@@ -375,63 +307,19 @@ export function ExpenseEditDialog({
                 </option>
               ))}
             </select>
-            {fieldError("category")}
           </div>
 
-          {/* 3. Valor + 4. Data de vencimento */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs">
-                {isParcelada ? "Valor da parcela *" : "Valor *"}
-              </Label>
-              <Input
-                type="number"
-                step="0.01"
-                inputMode="decimal"
-                className="h-10"
-                value={form.amount}
-                onChange={(e) => update("amount", e.target.value)}
-                onBlur={() => setTouched((t) => ({ ...t, amount: true }))}
-                aria-invalid={!!(touched.amount && errors.amount)}
-              />
-              {fieldError("amount")}
-            </div>
-            <div>
-              <Label className="text-xs">Data de vencimento *</Label>
-              <DatePickerField
-                value={form.dueDate}
-                onChange={(v) => update("dueDate", v)}
-                placeholder="Selecione a data"
-                popoverContentClassName="z-[2147483650]"
-              />
-              {fieldError("dueDate")}
-            </div>
-          </div>
-
-          {isParcelada && Number(form.amount) > 0 && (expense.installments ?? 0) > 0 && (
-            <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-              Valor total:{" "}
-              <span className="font-semibold text-foreground">
-                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-                  Number(form.amount) * (expense.installments as number),
-                )}
-              </span>{" "}
-              ({expense.installments}x de {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(form.amount))})
-            </div>
-          )}
-
-          {/* 5. Forma de pagamento + 6. Cartão (condicional) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Forma de pagamento</Label>
               <Select
-                value={form.paymentMethod}
+                value={paymentMethod}
                 onValueChange={(v) => {
-                  update("paymentMethod", v as PaymentMethod);
-                  if (v !== "Crédito") update("cardId", "");
+                  setPaymentMethod(v as PaymentMethod);
+                  if (v !== "Crédito") setCardId("");
                 }}
               >
-                <SelectTrigger className="h-10">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="z-[2147483650]">
@@ -443,11 +331,11 @@ export function ExpenseEditDialog({
                 </SelectContent>
               </Select>
             </div>
-            {form.paymentMethod === "Crédito" && (
+            {paymentMethod === "Crédito" && (
               <div>
-                <Label className="text-xs">Cartão *</Label>
-                <Select value={form.cardId} onValueChange={(v) => update("cardId", v)}>
-                  <SelectTrigger className="h-10" aria-invalid={!!(touched.cardId && errors.cardId)}>
+                <Label className="text-xs">Cartão</Label>
+                <Select value={cardId} onValueChange={setCardId}>
+                  <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent className="z-[2147483650]">
@@ -464,23 +352,22 @@ export function ExpenseEditDialog({
                     ))}
                   </SelectContent>
                 </Select>
-                {fieldError("cardId")}
               </div>
             )}
           </div>
 
-          {/* 7. Observações */}
           <div>
             <Label className="text-xs">Observações</Label>
             <Textarea
-              value={form.freeNotes}
-              onChange={(e) => update("freeNotes", e.target.value)}
+              value={freeNotes}
+              onChange={(e) => setFreeNotes(e.target.value)}
               rows={2}
               placeholder="Detalhes adicionais (opcional)"
             />
           </div>
 
           <ExpenseBoletoLinkSection expenseId={expense.id} />
+
 
           {showScopeSelector && (
             <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-2">
@@ -529,19 +416,31 @@ export function ExpenseEditDialog({
                     <div className="text-[11px] text-muted-foreground">Reescreve também o histórico de parcelas já quitadas.</div>
                   </div>
                 </label>
+
               </RadioGroup>
             </div>
           )}
         </div>
 
-        <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button variant="outline" className="h-10 w-full sm:w-auto" onClick={handleTryClose}>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
           <Button
-            className="h-10 w-full sm:w-auto"
-            disabled={saving || hasErrors}
-            onClick={onSaveClick}
+            disabled={
+              saving ||
+              !description ||
+              !amount ||
+              !category ||
+              (paymentMethod === "Crédito" && !cardId)
+            }
+            onClick={async () => {
+              if (showScopeSelector && scope === "all") {
+                setConfirmAllOpen(true);
+                return;
+              }
+              await doSave(scope);
+            }}
           >
             {saving ? "Salvando..." : "Salvar"}
           </Button>
@@ -575,29 +474,6 @@ export function ExpenseEditDialog({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <AlertDialog open={confirmDiscardOpen} onOpenChange={setConfirmDiscardOpen}>
-        <AlertDialogContent className="z-[2147483649]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Descartar alterações?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Você fez alterações que ainda não foram salvas. Deseja descartá-las e fechar?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Continuar editando</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                setConfirmDiscardOpen(false);
-                onOpenChange(false);
-              }}
-            >
-              Descartar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Dialog>
   );
 
@@ -608,18 +484,18 @@ export function ExpenseEditDialog({
         ? selectedCard.nickname || selectedCard.lastFour || selectedCard.bank
         : null;
       const notes = buildNotes({
-        paymentMethod: form.paymentMethod,
-        cardTag: form.paymentMethod === "Crédito" ? cardTag : null,
-        freeNotes: form.freeNotes,
+        paymentMethod,
+        cardTag: paymentMethod === "Crédito" ? cardTag : null,
+        freeNotes,
       });
       const inst = expense.installments ?? 0;
-      const totalAmount = isParcelada ? Number(form.amount) * inst : Number(form.amount);
+      const totalAmount = isParcelada ? Number(amount) * inst : Number(amount);
       await onSave(
         {
-          description: form.description.trim(),
+          description,
           amount: totalAmount,
-          dueDate: form.dueDate,
-          category: form.category,
+          dueDate,
+          category,
           notes,
         },
         showScopeSelector ? effectiveScope : "this",
