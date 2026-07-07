@@ -1,14 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { X, Plus } from "lucide-react";
-import { BANKS, BRANDS } from "@/lib/creditCardBanks";
+import { X, Plus, CreditCard as CreditCardIcon, Wifi } from "lucide-react";
+import { BANKS, BRANDS, getBank, brandLabel } from "@/lib/creditCardBanks";
 import { CreditCard, CreditCardInput } from "@/hooks/useCreditCards";
-import { CreditCardItem } from "./CreditCardItem";
 
 interface Props {
   initial?: CreditCard;
