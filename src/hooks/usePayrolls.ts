@@ -80,6 +80,7 @@ async function removeLedgerByMetadata(key: string, value: string) {
 
 export function usePayrolls(enabled = true) {
   const { user, dataOwnerId } = useAuth();
+  const instanceId = useId();
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
   const [loading, setLoading] = useState(false);
 
