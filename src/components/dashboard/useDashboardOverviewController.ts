@@ -30,7 +30,7 @@ export function useDashboardOverviewController() {
     let alive = true;
     const load = async () => {
       const b = await getBalances();
-      if (alive) setAccountBalanceState(b.account);
+      if (alive) setAccountBalanceState(b.total);
     };
     load();
     window.addEventListener("balance:changed", load);
