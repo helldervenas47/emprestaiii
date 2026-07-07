@@ -957,13 +957,45 @@ export function useLoans() {
 
     try {
       await applyPaymentBalance(payAmount, paymentMethodId ?? null, normalizedSplit);
-      // Lança o valor total recebido (principal + juros/multa) em uma única linha no extrato.
-      // O índice único uq_account_ledger_payment exige um único lançamento por payment_id.
-      const principalPaidBefore = payments
-        .filter((p) => p.loanId === loanId)
-        .reduce((sum, p) => sum + Math.min(Number(p.amount) || 0, Math.max(0, loan.amount - sum)), 0);
-      const principalPortion = Math.min(payAmount, Math.max(0, loan.amount - principalPaidBefore));
-      const interestPortion = Math.max(0, Math.round((payAmount - principalPortion) * 100) / 100);
+      // Alocação de juros/principal:
+      // - Contrato de parcela única: excedente sobre o principal remanescente é juros (legado).
+      // - Contrato parcelado: usa a fórmula pró-rata; juros da última parcela fecha
+      //   `totalInterest`, e QUALQUER excedente por acordo/bônus fica em principal
+      //   (não infla o card de "Juros Recebidos").
+      let interestPortion = 0;
+      let principalPortion = payAmount;
+      if (loan.installments <= 1) {
+        const principalPaidBefore = payments
+          .filter((p) => p.loanId === loanId)
+          .reduce((sum, p) => sum + Math.min(Number(p.amount) || 0, Math.max(0, loan.amount - sum)), 0);
+        principalPortion = Math.min(payAmount, Math.max(0, loan.amount - principalPaidBefore));
+        interestPortion = Math.max(0, Math.round((payAmount - principalPortion) * 100) / 100);
+      } else {
+        const priorInterest = payments
+          .filter((p) => p.loanId === loanId && p.installmentNumber >= 1 && p.installmentNumber < loan.installments)
+          .reduce((s, p) => {
+            const parcelAmt = Number(p.amount) || 0;
+            const { interestPart } = computeInstallmentInterest({
+              principal: loan.amount,
+              rate: loan.interestRate,
+              installments: loan.installments,
+              installmentAmount: parcelAmt,
+              installmentNumber: p.installmentNumber,
+              priorInterestAllocated: s,
+            });
+            return s + interestPart;
+          }, 0);
+        const finalAlloc = computeInstallmentInterest({
+          principal: loan.amount,
+          rate: loan.interestRate,
+          installments: loan.installments,
+          installmentAmount: payAmount,
+          installmentNumber: loan.installments,
+          priorInterestAllocated: priorInterest,
+        });
+        interestPortion = finalAlloc.interestPart;
+        principalPortion = Math.max(0, Math.round((payAmount - interestPortion) * 100) / 100);
+      }
       await recordPaymentLedgerSplit({
         amount: payAmount,
         description: `Quitação - ${loan.borrowerName}`,
@@ -972,7 +1004,7 @@ export function useLoans() {
         split: normalizedSplit,
         extraMetadata: {
           principal_amount: Math.round(principalPortion * 100) / 100,
-          interest_amount: interestPortion,
+          interest_amount: Math.round(interestPortion * 100) / 100,
         },
       });
     } catch (balanceError: any) {
