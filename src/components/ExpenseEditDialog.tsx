@@ -463,6 +463,7 @@ export function ExpenseEditDialog({
             {saving ? "Salvando..." : "Salvar"}
           </Button>
         </DialogFooter>
+        </div>
       </DialogContent>
 
       <AlertDialog open={confirmAllOpen} onOpenChange={setConfirmAllOpen}>
