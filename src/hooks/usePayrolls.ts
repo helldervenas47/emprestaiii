@@ -120,7 +120,7 @@ export function usePayrolls(enabled = true) {
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user, dataOwnerId, enabled, fetchAll]);
+  }, [user, dataOwnerId, enabled, fetchAll, instanceId]);
 
   /**
    * Garante que exista uma despesa vinculada a esta folha (1:1).
