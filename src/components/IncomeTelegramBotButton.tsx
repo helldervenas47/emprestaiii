@@ -38,12 +38,25 @@ export function IncomeTelegramBotButton() {
   };
 
   useEffect(() => {
-    refresh();
-    const channel = supabase
-      .channel("telegram_links_income_btn")
-      .on("postgres_changes", { event: "*", schema: "public", table: "telegram_links" }, () => refresh())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
+    (async () => {
+      await refresh();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+      channel = supabase
+        .channel(`telegram-links-income:${user.id}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "telegram_links", filter: `user_id=eq.${user.id}` },
+          () => refresh(),
+        )
+        .subscribe();
+    })();
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
