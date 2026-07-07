@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useId } from "react";
 import { Client } from "@/types/loan";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
