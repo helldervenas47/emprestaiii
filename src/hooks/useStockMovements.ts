@@ -95,16 +95,20 @@ export function useStockMovements(enabled = true) {
   }, [movements, cacheKey]);
 
   useEffect(() => {
-    if (!user || !enabled || !cacheKey) return;
+    if (!user || !enabled || !cacheKey || !dataOwnerId) return;
     const channel = supabase
-      .channel(`stock-movements-${user.id}-${Math.random().toString(36).slice(2, 8)}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "stock_movements" }, () => {
-        invalidateSharedResource(cacheKey);
-        fetchData();
-      })
+      .channel(`stock-movements:${dataOwnerId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "stock_movements", filter: `owner_id=eq.${dataOwnerId}` },
+        () => {
+          invalidateSharedResource(cacheKey);
+          fetchData();
+        },
+      )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, enabled, fetchData, cacheKey]);
+  }, [user, enabled, fetchData, cacheKey, dataOwnerId]);
 
   useEffect(() => {
     if (!cacheKey) return;
