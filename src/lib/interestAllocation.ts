@@ -194,6 +194,23 @@ export function allocateInterestByPayment(
     interestRemainingByLoan.set(l.id, Math.max(0, total - l.amount));
   });
 
+  // Pré-cronograma por contrato com os valores REAIS pagos por parcela
+  // (para suportar contratos com parcelas de valores diferentes, ex.: 300+270).
+  // Parcelas ainda não pagas ficam com o valor uniforme como placeholder.
+  const scheduleByLoan = new Map<string, ReturnType<typeof buildInstallmentBreakdown>>();
+  for (const loan of loans) {
+    if (loan.installments <= 1) continue;
+    const totalDue = totalWithInterest(loan.amount, loan.interestRate);
+    const N = loan.installments;
+    const amounts = Array.from({ length: N }, () => round2(totalDue / N));
+    for (const p of sorted) {
+      if (p.loanId !== loan.id) continue;
+      const k = p.installmentNumber;
+      if (k >= 1 && k <= N) amounts[k - 1] = round2(Number(p.amount) || amounts[k - 1]);
+    }
+    scheduleByLoan.set(loan.id, buildInstallmentBreakdown(loan, amounts));
+  }
+
   for (const p of sorted) {
     const amt = Number(p.amount) || 0;
     if (amt <= 0) { byId.set(p.id, 0); continue; }
@@ -211,7 +228,6 @@ export function allocateInterestByPayment(
     if (inst === -3) { byId.set(p.id, 0); continue; }
 
     if (!loan) {
-      // Pagamento sem empréstimo vinculado: assume 100% juros (comportamento legado).
       byId.set(p.id, round2(amt));
       continue;
     }
@@ -226,18 +242,22 @@ export function allocateInterestByPayment(
       continue;
     }
 
-    // Parcela regular (>= 1) — pró-rata.
-    const prior = priorInterestByLoan.get(p.loanId) ?? 0;
-    const { interestPart } = computeInstallmentInterest({
-      principal: loan.amount,
-      rate: loan.interestRate,
-      installments: loan.installments,
-      installmentAmount: amt,
-      installmentNumber: inst,
-      priorInterestAllocated: prior,
-    });
+    // Parcela regular — lê juros diretamente do cronograma real.
+    const schedule = scheduleByLoan.get(p.loanId);
+    let interestPart = 0;
+    if (schedule) {
+      const entry = schedule.find((e) => e.installmentNumber === inst) ?? schedule[schedule.length - 1];
+      interestPart = Math.max(0, Math.min(round2(entry.interest), amt));
+    } else {
+      // Contrato de parcela única — mantém regra legada.
+      const prior = priorInterestByLoan.get(p.loanId) ?? 0;
+      interestPart = computeInstallmentInterest({
+        principal: loan.amount, rate: loan.interestRate, installments: loan.installments,
+        installmentAmount: amt, installmentNumber: inst, priorInterestAllocated: prior,
+      }).interestPart;
+    }
     byId.set(p.id, interestPart);
-    priorInterestByLoan.set(p.loanId, prior + interestPart);
+    priorInterestByLoan.set(p.loanId, (priorInterestByLoan.get(p.loanId) ?? 0) + interestPart);
     const rem = interestRemainingByLoan.get(p.loanId) ?? 0;
     interestRemainingByLoan.set(p.loanId, Math.max(0, rem - interestPart));
   }
