@@ -24,7 +24,7 @@ import { Expense } from "@/types/loan";
 import { personalCategories } from "@/lib/personalExpenseCategories";
 import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
 import { useCreditCards } from "@/hooks/useCreditCards";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ArrowLeft } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   AlertDialog,
@@ -225,8 +225,26 @@ export function ExpenseEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="top-0 left-0 translate-x-0 translate-y-0 w-screen h-[100dvh] max-w-none max-h-[100dvh] rounded-none border-0 overflow-y-auto z-[2147483648]">
-        <DialogHeader>
+      <DialogContent className="top-0 left-0 translate-x-0 translate-y-0 w-screen h-[100dvh] max-w-none max-h-[100dvh] rounded-none border-0 overflow-y-auto z-[2147483648] !p-0">
+        <div className="sticky top-0 z-10 flex items-center gap-2 border-b bg-background/95 backdrop-blur px-3 py-2" style={{ paddingTop: "calc(env(safe-area-inset-top) + 0.5rem)" }}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Voltar"
+            onClick={() => onOpenChange(false)}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex-1 min-w-0">
+            <DialogTitle className="text-base truncate">Editar lançamento</DialogTitle>
+          </div>
+          <Button type="button" variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+        </div>
+        <div className="px-4 pb-4 pt-3 space-y-3">
+        <DialogHeader className="sr-only">
           <DialogTitle>Editar lançamento</DialogTitle>
           <DialogDescription>
             {isParcelada
@@ -445,6 +463,7 @@ export function ExpenseEditDialog({
             {saving ? "Salvando..." : "Salvar"}
           </Button>
         </DialogFooter>
+        </div>
       </DialogContent>
 
       <AlertDialog open={confirmAllOpen} onOpenChange={setConfirmAllOpen}>
