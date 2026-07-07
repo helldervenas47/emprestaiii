@@ -109,11 +109,9 @@ export function useIncomes(enabled = true) {
     // O fetch remoto ainda roda porque o sharedResource hidratado de localStorage
     // fica stale (loadedAt=0); a UI pinta imediatamente com o último snapshot.
     skipInitialMirrorRef.current = cacheKey;
-    if (persisted !== undefined) {
-      selfWriteRef.current = true;
-      setIncomes(persisted);
-      selfWriteRef.current = false;
-    }
+    selfWriteRef.current = true;
+    setIncomes(persisted ?? []);
+    selfWriteRef.current = false;
     return subscribeSharedResource(cacheKey, () => {
       if (selfWriteRef.current) return;
       const next = readSharedResource<Income[]>(cacheKey);

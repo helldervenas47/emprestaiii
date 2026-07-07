@@ -93,9 +93,8 @@ export function useProducts(enabled = true) {
   useEffect(() => {
     if (!cacheKey) return;
     const persisted = readSharedResource<Bundle>(cacheKey);
-    if (!persisted) return;
-    setProducts(persisted.products);
-    setSales(persisted.sales);
+    setProducts(persisted?.products ?? []);
+    setSales(persisted?.sales ?? []);
     setLoading(false);
   }, [cacheKey]);
 
