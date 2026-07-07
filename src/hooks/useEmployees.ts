@@ -54,13 +54,17 @@ export function useEmployees(enabled = true) {
   useEffect(() => { if (enabled) fetchAll(); }, [enabled, fetchAll]);
 
   useEffect(() => {
-    if (!user || !enabled) return;
+    if (!user || !enabled || !dataOwnerId) return;
     const ch = supabase
-      .channel(`employees-${crypto.randomUUID()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "employees" }, () => fetchAll())
+      .channel(`employees:${dataOwnerId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "employees", filter: `user_id=eq.${dataOwnerId}` },
+        () => fetchAll(),
+      )
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user, enabled, fetchAll]);
+  }, [user, enabled, dataOwnerId, fetchAll]);
 
   const addEmployee = useCallback(async (e: Omit<Employee, "id" | "createdAt" | "updatedAt">) => {
     assertWritable();
