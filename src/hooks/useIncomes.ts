@@ -100,9 +100,15 @@ export function useIncomes(enabled = true) {
     financeFetchSuccess("useIncomes", "incomes", { rows: rows.length });
   }, [user, cacheKey]);
 
-  // Sync from cache when other instances update
+  // Sync from cache when other instances update + seed inicial (cold reload)
   useEffect(() => {
     if (!cacheKey) return;
+    const persisted = readSharedResource<Income[]>(cacheKey);
+    if (persisted && persisted.length > 0) {
+      selfWriteRef.current = true;
+      setIncomes(persisted);
+      selfWriteRef.current = false;
+    }
     return subscribeSharedResource(cacheKey, () => {
       if (selfWriteRef.current) return;
       const next = readSharedResource<Income[]>(cacheKey);

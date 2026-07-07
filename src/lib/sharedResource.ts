@@ -19,10 +19,60 @@ type Entry<T> = {
 
 const store = new Map<string, Entry<any>>();
 
+// -------- Persistência em localStorage (P1 perf: pinta a UI instantaneamente
+// em cold reload, enquanto o fetch remoto acontece em paralelo). Só entradas
+// pequenas são persistidas — payloads muito grandes são ignorados para não
+// estourar o quota do localStorage.
+const LS_PREFIX = "shared-res:";
+const LS_MAX_BYTES = 1_500_000; // ~1.5MB por chave
+
+function lsRead<T>(key: string): T | undefined {
+  try {
+    const raw = localStorage.getItem(LS_PREFIX + key);
+    if (!raw) return undefined;
+    return JSON.parse(raw) as T;
+  } catch {
+    return undefined;
+  }
+}
+
+function lsWrite(key: string, data: unknown) {
+  try {
+    const raw = JSON.stringify(data);
+    if (raw.length > LS_MAX_BYTES) {
+      localStorage.removeItem(LS_PREFIX + key);
+      return;
+    }
+    localStorage.setItem(LS_PREFIX + key, raw);
+  } catch {
+    // quota exceeded / private mode: silencioso.
+  }
+}
+
+function lsClearAll() {
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(LS_PREFIX)) keys.push(k);
+    }
+    keys.forEach((k) => localStorage.removeItem(k));
+  } catch { /* noop */ }
+}
+
 function ensure<T>(key: string): Entry<T> {
   let e = store.get(key) as Entry<T> | undefined;
   if (!e) {
-    e = { data: undefined, loadedAt: 0, inFlight: null, subscribers: new Set(), generation: 0 };
+    // Hidrata do localStorage na primeira leitura (cold reload) — sem
+    // marcar como fresco (loadedAt=0) para que o fetch remoto ainda rode.
+    const persisted = lsRead<T>(key);
+    e = {
+      data: persisted,
+      loadedAt: 0,
+      inFlight: null,
+      subscribers: new Set(),
+      generation: 0,
+    };
     store.set(key, e);
   }
   return e;
@@ -39,7 +89,7 @@ export interface SharedResourceOptions<T> {
 
 /** Lê o valor em cache (sync). Retorna `undefined` se ainda não carregado. */
 export function readSharedResource<T>(key: string): T | undefined {
-  return store.get(key)?.data as T | undefined;
+  return ensure<T>(key).data as T | undefined;
 }
 
 /** Escreve/substitui `data` no cache e notifica assinantes. */
@@ -47,8 +97,10 @@ export function writeSharedResource<T>(key: string, data: T) {
   const e = ensure<T>(key);
   e.data = data;
   e.loadedAt = Date.now();
+  lsWrite(key, data);
   e.subscribers.forEach((cb) => cb());
 }
+
 
 /** Invalida (marca como stale). Próximo `loadSharedResource` refaz o fetch. */
 export function invalidateSharedResource(key: string) {
@@ -97,6 +149,7 @@ export async function loadSharedResource<T>(
       if (e.generation !== startGen) return data;
       e.data = data;
       e.loadedAt = Date.now();
+      lsWrite(key, data);
       e.subscribers.forEach((cb) => cb());
       return data;
     } finally {
@@ -115,4 +168,5 @@ export function clearAllSharedResources() {
     e.inFlight = null;
     e.subscribers.forEach((cb) => cb());
   });
+  lsClearAll();
 }
