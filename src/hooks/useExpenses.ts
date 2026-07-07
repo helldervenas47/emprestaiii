@@ -210,6 +210,7 @@ async function syncPayrollOnExpensePaid(opts: {
 export function useExpenses(enabled = true) {
   useFinanceHookDebug("useExpenses");
   const { user, dataOwnerId } = useAuth();
+  const instanceId = useId();
   const ownerKey = dataOwnerId ?? user?.id ?? null;
   const cacheKey = ownerKey ? `expenses:${ownerKey}` : null;
   const [expenses, setExpenses] = useState<Expense[]>(() =>
