@@ -152,7 +152,7 @@ export function useProducts(enabled = true) {
       load();
     };
     const channel = supabase
-      .channel(`products-sales:${dataOwnerId}`)
+      .channel(`products-sales:${dataOwnerId}:${instanceId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'products', filter: `user_id=eq.${dataOwnerId}` },
