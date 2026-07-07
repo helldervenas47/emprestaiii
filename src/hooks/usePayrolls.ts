@@ -104,7 +104,7 @@ export function usePayrolls(enabled = true) {
       try { fn(); } catch (e) { console.warn("[usePayrolls realtime patch failed, refetching]", e); fetchAll(); }
     };
     const ch = supabase
-      .channel(`payrolls:${ownerId}`)
+      .channel(`payrolls:${ownerId}:${instanceId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "payrolls", filter: `user_id=eq.${ownerId}` }, (payload) => {
         safe(() => setPayrolls((prev) => {
           const row = rowToPayroll(payload.new as any);
