@@ -26,7 +26,7 @@ export function useDashboardOverviewController() {
   const [overdueDialogOpen, setOverdueDialogOpen] = useState(false);
   const [expandedInsightId, setExpandedInsightId] = useState<string | null>(null);
 
-  const accountBalance = useOfficialAccountBalance();
+  const accountBalance = useUnifiedAccountBalance();
   const setAccountBalance = useCallback((v: number) => {
     writeBalance(v);
     // useOfficialAccountBalance escuta balance:changed e recarrega.
