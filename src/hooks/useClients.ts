@@ -60,6 +60,7 @@ async function fetchClientsRows(): Promise<Client[]> {
 
 export function useClients() {
   const { user, dataOwnerId } = useAuth();
+  const instanceId = useId();
   const ownerKey = dataOwnerId ?? user?.id ?? "";
   const cacheKey = ownerKey ? `clients:${ownerKey}` : "";
   const [clients, setClients] = useState<Client[]>(
