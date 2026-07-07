@@ -112,7 +112,7 @@ export function useProducts(enabled = true) {
         })
         .catch(() => { /* noop */ });
     }
-  }, [cacheKey]);
+  }, [cacheKey, ownerKey]);
 
   const load = useCallback(async () => {
     if (!user || !cacheKey) return;

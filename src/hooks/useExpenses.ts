@@ -255,7 +255,7 @@ export function useExpenses(enabled = true) {
       setExpenses(mapped);
       financeFetchSuccess("useExpenses", "expenses", { rows: mapped.length, source: "cache" });
     }
-  }, [user, cacheKey]);
+  }, [user, cacheKey, ownerKey]);
 
   // Cross-instance sync + seed inicial a partir do cache persistido.
   useEffect(() => {

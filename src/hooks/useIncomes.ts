@@ -116,7 +116,7 @@ export function useIncomes(enabled = true) {
       setLoading(false);
       financeSetState("useIncomes", "loading", { value: false });
     }
-  }, [user, cacheKey]);
+  }, [user, cacheKey, ownerKey]);
 
   // Sync from cache when other instances update + seed inicial (cold reload)
   useEffect(() => {
@@ -140,7 +140,7 @@ export function useIncomes(enabled = true) {
       const next = readSharedResource<Income[]>(cacheKey);
       if (next) setIncomes(next);
     });
-  }, [cacheKey]);
+  }, [cacheKey, ownerKey]);
 
   // Mirror local state to shared cache
   useEffect(() => {
