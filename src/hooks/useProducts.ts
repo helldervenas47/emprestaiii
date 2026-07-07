@@ -165,7 +165,7 @@ export function useProducts(enabled = true) {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, enabled, cacheKey, dataOwnerId, load]);
+  }, [user, enabled, cacheKey, dataOwnerId, load, instanceId]);
 
   // Sincroniza cache compartilhado após updates otimistas locais.
   const syncCache = useCallback(() => {
