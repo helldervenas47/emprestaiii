@@ -543,7 +543,15 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                 }`}
               >
                 <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-start gap-3 sm:items-center sm:gap-4">
+                  <div
+                    className={`flex items-start gap-3 sm:items-center sm:gap-4 ${!readOnly && onUpdate ? "cursor-pointer" : ""}`}
+                    onClick={(e) => {
+                      if (readOnly || !onUpdate) return;
+                      const target = e.target as HTMLElement;
+                      if (target.closest("[data-actions-row]") || target.closest("button") || target.closest("a")) return;
+                      setEditingExpenseId(expense.id);
+                    }}
+                  >
                     <div className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center shrink-0 ${
                       expense.paid ? "bg-success/10" : overdue ? "bg-destructive/10" : "bg-warning/10"
                     }`}>
