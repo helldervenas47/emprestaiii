@@ -268,12 +268,18 @@ export function useExpenses(enabled = true) {
     selfWriteRef.current = true;
     setExpenses(persisted ?? []);
     selfWriteRef.current = false;
+    if (persisted === undefined) {
+      getCachedRows("expenses", ownerKey).then((cached) => {
+        if (cached.length === 0) return;
+        setExpenses(cached.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || "")).map(rowToExpense));
+      }).catch(() => { /* noop */ });
+    }
     return subscribeSharedResource(cacheKey, () => {
       if (selfWriteRef.current) return;
       const next = readSharedResource<Expense[]>(cacheKey);
       if (next) setExpenses(next);
     });
-  }, [cacheKey]);
+  }, [cacheKey, ownerKey]);
 
   // Mirror local state to shared cache
   useEffect(() => {
