@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { calculateTotalWithInterest } from "@/hooks/useLoans";
+import { allocateInterestByPayment } from "@/lib/interestAllocation";
 import { Search, Users, BarChart3, ArrowUpDown, ChevronRight, ArrowLeft } from "lucide-react";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Button } from "@/components/ui/button";
@@ -230,36 +231,43 @@ export function ClientLoanHistory({ loans, payments }: Props) {
     const pendingTotal = summary?.pending ?? 0;
     const grandTotal = summary?.total ?? 0;
 
-    // Juros recebidos / a receber — apenas contratos da aba Empréstimos (loans)
-    // Regra: juros recebidos = total pago - amortização do principal (juros vêm primeiro).
-    //  - Pagamentos com installmentNumber === 0 (juros-only) são 100% juros.
-    //  - Demais pagamentos quitam principal proporcionalmente ao valor pago.
-    //  - Para contratos quitados, juros recebidos = juros total do contrato.
+    // Juros recebidos por cliente:
+    // - Contratos quitados: soma exata dos juros contratados (invariante).
+    // - Contratos em andamento: soma pró-rata alocada por parcela via helper
+    //   compartilhado (mesma regra do Dashboard/Contador).
     let interestReceived = 0;
+    const activeLoans = clientLoans.filter((l) => l.status !== "paid");
+    if (activeLoans.length > 0) {
+      const activeIds = new Set(activeLoans.map((l) => l.id));
+      const activePayments = payments.filter((p) => activeIds.has(p.loanId));
+      const allocated = allocateInterestByPayment(
+        activeLoans.map((l) => ({
+          id: l.id,
+          amount: l.amount || 0,
+          interestRate: l.interestRate,
+          installments: l.installments,
+          status: l.status,
+        })),
+        activePayments.map((p) => ({
+          id: p.id,
+          loanId: p.loanId,
+          amount: p.amount,
+          date: p.date,
+          installmentNumber: p.installmentNumber,
+          createdAt: (p as any).createdAt,
+        })),
+      );
+      activePayments.forEach((p) => {
+        interestReceived += allocated.get(p.id) ?? 0;
+      });
+    }
     clientLoans.forEach((l) => {
-      const principal = l.amount || 0;
+      if (l.status !== "paid") return;
       const totalInterest = Math.max(
         0,
-        calculateTotalWithInterest(principal, l.interestRate, l.installments) - principal,
+        calculateTotalWithInterest(l.amount || 0, l.interestRate, l.installments) - (l.amount || 0),
       );
-
-      if (l.status === "paid") {
-        interestReceived += totalInterest;
-        return;
-      }
-
-      const loanPayments = payments.filter((p) => p.loanId === l.id);
-      const totalPaid = loanPayments.reduce((s, p) => s + (p.amount || 0), 0);
-      const interestOnlyPaid = loanPayments
-        .filter((p) => p.installmentNumber === 0)
-        .reduce((s, p) => s + (p.amount || 0), 0);
-
-      const principalRemaining =
-        l.remainingAmount != null && l.remainingAmount >= 0 ? l.remainingAmount : principal;
-      const principalPaid = Math.max(0, Math.min(principal, principal - principalRemaining));
-
-      const installmentInterestPaid = Math.max(0, totalPaid - interestOnlyPaid - principalPaid);
-      interestReceived += installmentInterestPaid + interestOnlyPaid;
+      interestReceived += totalInterest;
     });
 
     // Juros a receber = soma por contrato de (Pendente - Emprestado), ignorando contratos quitados.
