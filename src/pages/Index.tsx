@@ -495,15 +495,8 @@ const Index = () => {
 
   // Prefetch financeiro/veículos assim que o app abre. As telas continuam usando
   // os mesmos hooks/caches, mas os dados já chegam antes do usuário trocar de aba.
-  const needsProducts =
-    true || tab === "overview" || tab === "products" || tab === "vehicles" || tab === "calendar" || tab === "settings";
-  const needsExpenses =
-    true || tab === "overview" ||
-    tab === "expenses" ||
-    tab === "vehicles" ||
-    tab === "overdue" ||
-    tab === "accountant" ||
-    tab === "settings";
+  const needsProducts = true;
+  const needsExpenses = true;
   const needsVehicles = tab === "clients" || tab === "vehicles";
   const needsLocadores = tab === "vehicles" || tab === "settings" || tab === "clients";
 
