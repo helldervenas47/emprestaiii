@@ -328,7 +328,7 @@ export function useExpenses(enabled = true) {
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, dataOwnerId, fetchExpenses, enabled, cacheKey]);
+  }, [user, dataOwnerId, fetchExpenses, enabled, cacheKey, instanceId]);
 
   // Refetch after offline queue flush (invalidate cache first)
   useEffect(() => {
