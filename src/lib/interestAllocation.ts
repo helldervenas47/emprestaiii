@@ -144,23 +144,18 @@ export function computeInstallmentInterest(params: {
     return { interestPart, principalPart: round2(installmentAmount - interestPart) };
   }
 
-  if (installmentNumber >= installments) {
-    const interestPart = Math.max(0, round2(totalInterest - priorInterestAllocated));
+  // Fonte oficial: sempre lê o juros pré-calculado do cronograma da parcela K.
+  // O `installmentAmount` afeta APENAS o principal reconhecido — descontos/
+  // bônus/multas de atraso NÃO alteram o juros contratado da parcela.
+  const schedule = buildInstallmentBreakdown({ amount: principal, interestRate: rate, installments });
+  const scheduled = schedule.find((e) => e.installmentNumber === installmentNumber)
+    ?? schedule[schedule.length - 1];
+  if (scheduled) {
+    const interestPart = Math.max(0, round2(scheduled.interest));
     const cappedInterest = Math.min(interestPart, Math.max(0, installmentAmount));
     return { interestPart: cappedInterest, principalPart: round2(installmentAmount - cappedInterest) };
   }
-
-  // Parcelas 1..N-1: consulta o cronograma pré-calculado.
-  const schedule = buildInstallmentBreakdown({ amount: principal, interestRate: rate, installments });
-  const scheduled = schedule.find((e) => e.installmentNumber === installmentNumber);
-  if (scheduled) {
-    // Se o valor pago diverge da parcela do cronograma (ex.: parcela custom),
-    // distribui proporcionalmente ao valor pago mantendo a mesma razão.
-    const ratio = scheduled.amount > 0 ? scheduled.interest / scheduled.amount : 0;
-    const interestPart = round2(installmentAmount * ratio);
-    const cappedInterest = Math.max(0, Math.min(interestPart, installmentAmount));
-    return { interestPart: cappedInterest, principalPart: round2(installmentAmount - cappedInterest) };
-  }
+  // Fallback (contrato sem shape válido): usa razão global.
   const ratio = total > 0 ? Math.max(0, 1 - principal / total) : 0;
   const interestPart = round2(installmentAmount * ratio);
   return { interestPart, principalPart: round2(installmentAmount - interestPart) };
