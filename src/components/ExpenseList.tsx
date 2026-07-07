@@ -593,7 +593,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                       )}
                       <div className="mt-2 pt-2 border-t border-border/40 space-y-2">
                         <p className="text-base sm:text-lg font-bold text-foreground">{formatCurrency(installmentAmount)}</p>
-                        <div className="flex items-center justify-between gap-1">
+                        <div data-actions-row className="flex items-center justify-between gap-1">
                           <Button variant="ghost" onClick={() => setViewDateExpenseId(expense.id)} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Ver data de pagamento" aria-label="Ver data de pagamento">
                             <CalendarCheck className="h-4 w-4" />
                             <span className="hidden md:inline">Data</span>
