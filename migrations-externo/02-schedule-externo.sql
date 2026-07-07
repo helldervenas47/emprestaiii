@@ -36,7 +36,7 @@ END $$;
 -- Helper macro: cada função roda a cada minuto; ajuste o schedule se quiser.
 -- (Mantive os mesmos schedules que estavam no Cloud — '* * * * *'.)
 
-SELECT cron.schedule('telegram-daily-summary', '* * * * *', $$
+SELECT cron.schedule('telegram-daily-summary', '*/5 * * * *', $$
   SELECT net.http_post(
     url := 'https://syyxnqzxqabeuqbuptkh.supabase.co/functions/v1/telegram-daily-summary',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <ANON_KEY_DO_EXTERNO>"}'::jsonb,
@@ -45,7 +45,7 @@ SELECT cron.schedule('telegram-daily-summary', '* * * * *', $$
   );
 $$);
 
-SELECT cron.schedule('telegram-weekly-summary', '* * * * *', $$
+SELECT cron.schedule('telegram-weekly-summary', '*/5 * * * *', $$
   SELECT net.http_post(
     url := 'https://syyxnqzxqabeuqbuptkh.supabase.co/functions/v1/telegram-weekly-summary',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <ANON_KEY_DO_EXTERNO>"}'::jsonb,
@@ -54,7 +54,7 @@ SELECT cron.schedule('telegram-weekly-summary', '* * * * *', $$
   );
 $$);
 
-SELECT cron.schedule('telegram-monthly-summary', '* * * * *', $$
+SELECT cron.schedule('telegram-monthly-summary', '*/10 * * * *', $$
   SELECT net.http_post(
     url := 'https://syyxnqzxqabeuqbuptkh.supabase.co/functions/v1/telegram-monthly-summary',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <ANON_KEY_DO_EXTERNO>"}'::jsonb,
@@ -63,7 +63,7 @@ SELECT cron.schedule('telegram-monthly-summary', '* * * * *', $$
   );
 $$);
 
-SELECT cron.schedule('telegram-billing-summary', '* * * * *', $$
+SELECT cron.schedule('telegram-billing-summary', '*/10 * * * *', $$
   SELECT net.http_post(
     url := 'https://syyxnqzxqabeuqbuptkh.supabase.co/functions/v1/telegram-billing-summary',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <ANON_KEY_DO_EXTERNO>"}'::jsonb,
@@ -72,7 +72,7 @@ SELECT cron.schedule('telegram-billing-summary', '* * * * *', $$
   );
 $$);
 
-SELECT cron.schedule('telegram-accumulated-delinquency-summary', '* * * * *', $$
+SELECT cron.schedule('telegram-accumulated-delinquency-summary', '*/15 * * * *', $$
   SELECT net.http_post(
     url := 'https://syyxnqzxqabeuqbuptkh.supabase.co/functions/v1/telegram-accumulated-delinquency-summary',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <ANON_KEY_DO_EXTERNO>"}'::jsonb,
@@ -81,7 +81,7 @@ SELECT cron.schedule('telegram-accumulated-delinquency-summary', '* * * * *', $$
   );
 $$);
 
-SELECT cron.schedule('telegram-manager-weekly-summary', '* * * * *', $$
+SELECT cron.schedule('telegram-manager-weekly-summary', '*/15 * * * *', $$
   SELECT net.http_post(
     url := 'https://syyxnqzxqabeuqbuptkh.supabase.co/functions/v1/telegram-manager-weekly-summary',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <ANON_KEY_DO_EXTERNO>"}'::jsonb,
@@ -90,7 +90,7 @@ SELECT cron.schedule('telegram-manager-weekly-summary', '* * * * *', $$
   );
 $$);
 
-SELECT cron.schedule('incomes-expenses-summary', '* * * * *', $$
+SELECT cron.schedule('incomes-expenses-summary', '*/10 * * * *', $$
   SELECT net.http_post(
     url := 'https://syyxnqzxqabeuqbuptkh.supabase.co/functions/v1/incomes-expenses-summary',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <ANON_KEY_DO_EXTERNO>"}'::jsonb,
@@ -99,7 +99,7 @@ SELECT cron.schedule('incomes-expenses-summary', '* * * * *', $$
   );
 $$);
 
-SELECT cron.schedule('daily-planning-summary', '* * * * *', $$
+SELECT cron.schedule('daily-planning-summary', '*/5 * * * *', $$
   SELECT net.http_post(
     url := 'https://syyxnqzxqabeuqbuptkh.supabase.co/functions/v1/daily-planning-summary',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <ANON_KEY_DO_EXTERNO>"}'::jsonb,
@@ -108,7 +108,7 @@ SELECT cron.schedule('daily-planning-summary', '* * * * *', $$
   );
 $$);
 
-SELECT cron.schedule('send-personal-insights-telegram', '* * * * *', $$
+SELECT cron.schedule('send-personal-insights-telegram', '*/5 * * * *', $$
   SELECT net.http_post(
     url := 'https://syyxnqzxqabeuqbuptkh.supabase.co/functions/v1/send-personal-insights-telegram',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <ANON_KEY_DO_EXTERNO>"}'::jsonb,
@@ -117,7 +117,7 @@ SELECT cron.schedule('send-personal-insights-telegram', '* * * * *', $$
   );
 $$);
 
-SELECT cron.schedule('telegram-poll', '* * * * *', $$
+SELECT cron.schedule('telegram-poll', '*/2 * * * *', $$
   SELECT net.http_post(
     url := 'https://syyxnqzxqabeuqbuptkh.supabase.co/functions/v1/telegram-poll',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <ANON_KEY_DO_EXTERNO>"}'::jsonb,
@@ -126,7 +126,7 @@ SELECT cron.schedule('telegram-poll', '* * * * *', $$
   );
 $$);
 
-SELECT cron.schedule('telegram-reports-poll', '* * * * *', $$
+SELECT cron.schedule('telegram-reports-poll', '*/2 * * * *', $$
   SELECT net.http_post(
     url := 'https://syyxnqzxqabeuqbuptkh.supabase.co/functions/v1/telegram-reports-poll',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <ANON_KEY_DO_EXTERNO>"}'::jsonb,
