@@ -24,7 +24,7 @@ import { Expense } from "@/types/loan";
 import { personalCategories } from "@/lib/personalExpenseCategories";
 import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
 import { useCreditCards } from "@/hooks/useCreditCards";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ArrowLeft } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   AlertDialog,
