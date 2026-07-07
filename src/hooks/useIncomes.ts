@@ -202,7 +202,7 @@ export function useIncomes(enabled = true) {
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, dataOwnerId, fetch, enabled]);
+  }, [user, dataOwnerId, fetch, enabled, instanceId]);
 
   const insertSingle = useCallback(async (
     input: Omit<Income, "id" | "createdAt">,
