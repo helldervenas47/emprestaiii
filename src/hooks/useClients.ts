@@ -115,7 +115,7 @@ export function useClients() {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, dataOwnerId, fetchClients, cacheKey]);
+  }, [user, dataOwnerId, fetchClients, cacheKey, instanceId]);
 
   useEffect(() => {
     const handler = (e: any) => {
