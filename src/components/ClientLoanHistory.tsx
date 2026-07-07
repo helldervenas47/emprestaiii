@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { calculateTotalWithInterest } from "@/hooks/useLoans";
+import { allocateInterestByPayment } from "@/lib/interestAllocation";
 import { Search, Users, BarChart3, ArrowUpDown, ChevronRight, ArrowLeft } from "lucide-react";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Button } from "@/components/ui/button";
