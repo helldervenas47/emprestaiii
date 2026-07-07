@@ -689,12 +689,37 @@ export function useLoans() {
 
     try {
       await applyPaymentBalance(installmentAmount, paymentMethodId ?? null, normalizedSplit);
+      // Aloca a fração de juros/principal desta parcela pró-rata (contratos
+      // parcelados) ou 100% juros no excedente (parcela única).
+      const priorInterest = payments
+        .filter((p) => p.loanId === loanId && p.installmentNumber >= 1 && p.installmentNumber < newPaid)
+        .reduce((s, p) => {
+          const parcelAmt = Number(p.amount) || 0;
+          const { interestPart } = computeInstallmentInterest({
+            principal: loan.amount,
+            rate: loan.interestRate,
+            installments: loan.installments,
+            installmentAmount: parcelAmt,
+            installmentNumber: p.installmentNumber,
+            priorInterestAllocated: s,
+          });
+          return s + interestPart;
+        }, 0);
+      const { interestPart, principalPart } = computeInstallmentInterest({
+        principal: loan.amount,
+        rate: loan.interestRate,
+        installments: loan.installments,
+        installmentAmount,
+        installmentNumber: newPaid,
+        priorInterestAllocated: priorInterest,
+      });
       await recordPaymentLedgerSplit({
         amount: installmentAmount,
         description: `Parcela ${newPaid}/${loan.installments} recebida - ${loan.borrowerName}`,
         occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId,
         paymentMethodId: paymentMethodId ?? null,
         split: normalizedSplit,
+        extraMetadata: { interest_amount: interestPart, principal_amount: principalPart },
       });
     } catch (balanceError: any) {
       console.error("[addPayment] adjust balance failed:", balanceError);
