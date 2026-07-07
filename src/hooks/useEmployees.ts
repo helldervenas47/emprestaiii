@@ -37,6 +37,7 @@ const EMPLOYEE_COLUMNS =
 
 export function useEmployees(enabled = true) {
   const { user, dataOwnerId } = useAuth();
+  const instanceId = useId();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
 
