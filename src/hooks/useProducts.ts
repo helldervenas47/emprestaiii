@@ -4,6 +4,7 @@ import { Product, Sale, BusinessType, SalePaymentRecord } from "@/types/loan";
 import { useAuth } from "@/hooks/useAuth";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 import { assertWritable } from "@/lib/readOnlyState";
+import { cacheRows, getCachedRows } from "@/lib/offline/sync";
 import {
   loadSharedResource,
   invalidateSharedResource,
@@ -68,8 +69,14 @@ async function fetchProductsAndSales(): Promise<Bundle> {
     supabase.from("products").select(PRODUCT_COLUMNS).order("created_at", { ascending: false }),
     supabase.from("sales").select(SALE_COLUMNS).order("created_at", { ascending: false }),
   ]);
-  const products = (prodRes.data ?? []).map(rowToProduct);
-  const sales = rowsToSales(salesRes.data ?? [], prodRes.data ?? []);
+  if (prodRes.error) throw prodRes.error;
+  if (salesRes.error) throw salesRes.error;
+  const productRows = prodRes.data ?? [];
+  const salesRows = salesRes.data ?? [];
+  cacheRows("products", productRows).catch(() => { /* noop */ });
+  cacheRows("sales", salesRows).catch(() => { /* noop */ });
+  const products = productRows.map(rowToProduct);
+  const sales = rowsToSales(salesRows, productRows);
   return { products, sales };
 }
 
@@ -96,6 +103,15 @@ export function useProducts(enabled = true) {
     setProducts(persisted?.products ?? []);
     setSales(persisted?.sales ?? []);
     setLoading(false);
+    if (!persisted) {
+      Promise.all([getCachedRows("products"), getCachedRows("sales")])
+        .then(([productRows, salesRows]) => {
+          if (productRows.length === 0 && salesRows.length === 0) return;
+          setProducts(productRows.map(rowToProduct));
+          setSales(rowsToSales(salesRows, productRows));
+        })
+        .catch(() => { /* noop */ });
+    }
   }, [cacheKey]);
 
   const load = useCallback(async () => {
