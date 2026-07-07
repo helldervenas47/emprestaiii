@@ -89,7 +89,7 @@ export function useIncomes(enabled = true) {
         async () => {
           const { data, error } = await supabase
             .from("incomes" as any)
-            .select("id, description, amount, category, client_id, source, payment_method_id, received_date, actual_received_date, status, notes, recurrence, parent_id, created_at")
+            .select("id, user_id, description, amount, category, client_id, source, payment_method_id, received_date, actual_received_date, status, notes, recurrence, parent_id, created_at")
             .order("received_date", { ascending: false })
             .limit(5000);
           if (error) throw error;

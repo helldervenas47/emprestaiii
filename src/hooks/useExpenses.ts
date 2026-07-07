@@ -228,7 +228,7 @@ export function useExpenses(enabled = true) {
           async () => {
             const { data, error } = await supabase
               .from("expenses")
-              .select("id, description, amount, type, category, installments, paid_installments, due_date, paid, paid_date, notes, created_at, parent_expense_id, scope, payment_method_id, generate_income_on_pay, generated_income_id")
+              .select("id, user_id, description, amount, type, category, installments, paid_installments, due_date, paid, paid_date, notes, created_at, parent_expense_id, scope, payment_method_id, generate_income_on_pay, generated_income_id")
               .order("created_at", { ascending: false })
               .limit(5000);
             if (error) throw error;

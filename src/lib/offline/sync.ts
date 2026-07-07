@@ -30,7 +30,7 @@ export async function cacheRows(table: OfflineTable, rows: any[]) {
 export async function getCachedRows(table: OfflineTable, userId?: string | null): Promise<any[]> {
   const all = await offlineDB[table].toArray();
   return all
-    .filter((r) => !userId || !r.user_id || r.user_id === userId)
+    .filter((r) => !userId || r.user_id === userId)
     .map((r) => r.data);
 }
 

@@ -14,9 +14,9 @@ import {
 } from "@/lib/sharedResource";
 
 const PRODUCT_COLUMNS =
-  "id, name, description, price, cost, last_purchase_price, suggested_stock, stock, active, created_at";
+  "id, user_id, name, description, price, cost, last_purchase_price, suggested_stock, stock, active, created_at";
 const SALE_COLUMNS =
-  "id, product_id, description, quantity, total, customer_name, sale_date, notes, business_type, payment_mode, installments, paid_installments, frequency, installment_value, installment_amounts, installment_dates, partial_paid, payment_history, locador_id, category";
+  "id, user_id, product_id, description, quantity, total, customer_name, sale_date, notes, business_type, payment_mode, installments, paid_installments, frequency, installment_value, installment_amounts, installment_dates, partial_paid, payment_history, locador_id, category";
 
 // P1-01: staleTime médio — produtos/vendas mudam com mutações locais que já
 // escrevem no cache; realtime invalida + refaz o fetch.
