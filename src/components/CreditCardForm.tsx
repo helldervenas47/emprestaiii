@@ -73,13 +73,16 @@ export function CreditCardForm({ initial, onSave, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-stretch justify-center p-0 sm:items-center sm:p-4">
-      <Card no3d className="!bg-card !backdrop-blur-none supports-[backdrop-filter]:!bg-card dark:!bg-card w-full h-[100dvh] max-h-[100dvh] rounded-none border-0 overflow-y-auto pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-2xl sm:border sm:pt-0 sm:pb-0">
-        <CardHeader className="flex flex-row items-center justify-between">
+    <div
+      className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-stretch justify-center p-0 sm:items-center sm:p-4"
+      onClick={onClose}
+    >
+      <Card no3d onClick={(e) => e.stopPropagation()} className="!bg-card !backdrop-blur-none supports-[backdrop-filter]:!bg-card dark:!bg-card w-full h-[100dvh] max-h-[100dvh] rounded-none border-0 overflow-y-auto pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-2xl sm:border sm:pt-0 sm:pb-0">
+        <CardHeader className="sticky top-0 z-10 bg-card border-b flex flex-row items-center justify-between pt-[calc(env(safe-area-inset-top)+1rem)] sm:pt-6">
           <CardTitle className="text-xl">
             {initial ? "Editar Cartão" : "Novo Cartão"}
           </CardTitle>
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Fechar">
             <X className="h-5 w-5" />
           </Button>
         </CardHeader>
