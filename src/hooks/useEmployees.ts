@@ -57,7 +57,7 @@ export function useEmployees(enabled = true) {
   useEffect(() => {
     if (!user || !enabled || !dataOwnerId) return;
     const ch = supabase
-      .channel(`employees:${dataOwnerId}`)
+      .channel(`employees:${dataOwnerId}:${instanceId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "employees", filter: `user_id=eq.${dataOwnerId}` },
