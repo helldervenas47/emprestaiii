@@ -149,6 +149,7 @@ export async function loadSharedResource<T>(
       if (e.generation !== startGen) return data;
       e.data = data;
       e.loadedAt = Date.now();
+      lsWrite(key, data);
       e.subscribers.forEach((cb) => cb());
       return data;
     } finally {
@@ -167,4 +168,5 @@ export function clearAllSharedResources() {
     e.inFlight = null;
     e.subscribers.forEach((cb) => cb());
   });
+  lsClearAll();
 }
