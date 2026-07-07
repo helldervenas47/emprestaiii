@@ -103,7 +103,7 @@ export function useClients() {
   useEffect(() => {
     if (!user || !dataOwnerId) return;
     const channel = supabase
-      .channel(`clients:${dataOwnerId}`)
+      .channel(`clients:${dataOwnerId}:${instanceId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'clients', filter: `user_id=eq.${dataOwnerId}` },
