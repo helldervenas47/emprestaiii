@@ -3,11 +3,10 @@ import { useChartOverrides } from "@/hooks/useChartOverrides";
 import { useMonthlyGoals } from "@/hooks/useMonthlyGoals";
 import { listLedger, type LedgerEntry } from "@/lib/ledger";
 import { getRange, type Period } from "@/components/dashboard/dashboardHelpers";
-// P0-01: o account_ledger ainda não foi backfilled neste ambiente, então
-// `useOfficialAccountBalance` diverge do extrato. Usamos o cálculo unificado
-// (mesma base do extrato / IncomeBalanceCard) até o backfill acontecer.
-import { useUnifiedAccountBalance } from "@/hooks/useUnifiedAccountBalance";
-import { setBalance as writeBalance } from "@/lib/balance";
+// Saldo em Conta do Dashboard = mesmo valor do Extrato da Conta (LedgerView),
+// que lê `balance.account_amount` via `getBalances()`. Não usar cálculos
+// derivados (useUnifiedAccountBalance / useOfficialAccountBalance) aqui.
+import { getBalances, setBalance as writeBalance } from "@/lib/balance";
 
 /**
  * Controller hook do DashboardOverview.
@@ -26,10 +25,28 @@ export function useDashboardOverviewController() {
   const [overdueDialogOpen, setOverdueDialogOpen] = useState(false);
   const [expandedInsightId, setExpandedInsightId] = useState<string | null>(null);
 
-  const accountBalance = useUnifiedAccountBalance();
+  const [accountBalance, setAccountBalanceState] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      const b = await getBalances();
+      if (alive) setAccountBalanceState(b.account);
+    };
+    load();
+    window.addEventListener("balance:changed", load);
+    window.addEventListener("ledger:changed", load);
+    window.addEventListener("offline-sync:flushed", load);
+    window.addEventListener("focus", load);
+    return () => {
+      alive = false;
+      window.removeEventListener("balance:changed", load);
+      window.removeEventListener("ledger:changed", load);
+      window.removeEventListener("offline-sync:flushed", load);
+      window.removeEventListener("focus", load);
+    };
+  }, []);
   const setAccountBalance = useCallback((v: number) => {
     writeBalance(v);
-    // useOfficialAccountBalance escuta balance:changed e recarrega.
   }, []);
   const [editingBalance, setEditingBalance] = useState(false);
   const [tempBalance, setTempBalance] = useState("");
