@@ -543,7 +543,15 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                 }`}
               >
                 <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-start gap-3 sm:items-center sm:gap-4">
+                  <div
+                    className={`flex items-start gap-3 sm:items-center sm:gap-4 ${!readOnly && onUpdate ? "cursor-pointer" : ""}`}
+                    onClick={(e) => {
+                      if (readOnly || !onUpdate) return;
+                      const target = e.target as HTMLElement;
+                      if (target.closest("[data-actions-row]") || target.closest("button") || target.closest("a")) return;
+                      setEditingExpenseId(expense.id);
+                    }}
+                  >
                     <div className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center shrink-0 ${
                       expense.paid ? "bg-success/10" : overdue ? "bg-destructive/10" : "bg-warning/10"
                     }`}>
@@ -585,7 +593,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                       )}
                       <div className="mt-2 pt-2 border-t border-border/40 space-y-2">
                         <p className="text-base sm:text-lg font-bold text-foreground">{formatCurrency(installmentAmount)}</p>
-                        <div className="flex items-center justify-between gap-1">
+                        <div data-actions-row className="flex items-center justify-between gap-1">
                           <Button variant="ghost" onClick={() => setViewDateExpenseId(expense.id)} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Ver data de pagamento" aria-label="Ver data de pagamento">
                             <CalendarCheck className="h-4 w-4" />
                             <span className="hidden md:inline">Data</span>
