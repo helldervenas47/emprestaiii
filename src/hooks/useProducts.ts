@@ -82,6 +82,7 @@ async function fetchProductsAndSales(): Promise<Bundle> {
 
 export function useProducts(enabled = true) {
   const { user, dataOwnerId } = useAuth();
+  const instanceId = useId();
   const ownerKey = dataOwnerId ?? user?.id ?? "";
   const cacheKey = ownerKey ? `products_sales:${ownerKey}` : "";
   const initial = readSharedResource<Bundle>(cacheKey);
