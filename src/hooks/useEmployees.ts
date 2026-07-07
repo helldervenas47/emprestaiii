@@ -65,7 +65,7 @@ export function useEmployees(enabled = true) {
       )
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user, enabled, dataOwnerId, fetchAll]);
+  }, [user, enabled, dataOwnerId, fetchAll, instanceId]);
 
   const addEmployee = useCallback(async (e: Omit<Employee, "id" | "createdAt" | "updatedAt">) => {
     assertWritable();
