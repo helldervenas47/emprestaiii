@@ -360,7 +360,7 @@ export function usePiggyBanks() {
       }, 1500);
     };
     const channel = supabase
-      .channel(`cofrinhos-realtime-${crypto.randomUUID()}`)
+      .channel(`cofrinhos:${dataOwnerId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "cofrinhos" }, () => scheduleReload("cofrinhos"))
       .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_aportes" }, () => scheduleReload("cofrinho_aportes"))
       .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_eventos" }, () => scheduleReload("cofrinho_eventos"))
