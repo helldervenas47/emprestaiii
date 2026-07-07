@@ -182,7 +182,7 @@ export function useIncomes(enabled = true) {
       }
     };
     const channel = supabase
-      .channel(`incomes-rt-${crypto.randomUUID()}`)
+      .channel(`incomes:${ownerId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "incomes", filter: `user_id=eq.${ownerId}` }, (payload) => {
         financeRealtimeEvent("useIncomes", "incomes", { eventType: "INSERT" });
         safe(() => setIncomes((prev) => {

@@ -74,7 +74,7 @@ export function useOfficialAccountBalance(): number {
     window.addEventListener("balance:changed", handler);
 
     const channel = supabase
-      .channel(`official-balance-${ownerId}-${Math.random().toString(36).slice(2)}`)
+      .channel(`official-balance:${ownerId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "account_ledger", filter: `user_id=eq.${ownerId}` },

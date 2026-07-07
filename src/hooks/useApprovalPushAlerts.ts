@@ -21,7 +21,7 @@ export function useApprovalPushAlerts() {
     if (!isSubscribed || permission !== "granted") return;
 
     const channel = supabase
-      .channel(`approval-push-${user.id}-${Math.random().toString(36).slice(2)}`)
+      .channel(`approval-push:${user.id}`)
       .on(
         "postgres_changes" as any,
         {
