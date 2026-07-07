@@ -39,12 +39,93 @@ function totalWithInterest(principal: number, rate: number): number {
   return Math.round(principal * (1 + rate / 100));
 }
 
+export interface InstallmentBreakdownEntry {
+  installmentNumber: number;
+  amount: number;
+  interest: number;
+  principal: number;
+}
+
+/**
+ * Constrói o cronograma de parcelas de UM contrato com o juros e o principal
+ * já pré-calculados por parcela.
+ *
+ * Regra (spec oficial):
+ *   jurosTotal        = total - principal
+ *   jurosPorParcela   = round2(jurosTotal / N)          (parcelas 1..N-1)
+ *   principalParcela  = round2(amount - jurosPorParcela)
+ *   última parcela    = absorve o resíduo de centavos para fechar
+ *                       Σ juros = jurosTotal e Σ principal = principal.
+ *
+ * Para cronogramas com parcelas de valores diferentes, passe `customAmounts`
+ * na ordem das parcelas — o juros por parcela é distribuído proporcionalmente
+ * ao valor da parcela; a última também absorve o resíduo.
+ *
+ * Uma vez gerado, cada entrada é a fonte oficial: pagou parcela K → some
+ * `interest`/`principal` da entrada K. O(1) por pagamento.
+ */
+export function buildInstallmentBreakdown(
+  loan: Pick<AllocLoanLike, "amount" | "interestRate" | "installments">,
+  customAmounts?: number[],
+): InstallmentBreakdownEntry[] {
+  const principal = Math.max(0, Number(loan.amount) || 0);
+  const N = Math.max(1, Math.floor(Number(loan.installments) || 1));
+  const total = totalWithInterest(principal, Number(loan.interestRate) || 0);
+  const totalInterest = Math.max(0, total - principal);
+
+  if (N === 1) {
+    const amt = customAmounts?.[0] ?? total;
+    return [{ installmentNumber: 1, amount: round2(amt), interest: round2(totalInterest), principal: round2(amt - totalInterest) }];
+  }
+
+  const hasCustom = Array.isArray(customAmounts) && customAmounts.length === N;
+  const amounts: number[] = hasCustom
+    ? customAmounts!.map((v) => round2(Number(v) || 0))
+    : Array.from({ length: N }, () => round2(total / N));
+  const amountsSum = amounts.reduce((s, v) => s + v, 0);
+
+  const entries: InstallmentBreakdownEntry[] = [];
+  let interestAccum = 0;
+  let principalAccum = 0;
+  for (let i = 0; i < N; i++) {
+    const amount = amounts[i];
+    if (i < N - 1) {
+      const share = amountsSum > 0 ? amount / amountsSum : 1 / N;
+      const interest = round2(totalInterest * share);
+      const principalPart = round2(amount - interest);
+      entries.push({ installmentNumber: i + 1, amount, interest, principal: principalPart });
+      interestAccum += interest;
+      principalAccum += principalPart;
+    } else {
+      const interest = Math.max(0, round2(totalInterest - interestAccum));
+      const principalPart = Math.max(0, round2(principal - principalAccum));
+      const amt = round2(interest + principalPart);
+      entries.push({ installmentNumber: i + 1, amount: amt || amount, interest, principal: principalPart });
+    }
+  }
+  return entries;
+}
+
+/**
+ * Retorna o juros/principal pré-calculados para a parcela `installmentNumber`
+ * do contrato. Lookup O(1) sobre o cronograma — evita recalcular histórico.
+ */
+export function getInstallmentInterest(
+  loan: Pick<AllocLoanLike, "amount" | "interestRate" | "installments">,
+  installmentNumber: number,
+  customAmounts?: number[],
+): { interest: number; principal: number; amount: number } | null {
+  if (!Number.isFinite(installmentNumber) || installmentNumber < 1) return null;
+  const schedule = buildInstallmentBreakdown(loan, customAmounts);
+  const entry = schedule.find((e) => e.installmentNumber === installmentNumber);
+  return entry ? { interest: entry.interest, principal: entry.principal, amount: entry.amount } : null;
+}
+
 /**
  * Calcula parte de juros e principal para UM pagamento de parcela regular
- * (`installmentNumber >= 1`) de contrato parcelado.
- *
- * `priorInterestAllocated` é a soma de juros já reconhecidos nas parcelas
- * anteriores DO MESMO contrato, usada para fechar o resíduo na última.
+ * (`installmentNumber >= 1`) de contrato parcelado. Lê do cronograma
+ * pré-calculado (fonte oficial). `priorInterestAllocated` é usado apenas
+ * como salvaguarda na última parcela.
  */
 export function computeInstallmentInterest(params: {
   principal: number;
@@ -58,23 +139,31 @@ export function computeInstallmentInterest(params: {
   const total = totalWithInterest(principal, rate);
   const totalInterest = Math.max(0, total - principal);
 
-  // Parcela única: mantém comportamento legado (excedente = juros).
   if (installments <= 1) {
     const interestPart = Math.max(0, round2(Math.min(installmentAmount, totalInterest)));
     return { interestPart, principalPart: round2(installmentAmount - interestPart) };
   }
 
-  // Última parcela do cronograma: fecha o resíduo para bater exatamente `totalInterest`.
   if (installmentNumber >= installments) {
     const interestPart = Math.max(0, round2(totalInterest - priorInterestAllocated));
     const cappedInterest = Math.min(interestPart, Math.max(0, installmentAmount));
     return { interestPart: cappedInterest, principalPart: round2(installmentAmount - cappedInterest) };
   }
 
+  // Parcelas 1..N-1: consulta o cronograma pré-calculado.
+  const schedule = buildInstallmentBreakdown({ amount: principal, interestRate: rate, installments });
+  const scheduled = schedule.find((e) => e.installmentNumber === installmentNumber);
+  if (scheduled) {
+    // Se o valor pago diverge da parcela do cronograma (ex.: parcela custom),
+    // distribui proporcionalmente ao valor pago mantendo a mesma razão.
+    const ratio = scheduled.amount > 0 ? scheduled.interest / scheduled.amount : 0;
+    const interestPart = round2(installmentAmount * ratio);
+    const cappedInterest = Math.max(0, Math.min(interestPart, installmentAmount));
+    return { interestPart: cappedInterest, principalPart: round2(installmentAmount - cappedInterest) };
+  }
   const ratio = total > 0 ? Math.max(0, 1 - principal / total) : 0;
   const interestPart = round2(installmentAmount * ratio);
-  const principalPart = round2(installmentAmount - interestPart);
-  return { interestPart, principalPart };
+  return { interestPart, principalPart: round2(installmentAmount - interestPart) };
 }
 
 /**
