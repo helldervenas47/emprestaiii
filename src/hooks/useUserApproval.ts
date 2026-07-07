@@ -47,7 +47,7 @@ export function useUserApproval() {
 
     // Realtime: user sees own status flip to approved
     const channel = supabase
-      .channel(`approval-self-${uid}-${Math.random().toString(36).slice(2)}`)
+      .channel(`approval-self:${uid}`)
       .on(
         "postgres_changes" as any,
         { event: "*", schema: "public", table: "user_approvals", filter: `user_id=eq.${uid}` },

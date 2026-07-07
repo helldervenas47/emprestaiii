@@ -297,7 +297,7 @@ export function useLoans() {
       try { fn(); } catch (e) { console.warn("[useLoans realtime patch failed, refetching]", e); fallback(); }
     };
     const channel = supabase
-      .channel(`loans-realtime-${user.id}-${Math.random().toString(36).slice(2)}`)
+      .channel(`loans:${ownerId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'loans', filter: `user_id=eq.${ownerId}` }, (payload) => {
         safe(() => setLoans((prev) => {
           const row = rowToLoan(payload.new as any);

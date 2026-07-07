@@ -46,7 +46,7 @@ export function useApprovalRequests() {
   useEffect(() => {
     if (!user || role !== "admin") return;
     const channel = supabase
-      .channel(`approvals-owner-${user.id}-${Math.random().toString(36).slice(2)}`)
+      .channel(`approvals-owner:${user.id}`)
       .on(
         "postgres_changes" as any,
         { event: "*", schema: "public", table: "user_approvals", filter: `owner_id=eq.${user.id}` },

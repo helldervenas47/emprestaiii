@@ -80,10 +80,10 @@ export function useCreditLimits() {
   useEffect(() => {
     if (!user) return;
     const ch = supabase
-      .channel(`credit-limits-${user.id}-${Math.random().toString(36).slice(2)}`)
+      .channel(`credit-limits:${user.id}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "credit_limits" },
+        { event: "*", schema: "public", table: "credit_limits", filter: `user_id=eq.${user.id}` },
         () => fetchLimits(),
       )
       .subscribe();

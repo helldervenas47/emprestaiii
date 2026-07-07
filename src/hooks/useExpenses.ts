@@ -308,7 +308,7 @@ export function useExpenses(enabled = true) {
       }
     };
     const channel = supabase
-      .channel(`expenses-realtime-${crypto.randomUUID()}`)
+      .channel(`expenses:${ownerId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'expenses', filter: `user_id=eq.${ownerId}` }, (payload) => {
         financeRealtimeEvent("useExpenses", "expenses", { eventType: "INSERT" });
         safe(() => setExpenses((prev) => {
