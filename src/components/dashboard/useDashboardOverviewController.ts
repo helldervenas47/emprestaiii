@@ -3,7 +3,10 @@ import { useChartOverrides } from "@/hooks/useChartOverrides";
 import { useMonthlyGoals } from "@/hooks/useMonthlyGoals";
 import { listLedger, type LedgerEntry } from "@/lib/ledger";
 import { getRange, type Period } from "@/components/dashboard/dashboardHelpers";
-import { useOfficialAccountBalance } from "@/lib/accountLedgerBalance";
+// P0-01: o account_ledger ainda não foi backfilled neste ambiente, então
+// `useOfficialAccountBalance` diverge do extrato. Usamos o cálculo unificado
+// (mesma base do extrato / IncomeBalanceCard) até o backfill acontecer.
+import { useUnifiedAccountBalance } from "@/hooks/useUnifiedAccountBalance";
 import { setBalance as writeBalance } from "@/lib/balance";
 
 /**
@@ -23,7 +26,7 @@ export function useDashboardOverviewController() {
   const [overdueDialogOpen, setOverdueDialogOpen] = useState(false);
   const [expandedInsightId, setExpandedInsightId] = useState<string | null>(null);
 
-  const accountBalance = useOfficialAccountBalance();
+  const accountBalance = useUnifiedAccountBalance();
   const setAccountBalance = useCallback((v: number) => {
     writeBalance(v);
     // useOfficialAccountBalance escuta balance:changed e recarrega.
