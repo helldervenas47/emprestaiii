@@ -71,6 +71,10 @@ export function CreditCardForm({ initial, onSave, onClose }: Props) {
     active: form.active ?? true,
   };
 
+  const bank = useMemo(() => getBank(form.bank), [form.bank]);
+
+
+
   return (
     <div
       className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-stretch justify-center p-0 sm:items-center sm:p-4"
