@@ -776,8 +776,8 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
         {([
           { key: "hoje", label: "Receber hoje", tone: "text-warning", bar: "bg-warning", data: summary.hoje },
-          { key: "atrasados", label: "Atrasados", tone: "text-destructive", bar: "bg-destructive", data: summary.overdue },
           { key: "amanha", label: "Receber amanhã", tone: "text-primary", bar: "bg-primary", data: summary.amanha },
+          { key: "atrasados", label: "Atrasados", tone: "text-destructive", bar: "bg-destructive", data: summary.overdue },
           { key: "mes", label: "Este mês", tone: "text-foreground", bar: "bg-muted-foreground", data: summary.month },
         ] as const).map((c) => (
           <button
