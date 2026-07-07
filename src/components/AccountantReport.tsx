@@ -171,7 +171,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       let reason: string;
       if (isLastOfPaid) {
         kind = "quitacao";
-        reason = `Quitação do contrato: juros alocado (juros-primeiro + ajuste de quitação) = ${interest.toFixed(2)}`;
+        reason = `Quitação do contrato: juros alocado (pró-rata por parcela) = ${interest.toFixed(2)}`;
       } else if (inst === 0 || inst === -2) {
         kind = "juros_puro";
         reason = inst === -2
