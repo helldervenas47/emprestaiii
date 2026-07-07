@@ -14,7 +14,7 @@ const parcel = (n: number, amt: number, id?: string) => ({
   id: id ?? `p${n}`,
   loanId: "L1",
   amount: amt,
-  date: `2026-0${n}-01`,
+  date: `2026-01-${String(n).padStart(2, "0")}`,
   installmentNumber: n,
 });
 
