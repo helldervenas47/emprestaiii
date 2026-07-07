@@ -15,6 +15,7 @@ import { AccountantAuditCard } from "@/components/AccountantAuditCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { AuditTotals } from "@/lib/accountantAudit";
 import { calculateTotalWithInterest } from "@/hooks/useLoans";
+import { allocateInterestByPayment } from "@/lib/interestAllocation";
 import { isVehicleExpenseCategory } from "@/components/VehicleExpenseForm";
 
 interface AccountantReportProps {
