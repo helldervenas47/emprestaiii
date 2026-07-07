@@ -70,6 +70,7 @@ function rowToIncome(r: any): Income {
 export function useIncomes(enabled = true) {
   useFinanceHookDebug("useIncomes");
   const { user, dataOwnerId } = useAuth();
+  const instanceId = useId();
   const ownerKey = dataOwnerId ?? user?.id ?? null;
   const cacheKey = ownerKey ? `incomes:${ownerKey}` : null;
   const [incomes, setIncomes] = useState<Income[]>(() =>
