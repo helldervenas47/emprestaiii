@@ -452,8 +452,17 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
             <div className={`h-8 w-8 rounded-full ${avatarBg} flex items-center justify-center`}>
               <User className={`h-4 w-4 ${avatarText}`} />
             </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">{item.borrowerName}</p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p className="text-sm font-medium text-foreground truncate">{item.borrowerName}</p>
+                {loan.tags && loan.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-0.5">
+                    {loan.tags.filter(Boolean).map((tag) => (
+                      <Badge key={tag} className="bg-primary text-primary-foreground text-[8px] px-1 py-0 max-w-[120px] truncate">{tag}</Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">
                 Parcela {item.installmentNumber}/{item.totalInstallments}
               </p>
