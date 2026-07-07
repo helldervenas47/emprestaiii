@@ -14,6 +14,7 @@ import {
 } from "@/lib/offline/sync";
 import { isOnline } from "@/lib/offline/status";
 import { assertWritable } from "@/lib/readOnlyState";
+import { computeInstallmentInterest } from "@/lib/interestAllocation";
 
 async function resolveWalletKind(paymentMethodId: string | null): Promise<"account" | "cash"> {
   if (!paymentMethodId) return "account";
