@@ -256,9 +256,15 @@ export function useExpenses(enabled = true) {
     }
   }, [user, cacheKey]);
 
-  // Cross-instance sync
+  // Cross-instance sync + seed inicial a partir do cache persistido.
   useEffect(() => {
     if (!cacheKey) return;
+    const persisted = readSharedResource<Expense[]>(cacheKey);
+    if (persisted && persisted.length > 0) {
+      selfWriteRef.current = true;
+      setExpenses(persisted);
+      selfWriteRef.current = false;
+    }
     return subscribeSharedResource(cacheKey, () => {
       if (selfWriteRef.current) return;
       const next = readSharedResource<Expense[]>(cacheKey);
