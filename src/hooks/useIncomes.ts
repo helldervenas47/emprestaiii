@@ -76,6 +76,7 @@ export function useIncomes(enabled = true) {
   );
   const [loading, setLoading] = useState(false);
   const selfWriteRef = useRef(false);
+  const skipInitialMirrorRef = useRef<string | null>(null);
 
   const fetch = useCallback(async () => {
     if (!user || !cacheKey) return;
@@ -104,7 +105,11 @@ export function useIncomes(enabled = true) {
   useEffect(() => {
     if (!cacheKey) return;
     const persisted = readSharedResource<Income[]>(cacheKey);
-    if (persisted && persisted.length > 0) {
+    // Evita sobrescrever o snapshot persistido com o estado inicial vazio.
+    // O fetch remoto ainda roda porque o sharedResource hidratado de localStorage
+    // fica stale (loadedAt=0); a UI pinta imediatamente com o último snapshot.
+    skipInitialMirrorRef.current = cacheKey;
+    if (persisted !== undefined) {
       selfWriteRef.current = true;
       setIncomes(persisted);
       selfWriteRef.current = false;
@@ -119,6 +124,10 @@ export function useIncomes(enabled = true) {
   // Mirror local state to shared cache
   useEffect(() => {
     if (!cacheKey) return;
+    if (skipInitialMirrorRef.current === cacheKey) {
+      skipInitialMirrorRef.current = null;
+      return;
+    }
     selfWriteRef.current = true;
     writeSharedResource(cacheKey, incomes);
     selfWriteRef.current = false;
