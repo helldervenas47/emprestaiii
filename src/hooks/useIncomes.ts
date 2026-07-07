@@ -103,7 +103,7 @@ export function useIncomes(enabled = true) {
       setIncomes(rows);
       financeFetchSuccess("useIncomes", "incomes", { rows: rows.length });
     } catch (error: any) {
-      const cached = await getCachedRows("incomes");
+      const cached = await getCachedRows("incomes", ownerKey);
       if (cached.length > 0) {
         const mapped = cached
           .sort((a, b) => (b.received_date || "").localeCompare(a.received_date || ""))
@@ -130,7 +130,7 @@ export function useIncomes(enabled = true) {
     setIncomes(persisted ?? []);
     selfWriteRef.current = false;
     if (persisted === undefined) {
-      getCachedRows("incomes").then((cached) => {
+      getCachedRows("incomes", ownerKey).then((cached) => {
         if (cached.length === 0) return;
         setIncomes(cached.sort((a, b) => (b.received_date || "").localeCompare(a.received_date || "")).map(rowToIncome));
       }).catch(() => { /* noop */ });

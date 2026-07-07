@@ -246,7 +246,7 @@ export function useExpenses(enabled = true) {
         financeFetchError("useExpenses", "expenses", { message: error?.message });
       }
     }
-    const cached = await getCachedRows("expenses");
+    const cached = await getCachedRows("expenses", ownerKey);
     if (cached.length > 0) {
       const mapped = cached
         .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))

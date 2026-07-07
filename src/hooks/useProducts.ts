@@ -104,7 +104,7 @@ export function useProducts(enabled = true) {
     setSales(persisted?.sales ?? []);
     setLoading(false);
     if (!persisted) {
-      Promise.all([getCachedRows("products"), getCachedRows("sales")])
+      Promise.all([getCachedRows("products", ownerKey), getCachedRows("sales", ownerKey)])
         .then(([productRows, salesRows]) => {
           if (productRows.length === 0 && salesRows.length === 0) return;
           setProducts(productRows.map(rowToProduct));
