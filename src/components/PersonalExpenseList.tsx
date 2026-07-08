@@ -666,30 +666,46 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
             className={`grid transition-all duration-300 ease-in-out ${expensesExpanded ? "grid-rows-[1fr] opacity-100 mt-3" : "grid-rows-[0fr] opacity-0"}`}
           >
             <div className="overflow-hidden min-h-0 space-y-3">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-                  <Input
-                    placeholder="Buscar despesa..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <div className="grid grid-cols-2 sm:flex gap-1">
-                  {filters.map((f) => (
-                    <Button
-                      key={f.id}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setFilter(f.id)}
-                      className={`rounded-xl transition-all duration-200 ${filter === f.id ? "bg-primary text-primary-foreground border-primary" : ""}`}
-                    >
-                      {f.label} ({f.count})
-                    </Button>
-                  ))}
-                </div>
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={filter === "all" ? "default" : "outline"}
+                  className="h-9 rounded-full min-w-0"
+                  onClick={() => setFilter("all")}
+                >
+                  Todas
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={filter === "pending" ? "default" : "outline"}
+                  className="h-9 rounded-full min-w-0 gap-1.5"
+                  onClick={() => setFilter("pending")}
+                >
+                  <Clock className="h-3.5 w-3.5" /> Pendentes
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={filter === "paid" ? "default" : "outline"}
+                  className="h-9 rounded-full min-w-0 gap-1.5"
+                  onClick={() => setFilter("paid")}
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Pagas
+                </Button>
               </div>
+
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                <Input
+                  placeholder="Buscar..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 w-full"
+                />
+              </div>
+
 
               {/* Category filter */}
               <div className="flex items-center gap-2">
