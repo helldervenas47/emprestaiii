@@ -657,7 +657,14 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                 {formatCurrency(
                   expensesExpanded
                     ? filtered.reduce((s, e) => s + getInstallmentAmount(e), 0) +
-                        cardInvoiceTotalsMonth.reduce((s, x) => s + Math.max(0, x.total - x.paidTotal), 0)
+                        cardInvoiceTotalsMonth.reduce((s, x) => {
+                          const isPaid = x.paid || x.hasPaidOverride;
+                          const pendingVal = Math.max(0, x.total - x.paidTotal);
+                          if (filter === "paid") return s + (isPaid ? x.paidTotal : 0);
+                          if (filter === "pending") return s + (isPaid ? 0 : pendingVal);
+                          if (filter === "overdue") return s;
+                          return s + (isPaid ? x.paidTotal : pendingVal);
+                        }, 0)
                     : totalPending,
                 )}
               </div>
