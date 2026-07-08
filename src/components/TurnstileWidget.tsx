@@ -23,7 +23,7 @@ const isPreviewEnv = (() => {
     host.includes("id-preview--") ||
     host.includes("preview--") ||
     host.includes("lovableproject.com") ||
-    host.endsWith(".vercel.app") ||
+    
     host === "localhost" ||
     host === "127.0.0.1"
   );
