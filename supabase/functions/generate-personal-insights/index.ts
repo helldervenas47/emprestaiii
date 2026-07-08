@@ -18,10 +18,13 @@ function currentMonth(): string {
 
 interface CategoryStat {
   category: string;
-  spent: number;
-  budget: number;
-  pct: number;
-  status: "ok" | "warning" | "exceeded";
+  spent: number;       // total previsto no mês (pagos + a pagar)
+  paid: number;        // efetivamente pago no mês
+  pending: number;     // ainda a pagar (não vencido)
+  overdue: number;     // vencido e não pago
+  budget: number;      // orçamento do mês (0 quando não há)
+  pct: number;         // % somente quando budget > 0
+  status: "ok" | "warning" | "exceeded" | "no_budget";
   trend?: "up" | "down" | "stable";
   prevSpent?: number;
 }
@@ -31,6 +34,7 @@ async function buildContext(supabase: any, ownerId: string, month: string) {
   const [y, m] = month.split("-").map(Number);
   const monthEndDate = new Date(y, m, 0);
   const monthEnd = `${monthEndDate.getFullYear()}-${String(monthEndDate.getMonth() + 1).padStart(2, "0")}-${String(monthEndDate.getDate()).padStart(2, "0")}`;
+  const todayStr = new Date().toISOString().slice(0, 10);
 
   const prevD = new Date(y, m - 2, 1);
   const prevMonth = `${prevD.getFullYear()}-${String(prevD.getMonth() + 1).padStart(2, "0")}`;
@@ -38,32 +42,23 @@ async function buildContext(supabase: any, ownerId: string, month: string) {
   const prevEndDate = new Date(prevD.getFullYear(), prevD.getMonth() + 1, 0);
   const prevEnd = `${prevEndDate.getFullYear()}-${String(prevEndDate.getMonth() + 1).padStart(2, "0")}-${String(prevEndDate.getDate()).padStart(2, "0")}`;
 
-  const { data: allBudgets } = await supabase
+  // Orçamentos: usar EXCLUSIVAMENTE os do mês analisado. Não fazer fallback
+  // para meses anteriores/posteriores — isso causava percentuais absurdos
+  // (ex.: 642%) ao comparar despesas do mês atual com um orçamento antigo.
+  const { data: monthBudgets } = await supabase
     .from("personal_budgets")
     .select("category, amount, month")
-    .eq("user_id", ownerId);
+    .eq("user_id", ownerId)
+    .eq("month", month);
 
-  let budgets: { category: string; amount: number }[] = [];
-  if (allBudgets && allBudgets.length > 0) {
-    const monthsAvailable = Array.from(new Set((allBudgets as any[]).map((b) => b.month as string))).sort();
-    let sourceMonth: string | null = null;
-    if (monthsAvailable.includes(month)) sourceMonth = month;
-    else {
-      const previous = [...monthsAvailable].reverse().find((mm: string) => mm < month);
-      sourceMonth = previous ?? monthsAvailable.find((mm: string) => mm > month) ?? null;
-    }
-    if (sourceMonth) {
-      budgets = (allBudgets as any[])
-        .filter((b) => b.month === sourceMonth)
-        .map((b) => ({ category: b.category, amount: Number(b.amount) }));
-    }
-  }
+  const budgets: { category: string; amount: number }[] = (monthBudgets || [])
+    .map((b: any) => ({ category: b.category, amount: Number(b.amount) || 0 }))
+    .filter((b: any) => b.amount > 0);
 
-  // IMPORTANT: include all expenses for the month (paid and unpaid) so the
-  // analysis reflects the total committed/forecasted amount, not only what was already paid.
+  // Despesas do mês (pagas e não pagas) para calcular previsto/pago/pendente/vencido.
   const { data: expenses } = await supabase
     .from("expenses")
-    .select("category, amount, type, installments, due_date, paid")
+    .select("category, amount, type, installments, due_date, paid, paid_date")
     .eq("user_id", ownerId)
     .eq("scope", "personal")
     .gte("due_date", monthStart)
@@ -77,35 +72,46 @@ async function buildContext(supabase: any, ownerId: string, month: string) {
     .gte("due_date", prevStart)
     .lte("due_date", prevEnd);
 
-  const sumByCategory = (rows: any[]) => {
-    const map = new Map<string, number>();
-    for (const e of rows || []) {
-      const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
-      const amt = isRec ? Number(e.amount) / Number(e.installments) : Number(e.amount);
-      map.set(e.category, (map.get(e.category) || 0) + amt);
-    }
-    return map;
+  const instAmount = (e: any) => {
+    const isRec = e.type === "recorrente" && e.installments && Number(e.installments) > 1;
+    return isRec ? Number(e.amount) / Number(e.installments) : Number(e.amount);
   };
 
-  const spent = sumByCategory(expenses || []);
-  const prevSpent = sumByCategory(prevExpenses || []);
+  type Bucket = { total: number; paid: number; pending: number; overdue: number };
+  const bucketByCategory = new Map<string, Bucket>();
+  for (const e of expenses || []) {
+    const amt = instAmount(e);
+    const cat = e.category as string;
+    const b = bucketByCategory.get(cat) || { total: 0, paid: 0, pending: 0, overdue: 0 };
+    b.total += amt;
+    if (e.paid) b.paid += amt;
+    else if (e.due_date < todayStr) b.overdue += amt;
+    else b.pending += amt;
+    bucketByCategory.set(cat, b);
+  }
+
+  const prevSpentByCat = new Map<string, number>();
+  for (const e of prevExpenses || []) {
+    prevSpentByCat.set(e.category, (prevSpentByCat.get(e.category) || 0) + instAmount(e));
+  }
 
   const categoriesSet = new Set<string>([
     ...budgets.map((b) => b.category),
-    ...spent.keys(),
+    ...bucketByCategory.keys(),
   ]);
 
   const stats: CategoryStat[] = [];
   for (const cat of categoriesSet) {
     const budget = budgets.find((b) => b.category === cat)?.amount ?? 0;
-    const sp = spent.get(cat) || 0;
-    const ps = prevSpent.get(cat) || 0;
+    const bucket = bucketByCategory.get(cat) || { total: 0, paid: 0, pending: 0, overdue: 0 };
+    const sp = bucket.total;
+    const ps = prevSpentByCat.get(cat) || 0;
     const pct = budget > 0 ? (sp / budget) * 100 : 0;
-    let status: "ok" | "warning" | "exceeded" = "ok";
-    if (budget > 0) {
-      if (pct > 100) status = "exceeded";
-      else if (pct >= 80) status = "warning";
-    }
+    let status: CategoryStat["status"] = "ok";
+    if (budget <= 0) status = "no_budget";
+    else if (pct > 100) status = "exceeded";
+    else if (pct >= 80) status = "warning";
+
     let trend: "up" | "down" | "stable" = "stable";
     if (ps > 0) {
       const change = (sp - ps) / ps;
@@ -113,30 +119,56 @@ async function buildContext(supabase: any, ownerId: string, month: string) {
       else if (change < -0.15) trend = "down";
     } else if (sp > 0) trend = "up";
 
-    stats.push({ category: cat, spent: sp, budget, pct, status, trend, prevSpent: ps });
+    stats.push({
+      category: cat,
+      spent: sp,
+      paid: bucket.paid,
+      pending: bucket.pending,
+      overdue: bucket.overdue,
+      budget,
+      pct,
+      status,
+      trend,
+      prevSpent: ps,
+    });
   }
 
   stats.sort((a, b) => b.spent - a.spent);
 
   const totalSpent = stats.reduce((s, x) => s + x.spent, 0);
+  const totalPaid = stats.reduce((s, x) => s + x.paid, 0);
+  const totalPending = stats.reduce((s, x) => s + x.pending, 0);
+  const totalOverdue = stats.reduce((s, x) => s + x.overdue, 0);
   const totalBudget = budgets.reduce((s, b) => s + b.amount, 0);
+  const hasAnyBudget = totalBudget > 0;
 
-  return { stats, totalSpent, totalBudget, month, prevMonth };
+  return { stats, totalSpent, totalPaid, totalPending, totalOverdue, totalBudget, hasAnyBudget, month, prevMonth };
 }
 
 function buildPrompt(ctx: any) {
   const lines: string[] = [];
   lines.push(`Mês de referência: ${ctx.month}`);
-  lines.push(`Total previsto no mês (pagos + a pagar): ${fmt(ctx.totalSpent)} | Total orçado: ${fmt(ctx.totalBudget)}`);
+  lines.push(`Total previsto no mês (pagos + a pagar): ${fmt(ctx.totalSpent)}`);
+  lines.push(`Total pago: ${fmt(ctx.totalPaid)} | Total pendente: ${fmt(ctx.totalPending)} | Total vencido: ${fmt(ctx.totalOverdue)}`);
+  lines.push(
+    ctx.hasAnyBudget
+      ? `Orçamento mensal cadastrado: ${fmt(ctx.totalBudget)}`
+      : `Orçamento mensal: NÃO cadastrado (não calcule percentuais de orçamento)`,
+  );
   lines.push("");
-  lines.push("Categorias (total previsto / orçamento / % / tendência vs mês anterior):");
+  lines.push("Categorias (previsto | pago | pendente | vencido | orçamento | tendência vs mês anterior):");
   for (const s of ctx.stats) {
     const trendLabel = s.trend === "up" ? "↑ alta" : s.trend === "down" ? "↓ queda" : "→ estável";
-    const budgetTxt = s.budget > 0 ? `${fmt(s.budget)} (${s.pct.toFixed(0)}%)` : "sem limite";
-    lines.push(`- ${s.category}: ${fmt(s.spent)} previstos / ${budgetTxt} | ${trendLabel} (anterior: ${fmt(s.prevSpent || 0)})`);
+    const budgetTxt = s.budget > 0
+      ? `orçamento ${fmt(s.budget)} (${s.pct.toFixed(0)}%)`
+      : `sem orçamento cadastrado`;
+    lines.push(
+      `- ${s.category}: previsto ${fmt(s.spent)} | pago ${fmt(s.paid)} | pendente ${fmt(s.pending)} | vencido ${fmt(s.overdue)} | ${budgetTxt} | ${trendLabel} (anterior: ${fmt(s.prevSpent || 0)})`,
+    );
   }
   return lines.join("\n");
 }
+
 
 async function callAI(systemPrompt: string, userPrompt: string) {
   const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
