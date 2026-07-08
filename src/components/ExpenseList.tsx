@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Switch } from "@/components/ui/switch";
 import {
   Search, Trash2, CheckCircle, CheckCircle2, Clock, Receipt, Calendar, Tag,
-  CircleDollarSign, ChevronLeft, ChevronRight, Undo2, Pencil, Check, CalendarCheck,
+  CircleDollarSign, ChevronLeft, ChevronRight, ChevronDown, Undo2, Pencil, Check, CalendarCheck,
 } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ExpenseBoletoLinkButton } from "@/components/ExpenseBoletoLinkButton";
