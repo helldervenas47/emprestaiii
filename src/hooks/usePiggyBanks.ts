@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef, useId } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { useDataOwner } from "./useDataOwner";
@@ -173,6 +173,7 @@ const DEFAULT_ICON = "PiggyBank";
 
 export function usePiggyBanks() {
   useFinanceHookDebug("usePiggyBanks");
+  const instanceId = useId();
   const { user } = useAuth();
   const dataOwnerId = useDataOwner();
   const [piggyBanks, setPiggyBanks] = useState<PiggyBank[]>([]);
@@ -360,7 +361,7 @@ export function usePiggyBanks() {
       }, 1500);
     };
     const channel = supabase
-      .channel(`cofrinhos:${dataOwnerId}`)
+      .channel(`cofrinhos:${dataOwnerId}:${instanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "cofrinhos" }, () => scheduleReload("cofrinhos"))
       .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_aportes" }, () => scheduleReload("cofrinho_aportes"))
       .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_eventos" }, () => scheduleReload("cofrinho_eventos"))
@@ -371,7 +372,7 @@ export function usePiggyBanks() {
       if (reloadTimerRef.current) { clearTimeout(reloadTimerRef.current); reloadTimerRef.current = null; }
       supabase.removeChannel(channel);
     };
-  }, [dataOwnerId, reload]);
+  }, [dataOwnerId, reload, instanceId]);
 
   // ---------------------------------------------------------------------------
   // CRUD de cofrinhos
