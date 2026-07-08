@@ -17,7 +17,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Search, Trash2, CheckCircle, Receipt, Calendar,
+  Search, Trash2, CheckCircle, CheckCircle2, Clock, Receipt, Calendar,
   CircleDollarSign, ChevronLeft, ChevronRight, Undo2, TrendingUp, CalendarDays, Target, Pencil,
   Sparkles, Plus, ChevronDown,
 } from "lucide-react";
