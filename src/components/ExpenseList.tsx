@@ -533,19 +533,6 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
 
 
 
-      {!readOnly && hasPaidExpenses && onUnpay && (
-        <div className="flex justify-end">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10 text-xs gap-1"
-            onClick={() => setShowClearPayments(true)}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Limpar Pagamentos
-          </Button>
-        </div>
-      )}
 
       {/* Dialog limpar pagamentos */}
       <Dialog open={showClearPayments} onOpenChange={setShowClearPayments}>
