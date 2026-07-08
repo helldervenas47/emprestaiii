@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useId } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { ManagerCommission } from "@/types/loan";
@@ -6,6 +6,7 @@ import { assertWritable } from "@/lib/readOnlyState";
 
 export function useManagerCommissions(enabled: boolean = true) {
   const { user, dataOwnerId } = useAuth();
+  const instanceId = useId();
   const [commissions, setCommissions] = useState<ManagerCommission[]>([]);
 
   const fetch = useCallback(async () => {
@@ -40,7 +41,7 @@ export function useManagerCommissions(enabled: boolean = true) {
   useEffect(() => {
     if (!user || !enabled || !dataOwnerId) return;
     const channel = supabase
-      .channel(`manager-commissions:${dataOwnerId}`)
+      .channel(`manager-commissions:${dataOwnerId}:${instanceId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "manager_commissions", filter: `user_id=eq.${dataOwnerId}` },
@@ -55,7 +56,7 @@ export function useManagerCommissions(enabled: boolean = true) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, enabled, dataOwnerId, fetch]);
+  }, [user, enabled, dataOwnerId, fetch, instanceId]);
 
   const addCommission = useCallback(
     async (params: {

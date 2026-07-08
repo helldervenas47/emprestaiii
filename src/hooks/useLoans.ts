@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useId } from "react";
 import { todayInAppTz } from "@/lib/timezone";
 import { Loan, Payment, InstallmentSchedule, PaymentSplit } from "@/types/loan";
 import { adjustBalance, adjustBalanceOffline } from "@/lib/balance";
@@ -204,6 +204,7 @@ async function recordPaymentLedgerSplit(args: {
 
 export function useLoans() {
   const { user, dataOwnerId } = useAuth();
+  const instanceId = useId();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [installmentSchedules, setInstallmentSchedules] = useState<InstallmentSchedule[]>([]);
@@ -297,7 +298,7 @@ export function useLoans() {
       try { fn(); } catch (e) { console.warn("[useLoans realtime patch failed, refetching]", e); fallback(); }
     };
     const channel = supabase
-      .channel(`loans:${ownerId}`)
+      .channel(`loans:${ownerId}:${instanceId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'loans', filter: `user_id=eq.${ownerId}` }, (payload) => {
         safe(() => setLoans((prev) => {
           const row = rowToLoan(payload.new as any);
@@ -342,7 +343,7 @@ export function useLoans() {
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, dataOwnerId, fetchLoans, fetchPayments, fetchSchedules]);
+  }, [user, dataOwnerId, fetchLoans, fetchPayments, fetchSchedules, instanceId]);
 
   const saveSchedule = useCallback(async (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => {
     assertWritable();

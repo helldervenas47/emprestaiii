@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { LoanRenegotiation } from "@/types/loan";
@@ -30,6 +30,7 @@ const LOAN_RENEGOTIATION_WITH_SNAPSHOT_COLUMNS = `${LOAN_RENEGOTIATION_COLUMNS},
 
 export function useLoanRenegotiations() {
   const { user, dataOwnerId } = useAuth();
+  const instanceId = useId();
   const [renegotiations, setRenegotiations] = useState<LoanRenegotiation[]>([]);
 
   const fetchAll = useCallback(async () => {
@@ -61,7 +62,7 @@ export function useLoanRenegotiations() {
   useEffect(() => {
     if (!user || !dataOwnerId) return;
     const channel = supabase
-      .channel(`loan-renegotiations:${dataOwnerId}`)
+      .channel(`loan-renegotiations:${dataOwnerId}:${instanceId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "loan_renegotiations", filter: `user_id=eq.${dataOwnerId}` },
@@ -69,7 +70,7 @@ export function useLoanRenegotiations() {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, dataOwnerId, fetchAll]);
+  }, [user, dataOwnerId, fetchAll, instanceId]);
 
   const updateRenegotiation = useCallback(
     async (

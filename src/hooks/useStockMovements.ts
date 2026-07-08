@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useId } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "@/hooks/useAuth";
 import { assertWritable } from "@/lib/readOnlyState";
@@ -44,6 +44,7 @@ const STOCK_MOVEMENT_COLUMNS =
 
 export function useStockMovements(enabled = true) {
   const { user, dataOwnerId } = useAuth();
+  const instanceId = useId();
   const ownerKey = dataOwnerId ?? user?.id ?? null;
   const cacheKey = ownerKey ? `stock_movements:${ownerKey}` : null;
   const [movements, setMovements] = useState<StockMovement[]>(() =>
@@ -97,7 +98,7 @@ export function useStockMovements(enabled = true) {
   useEffect(() => {
     if (!user || !enabled || !cacheKey || !dataOwnerId) return;
     const channel = supabase
-      .channel(`stock-movements:${dataOwnerId}`)
+      .channel(`stock-movements:${dataOwnerId}:${instanceId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "stock_movements", filter: `owner_id=eq.${dataOwnerId}` },
@@ -108,7 +109,7 @@ export function useStockMovements(enabled = true) {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, enabled, fetchData, cacheKey, dataOwnerId]);
+  }, [user, enabled, fetchData, cacheKey, dataOwnerId, instanceId]);
 
   useEffect(() => {
     if (!cacheKey) return;
