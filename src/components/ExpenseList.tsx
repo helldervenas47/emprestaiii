@@ -309,7 +309,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
       .filter((e) => e.description.toLowerCase().includes(q) || e.category.toLowerCase().includes(q))
       .filter((e) => {
         const recFullyPaid = e.type === "recorrente" && e.installments && e.installments > 1 && e.paid;
-        if (filter === "pending") return !e.paid && !isOverdue(e);
+        if (filter === "pending") return !e.paid;
         if (filter === "paid") return e.paid && !recFullyPaid;
         if (filter === "overdue") return isOverdue(e);
         return !recFullyPaid;
