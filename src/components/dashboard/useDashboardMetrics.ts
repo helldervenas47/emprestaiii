@@ -728,71 +728,14 @@ export function useDashboardMetrics(input: UseDashboardMetricsInput) {
   }, [monthlyChartBase, chartOverrides]);
 
   const interestChartBase = useMemo(() => {
+    // Fonte única de alocação de juros (mesma usada nos cards) para garantir
+    // paridade entre "Juros recebidos" e o gráfico mês a mês.
     const paymentsSorted = [...payments].sort((a, b) => {
-      const d = a.date.localeCompare(b.date);
+      const d = (a.date ?? "").localeCompare(b.date ?? "");
       if (d !== 0) return d;
       return (a.createdAt ?? "").localeCompare(b.createdAt ?? "");
     });
-    const interestByPaymentId = new Map<string, number>();
-    const loanInterestRemaining = new Map<string, number>();
-    loans.forEach((l) => {
-      const total = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-      loanInterestRemaining.set(l.id, Math.max(0, total - l.amount));
-    });
-    paymentsSorted.forEach((p) => {
-      const amt = Number(p.amount) || 0;
-      if (amt <= 0) {
-        interestByPaymentId.set(p.id, 0);
-        return;
-      }
-      if (p.installmentNumber === 0 || p.installmentNumber === -2) {
-        interestByPaymentId.set(p.id, amt);
-        const rem = loanInterestRemaining.get(p.loanId) ?? 0;
-        loanInterestRemaining.set(p.loanId, Math.max(0, rem - amt));
-      } else if (p.installmentNumber === -3) {
-        interestByPaymentId.set(p.id, 0);
-      } else if (p.installmentNumber === -1) {
-        const loan = loans.find((l) => l.id === p.loanId);
-        const totalWithInterest = loan
-          ? calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments)
-          : 0;
-        const ratio = totalWithInterest > 0 && loan
-          ? Math.max(0, 1 - loan.amount / totalWithInterest)
-          : 0;
-        const rem = loanInterestRemaining.get(p.loanId) ?? 0;
-        const interest = Math.min(rem, Math.max(0, amt * ratio));
-        interestByPaymentId.set(p.id, interest);
-        loanInterestRemaining.set(p.loanId, Math.max(0, rem - interest));
-      } else {
-        const loan = loans.find((l) => l.id === p.loanId);
-        const totalWithInterest = loan
-          ? calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments)
-          : 0;
-        const ratio = totalWithInterest > 0 && loan
-          ? Math.max(0, 1 - loan.amount / totalWithInterest)
-          : 0;
-        const rem = loanInterestRemaining.get(p.loanId) ?? 0;
-        const interest = Math.min(rem, Math.max(0, amt * ratio));
-        interestByPaymentId.set(p.id, interest);
-        loanInterestRemaining.set(p.loanId, Math.max(0, rem - interest));
-      }
-    });
-    const lastPaymentByLoanId = new Map<string, string>();
-    paymentsSorted.forEach((p) => { lastPaymentByLoanId.set(p.loanId, p.id); });
-    loans.forEach((l) => {
-      if (l.status !== "paid") return;
-      const lastId = lastPaymentByLoanId.get(l.id);
-      if (!lastId) return;
-      const loanPays = payments.filter((p) => p.loanId === l.id);
-      const totalPaid = loanPays.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-      const allocated = loanPays.reduce((s, p) => s + (interestByPaymentId.get(p.id) ?? 0), 0);
-      const principalRef = l.originalAmount != null && l.originalAmount > 0 ? l.originalAmount : l.amount;
-      const realProfit = totalPaid - principalRef;
-      const diff = realProfit - allocated;
-      if (Math.abs(diff) < 0.005) return;
-      const cur = interestByPaymentId.get(lastId) ?? 0;
-      interestByPaymentId.set(lastId, Math.max(0, cur + diff));
-    });
+    const interestByPaymentId = allocateInterestByPayment(loans as any, paymentsSorted as any);
 
     const now = new Date();
     const months: { month: string; juros: number; key: string }[] = [];
