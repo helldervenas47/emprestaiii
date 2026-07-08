@@ -421,19 +421,7 @@ export function MyBoletosSection({ readOnly }: Props) {
               : g.pending > 0
               ? "border-l-amber-500"
               : "border-l-emerald-500";
-            const isOpen = expanded[g.key] ?? single;
-
-            if (single) {
-              return <BoletoCard key={g.key} b={g.items[0]} readOnly={readOnly}
-                onPay={() => setPayTarget(g.items[0])}
-                onEdit={() => openEdit(g.items[0])}
-                onDelete={() => setDeleteId(g.items[0].id)}
-                onHistory={() => setHistoryTarget(g.items[0])}
-                onUnlink={async () => { await unlinkExpense(g.items[0].id); toast.success("Despesa desvinculada"); }}
-                linkedExpenseDescription={g.items[0].expense_id ? expenseMap[g.items[0].expense_id] : undefined}
-                onAttach={openAttachment} />;
-
-            }
+            const isOpen = expanded[g.key] ?? false;
 
             return (
               <Card key={g.key} className={cn("border-l-4", groupTone)}>
