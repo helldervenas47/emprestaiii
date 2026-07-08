@@ -347,23 +347,27 @@ Deno.serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Reuse cached if generated within last 30 minutes and not forced
+    // Reuse cached only if gerado após a correção do relatório (v2) e ainda recente.
+    const REPORT_ENGINE_VERSION = "v2-2026-07-08";
+    const CACHE_TTL_MS = 30 * 60 * 1000;
     if (!force) {
       const { data: existing } = await supabase
         .from("personal_ai_insights")
-        .select("id, content, summary, exceeded_categories, generated_at")
+        .select("id, content, summary, exceeded_categories, generated_at, engine_version")
         .eq("user_id", ownerId)
         .eq("month", month)
         .maybeSingle();
       if (existing) {
         const ageMs = Date.now() - new Date((existing as any).generated_at).getTime();
-        if (ageMs < 30 * 60 * 1000) {
+        const sameEngine = (existing as any).engine_version === REPORT_ENGINE_VERSION;
+        if (sameEngine && ageMs < CACHE_TTL_MS) {
           return new Response(JSON.stringify({ ...existing, cached: true }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
       }
     }
+
 
     const ctx = await buildContext(supabase, ownerId, month);
     if (ctx.stats.length === 0) {
