@@ -412,7 +412,9 @@ export function useLoanListController({
         const cat = getLoanCategory(l, payments, installmentSchedules);
         if (category === "overdue") {
           if (cat !== "overdue") return s;
-          return s + getOverdueAmount(l, installmentSchedules, today);
+          return s
+            + getOverdueAmount(l, installmentSchedules, today)
+            + getLoanLateFees(l, payments, installmentSchedules).lateFees;
         }
         if (category === "due_today") {
           if (cat !== "due_today") return s;
