@@ -10,27 +10,26 @@ const isPreviewEnv = (() => {
   if (typeof window === "undefined") return false;
 
   // Apps nativos (Capacitor) rodam em localhost/capacitor:// mas são PRODUÇÃO.
-  // Nunca usar chave de teste dentro do app nativo.
   const isNative =
     !!(window as any).Capacitor?.isNativePlatform?.() ||
     window.location.protocol === "capacitor:" ||
     window.location.protocol === "ionic:";
   if (isNative) return false;
 
-  let inIframe = false;
-  try { inIframe = window.self !== window.top; } catch { inIframe = true; }
+  // Em build de produção (publicado / domínio custom / app nativo) usamos
+  // SEMPRE a chave real, independente do hostname ou de estar em iframe
+  // (device toggle mobile/tablet do editor NÃO deve afetar o site publicado).
+  if (import.meta.env.PROD) return false;
+
+  // Somente em dev local ou preview do editor Lovable usamos a chave de teste.
   const host = window.location.hostname;
-  // Só usa chave de teste em preview do editor Lovable ou dev local.
-  // Produção (app.lovable.app publicado, domínios customizados, apps nativos)
-  // usa SEMPRE a chave real do Cloudflare Turnstile.
-  const isPreviewHost =
+  return (
     host.includes("id-preview--") ||
     host.includes("preview--") ||
     host.includes("lovableproject.com") ||
-    host.endsWith(".vercel.app") ||
     host === "localhost" ||
-    host === "127.0.0.1";
-  return isPreviewHost || (inIframe && isPreviewHost);
+    host === "127.0.0.1"
+  );
 })();
 
 export const TURNSTILE_SITE_KEY = isPreviewEnv ? TEST_SITE_KEY : REAL_SITE_KEY;
