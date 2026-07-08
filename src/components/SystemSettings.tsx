@@ -36,12 +36,6 @@ export function SystemSettings() {
 
   return (
     <div className="space-y-6 w-full">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">Sistema</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Centralize as funcionalidades administrativas e operacionais da plataforma.
-        </p>
-      </div>
 
       <Tabs value={subTab} onValueChange={setSubTab} className="w-full">
         <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
