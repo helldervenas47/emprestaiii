@@ -738,13 +738,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <CalendarDays className="h-5 w-5" /> Calendário
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Calendário de Cobrança</p>
-        </div>
+      <div className="flex items-start justify-end gap-2">
         <Button variant="outline" size="sm" onClick={goToToday}>Hoje</Button>
       </div>
 
