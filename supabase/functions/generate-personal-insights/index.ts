@@ -202,58 +202,69 @@ async function callAI(systemPrompt: string, userPrompt: string) {
 }
 
 const TONE_INSTRUCTIONS: Record<string, string> = {
-  balanced: "Tom equilibrado, profissional e acolhedor — como Nathalia Arcuri ou Thiago Nigro: claro, direto e empático.",
-  strict: "Tom RIGOROSO e direto, sem rodeios. Aponte estouros e desperdícios com firmeza, use linguagem de cobrança responsável (ex.: 'isso precisa parar', 'corte agora'). Evite elogios desnecessários.",
-  motivational: "Tom MOTIVACIONAL e encorajador. Celebre conquistas (mesmo pequenas), use linguagem positiva e inspiradora ('você consegue', 'ótimo passo'), foque em progresso e potencial.",
-  technical: "Tom TÉCNICO e analítico. Use percentuais, comparativos numéricos e terminologia financeira (variação MoM, share da carteira, ticket médio). Mínimo de emojis, máximo de objetividade.",
-  friendly: "Tom AMIGÁVEL e conversacional, como um amigo próximo dando dicas. Use linguagem informal, descontraída, com analogias do dia a dia. Evite jargão.",
+  balanced: "Tom equilibrado, profissional e acolhedor. Claro, direto e empático, sem alarmismo.",
+  strict: "Tom firme e objetivo, focado em disciplina financeira. NUNCA use termos alarmistas como 'crítico', 'monumental', 'descontrolado', 'inaceitável'. Aponte apenas o que os números mostram.",
+  motivational: "Tom encorajador. Celebre o que estiver dentro do orçamento e proponha próximos passos. Sem exageros.",
+  technical: "Tom técnico e analítico. Use somente os números fornecidos (variação MoM, share da carteira). Mínimo de emojis.",
+  friendly: "Tom amigável e conversacional, sem jargão e sem exageros.",
 };
+
+const HARD_RULES = `
+REGRAS OBRIGATÓRIAS (nunca quebrar):
+1. Use APENAS os números fornecidos em "User Data". Nunca invente valores, categorias ou percentuais.
+2. Percentual do orçamento (%) só pode ser citado quando a categoria tem "orçamento" > 0 nos dados. Se estiver "sem orçamento cadastrado", NÃO cite %, apenas o valor gasto.
+3. Não use termos alarmistas: "crítico", "descontrolado", "monumental", "inaceitável", "situação crítica", "estouro monumental", "gastos descontrolados". Prefira: "acima do orçamento", "atenção", "acompanhar".
+4. Só chame de "estouro" ou "acima do orçamento" quando % > 100 e o orçamento existir. Só chame de "atenção" entre 80% e 100%.
+5. Diferencie sempre "previsto", "pago", "pendente" e "vencido" quando relevante.
+6. Recomendações devem ser prudentes e ancoradas nas maiores categorias reais. Nada de sugestões genéricas ("cancele assinaturas") sem base nos dados.
+7. Se não há orçamento nenhum cadastrado, informe isso explicitamente e não emita julgamento de estouro.
+8. Tom profissional. Sem drama.
+`;
 
 function buildSystemPrompt(tone: string): string {
   const toneInstruction = TONE_INSTRUCTIONS[tone] ?? TONE_INSTRUCTIONS.balanced;
-  return `Você é um consultor financeiro pessoal especializado em análise de gastos. Recebe um resumo mensal de gastos por categoria com orçamentos definidos pelo usuário e tendência vs o mês anterior.
+  return `Você é um consultor financeiro pessoal. Analisa um resumo mensal real de despesas por categoria, com orçamentos (quando cadastrados) e tendência vs. o mês anterior.
 
-TOM DE VOZ DESTA RESPOSTA: ${toneInstruction}
+TOM DE VOZ: ${toneInstruction}
+${HARD_RULES}
 
-Sua resposta DEVE ser em português do Brasil, em formato Markdown enxuto, sem títulos H1, com no máximo 280 palavras, organizada nestas seções (use exatamente esses títulos com ##):
+Formato da resposta (Português do Brasil, Markdown enxuto, sem H1, máximo 280 palavras, use exatamente esses títulos com ##):
 
 ## 📊 Visão geral
-1-2 frases objetivas sobre o estado geral do mês (saudável, atenção, alerta).
+1-2 frases objetivas. Cite total previsto, pago e pendente do mês. Se houver orçamento total, cite o % consumido; caso contrário, apenas informe que não há orçamento cadastrado.
 
-## ⚠️ Pontos críticos
-Liste como bullets as categorias que estouraram OU estão acima de 80%. Para cada uma: nome em **negrito**, % do orçamento e impacto. Se nenhuma, diga "Nenhum estouro detectado este mês.".
+## ⚠️ Pontos de atenção
+Bullets APENAS para categorias com orçamento cadastrado e uso ≥ 80%. Para cada uma: **categoria**, valor previsto, % do orçamento. Se nenhuma se qualifica, escreva "Nenhuma categoria acima de 80% do orçamento neste mês.". Nunca invente %.
 
 ## 💡 Oportunidades de redução
-2-3 bullets PRÁTICAS e específicas (não genéricas). Considere a tendência (↑/↓) e categorias com gasto alto sem orçamento.
+2-3 bullets práticos baseados nas MAIORES categorias por valor real. Se a categoria não tem orçamento, sugira definir um limite. Nada genérico.
 
 ## ✅ Próximas ações
-2-3 ações concretas que o usuário pode executar essa semana. Use verbos no infinitivo (ex.: "Definir limite", "Renegociar", "Revisar assinaturas").
-
-Mantenha o tom solicitado em TODAS as seções. Nunca invente categorias que não estão nos dados.`;
+2-3 ações concretas e prudentes ancoradas nos dados (ex.: "Definir orçamento para X", "Quitar despesa vencida Y"). Verbos no infinitivo.`;
 }
 
 function buildCategorySystemPrompt(tone: string, category: string): string {
   const toneInstruction = TONE_INSTRUCTIONS[tone] ?? TONE_INSTRUCTIONS.balanced;
-  return `Você é um consultor financeiro pessoal. Vai analisar UMA ÚNICA categoria de despesas pessoais: **${category}**.
+  return `Você é um consultor financeiro pessoal analisando UMA categoria: **${category}**.
 
 TOM DE VOZ: ${toneInstruction}
+${HARD_RULES}
 
-Resposta em português do Brasil, Markdown enxuto, máximo 220 palavras, sem títulos H1. Use EXATAMENTE estas seções com ##:
+Formato (Português do Brasil, Markdown enxuto, máximo 220 palavras, sem H1, use estas seções com ##):
 
 ## 📊 Análise da categoria
-Diagnóstico específico de **${category}**: total previsto no mês (somando pagos + a pagar), % comprometido do orçamento, comparação com mês anterior e share dentro do total mensal previsto. 2-3 frases.
+Diagnóstico com os números reais de **${category}**: previsto, pago, pendente e vencido. Se houver orçamento cadastrado, cite o % consumido; se não houver, diga "sem orçamento cadastrado" e não invente %.
 
-## 🚨 Problemas identificados
-Bullets curtos: estouro de orçamento, recorrência elevada, picos atípicos, ausência de limite, etc. Se nada relevante, diga "Sem problemas críticos detectados.".
+## 🚨 Pontos de atenção
+Bullets somente quando houver base numérica (ex.: uso ≥ 80% do orçamento, vencidos > 0, alta ≥ 15% vs mês anterior). Caso contrário: "Sem pontos de atenção com base nos dados.".
 
-## 💰 Sugestões práticas de redução
-2-4 bullets ESPECÍFICOS para **${category}** (não genéricos). Inclua estimativas de economia quando possível (ex.: "renegociar plano pode poupar ~R$ 40/mês").
+## 💰 Sugestões de redução
+2-4 bullets específicos para **${category}**, com estimativas somente quando derivadas dos números fornecidos.
 
 ## 🎯 Recomendações de controle
-2-3 ações concretas para manter a categoria sob controle nos próximos meses (ex.: "definir limite de R$ X", "criar alerta em 70%", "revisar assinaturas mensalmente").
-
-Foque APENAS em **${category}**. Não comente outras categorias. Nunca invente dados.`;
+2-3 ações concretas (ex.: definir orçamento, revisar recorrências). Nada genérico.`;
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
