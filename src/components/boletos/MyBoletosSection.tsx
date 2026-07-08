@@ -130,7 +130,7 @@ export function MyBoletosSection({ readOnly }: Props) {
     uploadAttachment, getAttachmentUrl,
   } = useMyBoletos();
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"todos" | MyBoletoStatus>("todos");
+  const [statusFilter, setStatusFilter] = useState<"todos" | MyBoletoStatus>("pendente");
   const [categoryFilter, setCategoryFilter] = useState<string>("todas");
   const [sortBy, setSortBy] = useState<"due" | "amount" | "status">("due");
   const [open, setOpen] = useState(false);
