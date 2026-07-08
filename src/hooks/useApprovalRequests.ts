@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 
@@ -21,6 +21,7 @@ const APPROVAL_REQUEST_COLUMNS =
 
 export function useApprovalRequests() {
   const { user, role } = useAuth();
+  const instanceId = useId();
   const [requests, setRequests] = useState<ApprovalRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,7 +47,7 @@ export function useApprovalRequests() {
   useEffect(() => {
     if (!user || role !== "admin") return;
     const channel = supabase
-      .channel(`approvals-owner:${user.id}`)
+      .channel(`approvals-owner:${user.id}:${instanceId}`)
       .on(
         "postgres_changes" as any,
         { event: "*", schema: "public", table: "user_approvals", filter: `owner_id=eq.${user.id}` },
@@ -54,7 +55,7 @@ export function useApprovalRequests() {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, role, fetchRequests]);
+  }, [user, role, fetchRequests, instanceId]);
 
   const pendingCount = requests.filter((r) => r.status === "pending").length;
 
