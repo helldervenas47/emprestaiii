@@ -447,42 +447,90 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
         </Button>
       </div>
 
-      {/* Quick status filter (mirrors Receitas) */}
-      <div className="grid grid-cols-3 gap-2">
-        <Button
+      {/* Collapsible quick filter card (mirrors Receitas) */}
+      <Card no3d className="p-4">
+        <button
           type="button"
-          size="sm"
-          variant={filter === "all" ? "default" : "outline"}
-          className="h-9 rounded-full min-w-0"
-          onClick={() => setFilter("all")}
+          onClick={() => setExpensesExpanded((v) => !v)}
+          className="w-full flex items-center justify-between gap-2 flex-wrap text-left rounded-lg -m-1 p-1 hover:bg-muted/40 active:bg-muted/60 transition-colors"
+          aria-expanded={expensesExpanded}
+          aria-controls="despesas-content"
         >
-          Todas
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={filter === "pending" ? "default" : "outline"}
-          className="h-9 rounded-full min-w-0 gap-1.5"
-          onClick={() => setFilter("pending")}
-        >
-          <Clock className="h-3.5 w-3.5" /> Pendentes
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={filter === "paid" ? "default" : "outline"}
-          className="h-9 rounded-full min-w-0 gap-1.5"
-          onClick={() => setFilter("paid")}
-        >
-          <CheckCircle2 className="h-3.5 w-3.5" /> Pagas
-        </Button>
-      </div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">Despesas ({filtered.length})</h2>
+            <ChevronDown
+              className={`h-4 w-4 text-muted-foreground transition-transform duration-300 ${expensesExpanded ? "rotate-180" : ""}`}
+            />
+          </div>
+          <div className="text-right">
+            <div className="text-[11px] text-muted-foreground leading-none">
+              {!expensesExpanded
+                ? "Pendente"
+                : filter === "all" ? "Total"
+                : filter === "paid" ? "Total pago"
+                : filter === "pending" ? "Total a pagar"
+                : "Total"}
+            </div>
+            <div className={`text-base font-bold ${
+              !expensesExpanded ? "text-amber-600 dark:text-amber-400" :
+              filter === "paid" ? "text-emerald-600 dark:text-emerald-400" :
+              filter === "pending" ? "text-amber-600 dark:text-amber-400" :
+              "text-foreground"
+            }`}>
+              {formatCurrency(
+                !expensesExpanded
+                  ? totalPending
+                  : filtered.reduce((s, e) => s + getInstallmentAmount(e), 0)
+              )}
+            </div>
+          </div>
+        </button>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-        <Input placeholder="Buscar despesa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 w-full" />
-      </div>
+        <div
+          id="despesas-content"
+          className={`grid transition-all duration-300 ease-in-out ${expensesExpanded ? "grid-rows-[1fr] opacity-100 mt-3" : "grid-rows-[0fr] opacity-0"}`}
+        >
+          <div className="overflow-hidden min-h-0">
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              <Button
+                type="button"
+                size="sm"
+                variant={filter === "all" ? "default" : "outline"}
+                className="h-9 rounded-full min-w-0"
+                onClick={() => setFilter("all")}
+              >
+                Todas
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={filter === "pending" ? "default" : "outline"}
+                className="h-9 rounded-full min-w-0 gap-1.5"
+                onClick={() => setFilter("pending")}
+              >
+                <Clock className="h-3.5 w-3.5" /> Pendentes
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={filter === "paid" ? "default" : "outline"}
+                className="h-9 rounded-full min-w-0 gap-1.5"
+                onClick={() => setFilter("paid")}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" /> Pagas
+              </Button>
+            </div>
+
+            <div className="mb-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 w-full" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+
 
 
       {!readOnly && hasPaidExpenses && onUnpay && (
