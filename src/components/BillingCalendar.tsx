@@ -760,6 +760,8 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
             {opt.label}
           </button>
         ))}
+        </div>
+        <Button variant="outline" size="sm" onClick={goToToday}>Hoje</Button>
       </div>
 
       {/* Summary cards */}
