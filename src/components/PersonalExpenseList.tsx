@@ -449,7 +449,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         return true;
       })
       .filter((e) => {
-        if (filter === "pending") return !e.paid && !isOverdue(e);
+        if (filter === "pending") return !e.paid;
         if (filter === "paid") return e.paid;
         if (filter === "overdue") return isOverdue(e);
         return true;
