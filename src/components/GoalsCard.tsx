@@ -486,10 +486,12 @@ function computeRenegotiationRate(
   const [yy, mm] = m.split("-").map(Number);
   if (!yy || !mm) return 0;
 
-  // Overrides manuais fornecidos pelo usuário (contagem histórica travada).
+  // Overrides manuais fornecidos pelo usuário (contagem histórica travada
+  // apenas para meses passados, quando os dados de renegociação não existem
+  // mais na base atual). Nunca aplicar ao mês corrente/futuro — sempre
+  // recalcular a partir das renegociações reais.
   const MANUAL_OVERRIDES: Record<string, number> = {
     "2026-06": 7,
-    "2026-07": 1,
   };
   if (m in MANUAL_OVERRIDES) return MANUAL_OVERRIDES[m];
 
