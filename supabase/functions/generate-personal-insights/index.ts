@@ -347,26 +347,35 @@ Deno.serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Reuse cached only if gerado após a correção do relatório (v2) e ainda recente.
-    const REPORT_ENGINE_VERSION = "v2-2026-07-08";
+    // Reuse cached only when recente e gerado pela versão nova do prompt.
+    // Detectamos versões antigas pelo título de seção "Pontos críticos" (agora "Pontos de atenção")
+    // ou por termos alarmistas removidos, para não servir análises falsas do cache.
+    const LEGACY_MARKERS = [
+      "Pontos críticos",
+      "estouro monumental",
+      "situação crítica",
+      "gastos descontrolados",
+    ];
     const CACHE_TTL_MS = 30 * 60 * 1000;
     if (!force) {
       const { data: existing } = await supabase
         .from("personal_ai_insights")
-        .select("id, content, summary, exceeded_categories, generated_at, engine_version")
+        .select("id, content, summary, exceeded_categories, generated_at")
         .eq("user_id", ownerId)
         .eq("month", month)
         .maybeSingle();
       if (existing) {
         const ageMs = Date.now() - new Date((existing as any).generated_at).getTime();
-        const sameEngine = (existing as any).engine_version === REPORT_ENGINE_VERSION;
-        if (sameEngine && ageMs < CACHE_TTL_MS) {
+        const content = String((existing as any).content || "");
+        const isLegacy = LEGACY_MARKERS.some((m) => content.toLowerCase().includes(m.toLowerCase()));
+        if (!isLegacy && ageMs < CACHE_TTL_MS) {
           return new Response(JSON.stringify({ ...existing, cached: true }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
       }
     }
+
 
 
     const ctx = await buildContext(supabase, ownerId, month);
