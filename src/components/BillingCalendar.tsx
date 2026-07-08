@@ -737,9 +737,8 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
 
   return (
     <div className="space-y-4">
-      {/* Origin filter + Hoje */}
-      <div className="flex items-center gap-2">
-        <div className="grid grid-cols-4 gap-1.5 md:gap-2 flex-1">
+      {/* Origin filter */}
+      <div className="grid grid-cols-4 gap-1.5 md:gap-2">
         {([
           { v: "todos", label: "Todos" },
           { v: "emprestimos", label: "Empréstimos" },
@@ -760,8 +759,6 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
             {opt.label}
           </button>
         ))}
-        </div>
-        <Button variant="outline" size="sm" onClick={goToToday}>Hoje</Button>
       </div>
 
       {/* Summary cards */}
