@@ -155,7 +155,7 @@ export function SalesList({
         totalSalesCount={sales.length}
         folderCount={folderCount}
         filteredCount={filtered.length}
-        totalAmount={total}
+        totalAmount={filtered.reduce((acc, s) => acc + getRemaining(s), 0)}
         formatCurrency={formatCurrency}
       />
 
