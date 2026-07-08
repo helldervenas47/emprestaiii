@@ -433,8 +433,11 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
 
   // Despesas vinculadas a cartão de crédito NÃO aparecem na lista geral —
   // elas são exibidas exclusivamente dentro da fatura do cartão correspondente.
+  // Transferências para cofrinho também são excluídas: elas não contam como gasto
+  // mensal (ver `spendingMonth`), então precisam ficar fora da lista para que o
+  // total de "Pagas" no card bata com o somatório dos itens filtrados.
   const listVisibleMonth = useMemo(
-    () => visibleMonth.filter((e) => !isCreditCardExpense(e)),
+    () => visibleMonth.filter((e) => !isCreditCardExpense(e) && !isPiggyExpense(e.notes)),
     [visibleMonth],
   );
 
