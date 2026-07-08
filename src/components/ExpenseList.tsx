@@ -261,6 +261,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [viewPaymentsExpenseId, setViewPaymentsExpenseId] = useState<string | null>(null);
   const [showClearPayments, setShowClearPayments] = useState(false);
+  const [expensesExpanded, setExpensesExpanded] = useState(false);
   const [deleteExpenseId, setDeleteExpenseId] = useState<string | null>(null);
   const [payingExpenseId, setPayingExpenseId] = useState<string | null>(null);
   const [payDate, setPayDate] = useState<string>("");
