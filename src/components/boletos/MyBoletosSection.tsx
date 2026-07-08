@@ -353,13 +353,17 @@ export function MyBoletosSection({ readOnly }: Props) {
       {/* Resumo */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         <SummaryTile icon={<FileText className="h-4 w-4" />} label="Total"
-          value={BRL(summary.totalPending + summary.totalPaid + summary.totalOverdue)} sub={`${summary.total} boletos`} tone="primary" delay={0} />
+          value={BRL(summary.totalPending + summary.totalPaid + summary.totalOverdue)} sub={`${summary.total} boletos`} tone="primary" delay={0}
+          active={statusFilter === "todos"} onClick={() => setStatusFilter("todos")} />
         <SummaryTile icon={<CheckCircle2 className="h-4 w-4" />} label="Pagos"
-          value={BRL(summary.totalPaid)} sub={`${summary.paid} boletos`} tone="emerald" delay={80} />
+          value={BRL(summary.totalPaid)} sub={`${summary.paid} boletos`} tone="emerald" delay={80}
+          active={statusFilter === "pago"} onClick={() => setStatusFilter(statusFilter === "pago" ? "todos" : "pago")} />
         <SummaryTile icon={<Clock className="h-4 w-4" />} label="Pendentes"
-          value={BRL(summary.totalPending)} sub={`${summary.pending} boletos`} tone="amber" delay={160} />
+          value={BRL(summary.totalPending)} sub={`${summary.pending} boletos`} tone="amber" delay={160}
+          active={statusFilter === "pendente"} onClick={() => setStatusFilter(statusFilter === "pendente" ? "todos" : "pendente")} />
         <SummaryTile icon={<AlertTriangle className="h-4 w-4" />} label="Vencidos"
-          value={BRL(summary.totalOverdue)} sub={`${summary.overdue} boletos`} tone="rose" delay={240} />
+          value={BRL(summary.totalOverdue)} sub={`${summary.overdue} boletos`} tone="rose" delay={240}
+          active={statusFilter === "vencido"} onClick={() => setStatusFilter(statusFilter === "vencido" ? "todos" : "vencido")} />
       </div>
 
       {/* Toolbar */}
