@@ -186,7 +186,7 @@ async function callAI(systemPrompt: string, userPrompt: string) {
         { role: "system", content: systemPrompt },
         { role: "user", content: `User Data:\n${userPrompt}` },
       ],
-      temperature: 0.7,
+      temperature: 0.2,
       max_tokens: 1000,
     }),
   });
