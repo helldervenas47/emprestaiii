@@ -396,7 +396,9 @@ Deno.serve(async (req) => {
       .map((s: CategoryStat) => ({ category: s.category, prev: s.prevSpent, current: s.spent }));
 
     // Generate a one-line summary for telegram preview
-    const summary = `${exceeded.length > 0 ? `${exceeded.length} categoria(s) estourada(s)` : "Sem estouros"} • ${fmt(ctx.totalSpent)} gastos / ${fmt(ctx.totalBudget)} orçado`;
+    const summary = ctx.hasAnyBudget
+      ? `${exceeded.length > 0 ? `${exceeded.length} categoria(s) acima do orçamento` : "Sem categorias acima do orçamento"} • Previsto ${fmt(ctx.totalSpent)} / Orçado ${fmt(ctx.totalBudget)}`
+      : `Sem orçamento cadastrado • Previsto ${fmt(ctx.totalSpent)} (pago ${fmt(ctx.totalPaid)} / pendente ${fmt(ctx.totalPending)})`;
 
     await supabase
       .from("personal_ai_insights")
@@ -407,8 +409,10 @@ Deno.serve(async (req) => {
         summary,
         exceeded_categories: exceeded,
         trends,
+        engine_version: REPORT_ENGINE_VERSION,
         generated_at: new Date().toISOString(),
       }, { onConflict: "user_id,month" });
+
 
     return new Response(JSON.stringify({
       content, summary, exceeded_categories: exceeded, trends,
