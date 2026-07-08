@@ -418,7 +418,6 @@ Deno.serve(async (req) => {
         summary,
         exceeded_categories: exceeded,
         trends,
-        engine_version: REPORT_ENGINE_VERSION,
         generated_at: new Date().toISOString(),
       }, { onConflict: "user_id,month" });
 
