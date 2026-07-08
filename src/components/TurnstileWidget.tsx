@@ -16,17 +16,14 @@ const isPreviewEnv = (() => {
     window.location.protocol === "ionic:";
   if (isNative) return false;
 
-  // Em build de produção (publicado / domínio custom / app nativo) usamos
-  // SEMPRE a chave real, independente do hostname ou de estar em iframe
-  // (device toggle mobile/tablet do editor NÃO deve afetar o site publicado).
-  if (import.meta.env.PROD) return false;
-
-  // Somente em dev local ou preview do editor Lovable usamos a chave de teste.
+  // Usa chave de teste apenas em preview do editor Lovable, dev local
+  // e deploys .vercel.app. Publicado (.lovable.app / domínio custom) usa a real.
   const host = window.location.hostname;
   return (
     host.includes("id-preview--") ||
     host.includes("preview--") ||
     host.includes("lovableproject.com") ||
+    host.endsWith(".vercel.app") ||
     host === "localhost" ||
     host === "127.0.0.1"
   );
