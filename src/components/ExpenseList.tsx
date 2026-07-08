@@ -346,9 +346,8 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
   const filters: { id: Filter; label: string; count: number }[] = useMemo(() => ([
     { id: "all", label: "Todas", count: visibleMonth.length },
     { id: "pending", label: "Pendentes", count: countPending },
-    { id: "overdue", label: "Atrasadas", count: countOverdue },
     { id: "paid", label: "Pagas", count: countPaid },
-  ]), [visibleMonth.length, countPending, countOverdue, countPaid]);
+  ]), [visibleMonth.length, countPending, countPaid]);
 
 
   type SummaryView = "pending" | "paid" | "overdue";
