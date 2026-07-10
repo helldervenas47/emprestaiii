@@ -55,7 +55,7 @@ type SortOption =
 
 export function ClientLoanHistory({ loans, payments }: Props) {
   const [search, setSearch] = useState("");
-  const [showSummary, setShowSummary] = useState(false);
+  const [showSummary, setShowSummary] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches);
   const [sortBy, setSortBy] = useState<SortOption>("name-asc");
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const savedScrollRef = useRef<number | null>(null);
