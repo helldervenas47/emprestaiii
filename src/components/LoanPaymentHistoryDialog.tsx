@@ -27,6 +27,7 @@ import {
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { paymentsRepository } from "@/repositories/paymentsRepository";
+import { allocateInterestByPayment } from "@/lib/interestAllocation";
 
 interface Props {
   loan: Loan | null;
