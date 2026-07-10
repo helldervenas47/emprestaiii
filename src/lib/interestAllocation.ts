@@ -271,6 +271,10 @@ export function allocateInterestByPayment(
     byId.set(p.id, interestPart);
     priorInterestByLoan.set(p.loanId, (priorInterestByLoan.get(p.loanId) ?? 0) + interestPart);
     interestRemainingByLoan.set(p.loanId, Math.max(0, remBefore - interestPart));
+    priorPrincipalByLoan.set(
+      p.loanId,
+      (priorPrincipalByLoan.get(p.loanId) ?? 0) + Math.max(0, round2(amt - interestPart)),
+    );
   }
 
   // Reconciliação para contratos quitados (`paid`):
