@@ -563,6 +563,30 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                 </TableRow>
               )}
             </TableBody>
+            {rows.length > 0 && (
+              <tfoot className="bg-muted/60 font-bold border-t sticky bottom-0">
+                <TableRow className="hover:bg-muted/60">
+                  <TableCell className="w-8" />
+                  <TableCell className="font-bold">Subtotal ({rows.length})</TableCell>
+                  <TableCell className="text-right tabular-nums font-bold">
+                    {mask(formatCurrency(rows.reduce((s, r) => s + r.borrowed, 0)))}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums font-bold text-success">
+                    {mask(formatCurrency(rows.reduce((s, r) => s + r.paid, 0)))}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums font-bold text-primary">
+                    {mask(formatCurrency(rows.reduce((s, r) => s + r.interestPaid, 0)))}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums font-bold text-warning">
+                    {mask(formatCurrency(rows.reduce((s, r) => s + r.pending, 0)))}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums font-bold">
+                    {mask(formatCurrency(rows.reduce((s, r) => s + r.total, 0)))}
+                  </TableCell>
+                  <TableCell />
+                </TableRow>
+              </tfoot>
+            )}
           </Table>
         </CardContent>
       </Card>
