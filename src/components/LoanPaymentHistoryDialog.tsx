@@ -176,8 +176,24 @@ export function LoanPaymentHistoryDialog({
       const amount = p.amount || 0;
       totalPaid += amount;
 
-      const interestPart = allocated.get(p.id) ?? 0;
-      const principalPart = Math.max(0, amount - interestPart);
+      const allocInterest = allocated.get(p.id) ?? 0;
+      // Classificação oficial por tipo de lançamento:
+      // - installmentNumber === 0  → juros avulso (100% juros)
+      // - installmentNumber === -2 → multa/mora (100% juros)
+      // - installmentNumber === -3 → amortização (100% principal)
+      // - demais parcelas → usa allocator (ratio principal/juros do contrato)
+      let interestPart: number;
+      let principalPart: number;
+      if (p.installmentNumber === 0 || p.installmentNumber === -2) {
+        interestPart = amount;
+        principalPart = 0;
+      } else if (p.installmentNumber === -3) {
+        interestPart = 0;
+        principalPart = amount;
+      } else {
+        interestPart = allocInterest;
+        principalPart = Math.max(0, amount - interestPart);
+      }
       principalPaid += principalPart;
       interestPaid += interestPart;
 
