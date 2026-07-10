@@ -82,8 +82,8 @@ Deno.serve(async (req) => {
 
     const text =
       `🔔 <b>Novo cadastro aguardando aprovação</b>\n\n` +
-      `👤 <b>Nome:</b> ${display_name || "(sem nome)"}\n` +
-      `📧 <b>Email:</b> ${email || "(sem email)"}\n\n` +
+      `👤 <b>Nome:</b> ${escapeHtml(display_name || "(sem nome)")}\n` +
+      `📧 <b>Email:</b> ${escapeHtml(email || "(sem email)")}\n\n` +
       `Acesse o app e abra o sino de aprovações no topo para aprovar ou rejeitar.`;
 
     const tgRes = await fetch(`${GATEWAY_URL}/bot${TELEGRAM_API_KEY}/sendMessage`, {
