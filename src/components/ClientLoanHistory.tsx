@@ -152,11 +152,13 @@ export function ClientLoanHistory({ loans, payments }: Props) {
 
       const total = paid + pending;
       const interestRate = borrowed > 0 ? ((total - borrowed) / borrowed) * 100 : 0;
+      // "Principal Pago" = total pago menos juros alocados (exclui juros, multas, mora, taxas).
+      const principalPaid = Math.max(0, paid - interestPaid);
 
       return {
         name,
         borrowed,
-        paid,
+        paid: principalPaid,
         interestPaid,
         pending,
         total,
