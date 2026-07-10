@@ -2457,7 +2457,7 @@ async function answerNaturalQuery(
       const c = e.category || "Outros";
       byCat.set(c, (byCat.get(c) || 0) + (Number(e.amount) || 0));
     }
-    const sorted = [...byCat.entries()].sort((a, b) => b[1] - a[1]);
+    const sorted = [...byCat.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
     msg += `\n\n📂 *Por categoria:*\n`;
     for (const [c, v] of sorted) {
       msg += `• ${c}: ${fmtBRL(v)}\n`;
