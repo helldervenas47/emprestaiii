@@ -1,5 +1,12 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateCronSecret } from "../_shared/auth-guard.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
 // Cofrinhos moram no Supabase externo — usar as credenciais EXTERNAL_*
 const SUPABASE_URL =
@@ -33,7 +40,19 @@ function arredondar(valor: number, casas = 8) {
   return Number(valor.toFixed(casas));
 }
 
-serve(async () => {
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+  // Cron-only endpoint: requires X-Cron-Secret. Prevents unauthenticated
+  // callers from triggering platform-wide yield recomputation.
+  const okCron = await validateCronSecret(supabase, req);
+  if (!okCron) {
+    return new Response(
+      JSON.stringify({ success: false, error: "unauthorized" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
   try {
     const hoje = new Date().toISOString().slice(0, 10);
 
