@@ -105,7 +105,7 @@ async function buildAndSendWeekly(
   if (byCategory.size > 0) {
     lines.push("");
     lines.push("📂 *Por categoria:*");
-    const sorted = [...byCategory.entries()].sort((a, b) => b[1] - a[1]);
+    const sorted = [...byCategory.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
     for (const [cat, amt] of sorted) {
       const pct = totalWeek > 0 ? Math.round((amt / totalWeek) * 100) : 0;
       lines.push(`   • ${cat}: ${fmtBRL(amt)} (${pct}%)`);
