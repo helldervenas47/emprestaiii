@@ -232,23 +232,28 @@ export function ClientLoanHistory({ loans, payments }: Props) {
     const grandTotal = summary?.total ?? 0;
 
     // Juros recebidos por cliente:
-    // - Contratos quitados: soma exata dos juros contratados (invariante).
-    // - Contratos em andamento: soma pró-rata alocada por parcela via helper
-    //   compartilhado (mesma regra do Dashboard/Contador).
+    // Fonte única: `allocateInterestByPayment` — mesma regra do Dashboard,
+    // Contador e do diálogo de Histórico. Vale para contratos quitados E
+    // em andamento, garantindo que:
+    //   - Juros contratados de todas as parcelas pagas sejam somados;
+    //   - Juros avulsos (installment_number = 0 "interest_partial") somem 100%;
+    //   - Juros/multa de atraso (installment_number = -2) somem 100%;
+    //   - Amortizações (-3) NÃO contem como juros.
+    // Antes, contratos "paid" usavam apenas `total - principal` (juros de UM
+    // ciclo), descartando juros de extensões e mora efetivamente recebidos.
     let interestReceived = 0;
-    const activeLoans = clientLoans.filter((l) => l.status !== "paid");
-    if (activeLoans.length > 0) {
-      const activeIds = new Set(activeLoans.map((l) => l.id));
-      const activePayments = payments.filter((p) => activeIds.has(p.loanId));
+    if (clientLoans.length > 0) {
+      const loanIds = new Set(clientLoans.map((l) => l.id));
+      const clientPayments = payments.filter((p) => loanIds.has(p.loanId));
       const allocated = allocateInterestByPayment(
-        activeLoans.map((l) => ({
+        clientLoans.map((l) => ({
           id: l.id,
           amount: l.amount || 0,
           interestRate: l.interestRate,
           installments: l.installments,
           status: l.status,
         })),
-        activePayments.map((p) => ({
+        clientPayments.map((p) => ({
           id: p.id,
           loanId: p.loanId,
           amount: p.amount,
@@ -257,18 +262,10 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           createdAt: (p as any).createdAt,
         })),
       );
-      activePayments.forEach((p) => {
+      clientPayments.forEach((p) => {
         interestReceived += allocated.get(p.id) ?? 0;
       });
     }
-    clientLoans.forEach((l) => {
-      if (l.status !== "paid") return;
-      const totalInterest = Math.max(
-        0,
-        calculateTotalWithInterest(l.amount || 0, l.interestRate, l.installments) - (l.amount || 0),
-      );
-      interestReceived += totalInterest;
-    });
 
     // Juros a receber = soma por contrato de (Pendente - Emprestado), ignorando contratos quitados.
     let interestPending = 0;
