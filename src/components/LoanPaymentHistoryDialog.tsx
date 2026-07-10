@@ -27,6 +27,7 @@ import {
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { paymentsRepository } from "@/repositories/paymentsRepository";
+import { allocateInterestByPayment } from "@/lib/interestAllocation";
 
 interface Props {
   loan: Loan | null;
@@ -143,6 +144,30 @@ export function LoanPaymentHistoryDialog({
       .slice()
       .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 
+    // Fonte oficial de juros por pagamento — mesma regra do Dashboard/Contador.
+    // Soma todos os juros pagos ao longo da vida do contrato (parcelas
+    // integrais, parciais, antecipados, avulsos), evitando exibir apenas
+    // o juros do último pagamento.
+    const allocated = allocateInterestByPayment(
+      [
+        {
+          id: loan.id,
+          amount: principal,
+          interestRate: loan.interestRate,
+          installments: loan.installments,
+          status: loan.status,
+        },
+      ],
+      loanPayments.map((p) => ({
+        id: p.id,
+        loanId: p.loanId,
+        amount: p.amount,
+        date: p.date,
+        installmentNumber: p.installmentNumber,
+        createdAt: (p as any).createdAt,
+      })),
+    );
+
     let totalPaid = 0;
     let principalPaid = 0;
     let interestPaid = 0;
@@ -151,15 +176,8 @@ export function LoanPaymentHistoryDialog({
       const amount = p.amount || 0;
       totalPaid += amount;
 
-      let principalPart = 0;
-      let interestPart = 0;
-      if ((p.installmentNumber ?? 0) <= 0) {
-        // Pagamento de juros / parcial (sem amortização de parcela)
-        interestPart = amount;
-      } else {
-        principalPart = amount * principalRatio;
-        interestPart = amount * interestRatio;
-      }
+      const interestPart = allocated.get(p.id) ?? 0;
+      const principalPart = Math.max(0, amount - interestPart);
       principalPaid += principalPart;
       interestPaid += interestPart;
 
@@ -197,7 +215,7 @@ export function LoanPaymentHistoryDialog({
         original: principal,
         totalPaid,
         remaining,
-        interestPaid: isPaid ? totalInterest : interestPaid,
+        interestPaid,
         paidInstallments,
         pendingInstallments,
         isPaid,
