@@ -583,7 +583,9 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                   <TableCell className="text-right tabular-nums font-bold">
                     {mask(formatCurrency(rows.reduce((s, r) => s + r.total, 0)))}
                   </TableCell>
-                  <TableCell />
+                  <TableCell className="text-right tabular-nums font-bold text-primary">
+                    {hidden ? "•••" : `${(rows.reduce((s, r) => s + r.interestRate, 0) / rows.length).toFixed(2).replace(".", ",")}%`}
+                  </TableCell>
                 </TableRow>
               </tfoot>
             )}
