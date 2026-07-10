@@ -187,6 +187,9 @@ export function allocateInterestByPayment(
   });
 
   const priorInterestByLoan = new Map<string, number>();
+  // Principal já reconhecido por contrato — usado em contratos de parcela
+  // única (installments === 1) para calcular quanto do payoff é juros.
+  const priorPrincipalByLoan = new Map<string, number>();
   // Saldo de juros restante por contrato (para casos parciais -1 "juros primeiro").
   const interestRemainingByLoan = new Map<string, number>();
   loans.forEach((l) => {
