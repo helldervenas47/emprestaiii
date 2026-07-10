@@ -474,7 +474,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           </Card>
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
-              <div className="text-sm text-muted-foreground mb-1">Pago</div>
+              <div className="text-sm text-muted-foreground mb-1">Principal Pago</div>
               <div className="font-bold tabular-nums text-success text-xl">
                 {mask(formatCurrency(totals.totalPaid))}
               </div>
