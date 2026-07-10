@@ -477,17 +477,17 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           </Card>
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
-              <div className="text-sm text-muted-foreground mb-1">Principal Pago</div>
-              <div className="font-bold tabular-nums text-success text-xl">
-                {mask(formatCurrency(totals.totalPaid))}
+              <div className="text-sm text-muted-foreground mb-1">Juros Pendente</div>
+              <div className="font-bold tabular-nums text-warning text-xl">
+                {mask(formatCurrency(totals.totalInterestPending))}
               </div>
             </CardContent>
           </Card>
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
-              <div className="text-sm text-muted-foreground mb-1">Juros Pendente</div>
-              <div className="font-bold tabular-nums text-warning text-xl">
-                {mask(formatCurrency(totals.totalInterestPending))}
+              <div className="text-sm text-muted-foreground mb-1">Principal Pago</div>
+              <div className="font-bold tabular-nums text-success text-xl">
+                {mask(formatCurrency(totals.totalPaid))}
               </div>
             </CardContent>
           </Card>
