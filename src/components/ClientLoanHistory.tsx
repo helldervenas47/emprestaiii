@@ -438,8 +438,8 @@ export function ClientLoanHistory({ loans, payments }: Props) {
               <SelectItem value="name-desc">Cliente (Z → A)</SelectItem>
               <SelectItem value="borrowed-desc">Maior valor emprestado</SelectItem>
               <SelectItem value="borrowed-asc">Menor valor emprestado</SelectItem>
-              <SelectItem value="paid-desc">Maior valor pago</SelectItem>
-              <SelectItem value="paid-asc">Menor valor pago</SelectItem>
+              <SelectItem value="paid-desc">Maior principal pago</SelectItem>
+              <SelectItem value="paid-asc">Menor principal pago</SelectItem>
               <SelectItem value="pending-desc">Maior valor pendente</SelectItem>
               <SelectItem value="pending-asc">Menor valor pendente</SelectItem>
               <SelectItem value="total-desc">Maior valor total</SelectItem>
