@@ -31,6 +31,7 @@ interface ClientRow {
   name: string;
   borrowed: number;
   paid: number;
+  interestPaid: number;
   pending: number;
   total: number;
   interestRate: number;
@@ -87,6 +88,27 @@ export function ClientLoanHistory({ loans, payments }: Props) {
       let paid = 0;
       let pending = 0;
 
+      const loanIds = new Set(clientLoans.map((l) => l.id));
+      const clientPayments = payments.filter((p) => loanIds.has(p.loanId));
+      const allocated = allocateInterestByPayment(
+        clientLoans.map((l) => ({
+          id: l.id,
+          amount: l.amount || 0,
+          interestRate: l.interestRate,
+          installments: l.installments,
+          status: l.status,
+        })),
+        clientPayments.map((p) => ({
+          id: p.id,
+          loanId: p.loanId,
+          amount: p.amount,
+          date: p.date,
+          installmentNumber: p.installmentNumber,
+          createdAt: (p as any).createdAt,
+        })),
+      );
+      const interestPaid = clientPayments.reduce((s, p) => s + (allocated.get(p.id) ?? 0), 0);
+
       clientLoans.forEach((l) => {
         borrowed += l.amount || 0;
         const loanPayments = payments.filter((p) => p.loanId === l.id);
@@ -133,6 +155,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
         name,
         borrowed,
         paid,
+        interestPaid,
         pending,
         total,
         interestRate,
@@ -497,6 +520,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                 <TableHead>Cliente</TableHead>
                 <TableHead className="text-right">Emprestado</TableHead>
                 <TableHead className="text-right">Pago</TableHead>
+                <TableHead className="text-right">Juros Pago</TableHead>
                 <TableHead className="text-right">Pendente</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right">Taxa de Variação</TableHead>
@@ -515,6 +539,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                   <TableCell className="font-medium">{r.name}</TableCell>
                   <TableCell className="text-right tabular-nums">{mask(formatCurrency(r.borrowed))}</TableCell>
                   <TableCell className="text-right tabular-nums text-success">{mask(formatCurrency(r.paid))}</TableCell>
+                  <TableCell className="text-right tabular-nums text-primary">{mask(formatCurrency(r.interestPaid))}</TableCell>
                   <TableCell className="text-right tabular-nums text-warning">{mask(formatCurrency(r.pending))}</TableCell>
                   <TableCell className="text-right tabular-nums font-semibold">{mask(formatCurrency(r.total))}</TableCell>
                   <TableCell className="text-right tabular-nums text-primary font-medium">
@@ -524,7 +549,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
               ))}
               {rows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     Nenhum cliente encontrado
                   </TableCell>
                 </TableRow>
@@ -555,6 +580,10 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                 <div>
                   <div className="text-muted-foreground">Pago</div>
                   <div className="tabular-nums font-medium text-success">{mask(formatCurrency(r.paid))}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Juros Pago</div>
+                  <div className="tabular-nums font-medium text-primary">{mask(formatCurrency(r.interestPaid))}</div>
                 </div>
                 <div>
                   <div className="text-muted-foreground">Pendente</div>
