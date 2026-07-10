@@ -582,6 +582,10 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                   <div className="tabular-nums font-medium text-success">{mask(formatCurrency(r.paid))}</div>
                 </div>
                 <div>
+                  <div className="text-muted-foreground">Juros Pago</div>
+                  <div className="tabular-nums font-medium text-primary">{mask(formatCurrency(r.interestPaid))}</div>
+                </div>
+                <div>
                   <div className="text-muted-foreground">Pendente</div>
                   <div className="tabular-nums font-medium text-warning">{mask(formatCurrency(r.pending))}</div>
                 </div>
