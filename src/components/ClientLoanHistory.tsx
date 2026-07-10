@@ -586,7 +586,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                   <div className="tabular-nums font-medium">{mask(formatCurrency(r.borrowed))}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Pago</div>
+                  <div className="text-muted-foreground">Principal Pago</div>
                   <div className="tabular-nums font-medium text-success">{mask(formatCurrency(r.paid))}</div>
                 </div>
                 <div>
