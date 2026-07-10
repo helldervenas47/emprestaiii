@@ -945,7 +945,7 @@ async function handleSaldo(admin: any, userId: string): Promise<string> {
     return msg;
   }
   msg += `\n📂 *Por categoria:*\n`;
-  const sorted = [...byCat.entries()].sort((a, b) => b[1] - a[1]);
+  const sorted = [...byCat.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
   for (const [cat, spent] of sorted) {
     const budget = budgetMap.get(cat);
     if (budget && budget > 0) {
