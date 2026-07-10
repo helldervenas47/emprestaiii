@@ -242,24 +242,28 @@ export function allocateInterestByPayment(
       continue;
     }
 
-    // Parcela regular — lê juros diretamente do cronograma real.
+    // Parcela regular — lê juros do cronograma real, mas SEMPRE limitado ao
+    // saldo remanescente de juros do contrato. Sem esse cap, pagamentos
+    // parciais anteriores (-1) que já consumiram juros seriam contados de
+    // novo quando a parcela final fosse quitada.
     const schedule = scheduleByLoan.get(p.loanId);
     let interestPart = 0;
+    const remBefore = interestRemainingByLoan.get(p.loanId) ?? 0;
     if (schedule) {
       const entry = schedule.find((e) => e.installmentNumber === inst) ?? schedule[schedule.length - 1];
-      interestPart = Math.max(0, Math.min(round2(entry.interest), amt));
+      interestPart = Math.max(0, Math.min(round2(entry.interest), amt, remBefore));
     } else {
-      // Contrato de parcela única — mantém regra legada.
+      // Contrato de parcela única — mantém regra legada, também capada.
       const prior = priorInterestByLoan.get(p.loanId) ?? 0;
-      interestPart = computeInstallmentInterest({
+      const raw = computeInstallmentInterest({
         principal: loan.amount, rate: loan.interestRate, installments: loan.installments,
         installmentAmount: amt, installmentNumber: inst, priorInterestAllocated: prior,
       }).interestPart;
+      interestPart = Math.max(0, Math.min(raw, remBefore));
     }
     byId.set(p.id, interestPart);
     priorInterestByLoan.set(p.loanId, (priorInterestByLoan.get(p.loanId) ?? 0) + interestPart);
-    const rem = interestRemainingByLoan.get(p.loanId) ?? 0;
-    interestRemainingByLoan.set(p.loanId, Math.max(0, rem - interestPart));
+    interestRemainingByLoan.set(p.loanId, Math.max(0, remBefore - interestPart));
   }
 
   // Reconciliação de centavos APENAS para contratos quitados (`paid`) com
