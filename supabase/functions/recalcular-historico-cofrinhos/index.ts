@@ -289,7 +289,7 @@ serve(async (req) => {
         registros_criados: registrosCriados,
         cofrinhos_recalculados: cofrinhosUnicos.length,
       }),
-      { headers: { "Content-Type": "application/json" } },
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
     return new Response(
@@ -297,7 +297,7 @@ serve(async (req) => {
         success: false,
         error: error?.message ?? String(error),
       }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
