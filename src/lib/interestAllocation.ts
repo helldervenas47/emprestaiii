@@ -266,27 +266,37 @@ export function allocateInterestByPayment(
     interestRemainingByLoan.set(p.loanId, Math.max(0, remBefore - interestPart));
   }
 
-  // Reconciliação de centavos APENAS para contratos quitados (`paid`) com
-  // resíduo ≤ R$ 0,02: fecha na última parcela para eliminar arredondamentos.
-  // Diferenças maiores (acordos/descontos/bônus) NÃO são mais promovidas a
-  // "juros do último mês" — permanecem como principal.
-  const lastPaymentByLoan = new Map<string, string>();
-  sorted.forEach((p) => { lastPaymentByLoan.set(p.loanId, p.id); });
+  // Reconciliação para contratos quitados (`paid`):
+  // 1) Resíduos ≤ R$ 0,02 → fecha na última parcela (arredondamentos).
+  // 2) Quando um único pagamento quita várias parcelas restantes (ex.: payoff),
+  //    o alocador regular só reconhece o juros de UMA entrada do cronograma;
+  //    o restante do juros contratado deve ser atribuído a esse pagamento
+  //    final, respeitando o valor pago (não pode exceder o próprio pagamento
+  //    menos o que ele já reconheceu como juros).
+  // Descontos/bônus reais permanecem como principal (o `diff` positivo só
+  // aparece quando faltou juros — se o cliente pagou menos que o esperado,
+  // `diff` será negativo e não fazemos nada).
+  const lastPaymentByLoan = new Map<string, { id: string; amount: number }>();
+  sorted.forEach((p) => { lastPaymentByLoan.set(p.loanId, { id: p.id, amount: Number(p.amount) || 0 }); });
+
+  const paymentAmountById = new Map<string, number>();
+  payments.forEach((p) => paymentAmountById.set(p.id, Number(p.amount) || 0));
 
   for (const loan of loans) {
     if (loan.status !== "paid") continue;
-    const lastId = lastPaymentByLoan.get(loan.id);
-    if (!lastId) continue;
+    const last = lastPaymentByLoan.get(loan.id);
+    if (!last) continue;
     const total = totalWithInterest(loan.amount, loan.interestRate);
     const expectedInterest = Math.max(0, total - loan.amount);
     const allocated = payments
       .filter((p) => p.loanId === loan.id)
       .reduce((s, p) => s + (byId.get(p.id) ?? 0), 0);
     const diff = round2(expectedInterest - allocated);
-    if (Math.abs(diff) <= 0.02 && diff !== 0) {
-      const cur = byId.get(lastId) ?? 0;
-      byId.set(lastId, Math.max(0, round2(cur + diff)));
-    }
+    if (diff <= 0) continue;
+    const cur = byId.get(last.id) ?? 0;
+    const cap = Math.max(0, round2(last.amount - cur));
+    const add = Math.min(diff, cap);
+    if (add > 0) byId.set(last.id, round2(cur + add));
   }
 
   return byId;
