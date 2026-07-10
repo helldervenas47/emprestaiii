@@ -1366,7 +1366,7 @@ async function handleSemana(admin: any, userId: string): Promise<string> {
   msg += `Média/dia: ${fmtBRL(avgPerDay)}\n`;
 
   msg += `\n📂 *Por categoria:*\n`;
-  const sorted = [...byCat.entries()].sort((a, b) => b[1] - a[1]);
+  const sorted = [...byCat.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
   for (const [cat, spent] of sorted) {
     const pct = total > 0 ? (spent / total) * 100 : 0;
     msg += `• ${cat}: ${fmtBRL(spent)} (${pct.toFixed(0)}%)\n`;
