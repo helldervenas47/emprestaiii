@@ -152,11 +152,13 @@ export function ClientLoanHistory({ loans, payments }: Props) {
 
       const total = paid + pending;
       const interestRate = borrowed > 0 ? ((total - borrowed) / borrowed) * 100 : 0;
+      // "Principal Pago" = total pago menos juros alocados (exclui juros, multas, mora, taxas).
+      const principalPaid = Math.max(0, paid - interestPaid);
 
       return {
         name,
         borrowed,
-        paid,
+        paid: principalPaid,
         interestPaid,
         pending,
         total,
@@ -358,7 +360,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           </Card>
           <Card>
             <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-              <div className="text-[11px] text-muted-foreground mb-0.5">Pago</div>
+              <div className="text-[11px] text-muted-foreground mb-0.5">Principal Pago</div>
               <div className="font-bold tabular-nums text-success text-sm sm:text-base">
                 {mask(formatCurrency(paidTotal))}
               </div>
@@ -436,8 +438,8 @@ export function ClientLoanHistory({ loans, payments }: Props) {
               <SelectItem value="name-desc">Cliente (Z → A)</SelectItem>
               <SelectItem value="borrowed-desc">Maior valor emprestado</SelectItem>
               <SelectItem value="borrowed-asc">Menor valor emprestado</SelectItem>
-              <SelectItem value="paid-desc">Maior valor pago</SelectItem>
-              <SelectItem value="paid-asc">Menor valor pago</SelectItem>
+              <SelectItem value="paid-desc">Maior principal pago</SelectItem>
+              <SelectItem value="paid-asc">Menor principal pago</SelectItem>
               <SelectItem value="pending-desc">Maior valor pendente</SelectItem>
               <SelectItem value="pending-asc">Menor valor pendente</SelectItem>
               <SelectItem value="total-desc">Maior valor total</SelectItem>
@@ -472,7 +474,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           </Card>
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
-              <div className="text-sm text-muted-foreground mb-1">Pago</div>
+              <div className="text-sm text-muted-foreground mb-1">Principal Pago</div>
               <div className="font-bold tabular-nums text-success text-xl">
                 {mask(formatCurrency(totals.totalPaid))}
               </div>
@@ -525,7 +527,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                 <TableHead className="w-8" />
                 <TableHead>Cliente</TableHead>
                 <TableHead className="text-right">Emprestado</TableHead>
-                <TableHead className="text-right">Pago</TableHead>
+                <TableHead className="text-right">Principal Pago</TableHead>
                 <TableHead className="text-right">Juros Pago</TableHead>
                 <TableHead className="text-right">Pendente</TableHead>
                 <TableHead className="text-right">Total</TableHead>
@@ -584,7 +586,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                   <div className="tabular-nums font-medium">{mask(formatCurrency(r.borrowed))}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Pago</div>
+                  <div className="text-muted-foreground">Principal Pago</div>
                   <div className="tabular-nums font-medium text-success">{mask(formatCurrency(r.paid))}</div>
                 </div>
                 <div>
