@@ -5,6 +5,8 @@
 // public.help_chat_knowledge no projeto externo e usado como contexto
 // adicional (RAG simples por keyword) nas próximas conversas.
 
+import { checkRateLimit, getClientIp, rateLimitResponse } from "../_shared/rate-limit.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-api-version",
