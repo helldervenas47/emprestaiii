@@ -233,10 +233,13 @@ export function ClientLoanHistory({ loans, payments }: Props) {
     const totalPending = rows.reduce((s, r) => s + r.pending, 0);
     const totalPaid = rows.reduce((s, r) => s + r.paid, 0);
     const totalBorrowed = rows.reduce((s, r) => s + r.borrowed, 0);
+    const totalInterestPaid = rows.reduce((s, r) => s + r.interestPaid, 0);
     const grandTotal = totalPaid + totalPending;
+    const totalPrincipalPending = Math.max(0, totalBorrowed - totalPaid);
+    const totalInterestPending = Math.max(0, totalPending - totalPrincipalPending);
     const clientCount = rows.length;
     const avgInterestRate = totalBorrowed > 0 ? ((grandTotal - totalBorrowed) / totalBorrowed) * 100 : 0;
-    return { totalPending, totalPaid, totalBorrowed, grandTotal, clientCount, avgInterestRate };
+    return { totalPending, totalPaid, totalBorrowed, totalInterestPaid, totalPrincipalPending, totalInterestPending, grandTotal, clientCount, avgInterestRate };
   }, [rows]);
 
   const mask = (v: string) => (hidden ? "•••" : v);
