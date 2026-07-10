@@ -49,7 +49,9 @@ type SortOption =
   | "total-desc"
   | "total-asc"
   | "rate-desc"
-  | "rate-asc";
+  | "rate-asc"
+  | "interest-desc"
+  | "interest-asc";
 
 export function ClientLoanHistory({ loans, payments }: Props) {
   const [search, setSearch] = useState("");
@@ -180,6 +182,8 @@ export function ClientLoanHistory({ loans, payments }: Props) {
         case "total-asc": return a.total - b.total;
         case "rate-desc": return b.interestRate - a.interestRate;
         case "rate-asc": return a.interestRate - b.interestRate;
+        case "interest-desc": return b.interestPaid - a.interestPaid;
+        case "interest-asc": return a.interestPaid - b.interestPaid;
         default: return a.name.localeCompare(b.name, "pt-BR");
       }
     });
@@ -440,6 +444,8 @@ export function ClientLoanHistory({ loans, payments }: Props) {
               <SelectItem value="total-asc">Menor valor total</SelectItem>
               <SelectItem value="rate-desc">Maior taxa de variação</SelectItem>
               <SelectItem value="rate-asc">Menor taxa de variação</SelectItem>
+              <SelectItem value="interest-desc">Maior juros pago</SelectItem>
+              <SelectItem value="interest-asc">Menor juros pago</SelectItem>
             </SelectContent>
           </Select>
           <Button
