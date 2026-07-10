@@ -1437,8 +1437,8 @@ async function handleComparar(admin: any, userId: string): Promise<string> {
     curVal: cur.byCat.get(cat) || 0,
     prevVal: prev.byCat.get(cat) || 0,
   }));
-  // Ordena pelo gasto atual (depois anterior) decrescente
-  rows.sort((a, b) => (b.curVal + b.prevVal) - (a.curVal + a.prevVal));
+  // Ordena alfabeticamente pelo nome da categoria (A–Z)
+  rows.sort((a, b) => a.cat.localeCompare(b.cat, "pt-BR"));
 
   for (const r of rows) {
     msg += `\n*${r.cat}*\n`;
