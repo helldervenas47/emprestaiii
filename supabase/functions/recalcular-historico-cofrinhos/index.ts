@@ -101,11 +101,45 @@ async function syncTaxas(dataInicio: string, dataFim: string) {
 }
 
 serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
   try {
     const body = await req.json().catch(() => ({}));
 
     const cofrinhoId = body.cofrinho_id ?? null;
     const dataFim = body.data_fim ?? new Date().toISOString().slice(0, 10);
+
+    // AuthZ: cron-secret for global reset (no cofrinho_id) or when caller
+    // is running as scheduler; otherwise require authenticated owner of
+    // the specific cofrinho_id.
+    const isCron = await validateCronSecret(supabase, req);
+    if (!isCron) {
+      if (!cofrinhoId) {
+        return new Response(
+          JSON.stringify({ success: false, error: "unauthorized_global_reset" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const { data: cof, error: cofErr } = await supabase
+        .from("cofrinhos")
+        .select("usuario_id")
+        .eq("id", cofrinhoId)
+        .single();
+      if (cofErr || !cof) {
+        return new Response(
+          JSON.stringify({ success: false, error: "cofrinho_not_found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const authCheck = await validateUserOwner(supabase, req, cof.usuario_id);
+      if (!authCheck.ok) {
+        return new Response(
+          JSON.stringify({ success: false, error: "unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
 
     let aportesQuery = supabase
       .from("cofrinho_aportes")
