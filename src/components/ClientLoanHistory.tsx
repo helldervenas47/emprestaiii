@@ -234,6 +234,8 @@ export function ClientLoanHistory({ loans, payments }: Props) {
     const totalPaid = rows.reduce((s, r) => s + r.paid, 0);
     const totalBorrowed = rows.reduce((s, r) => s + r.borrowed, 0);
     const totalInterestPaid = rows.reduce((s, r) => s + r.interestPaid, 0);
+    const totalPrincipalPending = Math.max(0, totalBorrowed - totalPaid);
+    const totalInterestPending = Math.max(0, totalPending - totalPrincipalPending);
     const grandTotal = totalPrincipalPending + totalPaid + totalInterestPending + totalInterestPaid;
     const clientCount = rows.length;
     const avgInterestRate = totalBorrowed > 0 ? ((grandTotal - totalBorrowed) / totalBorrowed) * 100 : 0;
