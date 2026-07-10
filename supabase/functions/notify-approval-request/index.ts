@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getReportsBotId, getReportsLinkForUser } from "../_shared/reports-bot.ts";
+import { getExternalUserClient } from "../_shared/external-supabase.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,10 +9,38 @@ const corsHeaders = {
 
 const GATEWAY_URL = "https://api.telegram.org";
 
+function escapeHtml(s: unknown): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    // AuthN: require a valid Supabase JWT before sending Telegram messages —
+    // stops unauthenticated callers from spamming any owner_id.
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    if (!token) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userClient = getExternalUserClient();
+    const { data: userRes, error: userErr } = await userClient.auth.getUser(token);
+    if (userErr || !userRes?.user) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { owner_id, display_name, email } = await req.json();
     if (!owner_id) {
       return new Response(JSON.stringify({ error: "owner_id required" }), {
@@ -53,8 +82,8 @@ Deno.serve(async (req) => {
 
     const text =
       `🔔 <b>Novo cadastro aguardando aprovação</b>\n\n` +
-      `👤 <b>Nome:</b> ${display_name || "(sem nome)"}\n` +
-      `📧 <b>Email:</b> ${email || "(sem email)"}\n\n` +
+      `👤 <b>Nome:</b> ${escapeHtml(display_name || "(sem nome)")}\n` +
+      `📧 <b>Email:</b> ${escapeHtml(email || "(sem email)")}\n\n` +
       `Acesse o app e abra o sino de aprovações no topo para aprovar ou rejeitar.`;
 
     const tgRes = await fetch(`${GATEWAY_URL}/bot${TELEGRAM_API_KEY}/sendMessage`, {
