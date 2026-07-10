@@ -527,7 +527,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                 <TableHead className="w-8" />
                 <TableHead>Cliente</TableHead>
                 <TableHead className="text-right">Emprestado</TableHead>
-                <TableHead className="text-right">Pago</TableHead>
+                <TableHead className="text-right">Principal Pago</TableHead>
                 <TableHead className="text-right">Juros Pago</TableHead>
                 <TableHead className="text-right">Pendente</TableHead>
                 <TableHead className="text-right">Total</TableHead>
