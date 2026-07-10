@@ -127,7 +127,7 @@ async function buildAndSendMonthly(
     cat: c,
     curr: currS.byCat.get(c) ?? 0,
     prev: prevS.byCat.get(c) ?? 0,
-  })).sort((a, b) => b.curr - a.curr).slice(0, 6);
+  })).sort((a, b) => a.cat.localeCompare(b.cat, "pt-BR"));
 
   // Image format
   if (format === "image") {
