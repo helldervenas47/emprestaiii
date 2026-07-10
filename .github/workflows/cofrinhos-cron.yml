@@ -28,9 +28,11 @@ jobs:
         run: |
           curl -X POST "$SUPABASE_URL/functions/v1/calcular-rendimento-cofrinhos" \
           -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+          -H "X-Cron-Secret: $CRON_SECRET" \
           -H "Content-Type: application/json" \
           -d '{}'
 
 env:
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+  CRON_SECRET: ${{ secrets.CRON_SECRET }}
