@@ -88,6 +88,27 @@ export function ClientLoanHistory({ loans, payments }: Props) {
       let paid = 0;
       let pending = 0;
 
+      const loanIds = new Set(clientLoans.map((l) => l.id));
+      const clientPayments = payments.filter((p) => loanIds.has(p.loanId));
+      const allocated = allocateInterestByPayment(
+        clientLoans.map((l) => ({
+          id: l.id,
+          amount: l.amount || 0,
+          interestRate: l.interestRate,
+          installments: l.installments,
+          status: l.status,
+        })),
+        clientPayments.map((p) => ({
+          id: p.id,
+          loanId: p.loanId,
+          amount: p.amount,
+          date: p.date,
+          installmentNumber: p.installmentNumber,
+          createdAt: (p as any).createdAt,
+        })),
+      );
+      const interestPaid = clientPayments.reduce((s, p) => s + (allocated.get(p.id) ?? 0), 0);
+
       clientLoans.forEach((l) => {
         borrowed += l.amount || 0;
         const loanPayments = payments.filter((p) => p.loanId === l.id);
@@ -134,6 +155,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
         name,
         borrowed,
         paid,
+        interestPaid,
         pending,
         total,
         interestRate,
