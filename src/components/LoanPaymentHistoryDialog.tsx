@@ -251,7 +251,22 @@ export function LoanPaymentHistoryDialog({
         className: "bg-primary/15 text-primary border-primary/30",
       };
     }
-    if (installmentNumber <= 0) {
+    // Amortização (-3): abate 100% do principal — NUNCA rotular como "Juros".
+    if (installmentNumber === -3) {
+      return {
+        label: "Amortização",
+        className: "bg-primary/15 text-primary border-primary/30",
+      };
+    }
+    // Parcial (-1): pagamento parcial (juros-primeiro), pode ter principal.
+    if (installmentNumber === -1) {
+      return {
+        label: "Parcial",
+        className: "bg-warning/15 text-warning border-warning/30",
+      };
+    }
+    // Juros avulso (0) ou multa/mora (-2): 100% juros.
+    if (installmentNumber === 0 || installmentNumber === -2) {
       return {
         label: "Juros",
         className: "bg-warning/15 text-warning border-warning/30",
