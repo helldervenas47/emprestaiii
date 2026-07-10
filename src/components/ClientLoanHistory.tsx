@@ -520,6 +520,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                 <TableHead>Cliente</TableHead>
                 <TableHead className="text-right">Emprestado</TableHead>
                 <TableHead className="text-right">Pago</TableHead>
+                <TableHead className="text-right">Juros Pago</TableHead>
                 <TableHead className="text-right">Pendente</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right">Taxa de Variação</TableHead>
@@ -538,6 +539,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                   <TableCell className="font-medium">{r.name}</TableCell>
                   <TableCell className="text-right tabular-nums">{mask(formatCurrency(r.borrowed))}</TableCell>
                   <TableCell className="text-right tabular-nums text-success">{mask(formatCurrency(r.paid))}</TableCell>
+                  <TableCell className="text-right tabular-nums text-primary">{mask(formatCurrency(r.interestPaid))}</TableCell>
                   <TableCell className="text-right tabular-nums text-warning">{mask(formatCurrency(r.pending))}</TableCell>
                   <TableCell className="text-right tabular-nums font-semibold">{mask(formatCurrency(r.total))}</TableCell>
                   <TableCell className="text-right tabular-nums text-primary font-medium">
@@ -547,7 +549,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
               ))}
               {rows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     Nenhum cliente encontrado
                   </TableCell>
                 </TableRow>
