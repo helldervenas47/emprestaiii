@@ -70,8 +70,6 @@ verify_jwt = false
 
 
 
-[functions.add-products-active]
-verify_jwt = false
 
 [functions.voice-expense-extract]
 verify_jwt = false
