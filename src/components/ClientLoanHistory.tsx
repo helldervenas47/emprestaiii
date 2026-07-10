@@ -31,6 +31,7 @@ interface ClientRow {
   name: string;
   borrowed: number;
   paid: number;
+  interestPaid: number;
   pending: number;
   total: number;
   interestRate: number;
