@@ -253,13 +253,17 @@ export function allocateInterestByPayment(
       const entry = schedule.find((e) => e.installmentNumber === inst) ?? schedule[schedule.length - 1];
       interestPart = Math.max(0, Math.min(round2(entry.interest), amt, remBefore));
     } else {
-      // Contrato de parcela única — mantém regra legada, também capada.
-      const prior = priorInterestByLoan.get(p.loanId) ?? 0;
-      const raw = computeInstallmentInterest({
-        principal: loan.amount, rate: loan.interestRate, installments: loan.installments,
-        installmentAmount: amt, installmentNumber: inst, priorInterestAllocated: prior,
-      }).interestPart;
-      interestPart = Math.max(0, Math.min(raw, remBefore));
+      // Contrato de parcela única (installments === 1). Aqui `remBefore` NÃO
+      // pode ser usado como cap: pagamentos de juros avulsos (inst=0) de
+      // ciclos anteriores já zeraram o saldo de juros "de um ciclo", mas o
+      // contrato pode ter rodado vários ciclos. Regra: o excedente sobre o
+      // principal do contrato é juros do ciclo final; o restante é principal.
+      const principalRemaining = Math.max(
+        0,
+        round2((loan.amount || 0) - (priorPrincipalByLoan.get(p.loanId) ?? 0)),
+      );
+      const principalPart = Math.min(amt, principalRemaining);
+      interestPart = Math.max(0, round2(amt - principalPart));
     }
     byId.set(p.id, interestPart);
     priorInterestByLoan.set(p.loanId, (priorInterestByLoan.get(p.loanId) ?? 0) + interestPart);
