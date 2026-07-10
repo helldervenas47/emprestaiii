@@ -384,6 +384,8 @@ Deno.serve(async (req) => {
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
     const currentQuestion = lastUser?.content?.trim() || "";
 
+    // AuthN: require a valid Supabase JWT — prevents anonymous callers from
+    // burning Gemini quota on our LLM key.
     let userId: string | null = null;
     try {
       const authHeader = req.headers.get("Authorization") || "";
@@ -396,6 +398,30 @@ Deno.serve(async (req) => {
         }
       }
     } catch { /* ignore */ }
+
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Rate limit: cap per-user AI usage to protect quota/cost.
+    const rlOk = await checkRateLimit({
+      bucket: "help-chat",
+      key: userId,
+      max: 30,
+      windowSecs: 60,
+    });
+    if (!rlOk) return rateLimitResponse(corsHeaders);
+    // Secondary per-IP cap for defence in depth.
+    const ipOk = await checkRateLimit({
+      bucket: "help-chat-ip",
+      key: getClientIp(req),
+      max: 60,
+      windowSecs: 60,
+    });
+    if (!ipOk) return rateLimitResponse(corsHeaders);
 
     const trimmed = messages.slice(-12);
     const [botsContext, knowledgeContext] = await Promise.all([
