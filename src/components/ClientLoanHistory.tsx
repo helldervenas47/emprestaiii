@@ -233,10 +233,13 @@ export function ClientLoanHistory({ loans, payments }: Props) {
     const totalPending = rows.reduce((s, r) => s + r.pending, 0);
     const totalPaid = rows.reduce((s, r) => s + r.paid, 0);
     const totalBorrowed = rows.reduce((s, r) => s + r.borrowed, 0);
+    const totalInterestPaid = rows.reduce((s, r) => s + r.interestPaid, 0);
     const grandTotal = totalPaid + totalPending;
+    const totalPrincipalPending = Math.max(0, totalBorrowed - totalPaid);
+    const totalInterestPending = Math.max(0, totalPending - totalPrincipalPending);
     const clientCount = rows.length;
     const avgInterestRate = totalBorrowed > 0 ? ((grandTotal - totalBorrowed) / totalBorrowed) * 100 : 0;
-    return { totalPending, totalPaid, totalBorrowed, grandTotal, clientCount, avgInterestRate };
+    return { totalPending, totalPaid, totalBorrowed, totalInterestPaid, totalPrincipalPending, totalInterestPending, grandTotal, clientCount, avgInterestRate };
   }, [rows]);
 
   const mask = (v: string) => (hidden ? "•••" : v);
@@ -463,12 +466,12 @@ export function ClientLoanHistory({ loans, payments }: Props) {
       </div>
 
       {showSummary && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
-              <div className="text-sm text-muted-foreground mb-1">Pendente</div>
+              <div className="text-sm text-muted-foreground mb-1">Principal Pendente</div>
               <div className="font-bold tabular-nums text-warning text-xl">
-                {mask(formatCurrency(totals.totalPending))}
+                {mask(formatCurrency(totals.totalPrincipalPending))}
               </div>
             </CardContent>
           </Card>
@@ -477,6 +480,22 @@ export function ClientLoanHistory({ loans, payments }: Props) {
               <div className="text-sm text-muted-foreground mb-1">Principal Pago</div>
               <div className="font-bold tabular-nums text-success text-xl">
                 {mask(formatCurrency(totals.totalPaid))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="h-full">
+            <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
+              <div className="text-sm text-muted-foreground mb-1">Juros Pendente</div>
+              <div className="font-bold tabular-nums text-warning text-xl">
+                {mask(formatCurrency(totals.totalInterestPending))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="h-full">
+            <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
+              <div className="text-sm text-muted-foreground mb-1">Juros Pago</div>
+              <div className="font-bold tabular-nums text-primary text-xl">
+                {mask(formatCurrency(totals.totalInterestPaid))}
               </div>
             </CardContent>
           </Card>
@@ -506,7 +525,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           </Card>
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
-              <div className="text-sm text-muted-foreground mb-1">Variação Média</div>
+              <div className="text-sm text-muted-foreground mb-1">Taxa de Variação</div>
               <div className="font-bold tabular-nums text-primary text-xl">
                 {hidden ? "•••" : `${totals.avgInterestRate.toFixed(2).replace(".", ",")}%`}
               </div>
