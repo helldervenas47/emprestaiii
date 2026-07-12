@@ -1374,7 +1374,6 @@ const Index = () => {
                     <div>
                       <nav className="flex gap-1 mb-4 bg-muted/60 p-1 rounded-xl border border-border/50 overflow-x-auto scrollbar-hide">
                         {([
-                          { id: "metas", label: "Metas", Icon: Target },
                           { id: "bot-telegram", label: "Bot Telegram", Icon: Send },
                           { id: "whatsapp-cobranca", label: "Cobrança WhatsApp", Icon: MessageCircle },
                         ] as const).map(({ id, label, Icon }) => {
@@ -1395,7 +1394,6 @@ const Index = () => {
                           );
                         })}
                       </nav>
-                      {overdueSubTab === "metas" && <MonthlyGoalsManager readOnly={isReadOnly} />}
                       {overdueSubTab === "bot-telegram" && <TelegramBotsHub />}
                       {overdueSubTab === "whatsapp-cobranca" && (
                         <div className="space-y-4">
@@ -1403,6 +1401,20 @@ const Index = () => {
                         </div>
                       )}
                     </div>
+                  </SubscriptionGate>
+                )}
+                {tab === "metas" && (
+                  <SubscriptionGate requiredTier={2} featureName="Metas">
+                    <Suspense fallback={<div className="py-12 text-center text-sm text-muted-foreground">Carregando…</div>}>
+                      <MetasTab
+                        loans={filteredLoans}
+                        payments={filteredPayments}
+                        expenses={expenses.filter((e) => (e.scope ?? "business") === "business" && !isVehicleExpenseForVehicles(e))}
+                        clients={clients}
+                        installmentSchedules={filteredInstallments}
+                        readOnly={isReadOnly}
+                      />
+                    </Suspense>
                   </SubscriptionGate>
                 )}
                 {tab === "calendar" && (
