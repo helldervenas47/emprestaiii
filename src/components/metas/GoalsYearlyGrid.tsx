@@ -141,7 +141,7 @@ function GridInner(props: {
         <button
           type="button"
           onClick={() => setDetailOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg border border-border bg-card hover:bg-muted/60 px-4 py-2 text-sm font-semibold text-foreground transition-colors"
+          className="w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-card hover:bg-muted/60 px-4 py-2 text-sm font-semibold text-foreground transition-colors"
         >
           <ListChecks className="h-4 w-4 text-primary" />
           Ver pontuação detalhada
