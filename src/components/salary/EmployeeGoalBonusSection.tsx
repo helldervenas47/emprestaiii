@@ -49,7 +49,15 @@ export function EmployeeGoalBonusSection({ initial, value, onChange }: Props) {
         </div>
         <Switch
           checked={value.enabled}
-          onCheckedChange={(enabled) => onChange({ ...value, enabled })}
+          onCheckedChange={(enabled) => {
+            const today = new Date().toISOString().slice(0, 10);
+            onChange({
+              ...value,
+              enabled,
+              // Ao ativar, garanta uma data de início (evita o save ser silenciosamente pulado).
+              startDate: enabled && !value.startDate ? today : value.startDate,
+            });
+          }}
         />
       </div>
 
