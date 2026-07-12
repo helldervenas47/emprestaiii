@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMonthlyGoals, GoalType } from "@/hooks/useMonthlyGoals";
-import { Loan, Payment, Expense, Client, InstallmentSchedule, LoanRenegotiation } from "@/types/loan";
+import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
+import { Loan, Payment, Expense, Client, InstallmentSchedule } from "@/types/loan";
 import { GoalYearlyChartCard } from "./GoalYearlyChartCard";
 import { Target } from "lucide-react";
 
