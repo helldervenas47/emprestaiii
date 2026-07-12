@@ -54,7 +54,8 @@ export function PeriodFilterCard({ value, onChange }: Props) {
       </div>
 
       {/* Sub-seletor */}
-      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+      <div className="mt-1 flex flex-nowrap items-center justify-between gap-1">
+        <div className="flex items-center gap-1">
         <button
           type="button"
           onClick={() => onChange({ ...value, year: value.year - 1 })}
