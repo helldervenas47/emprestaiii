@@ -35,18 +35,18 @@ function fmt(v: number, unit: Unit, hidden: boolean): string {
   if (!isFinite(v)) return "—";
   if (hidden && unit === "R$") return "R$ ••••";
   if (unit === "R$") return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
-  if (unit === "%") return `${v.toFixed(2)}%`;
-  return v.toFixed(2);
+  if (unit === "%") return `${v.toFixed(2).replace(".", ",")}%`;
+  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(Math.round(v));
 }
 
 function fmtCompact(v: number, unit: Unit): string {
   if (!isFinite(v)) return "—";
-  if (unit === "%") return `${v.toFixed(2)}%`;
-  if (unit === "qtd") return v.toFixed(2);
+  if (unit === "%") return `${v.toFixed(2).replace(".", ",")}%`;
+  if (unit === "qtd") return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(Math.round(v));
   const abs = Math.abs(v);
-  if (abs >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(2)}M`;
-  if (abs >= 1_000) return `R$ ${(v / 1_000).toFixed(2)}k`;
-  return `R$ ${v.toFixed(2)}`;
+  if (abs >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(2).replace(".", ",")}M`;
+  if (abs >= 1_000) return `R$ ${(v / 1_000).toFixed(2).replace(".", ",")}k`;
+  return `R$ ${v.toFixed(2).replace(".", ",")}`;
 }
 
 export function GoalYearlyEvolutionDialog({
@@ -77,6 +77,15 @@ export function GoalYearlyEvolutionDialog({
           const v = computeActual(goalType, monthKey, loans, payments, expenses, clients, installmentSchedules, renegotiations);
           realized = isFinite(v) ? v : 0;
         }
+      }
+
+      // Para "Receita Média Diária", converter total mensal → média diária
+      if (goalType === "daily_received_avg" && !isFuture) {
+        const [yy, mm] = monthKey.split("-").map(Number);
+        const daysInMonth = new Date(yy, mm, 0).getDate();
+        const isCurrent = monthKey === currentMonthKey;
+        const days = isCurrent ? today.getDate() : daysInMonth;
+        realized = days > 0 ? realized / days : 0;
       }
 
       // Meta exata (não herdada) apenas
@@ -163,7 +172,7 @@ export function GoalYearlyEvolutionDialog({
             <div className="rounded-lg border border-border bg-card/60 p-3 text-center">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Resultado anual</p>
               <p className={`text-sm sm:text-base font-bold mt-1 ${totals.attainmentPct >= 100 ? "text-success" : "text-destructive"}`}>
-                {totals.targetAvg > 0 ? `${totals.attainmentPct.toFixed(2)}% da meta` : "—"}
+                {totals.targetAvg > 0 ? `${totals.attainmentPct.toFixed(2).replace(".", ",")}%` : "—"}
               </p>
             </div>
           </div>
@@ -214,7 +223,7 @@ export function GoalYearlyEvolutionDialog({
                           </div>
                           <div className="flex justify-between gap-4">
                             <span className="text-muted-foreground">Atingimento</span>
-                            <span className={`font-semibold ${okColor}`}>{d.target > 0 ? `${d.pct.toFixed(1)}%` : "—"}</span>
+                            <span className={`font-semibold ${okColor}`}>{d.target > 0 ? `${d.pct.toFixed(2).replace(".", ",")}%` : "—"}</span>
                           </div>
                           <div className="flex justify-between gap-4">
                             <span className="text-muted-foreground">Diferença</span>
