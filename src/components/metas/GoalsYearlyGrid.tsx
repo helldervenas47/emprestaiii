@@ -11,7 +11,7 @@ type Unit = "%" | "R$" | "qtd";
 
 // Sincronizado com GOAL_TYPE_META em GoalsCard.tsx
 const GOAL_META: Record<GoalType, { label: string; unit: Unit; inverse?: boolean }> = {
-  interest_rate:      { label: "Taxa de Variação Mensal", unit: "%" },
+  interest_rate:      { label: "Taxa de Juros Mensal", unit: "%" },
   profit:             { label: "Faturamento do Período", unit: "%" },
   loan_volume:        { label: "Valor Emprestado", unit: "R$" },
   new_loans_count:    { label: "Novos Empréstimos", unit: "qtd" },
