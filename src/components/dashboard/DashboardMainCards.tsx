@@ -105,7 +105,7 @@ export function DashboardMainCards({
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditBalance}><X className="h-3.5 w-3.5 text-destructive" /></Button>
                 </div>
               ) : (
-                <p className={`text-lg font-bold ${accountBalance < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance)}</p>
+                <p className={`text-lg md:text-xl font-bold tabular-nums ${accountBalance < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance)}</p>
               )}
             </div>
           </div>
@@ -137,7 +137,7 @@ export function DashboardMainCards({
                 <ArrowDownToLine className="h-5 w-5 text-success" />
               </div>
               <p className="text-xs text-muted-foreground">Valores Recebidos</p>
-              <p className="text-lg font-bold text-success">{formatCurrency(receivedByMethod.total)}</p>
+              <p className="text-lg md:text-xl font-bold tabular-nums text-success">{formatCurrency(receivedByMethod.total)}</p>
               <p className="text-[10px] text-muted-foreground">{range.label}</p>
             </div>
           </div>
@@ -199,7 +199,7 @@ export function DashboardMainCards({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-muted-foreground">Taxa de Juros Mensal</p>
-              <p className="text-lg font-bold text-foreground">{data.monthlyInterestRate.hasData && data.monthlyInterestRate.rate !== null ? `${data.monthlyInterestRate.rate.toFixed(2)}%` : "Sem dados no período"}</p>
+              <p className="text-lg md:text-xl font-bold tabular-nums text-foreground">{data.monthlyInterestRate.hasData && data.monthlyInterestRate.rate !== null ? `${data.monthlyInterestRate.rate.toFixed(2)}%` : "Sem dados no período"}</p>
               <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
                 <span>{data.loanCount} no período</span>
                 <span>Geral: <span className="font-bold text-warning">{portfolio.globalInterestRate.toFixed(1)}%</span></span>
