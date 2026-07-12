@@ -37,13 +37,13 @@ interface Props {
   expenses: Expense[];
   clients: Client[];
   installmentSchedules: InstallmentSchedule[];
-  renegotiations: LoanRenegotiation[];
 }
 
 export function GoalsYearlyGrid({
-  loans, payments, expenses, clients, installmentSchedules, renegotiations,
+  loans, payments, expenses, clients, installmentSchedules,
 }: Props) {
   const { goals, loading } = useMonthlyGoals();
+  const { renegotiations } = useLoanRenegotiations();
   const [year, setYear] = useState<number>(new Date().getFullYear());
 
   // Exibir todas as metas cadastradas (qualquer goalType com pelo menos uma meta em qualquer mês).
