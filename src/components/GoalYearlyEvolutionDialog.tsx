@@ -79,6 +79,15 @@ export function GoalYearlyEvolutionDialog({
         }
       }
 
+      // Para "Receita Média Diária", converter total mensal → média diária
+      if (goalType === "daily_received_avg" && !isFuture) {
+        const [yy, mm] = monthKey.split("-").map(Number);
+        const daysInMonth = new Date(yy, mm, 0).getDate();
+        const isCurrent = monthKey === currentMonthKey;
+        const days = isCurrent ? today.getDate() : daysInMonth;
+        realized = days > 0 ? realized / days : 0;
+      }
+
       // Meta exata (não herdada) apenas
       const exactGoal = goals.find((g) => g.goalType === goalType && g.month === monthKey);
       const hasValidGoal = !!exactGoal;
