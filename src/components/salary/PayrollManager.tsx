@@ -118,6 +118,87 @@ export function PayrollManager({ readOnly }: Props) {
     })();
   }, [payrolls, readOnly, splitLegacyExtraEarnings]);
 
+  // Roda o motor de bônus por metas para os últimos meses fechados assim
+  // que todos os dados de metas estiverem carregados. Idempotente.
+  const bonusEngineRanRef = useRef(false);
+  useEffect(() => {
+    if (readOnly) return;
+    if (!dataOwnerId || !scoreReady) return;
+    if (bonusEngineRanRef.current) return;
+    if (bonuses.length === 0) return;
+    bonusEngineRanRef.current = true;
+    (async () => {
+      try {
+        const created = await generateBonusAwardsRecent(dataOwnerId, bonuses, getMonthlyScore, 3);
+        if (created > 0) {
+          await refreshAwards();
+          toast.success(`${created} bônus por metas gerado(s)`);
+        }
+      } catch (e: any) {
+        console.warn("[goal bonus engine]", e?.message ?? e);
+      }
+    })();
+  }, [readOnly, dataOwnerId, scoreReady, bonuses, getMonthlyScore, refreshAwards]);
+
+  // Injeta o item "Bônus por Atingimento das Metas" nas folhas geradas
+  // cujo payroll_month bate com a competência da folha. Idempotente.
+  const injectedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (readOnly || awards.length === 0 || payrolls.length === 0) return;
+    (async () => {
+      for (const a of awards) {
+        if (a.status !== "gerado") continue;
+        if (a.payrollId) continue;
+        if (injectedRef.current.has(a.id)) continue;
+        const target = payrolls.find(
+          (p) => p.employeeId === a.employeeId && p.competence === a.payrollMonth,
+        );
+        if (!target) continue;
+        if (target.closed || target.paidAmount > 0.01) continue;
+        // Evita duplicar item se já existir
+        const already = (target.items?.earnings ?? []).some(
+          (it: SalaryItem) => it.kind === "goal_bonus" && it.meta?.awardId === a.id,
+        );
+        if (!already) {
+          const newEarnings: SalaryItem[] = [
+            ...(target.items?.earnings ?? []),
+            {
+              label: "Bônus por Atingimento das Metas",
+              amount: a.bonusAmount,
+              kind: "goal_bonus",
+              meta: {
+                awardId: a.id,
+                referenceMonth: a.referenceMonth,
+                scoreObtained: a.scoreObtained,
+                minScore: a.minScoreRequired,
+              },
+            },
+          ];
+          await updatePayroll(target.id, {
+            items: { earnings: newEarnings, deductions: target.items?.deductions ?? [] },
+          });
+        }
+        await supabase
+          .from("goal_bonus_awards" as any)
+          .update({ payroll_id: target.id })
+          .eq("id", a.id);
+        injectedRef.current.add(a.id);
+      }
+    })();
+  }, [awards, payrolls, readOnly, updatePayroll]);
+
+  // Atualiza status do award para "pago" quando a folha correspondente é quitada.
+  useEffect(() => {
+    if (awards.length === 0) return;
+    for (const a of awards) {
+      if (a.status !== "gerado" || !a.payrollId) continue;
+      const p = payrolls.find((pp) => pp.id === a.payrollId);
+      if (p && p.status === "pago") {
+        markPaidByPayroll(a.payrollId);
+      }
+    }
+  }, [awards, payrolls, markPaidByPayroll]);
+
   const handleGenerate = async () => {
     const created = await generateMonthlyBatch(employees, competence);
     if (created.length === 0) toast.info("Folha já existe para todos os funcionários ativos.");
@@ -126,6 +207,7 @@ export function PayrollManager({ readOnly }: Props) {
 
   const targetPayroll = monthRows.find((p) => p.id === payingId) ?? null;
   const targetEmployee = targetPayroll ? employees.find((e) => e.id === targetPayroll.employeeId) : null;
+
 
   return (
     <div className="space-y-4">
