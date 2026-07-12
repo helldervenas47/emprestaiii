@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { assertWritable } from "@/lib/readOnlyState";
 
+let cachedBonuses: EmployeeGoalBonus[] = [];
+
 export interface EmployeeGoalBonus {
   id: string;
   employeeId: string;
@@ -36,16 +38,28 @@ function rowToBonus(r: any): EmployeeGoalBonus {
 
 export function useEmployeeGoalBonuses() {
   const { user, dataOwnerId } = useAuth();
-  const [bonuses, setBonuses] = useState<EmployeeGoalBonus[]>([]);
+  const [bonuses, setBonuses] = useState<EmployeeGoalBonus[]>(cachedBonuses);
   const [loading, setLoading] = useState(false);
 
   const fetchAll = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      cachedBonuses = [];
+      setBonuses([]);
+      return;
+    }
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("employee_goal_bonuses" as any)
-      .select(COLUMNS);
-    setBonuses(((data as any[]) ?? []).map(rowToBonus));
+      .select(COLUMNS)
+      .order("updated_at", { ascending: false });
+    if (error) {
+      console.error("[employee_goal_bonuses] fetch", error.message);
+      setLoading(false);
+      return;
+    }
+    const next = ((data as any[]) ?? []).map(rowToBonus);
+    cachedBonuses = next;
+    setBonuses(next);
     setLoading(false);
   }, [user]);
 
@@ -71,7 +85,6 @@ export function useEmployeeGoalBonuses() {
   ) => {
     assertWritable();
     if (!dataOwnerId) return;
-    const existing = bonuses.find((b) => b.employeeId === employeeId);
     const payload: any = {
       user_id: dataOwnerId,
       employee_id: employeeId,
@@ -82,19 +95,34 @@ export function useEmployeeGoalBonuses() {
       end_date: patch.endDate,
       notes: patch.notes,
     };
-    if (existing) {
-      await supabase.from("employee_goal_bonuses" as any).update(payload).eq("id", existing.id);
-    } else {
-      await supabase.from("employee_goal_bonuses" as any).insert(payload);
+
+    // Atualiza por funcionário em vez de depender apenas do estado local.
+    // Assim, ao sair/voltar da aba ou salvar logo após o carregamento, a config
+    // existente não é perdida nem duplicada e o flag `enabled` fica persistido.
+    const { data: updatedRows, error: updateError } = await supabase
+      .from("employee_goal_bonuses" as any)
+      .update(payload)
+      .eq("employee_id", employeeId)
+      .select(COLUMNS);
+    if (updateError) throw updateError;
+
+    if (!updatedRows || (updatedRows as any[]).length === 0) {
+      const { error: insertError } = await supabase
+        .from("employee_goal_bonuses" as any)
+        .insert(payload)
+        .select(COLUMNS)
+        .single();
+      if (insertError) throw insertError;
     }
     await fetchAll();
-  }, [dataOwnerId, bonuses, fetchAll]);
+  }, [dataOwnerId, fetchAll]);
 
   const removeForEmployee = useCallback(async (employeeId: string) => {
     assertWritable();
     const existing = bonuses.find((b) => b.employeeId === employeeId);
     if (!existing) return;
-    await supabase.from("employee_goal_bonuses" as any).delete().eq("id", existing.id);
+    const { error } = await supabase.from("employee_goal_bonuses" as any).delete().eq("id", existing.id);
+    if (error) throw error;
     await fetchAll();
   }, [bonuses, fetchAll]);
 
