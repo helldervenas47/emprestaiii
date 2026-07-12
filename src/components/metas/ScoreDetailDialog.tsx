@@ -64,7 +64,7 @@ export function ScoreDetailDialog({ open, onOpenChange, weights, inputs }: Props
     const monthTotals = Array.from({ length: 12 }, (_, i) =>
       rows.reduce((s, r) => s + r.monthly[i], 0),
     );
-    const grandTotal = monthTotals.reduce((s, v) => s + v, 0);
+    const grandTotal = rows.reduce((s, r) => s + r.total, 0);
 
     return { rows, monthTotals, grandTotal };
   }, [weights, inputs, year]);
@@ -162,7 +162,7 @@ export function ScoreDetailDialog({ open, onOpenChange, weights, inputs }: Props
                   {monthTotals.map((v, i) => (
                     <td key={i} className="py-3 px-2 text-right tabular-nums">{v > 0 ? v : ""}</td>
                   ))}
-                  <td className="py-3 px-3 text-right tabular-nums bg-muted/60">{grandTotal > 0 ? grandTotal : ""}</td>
+                  <td className="py-3 px-3 text-right tabular-nums bg-muted/60">{grandTotal > 0 ? (Number.isInteger(grandTotal) ? grandTotal : grandTotal.toFixed(2).replace(".", ",")) : ""}</td>
                 </tr>
               </tfoot>
             )}
