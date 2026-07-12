@@ -3,6 +3,7 @@ import { useMonthlyGoals, GoalType } from "@/hooks/useMonthlyGoals";
 import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
 import { Loan, Payment, Expense, Client, InstallmentSchedule } from "@/types/loan";
 import { GoalYearlyChartCard } from "./GoalYearlyChartCard";
+import { ManagerCommissionsYearlyCard } from "./ManagerCommissionsYearlyCard";
 import { Target } from "lucide-react";
 
 type Unit = "%" | "R$" | "qtd";
