@@ -61,7 +61,12 @@ export function PeriodFilterCard({ value, onChange }: Props) {
           className="rounded-md border border-border bg-background px-2 py-1 text-xs hover:bg-accent"
           aria-label="Ano anterior"
         >‹</button>
-        <span className="text-xs font-bold tabular-nums min-w-[42px] text-center">{value.year}</span>
+        <button
+          type="button"
+          onClick={() => onChange({ ...value, year: new Date().getFullYear() })}
+          title="Voltar para o ano atual"
+          className="text-xs font-bold tabular-nums min-w-[42px] text-center hover:text-primary transition-colors"
+        >{value.year}</button>
         <button
           type="button"
           onClick={() => onChange({ ...value, year: value.year + 1 })}
