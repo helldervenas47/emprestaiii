@@ -34,6 +34,10 @@ export function PayrollManager({ readOnly }: Props) {
   const { employees } = useEmployees();
   const { payrolls, generateMonthlyBatch, payPayroll, reversePayrollPayment, reopenPayroll, closePayroll, deletePayroll, updatePayroll, splitLegacyExtraEarnings } = usePayrolls();
   const { branding } = useAppBranding();
+  const { dataOwnerId } = useAuth();
+  const { bonuses } = useEmployeeGoalBonuses();
+  const { awards, refresh: refreshAwards, markPaidByPayroll } = useGoalBonusAwards();
+  const { getMonthlyScore, ready: scoreReady } = useMonthlyScoreProvider();
   const [monthOffset, setMonthOffset] = useState(0);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
