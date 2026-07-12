@@ -168,21 +168,47 @@ export function GoalYearlyEvolutionDialog({
         style={{ padding: 0 }}
         className="w-screen h-[100dvh] max-w-none sm:max-w-none max-h-none rounded-none border-0 flex flex-col gap-0 p-0 overflow-hidden [&>button.absolute]:hidden"
       >
-        <DialogHeader className="shrink-0 px-4 sm:px-5 pt-4 pb-3 border-b border-border/40 bg-background">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={onClose} aria-label="Fechar">
-              <X className="h-5 w-5" />
-            </Button>
+        <DialogHeader
+          className="shrink-0 relative px-4 sm:px-5 pb-3 border-b border-border/40 bg-background pt-[max(env(safe-area-inset-top),0.75rem)] sm:pt-4"
+        >
+          {/* Botão fechar fixo no canto superior esquerdo (respeita safe-area) */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute left-3 sm:left-4 top-[max(env(safe-area-inset-top),0.5rem)] sm:top-3 h-9 w-9 z-10"
+            onClick={onClose}
+            aria-label="Fechar"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+
+          {/* Mobile: título centralizado, com espaço acima para não colidir com o X */}
+          <div className="sm:hidden mt-9 flex flex-col items-center text-center gap-2 px-8">
+            <div className="flex items-center justify-center gap-2">
+              <div className="h-9 w-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                <TrendingUp className="h-5 w-5 text-primary" />
+              </div>
+              <DialogTitle className="text-base leading-tight">
+                Evolução Anual · {goalLabel}
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-center">
+              Comparativo mês a mês entre o realizado (barras) e a meta (linha).
+            </DialogDescription>
+          </div>
+
+          {/* Desktop/Tablet: layout em linha */}
+          <div className="hidden sm:flex items-center gap-3 pl-12">
             <div className="h-10 w-10 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
               <TrendingUp className="h-5 w-5 text-primary" />
             </div>
             <div className="min-w-0 flex-1">
-              <DialogTitle className="text-base sm:text-lg truncate">Evolução Anual · {goalLabel}</DialogTitle>
+              <DialogTitle className="text-lg truncate">Evolução Anual · {goalLabel}</DialogTitle>
               <DialogDescription className="text-xs">
                 Comparativo mês a mês entre o realizado (barras) e a meta (linha).
               </DialogDescription>
             </div>
-            <div className="hidden sm:flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setYear((y) => y - 1)} aria-label="Ano anterior">
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -207,6 +233,7 @@ export function GoalYearlyEvolutionDialog({
             </div>
           </div>
 
+          {/* Mobile: seletor de ano abaixo do título centralizado */}
           <div className="mt-3 flex sm:hidden items-center justify-center gap-2">
             <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setYear((y) => y - 1)} aria-label="Ano anterior">
               <ChevronLeft className="h-4 w-4" />
@@ -225,12 +252,13 @@ export function GoalYearlyEvolutionDialog({
               <ChevronRight className="h-4 w-4" />
             </Button>
             {year !== currentYear && (
-              <Button variant="ghost" size="sm" className="h-9 text-xs ml-2" onClick={() => setYear(currentYear)}>
+              <Button variant="ghost" size="sm" className="h-9 text-xs ml-1" onClick={() => setYear(currentYear)}>
                 Hoje
               </Button>
             )}
           </div>
         </DialogHeader>
+
 
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 sm:px-5 py-3 flex flex-col gap-3">
           {/* Totais rápidos */}
@@ -256,8 +284,9 @@ export function GoalYearlyEvolutionDialog({
           </div>
 
           {/* Gráfico ocupa espaço restante */}
-          <div className="rounded-lg border border-border bg-card p-2 sm:p-3 flex-1 min-h-[280px] flex flex-col">
-            <div className="w-full min-w-0 flex-1 min-h-[260px]">
+          <div className="rounded-lg border border-border bg-card p-2 sm:p-3 flex-1 min-h-[240px] sm:min-h-[280px] flex flex-col">
+            <div className="w-full min-w-0 flex-1 min-h-[220px] sm:min-h-[260px] max-h-[46vh] sm:max-h-none">
+
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={data} margin={{ top: isMobile ? 10 : 24, right: 12, left: 0, bottom: 18 }}>
                   <defs>
