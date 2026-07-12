@@ -187,7 +187,7 @@ export function GoalYearlyEvolutionDialog({
             </div>
             <div className="rounded-lg border border-border bg-card/60 p-3 text-center">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Resultado anual</p>
-              <p className={`text-sm sm:text-base font-bold mt-1 ${totals.attainmentPct >= 100 ? "text-success" : "text-destructive"}`}>
+              <p className={`text-sm sm:text-base font-bold mt-1 ${totals.isPositive ? "text-success" : "text-destructive"}`}>
                 {totals.targetAvg > 0 ? `${totals.attainmentPct.toFixed(2).replace(".", ",")}%` : "—"}
               </p>
             </div>
