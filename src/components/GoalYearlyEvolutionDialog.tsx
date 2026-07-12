@@ -319,9 +319,28 @@ export function GoalYearlyEvolutionDialog({
                     {!isMobile && (
                       <LabelList
                         dataKey="realized"
-                        position="top"
-                        formatter={labelFmt}
-                        style={{ fontSize: 10, fill: "hsl(var(--primary))", fontWeight: 600 }}
+                        content={(props: any) => {
+                          const { x, y, width, value, index } = props;
+                          if (value == null || value === 0) return null;
+                          const d: any = data[index];
+                          if (!d) return null;
+                          const max = Math.max(Math.abs(d.realized), Math.abs(d.target), 1);
+                          const rel = Math.abs(d.realized - d.target) / max;
+                          // Se realizado ≤ meta e valores muito próximos, meta ficará acima; empurra rótulo do realizado mais para cima
+                          const dy = (d.realized < d.target && rel < 0.08) ? -14 : -6;
+                          return (
+                            <text
+                              x={Number(x) + Number(width) / 2}
+                              y={Number(y) + dy}
+                              textAnchor="middle"
+                              fontSize={10}
+                              fontWeight={600}
+                              fill="hsl(var(--primary))"
+                            >
+                              {labelFmt(value)}
+                            </text>
+                          );
+                        }}
                       />
                     )}
                   </Bar>
@@ -338,9 +357,33 @@ export function GoalYearlyEvolutionDialog({
                     {!isMobile && (
                       <LabelList
                         dataKey="target"
-                        position="bottom"
-                        formatter={labelFmt}
-                        style={{ fontSize: 10, fill: "hsl(var(--success))", fontWeight: 600 }}
+                        content={(props: any) => {
+                          const { x, y, value, index } = props;
+                          if (value == null || value === 0) return null;
+                          const d: any = data[index];
+                          if (!d) return null;
+                          const max = Math.max(Math.abs(d.realized), Math.abs(d.target), 1);
+                          const rel = Math.abs(d.realized - d.target) / max;
+                          // Regra anti-sobreposição:
+                          // - Se realizado ≥ meta: rótulo da meta abaixo da linha (dy = +16).
+                          // - Se realizado < meta e valores próximos: empurra meta bem acima (dy = -22).
+                          // - Caso contrário: acima da linha por padrão (dy = -10).
+                          let dy = -10;
+                          if (d.realized >= d.target) dy = 16;
+                          else if (rel < 0.08) dy = -22;
+                          return (
+                            <text
+                              x={Number(x)}
+                              y={Number(y) + dy}
+                              textAnchor="middle"
+                              fontSize={10}
+                              fontWeight={600}
+                              fill="hsl(var(--success))"
+                            >
+                              {labelFmt(value)}
+                            </text>
+                          );
+                        }}
                       />
                     )}
                   </Line>
