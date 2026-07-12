@@ -117,7 +117,7 @@ export function DashboardMainCards({
               </div>
               <p className={`text-sm font-semibold tabular-nums ${(accountBalance + portfolio.forecastSunday) < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance + portfolio.forecastSunday)}</p>
             </div>
-            <div className="bg-muted/50 rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center min-h-[72px] md:min-h-[76px]">
+            <div className="bg-muted/50 rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center min-h-[72px] md:min-h-[88px] md:h-[88px]">
               <div className="flex items-center gap-1.5 mb-1">
                 <Calendar className="h-3 w-3 text-primary" />
                 <p className="text-[10px] text-muted-foreground">Fim do Mês</p>
