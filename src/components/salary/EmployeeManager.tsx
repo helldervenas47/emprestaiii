@@ -76,12 +76,17 @@ export function EmployeeManager({ readOnly }: Props) {
                 <span className="font-semibold">{BRL(e.baseSalary)}</span>
               </div>
               <div className="text-xs text-muted-foreground capitalize">Pagamento: {e.paymentType}</div>
-              {!readOnly && (
-                <div className="flex gap-2 pt-1">
-                  <Button data-mutation size="sm" variant="outline" className="flex-1" onClick={() => handleEdit(e)}><Pencil className="h-3 w-3" /> Editar</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setToDelete(e)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                </div>
-              )}
+              <div className="flex gap-2 pt-1">
+                <Button size="sm" variant="outline" onClick={() => setHistoryOf(e)} title="Bônus por metas">
+                  <Trophy className="h-3 w-3 text-primary" />
+                </Button>
+                {!readOnly && (
+                  <>
+                    <Button data-mutation size="sm" variant="outline" className="flex-1" onClick={() => handleEdit(e)}><Pencil className="h-3 w-3" /> Editar</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setToDelete(e)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  </>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}
