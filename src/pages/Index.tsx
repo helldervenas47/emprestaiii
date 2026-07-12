@@ -228,6 +228,7 @@ const tabConfig = [
   { id: "accountant" as Tab, label: "Contador", icon: Calculator },
 
   { id: "overdue" as Tab, label: "Relatório", icon: Folders },
+  { id: "metas" as Tab, label: "Metas", icon: Target },
   { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
   { id: "system" as Tab, label: "Sistema", icon: Sliders },
   { id: "help" as Tab, label: "Assistente IA", icon: Sparkles },
