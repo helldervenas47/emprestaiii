@@ -97,6 +97,7 @@ export function ManagerCommissionsChart({
   const { commissions } = useManagerCommissions(true);
   const { mask } = useHideValues();
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
+  const [yearlyOpen, setYearlyOpen] = useState(false);
   const [selectedManagerIds, setSelectedManagerIds] = useState<string[]>(() => {
     if (typeof window === "undefined") return [];
     try {
