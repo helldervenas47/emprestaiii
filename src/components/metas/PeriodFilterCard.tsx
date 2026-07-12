@@ -74,9 +74,10 @@ export function PeriodFilterCard({ value, onChange }: Props) {
           className="rounded-md border border-border bg-background px-2 py-1 text-xs hover:bg-accent"
           aria-label="Próximo ano"
         >›</button>
+        </div>
 
         {value.mode === "month" && (
-          <div className="ml-auto flex items-center gap-1">
+          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => {
@@ -111,7 +112,7 @@ export function PeriodFilterCard({ value, onChange }: Props) {
           </div>
         )}
         {value.mode === "quarter" && (
-          <div className="ml-auto flex gap-1">
+          <div className="flex gap-1">
             {[1,2,3,4].map((q) => (
               <button
                 key={q}
@@ -125,7 +126,7 @@ export function PeriodFilterCard({ value, onChange }: Props) {
           </div>
         )}
         {value.mode === "semester" && (
-          <div className="ml-auto flex gap-1">
+          <div className="flex gap-1">
             {[1,2].map((s) => (
               <button
                 key={s}
