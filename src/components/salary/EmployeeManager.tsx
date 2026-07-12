@@ -217,7 +217,12 @@ function EmployeeFormDialog({ open, onOpenChange, initial, initialBonus, onSave 
       endDate: initialBonus?.endDate ?? null,
       notes: initialBonus?.notes ?? null,
     });
-  }, [open, initial, initialBonus]);
+    // Only resync when dialog opens or the edited employee changes.
+    // Do NOT depend on `initialBonus` reference — it changes on every parent
+    // re-render (new object from bonuses.find), which would reset the switch
+    // back to false while the user is still editing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initial?.id]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
