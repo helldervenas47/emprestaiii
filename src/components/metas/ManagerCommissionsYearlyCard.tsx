@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
 import {
@@ -8,6 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { useManagerCommissions } from "@/hooks/useManagerCommissions";
 import { Client, Loan, Payment } from "@/types/loan";
+import { useActiveTooltip } from "./ActiveTooltipContext";
 
 const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const MONTH_FULL = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
