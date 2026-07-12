@@ -306,6 +306,15 @@ export function GoalYearlyChartCard({
               maxBarSize={36}
               animationDuration={600}
             >
+              {data.map((d, i) => {
+                const off = d.hasValidGoal && !d.isFuture && (inverse ? d.realized > d.target : d.realized < d.target);
+                return (
+                  <Cell
+                    key={`cell-${i}`}
+                    fill={off ? `url(#goalBarFillOff-${goalType})` : `url(#goalBarFill-${goalType})`}
+                  />
+                );
+              })}
               {!isMobile && (
                 <LabelList
                   dataKey="realized"
@@ -317,6 +326,7 @@ export function GoalYearlyChartCard({
                     const max = Math.max(Math.abs(d.realized), Math.abs(d.target), 1);
                     const rel = Math.abs(d.realized - d.target) / max;
                     const dy = (d.realized < d.target && rel < 0.08) ? -14 : -6;
+                    const off = d.hasValidGoal && !d.isFuture && (inverse ? d.realized > d.target : d.realized < d.target);
                     return (
                       <text
                         x={Number(x) + Number(width) / 2}
@@ -324,7 +334,7 @@ export function GoalYearlyChartCard({
                         textAnchor="middle"
                         fontSize={9}
                         fontWeight={600}
-                        fill="hsl(var(--primary))"
+                        fill={off ? "hsl(var(--destructive))" : "hsl(var(--primary))"}
                       >
                         {labelFmt(value)}
                       </text>
