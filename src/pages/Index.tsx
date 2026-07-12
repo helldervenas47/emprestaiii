@@ -526,7 +526,7 @@ const Index = () => {
   const [loanSubTab, setLoanSubTab] = useState<"loans" | "history">("loans");
   const [vehicleSubTab, setVehicleSubTab] = useState<VehicleSubTab>("veiculos");
   const [planMgmtSubTab, setPlanMgmtSubTab] = useState<PlanMgmtSubTab>("subscribers");
-  const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("metas");
+  const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("bot-telegram");
   const [expenseSubTab, setExpenseSubTab] = useState<ExpenseSubTab>("personal");
   const [personalSubTab, setPersonalSubTab] = useState<PersonalSubTab>("expenses");
   const [incExpTab, setIncExpTab] = useState<IncExpTab>("incomes");
