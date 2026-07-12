@@ -19,6 +19,7 @@ export const APP_TABS = [
   { id: "salary", label: "Salário" },
   { id: "accountant", label: "Contador" },
   { id: "overdue", label: "Relatório" },
+  { id: "metas", label: "Metas" },
   { id: "settings", label: "Configurações" },
   { id: "system", label: "Sistema" },
   { id: "ajuda", label: "Ajuda" },

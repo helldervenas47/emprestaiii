@@ -125,8 +125,8 @@ const VehicleExpenseForm = lazy(() =>
 const NotificationSettings = lazy(() =>
   import("@/components/NotificationSettings").then((m) => ({ default: m.NotificationSettings })),
 );
-const MonthlyGoalsManager = lazy(() =>
-  import("@/components/MonthlyGoalsManager").then((m) => ({ default: m.MonthlyGoalsManager })),
+const MetasTab = lazy(() =>
+  import("@/components/metas/MetasTab").then((m) => ({ default: m.MetasTab })),
 );
 const AccountantReport = lazy(() =>
   import("@/components/AccountantReport").then((m) => ({ default: m.AccountantReport })),
@@ -198,6 +198,7 @@ type Tab =
   | "products"
   | "vehicles"
   | "overdue"
+  | "metas"
   | "expenses"
   | "boletos"
   | "salary"
@@ -209,7 +210,7 @@ type Tab =
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
-type OverdueSubTab = "metas" | "bot-telegram" | "whatsapp-cobranca";
+type OverdueSubTab = "bot-telegram" | "whatsapp-cobranca";
 type ExpenseSubTab = "business" | "personal";
 type PersonalSubTab = "expenses" | "cards";
 type IncExpTab = "incomes" | "expenses";
@@ -227,6 +228,7 @@ const tabConfig = [
   { id: "accountant" as Tab, label: "Contador", icon: Calculator },
 
   { id: "overdue" as Tab, label: "Relatório", icon: Folders },
+  { id: "metas" as Tab, label: "Metas", icon: Target },
   { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
   { id: "system" as Tab, label: "Sistema", icon: Sliders },
   { id: "help" as Tab, label: "Assistente IA", icon: Sparkles },
@@ -315,6 +317,14 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Lista todos os empréstimos com parcelas em atraso.",
       "Também mostra empréstimos que vencem hoje.",
       "Use para priorizar suas cobranças diárias.",
+    ],
+  },
+  metas: {
+    title: "Metas",
+    items: [
+      "Evolução Anual: gráfico de cada meta com barras (Realizado) e linha (Meta).",
+      "Configuração de Metas: cadastro, edição e regras de herança das metas.",
+      "Todos os cálculos usam a mesma fonte do Dashboard.",
     ],
   },
   salary: {
@@ -516,7 +526,7 @@ const Index = () => {
   const [loanSubTab, setLoanSubTab] = useState<"loans" | "history">("loans");
   const [vehicleSubTab, setVehicleSubTab] = useState<VehicleSubTab>("veiculos");
   const [planMgmtSubTab, setPlanMgmtSubTab] = useState<PlanMgmtSubTab>("subscribers");
-  const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("metas");
+  const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("bot-telegram");
   const [expenseSubTab, setExpenseSubTab] = useState<ExpenseSubTab>("personal");
   const [personalSubTab, setPersonalSubTab] = useState<PersonalSubTab>("expenses");
   const [incExpTab, setIncExpTab] = useState<IncExpTab>("incomes");
@@ -1364,7 +1374,6 @@ const Index = () => {
                     <div>
                       <nav className="flex gap-1 mb-4 bg-muted/60 p-1 rounded-xl border border-border/50 overflow-x-auto scrollbar-hide">
                         {([
-                          { id: "metas", label: "Metas", Icon: Target },
                           { id: "bot-telegram", label: "Bot Telegram", Icon: Send },
                           { id: "whatsapp-cobranca", label: "Cobrança WhatsApp", Icon: MessageCircle },
                         ] as const).map(({ id, label, Icon }) => {
@@ -1385,7 +1394,6 @@ const Index = () => {
                           );
                         })}
                       </nav>
-                      {overdueSubTab === "metas" && <MonthlyGoalsManager readOnly={isReadOnly} />}
                       {overdueSubTab === "bot-telegram" && <TelegramBotsHub />}
                       {overdueSubTab === "whatsapp-cobranca" && (
                         <div className="space-y-4">
@@ -1393,6 +1401,20 @@ const Index = () => {
                         </div>
                       )}
                     </div>
+                  </SubscriptionGate>
+                )}
+                {tab === "metas" && (
+                  <SubscriptionGate requiredTier={2} featureName="Metas">
+                    <Suspense fallback={<div className="py-12 text-center text-sm text-muted-foreground">Carregando…</div>}>
+                      <MetasTab
+                        loans={filteredLoans}
+                        payments={filteredPayments}
+                        expenses={expenses.filter((e) => (e.scope ?? "business") === "business" && !isVehicleExpenseForVehicles(e))}
+                        clients={clients}
+                        installmentSchedules={filteredInstallments}
+                        readOnly={isReadOnly}
+                      />
+                    </Suspense>
                   </SubscriptionGate>
                 )}
                 {tab === "calendar" && (
