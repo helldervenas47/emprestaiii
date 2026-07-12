@@ -482,7 +482,9 @@ function ScoreWeightsCard() {
           </div>
         </div>
 
+        {open && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+
           {(Object.keys(GOAL_TYPE_META) as GoalType[]).map((t) => {
             const meta = GOAL_TYPE_META[t];
             const Icon = meta.icon;
