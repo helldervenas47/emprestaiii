@@ -10,9 +10,10 @@ import { ManagerCommissionsYearlyCard } from "./ManagerCommissionsYearlyCard";
 import { ActiveTooltipProvider, useActiveTooltip } from "./ActiveTooltipContext";
 import { PeriodFilterCard } from "./PeriodFilterCard";
 import { ScoreCard, VariationCard } from "./ScoreCards";
-import { Target } from "lucide-react";
+import { Target, ListChecks } from "lucide-react";
 import { getPreviousPeriod, PeriodSelection } from "@/lib/metasPeriod";
 import { computePeriodScore } from "@/lib/metasScore";
+import { ScoreDetailDialog } from "./ScoreDetailDialog";
 
 type Unit = "%" | "R$" | "qtd";
 
