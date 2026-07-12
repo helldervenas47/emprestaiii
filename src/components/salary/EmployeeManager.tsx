@@ -101,14 +101,29 @@ export function EmployeeManager({ readOnly }: Props) {
         open={open}
         onOpenChange={setOpen}
         initial={editing}
-        onSave={async (data) => {
+        initialBonus={editing ? getForEmployee(editing.id) : null}
+        onSave={async (data, bonus) => {
           try {
+            let empId = editing?.id ?? null;
             if (editing) {
               await updateEmployee(editing.id, data);
               toast.success("Funcionário atualizado");
             } else {
-              await addEmployee(data as any);
+              const created = await addEmployee(data as any);
+              empId = created?.id ?? null;
               toast.success("Funcionário cadastrado");
+            }
+            if (empId) {
+              if (bonus.enabled) {
+                if (!bonus.startDate) {
+                  toast.warning("Informe a data de início da vigência do bônus.");
+                } else {
+                  await upsertForEmployee(empId, bonus);
+                }
+              } else {
+                // Se havia config anterior e o usuário desativou, remove.
+                await removeForEmployee(empId);
+              }
             }
             setOpen(false);
           } catch (e: any) {
@@ -130,6 +145,15 @@ export function EmployeeManager({ readOnly }: Props) {
           }
         }}
       />
+
+      <Dialog open={!!historyOf} onOpenChange={(o) => !o && setHistoryOf(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Bônus por metas — {historyOf?.name}</DialogTitle>
+          </DialogHeader>
+          {historyOf && <EmployeeGoalBonusHistory employeeId={historyOf.id} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
