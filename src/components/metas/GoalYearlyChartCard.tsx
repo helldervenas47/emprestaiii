@@ -12,6 +12,7 @@ import { useActiveCapitalSnapshots } from "@/hooks/useActiveCapitalSnapshots";
 import { computeActual } from "@/components/GoalsCard";
 import { Loan, Payment, Expense, Client, InstallmentSchedule, LoanRenegotiation } from "@/types/loan";
 import { useActiveTooltip } from "./ActiveTooltipContext";
+import { StatusSeal } from "./StatusSeal";
 
 type Unit = "%" | "R$" | "qtd";
 
