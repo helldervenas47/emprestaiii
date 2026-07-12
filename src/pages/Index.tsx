@@ -319,6 +319,14 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Use para priorizar suas cobranças diárias.",
     ],
   },
+  metas: {
+    title: "Metas",
+    items: [
+      "Evolução Anual: gráfico de cada meta com barras (Realizado) e linha (Meta).",
+      "Configuração de Metas: cadastro, edição e regras de herança das metas.",
+      "Todos os cálculos usam a mesma fonte do Dashboard.",
+    ],
+  },
   salary: {
     title: "Salário",
     items: [
