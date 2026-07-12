@@ -115,14 +115,14 @@ export function DashboardMainCards({
                 <Calendar className="h-3 w-3 text-primary" />
                 <p className="text-[10px] text-muted-foreground">Domingo</p>
               </div>
-              <p className={`text-sm font-semibold ${(accountBalance + portfolio.forecastSunday) < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance + portfolio.forecastSunday)}</p>
+              <p className={`text-sm font-semibold tabular-nums ${(accountBalance + portfolio.forecastSunday) < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance + portfolio.forecastSunday)}</p>
             </div>
             <div className="bg-muted/50 rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center">
               <div className="flex items-center gap-1.5 mb-1">
                 <Calendar className="h-3 w-3 text-primary" />
                 <p className="text-[10px] text-muted-foreground">Fim do Mês</p>
               </div>
-              <p className={`text-sm font-semibold ${(accountBalance + portfolio.forecastEndMonth) < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance + portfolio.forecastEndMonth)}</p>
+              <p className={`text-sm font-semibold tabular-nums ${(accountBalance + portfolio.forecastEndMonth) < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance + portfolio.forecastEndMonth)}</p>
             </div>
           </div>
         </CardContent>
@@ -167,7 +167,7 @@ export function DashboardMainCards({
                         <Icon className="h-3 w-3 text-success" />
                         <p className="text-[10px] text-muted-foreground">{displayName}</p>
                       </div>
-                      <p className="text-sm font-semibold text-foreground">{formatCurrency(it.amount)}</p>
+                      <p className="text-sm font-semibold tabular-nums text-foreground">{formatCurrency(it.amount)}</p>
                     </button>
                   );
                 })}
@@ -181,7 +181,7 @@ export function DashboardMainCards({
                       <DollarSign className="h-3 w-3 text-muted-foreground" />
                       <p className="text-[10px] text-muted-foreground">Sem forma</p>
                     </div>
-                    <p className="text-sm font-semibold text-foreground">{formatCurrency(receivedByMethod.unassigned)}</p>
+                    <p className="text-sm font-semibold tabular-nums text-foreground">{formatCurrency(receivedByMethod.unassigned)}</p>
                   </button>
                 )}
               </div>
@@ -328,13 +328,13 @@ export function DashboardMainCards({
                   </PopoverContent>
                 </Popover>
               </div>
-              <span className="text-sm font-bold text-foreground">{formatCurrency(
+              <span className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(
                 data.periodProfitRealized + data.periodProfitExpected
               )}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Realizado</span>
-              <span className="text-sm font-bold text-success">{formatCurrency(data.periodProfitRealized)}</span>
+              <span className="text-sm font-bold tabular-nums text-success">{formatCurrency(data.periodProfitRealized)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">% lucro realizado</span>
