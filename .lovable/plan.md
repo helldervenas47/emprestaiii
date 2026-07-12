@@ -1,85 +1,75 @@
-## Contexto
+## Escopo
 
-Hoje o reconhecimento dos juros em contratos parcelados está **inconsistente entre telas**:
+Auditoria e ajuste **puramente visual** da rota `/` (Dashboard) na largura de Tablet (768–1279 px). Sem alterar lógica, cálculos, hooks, dados ou navegação — apenas classes Tailwind, tokens de espaçamento e estrutura de grid.
 
-- **Dashboard / Contador** (`useDashboardMetrics.ts` e `AccountantReport.tsx`) já aplicam distribuição proporcional por parcela via `ratio = juros_total / total_com_juros`, MAS aplicam um "ajuste de quitação" na última parcela: `interestByPaymentId[lastId] += realProfit - allocatedInterest`. Em contratos parcelados normais o resíduo deveria ser zero; hoje ele acumula por conta de arredondamentos, `originalAmount` vs `amount` (renegociação) e do próximo item ↓.
-- **Extrato (`account_ledger`)**: parcelas 1..n-1 (`addPayment`) gravam o pagamento **sem** metadata `interest_amount` / `principal_amount`. Somente na **quitação** (`payOffLoan`) é gravado `interest_amount = payAmount − (loan.amount − principalPaidBefore)`, que joga **todo o juros restante na última linha do extrato**.
-- **ClientLoanHistory** calcula `principalPaid = principal − remainingAmount`, misturando "saldo total restante" com "principal pago", o que também concentra juros na última fase do contrato.
+Alvo principal:
+- `src/pages/Index.tsx` (header, "Visão Geral", grid dos 4 cards principais + 6 cards de indicadores, "Saúde da Operação").
+- `src/components/dashboard/DashboardPeriodFilter.tsx` (setas + mês + Dia/Semana/Mês).
+- `src/components/ConsolidatedBalanceCards.tsx` e cards de indicadores usados no grid (Capital na Rua, Pendente de Recebimento, Lucro Estimado, Juros a Receber/Recebidos/Pendentes).
 
-Resultado: relatórios por período/PDF/telegram e Extrato mostram os juros concentrados no último pagamento, e não pró-rata a cada parcela paga.
+Não estão no escopo agora: card "Saúde da Operação", gráficos anuais, mobile, desktop (apenas garantir que não regridam).
 
-## Objetivo
+## Correções
 
-Em contratos **parcelados** (`installments > 1`), cada pagamento deve reconhecer **apenas a fração de juros daquela parcela** (`juros_total / n`, ou pró-rata pelo valor daquela parcela quando o cronograma tem parcelas variáveis). Contratos de **parcela única** permanecem inalterados. Somatório de juros ao longo do contrato = juros contratados, sem duplicidade nem perda.
+### 1. Grade única (base 8 px) na Tablet
+- Container do Dashboard: `max-w-screen-xl mx-auto px-6 md:px-8` para eliminar sobras laterais.
+- Grid superior de 4 cards: `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6`.
+- Grid de indicadores (6 cards): `grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-5` — em tablet ficam 3+3, mesma altura por linha, evita a fileira única esticada que corta valores.
+- Espaçamento vertical entre seções unificado em `space-y-6 md:space-y-8`.
 
-## Fórmula única (fonte de verdade)
+### 2. Header e filtros
+- Header: alinhar logo, texto secundário e ícones ao mesmo baseline (`items-center gap-3`, ícones `h-9 w-9`, sem `text-lg` diferentes por breakpoint).
+- "Visão Geral" acima da linha de filtros: título `text-lg md:text-xl font-semibold` (era grande demais em tablet).
+- Linha de filtro: setas + mês centralizados verticalmente com o toggle Dia/Semana/Mês (`flex items-center justify-between gap-4`, todos os controles `h-9`, mesma `rounded-lg`). Toggle segmentado com larguras iguais (`grid grid-cols-3 w-[180px]`).
 
-Para uma parcela de valor `installmentAmount` em contrato com `principal` e `totalWithInterest`:
+### 3. Cards — normalização
+- Estrutura padrão de card: `flex h-full flex-col justify-between rounded-2xl border bg-card p-4 md:p-5`.
+- Ícone de topo e ícones de ação (olho, info) na mesma linha superior: `flex items-start justify-between` — todos ficam na mesma posição vertical em cada card.
+- Título do card: `text-sm font-medium text-muted-foreground leading-tight`, sempre 1 linha (truncate).
+- Valor principal: `text-xl md:text-2xl font-bold tabular-nums leading-tight` (era `text-3xl` que forçava quebra em tablet).
+- Subvalor (Domingo/Fim do mês/Pix/Dinheiro): grid interno `grid grid-cols-2 gap-2` com `rounded-lg bg-muted/40 p-3`, título e valor alinhados à esquerda, mesma altura.
+- Cards da linha inferior: mesma altura via `h-full` no filho + `items-stretch` no grid.
+
+### 4. Tipografia consistente
+Escala aplicada em toda a tela:
 
 ```text
-ratio         = 1 - principal / totalWithInterest        (0 se principal ≥ total)
-interestPart  = round2( installmentAmount * ratio )
-principalPart = round2( installmentAmount - interestPart )
+Página (Dashboard)   text-2xl md:text-3xl font-bold
+Seção (Visão Geral)  text-lg md:text-xl font-semibold
+Card title           text-sm font-medium text-muted-foreground
+Valor principal      text-xl md:text-2xl font-bold tabular-nums
+Valor secundário     text-base font-semibold tabular-nums
+Meta/label pequena   text-xs text-muted-foreground
 ```
 
-Ajuste de fechamento **apenas na última parcela real (`newPaid === installments`) do contrato parcelado**, para absorver centavos de arredondamento (não para carregar juros suprimidos):
+Aplicar `tabular-nums` em todo valor monetário para alinhar dígitos entre cards.
 
-```text
-if (newPaid === installments):
-  interestPart  = totalInterest - somaJurosParcelasAnteriores
-  principalPart = installmentAmount - interestPart
-```
+### 5. Botões e ícones de ação
+- Todos os botões ghost do header e ícones dos cards: `h-9 w-9 rounded-lg` (era misto entre 8 e 10).
+- Toggle Dia/Semana/Mês: mesmo `h-9`, `text-sm`, larguras iguais, item ativo `bg-background shadow-sm`.
+- Setas do seletor de mês: mesma `h-9 w-9` das demais.
 
-Pagamentos avulsos continuam com as regras atuais:
-- `installment_number = 0` ou `-2` → 100% juros
-- `installment_number = -3` (amortização) → 0% juros
-- `installment_number = -1` (parcial) → mantém a alocação atual "juros primeiro" (não é parcela do cronograma)
-- Contrato com `installments = 1` → mantém comportamento atual (quitação).
+### 6. Espaçamento (múltiplos de 8/4)
+- Gap entre cards de uma linha: `gap-4` (tablet), `gap-6` (desktop).
+- Padding interno de card: `p-4` (tablet), `p-5` (desktop).
+- Distância ícone ↔ texto: `gap-2`.
+- Espaço entre seções: `space-y-6`.
 
-## Mudanças
+### 7. Responsividade tablet (validação)
+- Rodar Playwright em 768×1024 e 1024×1366 e conferir screenshots:
+  - todos os 6 cards de indicadores mesma altura;
+  - nenhum valor monetário quebrando linha;
+  - filtros e setas alinhados na mesma faixa horizontal;
+  - sem overflow horizontal.
 
-### 1. `src/hooks/useLoans.ts`
+## Não faremos
 
-- Criar helper `splitInstallmentInterest(loan, installmentAmount, newPaid, priorPayments)` que retorna `{ interestPart, principalPart }` aplicando a fórmula acima (e o ajuste de fechamento só quando `newPaid === installments`).
-- **`addPayment`** (parcela regular): passar `extraMetadata: { interest_amount, principal_amount }` para `recordPaymentLedgerSplit`. A descrição continua "Parcela X/N recebida...".
-- **`payOffLoan`** (quitação): substituir o cálculo atual (linhas 936–940) por:
-  - Se `loan.installments === 1`: manter comportamento atual (todo o excedente do principal é juros).
-  - Se `installments > 1`: calcular `interestPart` da parcela final via helper (garante que somatório = juros contratado; qualquer "bônus/desconto de quitação" fica em `principalPart` — não infla juros do período).
-- **`addPartialPayment`** (`installment_number = -1`): manter comportamento atual (juros-primeiro por saldo remanescente).
+- Nenhuma alteração em hooks, cálculos, formatação numérica, RLS, dados.
+- Sem novos componentes ou reestruturação de rotas.
+- Sem alterar mobile ou desktop além do necessário para não regredir.
 
-### 2. `src/components/dashboard/useDashboardMetrics.ts`
+## Entregáveis
 
-- Substituir o bloco 254–291 pela mesma fórmula pró-rata parcela-a-parcela (usando o `installmentAmount` real do pagamento e `ratio` do contrato). Manter os casos especiais `installmentNumber ∈ {0, -1, -2, -3}` como estão.
-- **Remover** o "ajuste de quitação" nas linhas 297–317 para contratos parcelados. Manter apenas uma reconciliação de centavos (`|diff| < 0.02`) ainda no último pagamento, para não sacrificar precisão do somatório. Diferenças maiores (acordos com desconto/bônus) deixam de virar "juros do último mês" e passam a ser tratadas como principal.
+Edições em `src/pages/Index.tsx`, `src/components/dashboard/DashboardPeriodFilter.tsx`, `src/components/ConsolidatedBalanceCards.tsx` e nos 6 cards de indicadores (identificar exato após aprovar plano). Screenshot antes/depois em 1024×1366 anexado ao final.
 
-### 3. `src/components/AccountantReport.tsx`
-
-- Mesma substituição: usar a fórmula pró-rata por parcela. Ajustar as `reason` strings (`"Parcela X: juros = installmentAmount × ratio"`) para refletir a nova regra.
-- Manter reconciliação de centavos ≤ R$ 0,02.
-
-### 4. `src/components/ClientLoanHistory.tsx` (linhas 238–263)
-
-- Substituir por: `interestReceived = Σ (payment.amount × ratio_do_contrato)` para pagamentos regulares + 100% para `installmentNumber === 0`/`-2` + 0% para `-3` + pró-rata do `-1`. Para contratos `paid`, manter `interestReceived = totalInterest` (comportamento atual).
-
-### 5. Backfill (somente visual, sem migração de dados)
-
-- Nenhuma alteração no schema. Pagamentos antigos são reprocessados **em runtime** pela nova fórmula (a metadata `interest_amount` no `account_ledger` é opcional; consumidores continuam recalculando). Extratos antigos aparecem corrigidos automaticamente.
-
-## Validação
-
-Adicionar testes em `src/hooks/__tests__/loanInterestAllocation.test.ts` cobrindo:
-
-- Contrato 1000 principal, 20% total, 2 parcelas → 100 + 100 = 200.
-- Contrato 1000 principal, 20% total, 6 parcelas → 6 × 33,33 = 200 (última parcela absorve o centavo residual).
-- Contrato 1000 principal, 20% total, 12 parcelas → soma = 200 exatamente.
-- Contrato 1 parcela → juros = 200 na única parcela (regra antiga preservada).
-- Pagamento parcial (`-1`): juros-primeiro respeitando saldo do contrato.
-- Quitação antecipada de contrato parcelado com desconto (payAmount < remaining) → juros ≤ juros contratado, resto vira principal (não infla).
-
-Rodar `bun test`, olhar o card "Juros Recebidos" no Dashboard e o Extrato em um contrato de 6 parcelas de teste — cada parcela deve mostrar a fração de juros; nenhum "salto" na última.
-
-## Fora de escopo
-
-- Alterar o schema do `account_ledger` (colunas dedicadas para juros/principal).
-- Reprocessar/regravar lançamentos antigos no banco — não é necessário, pois a alocação é recalculada em runtime.
-- Alterar regras de comissão de gestor, multa de atraso, ou juros pendentes do ciclo (`interest_partial`).
+Confirmação: posso seguir com essa auditoria só na Tablet, ou você prefere que eu inclua também Desktop e Mobile na mesma passada?
