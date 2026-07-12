@@ -70,13 +70,31 @@ export function PeriodFilterCard({ value, onChange }: Props) {
         >›</button>
 
         {value.mode === "month" && (
-          <select
-            value={value.month ?? 1}
-            onChange={(e) => onChange({ ...value, month: Number(e.target.value) })}
-            className="ml-auto rounded-md border border-border bg-background px-2 py-1 text-xs"
-          >
-            {MONTHS.map((n, i) => <option key={i} value={i + 1}>{n}</option>)}
-          </select>
+          <div className="ml-auto flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                const m = value.month ?? 1;
+                if (m === 1) onChange({ ...value, year: value.year - 1, month: 12 });
+                else onChange({ ...value, month: m - 1 });
+              }}
+              className="rounded-md border border-border bg-background px-2 py-1 text-xs hover:bg-accent"
+              aria-label="Mês anterior"
+            >‹</button>
+            <span className="text-xs font-semibold tabular-nums min-w-[32px] text-center">
+              {MONTHS[(value.month ?? 1) - 1]}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                const m = value.month ?? 1;
+                if (m === 12) onChange({ ...value, year: value.year + 1, month: 1 });
+                else onChange({ ...value, month: m + 1 });
+              }}
+              className="rounded-md border border-border bg-background px-2 py-1 text-xs hover:bg-accent"
+              aria-label="Próximo mês"
+            >›</button>
+          </div>
         )}
         {value.mode === "quarter" && (
           <div className="ml-auto flex gap-1">
