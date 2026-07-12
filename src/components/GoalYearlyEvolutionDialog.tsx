@@ -46,7 +46,7 @@ function fmtCompact(v: number, unit: Unit): string {
   const abs = Math.abs(v);
   if (abs >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(2).replace(".", ",")}M`;
   if (abs >= 1_000) return `R$ ${(v / 1_000).toFixed(2).replace(".", ",")}k`;
-  return `R$ ${v.toFixed(2)}`;
+  return `R$ ${v.toFixed(2).replace(".", ",")}`;
 }
 
 export function GoalYearlyEvolutionDialog({
