@@ -19,6 +19,7 @@ import { todayInAppTz, formatYmdInAppTz } from "@/lib/timezone";
 import { useActiveCapitalSnapshots } from "@/hooks/useActiveCapitalSnapshots";
 import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
 import { allocateInterestByPayment } from "@/lib/interestAllocation";
+import { GoalYearlyEvolutionDialog } from "@/components/GoalYearlyEvolutionDialog";
 import { assertWritable } from "@/lib/readOnlyState";
 import {
   Target, Percent, TrendingUp, Banknote, FileText,
@@ -1121,6 +1122,9 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         payments={payments}
         loans={loans}
         installmentSchedules={installmentSchedules}
+        expenses={expenses}
+        clients={clients}
+        renegotiations={renegotiations}
       />
 
       <CustomizeGoalsDialog
@@ -1260,6 +1264,9 @@ interface DialogProps {
   payments: Payment[];
   loans: Loan[];
   installmentSchedules: InstallmentSchedule[];
+  expenses: Expense[];
+  clients: Client[];
+  renegotiations: LoanRenegotiation[];
 }
 
 // Calcula o mês de vencimento (YYYY-MM) de uma parcela específica de um empréstimo.
@@ -1286,13 +1293,14 @@ function getInstallmentDueMonth(
   return `${dueDt.getFullYear()}-${String(dueDt.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, installmentSchedules }: DialogProps) {
+function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, installmentSchedules, expenses, clients, renegotiations }: DialogProps) {
   const { hidden } = useHideValues();
   const { upsertGoal } = useMonthlyGoals();
   const { settings } = useAccountSettings();
   const [creating, setCreating] = useState(false);
   const [editingCreate, setEditingCreate] = useState(false);
   const [newTarget, setNewTarget] = useState<string>("");
+  const [showEvolution, setShowEvolution] = useState(false);
 
   // Reset edição ao trocar de meta/mês
   useMemo(() => {
@@ -1536,6 +1544,15 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
 
         <div className="flex-1 -mx-6 px-6 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
           <div className="space-y-4 pb-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-9 gap-2 border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary"
+              onClick={() => setShowEvolution(true)}
+            >
+              <BarChart3 className="h-4 w-4" />
+              Ver Evolução Anual
+            </Button>
             {/* Resumo */}
             <Card no3d className="bg-muted/30">
               <CardContent className="p-4">
@@ -1833,6 +1850,20 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
           </div>
         </div>
       </DialogContent>
+      <GoalYearlyEvolutionDialog
+        open={showEvolution}
+        onClose={() => setShowEvolution(false)}
+        goalType={goal.goalType}
+        goalLabel={goal.meta.label}
+        unit={goal.meta.unit}
+        inverse={goal.meta.inverse}
+        loans={loans}
+        payments={payments}
+        expenses={expenses}
+        clients={clients}
+        installmentSchedules={installmentSchedules}
+        renegotiations={renegotiations}
+      />
     </Dialog>
   );
 }
