@@ -106,7 +106,14 @@ export function ManagerCommissionsYearlyCard({ year, onYearChange, clients, loan
   const monthlyAvg = monthsWithData > 0 ? totalYear / monthsWithData : 0;
 
   return (
-    <div className="flex h-full flex-col gap-3 rounded-xl border border-border bg-card p-3 sm:p-4">
+    <div
+      data-chart-card
+      onMouseEnter={claim}
+      onMouseMove={claim}
+      onTouchStart={claim}
+      onPointerDown={claim}
+      className="flex h-full flex-col gap-3 rounded-xl border border-border bg-card p-3 sm:p-4"
+    >
       <div className="flex items-center gap-2 flex-wrap">
         <div className="h-9 w-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
           <TrendingUp className="h-4 w-4 text-primary" />
