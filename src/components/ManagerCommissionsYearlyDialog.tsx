@@ -12,12 +12,7 @@ import { Client, Loan, Payment, InstallmentSchedule } from "@/types/loan";
 const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const MONTH_FULL = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
-// Paleta consistente para gerentes (até 12 cores)
-const MANAGER_COLORS = [
-  "hsl(var(--primary))", "hsl(var(--success))", "hsl(var(--destructive))",
-  "#8b5cf6", "#f59e0b", "#06b6d4", "#ec4899", "#10b981",
-  "#6366f1", "#f97316", "#14b8a6", "#a855f7",
-];
+const BAR_COLOR = "hsl(var(--primary))";
 
 interface Props {
   open: boolean;
