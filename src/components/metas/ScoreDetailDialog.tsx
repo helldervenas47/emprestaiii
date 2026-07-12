@@ -72,7 +72,7 @@ export function ScoreDetailDialog({ open, onOpenChange, weights, inputs }: Props
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="p-0 gap-0 w-screen h-[100dvh] max-w-none sm:max-w-none sm:rounded-none border-0 translate-x-0 translate-y-0 left-0 top-0 flex flex-col"
+        className="p-0 gap-0 w-screen h-[100dvh] max-w-none sm:max-w-none sm:rounded-none border-0 translate-x-0 translate-y-0 left-0 top-0 flex flex-col [&>[data-radix-dialog-close]]:hidden [&_>button.absolute]:hidden"
         style={{ transform: "none" }}
       >
         {/* Cabeçalho fixo */}
