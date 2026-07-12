@@ -63,6 +63,8 @@ export function GoalYearlyChartCard({
   const { getSnapshot } = useGoalSnapshots();
   const isMobile = useIsMobile();
   const currentYear = new Date().getFullYear();
+  const chartId = useId();
+  const { isActive, claim } = useActiveTooltip(chartId);
 
   const currentActiveCapital = useMemo(
     () => loans
