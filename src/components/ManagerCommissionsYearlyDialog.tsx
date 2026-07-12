@@ -149,7 +149,7 @@ export function ManagerCommissionsYearlyDialog({
         className="w-screen h-[100dvh] max-w-none sm:max-w-none max-h-none rounded-none border-0 flex flex-col gap-0 p-0 overflow-hidden [&>button.absolute]:hidden"
       >
         <DialogHeader
-          className="shrink-0 relative px-4 sm:px-5 pb-3 border-b border-border/40 bg-background pt-[max(env(safe-area-inset-top),0.75rem)] sm:pt-4"
+          className="shrink-0 relative px-4 sm:px-5 pb-3 border-b border-border/40 bg-background pt-[max(env(safe-area-inset-top),0.75rem)] sm:pt-8"
         >
           <Button
             variant="ghost"
