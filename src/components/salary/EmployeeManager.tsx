@@ -158,11 +158,12 @@ export function EmployeeManager({ readOnly }: Props) {
   );
 }
 
-function EmployeeFormDialog({ open, onOpenChange, initial, onSave }: {
+function EmployeeFormDialog({ open, onOpenChange, initial, initialBonus, onSave }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   initial: Employee | null;
-  onSave: (data: Partial<Employee>) => void | Promise<void>;
+  initialBonus: import("@/hooks/useEmployeeGoalBonuses").EmployeeGoalBonus | null;
+  onSave: (data: Partial<Employee>, bonus: GoalBonusDraft) => void | Promise<void>;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [cpf, setCpf] = useState(initial?.cpf ?? "");
