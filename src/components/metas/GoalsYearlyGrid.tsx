@@ -127,7 +127,7 @@ function GridInner(props: {
   return (
     <div className="space-y-4">
       {/* 4 cards de topo */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <ScoreCard label="Pontuação Atual" value={currentScore.total} max={100} variant="current" />
         <ScoreCard label="Pontuação Anterior" value={previousScore.total} max={100} variant="previous" />
         <VariationCard current={currentScore.total} previous={previousScore.total} />
