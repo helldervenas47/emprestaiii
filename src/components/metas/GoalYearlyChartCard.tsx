@@ -286,7 +286,7 @@ export function GoalYearlyChartCard({
               maxBarSize={36}
               animationDuration={600}
             >
-              {!isMobile && !compact && (
+              {!isMobile && (
                 <LabelList
                   dataKey="realized"
                   content={(props: any) => {
