@@ -1849,6 +1849,20 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
           </div>
         </div>
       </DialogContent>
+      <GoalYearlyEvolutionDialog
+        open={showEvolution}
+        onClose={() => setShowEvolution(false)}
+        goalType={goal.goalType}
+        goalLabel={goal.meta.label}
+        unit={goal.meta.unit}
+        inverse={goal.meta.inverse}
+        loans={loans}
+        payments={payments}
+        expenses={expenses}
+        clients={clients}
+        installmentSchedules={installmentSchedules}
+        renegotiations={renegotiations}
+      />
     </Dialog>
   );
 }
