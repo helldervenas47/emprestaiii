@@ -110,7 +110,7 @@ export function DashboardMainCards({
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 mt-3 flex-1">
-            <div className="bg-muted/50 rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center min-h-[72px] md:min-h-[76px]">
+            <div className="bg-muted/50 rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center min-h-[72px] md:min-h-[88px] md:h-[88px]">
               <div className="flex items-center gap-1.5 mb-1">
                 <Calendar className="h-3 w-3 text-primary" />
                 <p className="text-[10px] text-muted-foreground">Domingo</p>
