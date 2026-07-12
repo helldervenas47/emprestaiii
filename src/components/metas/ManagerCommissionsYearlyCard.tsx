@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
 import {
@@ -8,6 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { useManagerCommissions } from "@/hooks/useManagerCommissions";
 import { Client, Loan, Payment } from "@/types/loan";
+import { useActiveTooltip } from "./ActiveTooltipContext";
 
 const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const MONTH_FULL = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -56,6 +57,8 @@ export function ManagerCommissionsYearlyCard({ year, onYearChange, clients, loan
   const { hidden } = useHideValues();
   const isMobile = useIsMobile();
   const currentYear = new Date().getFullYear();
+  const chartId = useId();
+  const { isActive, claim } = useActiveTooltip(chartId);
 
   const managers = useMemo(
     () => clients.filter((c) => c.isManager && c.active !== false),
@@ -103,7 +106,14 @@ export function ManagerCommissionsYearlyCard({ year, onYearChange, clients, loan
   const monthlyAvg = monthsWithData > 0 ? totalYear / monthsWithData : 0;
 
   return (
-    <div className="flex h-full flex-col gap-3 rounded-xl border border-border bg-card p-3 sm:p-4">
+    <div
+      data-chart-card
+      onMouseEnter={claim}
+      onMouseMove={claim}
+      onTouchStart={claim}
+      onPointerDown={claim}
+      className="flex h-full flex-col gap-3 rounded-xl border border-border bg-card p-3 sm:p-4"
+    >
       <div className="flex items-center gap-2 flex-wrap">
         <div className="h-9 w-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
           <TrendingUp className="h-4 w-4 text-primary" />
@@ -167,6 +177,7 @@ export function ManagerCommissionsYearlyCard({ year, onYearChange, clients, loan
               width={54}
             />
             <Tooltip
+              {...(isActive ? {} : { active: false })}
               cursor={{ fill: "hsl(var(--primary) / 0.06)" }}
               content={({ active, payload }) => {
                 if (!active || !payload || !payload.length) return null;

@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useMonthlyGoals, GoalType } from "@/hooks/useMonthlyGoals";
 import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
 import { Loan, Payment, Expense, Client, InstallmentSchedule } from "@/types/loan";
 import { GoalYearlyChartCard } from "./GoalYearlyChartCard";
 import { ManagerCommissionsYearlyCard } from "./ManagerCommissionsYearlyCard";
+import { ActiveTooltipProvider, useActiveTooltip } from "./ActiveTooltipContext";
 import { Target } from "lucide-react";
 
 type Unit = "%" | "R$" | "qtd";
@@ -80,10 +81,42 @@ export function GoalsYearlyGrid({
   }
 
   return (
+    <ActiveTooltipProvider>
+      <GridInner
+        year={year}
+        setYear={setYear}
+        goalTypes={goalTypes}
+        loans={loans}
+        payments={payments}
+        expenses={expenses}
+        clients={clients}
+        installmentSchedules={installmentSchedules}
+        renegotiations={renegotiations}
+      />
+    </ActiveTooltipProvider>
+  );
+}
+
+function GridInner(props: {
+  year: number;
+  setYear: (y: number) => void;
+  goalTypes: GoalType[];
+  loans: Loan[];
+  payments: Payment[];
+  expenses: Expense[];
+  clients: Client[];
+  installmentSchedules: InstallmentSchedule[];
+  renegotiations: ReturnType<typeof useLoanRenegotiations>["renegotiations"];
+}) {
+  const { year, setYear, goalTypes, loans, payments, expenses, clients, installmentSchedules, renegotiations } = props;
+  const { clearAll } = useActiveTooltip("__grid__");
+  const handleYearChange = useCallback((y: number) => { clearAll(); setYear(y); }, [clearAll, setYear]);
+
+  return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-[440px]">
       <ManagerCommissionsYearlyCard
         year={year}
-        onYearChange={setYear}
+        onYearChange={handleYearChange}
         clients={clients}
         loans={loans}
         payments={payments}
@@ -98,7 +131,7 @@ export function GoalsYearlyGrid({
             unit={meta.unit}
             inverse={meta.inverse}
             year={year}
-            onYearChange={setYear}
+            onYearChange={handleYearChange}
             loans={loans}
             payments={payments}
             expenses={expenses}
