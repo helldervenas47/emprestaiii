@@ -265,7 +265,7 @@ export function ManagerCommissionsYearlyDialog({
           </div>
 
           <div className="rounded-lg border border-border bg-card p-2 sm:p-3 flex-1 min-h-[240px] sm:min-h-[280px] flex flex-col">
-            <div className="w-full min-w-0 flex-1 min-h-[220px] sm:min-h-[260px]">
+            <div className="w-full min-w-0 flex-1 min-h-[220px] sm:min-h-[260px] max-h-[46vh] sm:max-h-none">
 
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={rows} margin={{ top: isMobile ? 10 : 24, right: 12, left: 0, bottom: 18 }}>
