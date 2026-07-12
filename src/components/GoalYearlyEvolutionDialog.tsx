@@ -137,8 +137,8 @@ export function GoalYearlyEvolutionDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-5xl max-h-[92vh] overflow-hidden flex flex-col p-0">
-        <DialogHeader className="px-4 sm:px-6 pt-5 pb-3 border-b border-border/40">
+      <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-5xl max-h-[calc(100dvh-1rem)] sm:max-h-[92dvh] overflow-hidden flex flex-col p-0">
+        <DialogHeader className="shrink-0 px-4 sm:px-5 pt-4 pb-3 border-b border-border/40">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
               <TrendingUp className="h-5 w-5 text-primary" />
@@ -152,7 +152,7 @@ export function GoalYearlyEvolutionDialog({
           </div>
 
           {/* Year selector */}
-          <div className="mt-4 flex items-center justify-center gap-2">
+          <div className="mt-3 flex items-center justify-center gap-2">
             <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setYear((y) => y - 1)} aria-label="Ano anterior">
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -170,7 +170,7 @@ export function GoalYearlyEvolutionDialog({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-auto px-3 sm:px-6 py-4 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 sm:px-5 py-3 space-y-3">
           {/* Totais rápidos */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             <div className="rounded-lg border border-border bg-card/60 p-3 text-center">
@@ -196,9 +196,9 @@ export function GoalYearlyEvolutionDialog({
 
           {/* Gráfico */}
           <div className="rounded-lg border border-border bg-card p-2 sm:p-4">
-            <div className="w-full h-[340px] sm:h-[420px]">
+            <div className="w-full min-w-0 h-[300px] sm:h-[min(44dvh,360px)] lg:h-[min(46dvh,380px)]">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={data} margin={{ top: 12, right: 8, left: 0, bottom: 8 }}>
+                <ComposedChart data={data} margin={{ top: 10, right: 8, left: 0, bottom: 18 }}>
                   <defs>
                     <linearGradient id="goalBarFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.95} />
@@ -208,8 +208,10 @@ export function GoalYearlyEvolutionDialog({
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
                   <XAxis
                     dataKey="month"
+                    height={34}
                     tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                     tickLine={false}
+                    tickMargin={8}
                     axisLine={{ stroke: "hsl(var(--border))" }}
                     interval={0}
                     minTickGap={0}
