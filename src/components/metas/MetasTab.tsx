@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from "react";
 import { LineChart, ListChecks } from "lucide-react";
 import { GoalsYearlyGrid } from "./GoalsYearlyGrid";
-import { Loan, Payment, Expense, Client, InstallmentSchedule, LoanRenegotiation } from "@/types/loan";
+import { Loan, Payment, Expense, Client, InstallmentSchedule } from "@/types/loan";
 
 const MonthlyGoalsManager = lazy(() =>
   import("@/components/MonthlyGoalsManager").then((m) => ({ default: m.MonthlyGoalsManager })),
@@ -15,12 +15,11 @@ interface Props {
   expenses: Expense[];
   clients: Client[];
   installmentSchedules: InstallmentSchedule[];
-  renegotiations: LoanRenegotiation[];
   readOnly?: boolean;
 }
 
 export function MetasTab({
-  loans, payments, expenses, clients, installmentSchedules, renegotiations, readOnly,
+  loans, payments, expenses, clients, installmentSchedules, readOnly,
 }: Props) {
   const [sub, setSub] = useState<SubTab>("evolucao");
 
@@ -58,7 +57,6 @@ export function MetasTab({
           expenses={expenses}
           clients={clients}
           installmentSchedules={installmentSchedules}
-          renegotiations={renegotiations}
         />
       )}
       {sub === "configuracao" && (
@@ -69,3 +67,4 @@ export function MetasTab({
     </div>
   );
 }
+
