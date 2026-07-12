@@ -14,6 +14,7 @@ import {
 import { RowActions } from "@/components/ui/row-actions";
 import { toast } from "sonner";
 import { useMonthlyGoals, GoalType, currentMonthKey, formatMonthLabel } from "@/hooks/useMonthlyGoals";
+import { useGoalScoreWeights } from "@/hooks/useGoalScoreWeights";
 import { computeActual as computeActualFromGoalsCard } from "@/components/GoalsCard";
 import { useLoans } from "@/hooks/useLoans";
 import { useClients } from "@/hooks/useClients";
@@ -183,6 +184,7 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
 
   return (
     <div className="space-y-4 w-full max-w-full overflow-x-hidden">
+      {!readOnly && <ScoreWeightsCard />}
       {!readOnly && (
       <Card no3d>
         <CardContent className="p-4 space-y-4">
@@ -406,5 +408,100 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
         description="Tem certeza que deseja excluir esta meta?"
       />
     </div>
+  );
+}
+
+function ScoreWeightsCard() {
+  const { weights, saveAll, total } = useGoalScoreWeights();
+  const [draft, setDraft] = useState<Record<GoalType, number> | null>(null);
+  const current = draft ?? weights;
+  const draftTotal = Object.values(current).reduce((s, v) => s + (Number(v) || 0), 0);
+  const diff = 100 - draftTotal;
+
+  const setValue = (t: GoalType, v: number) => {
+    setDraft({ ...(draft ?? weights), [t]: Math.max(0, Math.round(v || 0)) });
+  };
+
+  const save = () => {
+    if (draftTotal !== 100) {
+      toast.error(
+        diff > 0
+          ? `Faltam ${diff} pontos para completar 100.`
+          : `Excedeu em ${Math.abs(diff)} pontos. Ajuste para totalizar 100.`,
+      );
+      return;
+    }
+    if (draft) saveAll(draft);
+    setDraft(null);
+    toast.success("Pontuações salvas!");
+  };
+
+  const reset = () => setDraft(null);
+  const hasChanges = !!draft;
+
+  return (
+    <Card no3d>
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Target className="h-5 w-5 text-primary" />
+            <div>
+              <h3 className="font-semibold text-foreground">Pontuação das Metas</h3>
+              <p className="text-xs text-muted-foreground">
+                Cada meta tem um peso. Meta atingida = peso cheio; não atingida = 0. Soma deve ser exatamente 100.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={draftTotal === 100 ? "default" : "destructive"}
+              className={draftTotal === 100 ? "bg-success text-success-foreground" : ""}
+            >
+              Total: {draftTotal} / 100
+              {draftTotal !== 100 && (
+                <span className="ml-1 opacity-90">
+                  {diff > 0 ? `(faltam ${diff})` : `(excede ${Math.abs(diff)})`}
+                </span>
+              )}
+            </Badge>
+            {hasChanges && (
+              <>
+                <Button size="sm" variant="outline" onClick={reset}>Cancelar</Button>
+                <Button size="sm" data-mutation onClick={save} disabled={draftTotal !== 100}>Salvar</Button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          {(Object.keys(GOAL_TYPE_META) as GoalType[]).map((t) => {
+            const meta = GOAL_TYPE_META[t];
+            const Icon = meta.icon;
+            return (
+              <div
+                key={t}
+                className="flex items-center gap-2 rounded-lg border border-border bg-background/60 p-2"
+              >
+                <div className={`h-7 w-7 rounded-md flex items-center justify-center bg-muted shrink-0`}>
+                  <Icon className={`h-3.5 w-3.5 ${meta.color}`} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold text-foreground leading-tight line-clamp-2">{meta.label}</p>
+                </div>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={current[t] ?? 0}
+                  onChange={(e) => setValue(t, Number(e.target.value))}
+                  className="w-14 h-8 text-xs text-center px-1"
+                />
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
