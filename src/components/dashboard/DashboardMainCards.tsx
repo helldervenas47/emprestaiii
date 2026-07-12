@@ -175,7 +175,7 @@ export function DashboardMainCards({
                   <button
                     type="button"
                     onClick={() => { window.scrollTo({ top: 0, behavior: "smooth" }); setReceivedDetailMethodId("__unassigned__"); }}
-                    className="bg-muted/50 hover:bg-muted/80 transition-colors rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center cursor-pointer min-h-[72px] md:min-h-[76px]"
+                    className="bg-muted/50 hover:bg-muted/80 transition-colors rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center cursor-pointer min-h-[72px] md:min-h-[88px] md:h-[88px]"
                   >
                     <div className="flex items-center gap-1.5 mb-1">
                       <DollarSign className="h-3 w-3 text-muted-foreground" />
