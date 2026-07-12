@@ -1,138 +1,184 @@
+# Bônus por Pontuação de Metas
 
-## Objetivo
-Evoluir a aba **Metas → Evolução Anual** com filtros por período (Mensal/Trimestral/Semestral/Anual), um **sistema de pontuação 0–100** por meta e 4 novos cards no topo. Adicionar campo **Pontuação da Meta** na subaba Configuração com validação de soma = 100.
+Objetivo: pagar automaticamente um bônus ao funcionário quando a **Pontuação Geral Mensal** das metas atingir o mínimo configurado, lançando o valor no holerite do **mês seguinte**.
 
 ---
 
-## 1. Backend / Dados
+## 1. Backend (Lovable Cloud)
 
-**Nova coluna em `monthly_goals`:**
-- `score_weight integer not null default 0` — peso (pontuação) da meta.
-
-Como o peso é do **tipo de meta** (não por mês), a estratégia mais simples e consistente com o schema atual é:
-- Ao ler as metas, considerar como peso da meta o `score_weight` mais recente cadastrado para aquele `goal_type` do usuário.
-- Ao salvar/editar o peso na Configuração, o hook atualiza o `score_weight` em **todas** as linhas daquele `goal_type` do usuário (mantém consistência histórica sem criar tabela nova).
-
-Seed inicial (aplicado uma vez por usuário na primeira abertura da tela, se todos os pesos estiverem 0):
-
-| Meta | Pontos |
-|---|---|
-| Taxa de Juros Mensal | 5 |
-| Faturamento do Período | 5 |
-| Valor Emprestado (loan_volume) | 10 |
-| Novos Empréstimos | 5 |
-| Juros Recebidos | 20 |
-| Capital Ativo | 10 |
-| Taxa de Inadimplência | 10 |
-| Novos Clientes | 5 |
-| Contratos Renegociados | 10 |
-| Receita Média Diária | 10 |
-| Variação Mensal do Patrimônio | 10 |
-| Recebimentos no Mês / Lucro Líquido | 0 (opcional, editável) |
-
-Migração:
-```sql
-ALTER TABLE public.monthly_goals
-  ADD COLUMN IF NOT EXISTS score_weight integer NOT NULL DEFAULT 0;
+### 1.1 Nova tabela `employee_goal_bonuses` (configuração por funcionário)
 ```
-(Grants/RLS já existentes cobrem o campo.)
+id uuid pk
+user_id uuid (dataOwner)
+employee_id uuid fk employees
+enabled boolean default true
+min_score numeric not null           -- pontuação mínima
+bonus_amount numeric not null        -- R$
+start_date date not null
+end_date date null                   -- opcional
+notes text null
+created_at / updated_at
+```
+RLS + GRANT padrão (authenticated + service_role). Sem acesso anon.
+
+### 1.2 Nova tabela `goal_bonus_awards` (histórico / snapshot imutável)
+```
+id uuid pk
+user_id uuid
+employee_id uuid fk employees
+bonus_config_id uuid fk employee_goal_bonuses (nullable — preserva se config for apagada)
+reference_month text  -- 'YYYY-MM' competência das METAS avaliadas
+payroll_month text    -- 'YYYY-MM' competência da folha onde o bônus foi lançado (reference+1)
+score_obtained numeric
+min_score_required numeric
+bonus_amount numeric
+status text check in ('gerado','pago','cancelado') default 'gerado'
+payroll_id uuid null fk payrolls
+generated_at timestamptz default now()
+```
+Unique: `(user_id, employee_id, reference_month)` — evita duplicidade.
+RLS + GRANT.
+
+### 1.3 Snapshot da pontuação
+Reusar `monthly_goal_snapshots` já existente. Ao gerar o award, gravar `score_obtained` calculado no **fechamento da competência** (a pontuação vem do mesmo cálculo de `computePeriodScore` em modo `month`).
+
+Migração inclui GRANTs, RLS por `has_role`/`get_data_owner_id`, índices em `(user_id, reference_month)`.
 
 ---
 
-## 2. Lógica central de período (novo arquivo)
+## 2. Frontend — Cadastro do bônus
 
-`src/lib/metasPeriod.ts`
-- `type PeriodMode = "month" | "quarter" | "semester" | "year"`
-- `type PeriodSelection = { mode, year, month?, quarter?, semester? }`
-- `getPeriodMonths(sel)` → array de `YYYY-MM` do período.
-- `getPreviousPeriod(sel)` → seleção do período imediatamente anterior (mês/tri/sem/ano).
-- `computePeriodValue(months, perMonthValue[])` → **média dos meses válidos** (ignora meses sem meta, meses futuros, meta herdada, sem dados válidos). Para modo `month`, retorna o próprio valor do mês.
-- `isGoalReached(type, target, actual)` — respeita `inverse` (inadimplência, renegociação).
+### Local
+Aba **Salários → Funcionários** (`EmployeeManager`). Dentro do formulário do funcionário adicionar uma **seção colapsável "Bônus por Metas"** com os campos:
+- Switch **Ativar bônus por metas**
+- Input numérico **Pontuação mínima (0–100)**
+- Input R$ **Valor do bônus**
+- Date **Início da vigência**
+- Date **Fim da vigência (opcional)**
+- Textarea **Observações**
 
-Essa mesma função vai alimentar gráficos, cards, tooltips e pontuação (fonte única).
+Novo hook: `useEmployeeGoalBonuses.ts` (CRUD + realtime).
 
----
-
-## 3. Sistema de pontuação
-
-`src/lib/metasScore.ts`
-- `computeScore(goals, actualsByTypeMonth, period)`:
-  - Para cada `goal_type` com peso > 0:
-    - Calcula valor real do período (média dos meses válidos).
-    - Calcula alvo do período (média dos targets dos meses válidos).
-    - Se **atingida** (regra normal ou inversa) → soma `score_weight` completo. Se não → 0.
-  - Retorna `{ total, breakdown[] }`.
-- `computePreviousScore(...)` usa a mesma função com `getPreviousPeriod`.
+Estilo consistente com os demais blocos do form (mesmos `Card`, `Label`, `Input` já usados).
 
 ---
 
-## 4. UI — Evolução (`GoalsYearlyGrid.tsx`)
+## 3. Lógica de geração do bônus
 
-Substituir o seletor de ano atual por:
+Novo arquivo `src/lib/goalBonusEngine.ts`:
 
-**Topo (4 cards em grid responsivo `grid-cols-1 sm:grid-cols-2 xl:grid-cols-4`):**
-1. **Pontuação Atual** — número grande + "de 100 pts" + selo OK/Atenção (≥70 OK).
-2. **Pontuação Anterior** — mesmo layout, valor do período anterior.
-3. **Variação** — Δ pts + % com ícone ▲/▼ verde/vermelho.
-4. **Painel de Filtros**:
-   - Toggle vertical: Mensal / Trimestral / Semestral / Anual.
-   - Sub-seletor dinâmico:
-     - Mensal → `<input type="month">`.
-     - Trimestral → botões 1º/2º/3º/4º Tri + seletor de ano.
-     - Semestral → 1º/2º Sem + seletor de ano.
-     - Anual → seletor de ano.
-   - Atualização reativa sem reload.
+```ts
+generateBonusAwardsForMonth(referenceMonth: 'YYYY-MM', inputs): Promise<void>
+```
 
-**Cards de gráficos por meta**: usam os meses do período. Para modo `month`, o gráfico exibe barras do ano inteiro mas destaca visualmente o mês selecionado (ou reduz a card a um resumo). Escolha: **manter o gráfico anual sempre visível**, e usar o período apenas para os 4 cards de topo + selos + cálculo médio exibido no rodapé de cada card. Isso preserva a UX de comparação mensal já existente.
+Passos:
+1. Só executa se `referenceMonth < currentMonth` (competência fechada).
+2. Calcula **Pontuação Geral Mensal** de `referenceMonth` usando **exatamente** `computePeriodScore({ mode: 'month', year, month })` com os mesmos `RealizedInputs` da aba Metas (`useMonthResultInputs` — extrair caso ainda não exista helper compartilhado). Total = soma dos pesos das metas atingidas.
+3. Para cada `employee_goal_bonuses` ativo e vigente naquele mês:
+   - se `score >= min_score` e não existir award para `(employee_id, referenceMonth)` → insert em `goal_bonus_awards` com `payroll_month = referenceMonth + 1`.
+4. Nunca sobrescreve award existente (unique key + `on conflict do nothing`).
 
-**Selo** por card: passa a usar o cálculo do período selecionado (média/valor do período), respeitando regra inversa.
+### Onde chamar
+- **Hook `useGoalBonusAutoRun`** montado no `SalaryTab`: ao abrir a aba, roda para todos os meses fechados dos últimos 3 meses que ainda não têm award (idempotente).
+- **`PayrollManager`**: ao abrir o modal de "Nova folha / competência X", antes de montar os itens, roda `generateBonusAwardsForMonth(X - 1 mês)` e injeta os awards `status='gerado'` como `earnings` da folha.
 
 ---
 
-## 5. UI — Configuração (`MonthlyGoalsManager.tsx`)
+## 4. Integração com holerite / folha
 
-- Adicionar coluna/campo **Pontuação** no formulário de nova/editar meta (input numérico, 0–100).
-- No topo da lista de metas cadastradas exibir:
-  - `Total de pontos: XX / 100`
-  - Se `≠ 100`: badge vermelho "Faltam N pts" ou "Excede N pts" e **bloquear** salvar novas metas com toast explicativo.
-- Ao alterar a pontuação de um tipo, propagar para todas as linhas daquele `goal_type` do usuário via update em massa no `useMonthlyGoals`.
+Em `usePayrolls.ts` (função de criar/recalcular folha) e/ou `PayrollManager`:
+1. Ao gerar holerite da competência `M` para funcionário E:
+   - Buscar `goal_bonus_awards` where `employee_id=E and payroll_month=M and status in ('gerado','pago')`.
+   - Para cada award ainda não vinculado (`payroll_id is null`), adicionar um item em `payroll.items.earnings`:
+     ```
+     { label: 'Bônus por Atingimento das Metas', amount, kind: 'goal_bonus', meta: { referenceMonth, scoreObtained, minScore, awardId } }
+     ```
+   - Atualizar `goal_bonus_awards.payroll_id = payroll.id`.
+2. Ao **recalcular** folha existente: não recriar; apenas re-vincular awards já existentes. Nunca duplica (garantido pela unique key + verificação de `payroll_id`).
+3. Se folha for excluída: setar `payroll_id=null`, manter award (não cancela).
+4. Se award for cancelado (`status='cancelado'`), remover o item da folha na próxima edição.
 
----
+Extender `SalaryItem.kind` já suporta string livre — usar `'goal_bonus'`. Renderização no holerite (`payslipPdf.ts` e visualização) mostra descrição estendida quando `kind==='goal_bonus'`, incluindo:
+- Referência: `MMMM/yyyy` do `referenceMonth`
+- Pontuação obtida: X
+- Meta mínima: Y
+- Valor
 
-## 6. Hooks
-
-`src/hooks/useMonthlyGoals.ts`:
-- Adicionar `scoreWeight` no tipo `MonthlyGoal`.
-- Novo método `updateScoreWeight(goalType, weight)` — update em massa.
-- Novo método `getWeightsByType()` — retorna mapa `{ [goalType]: weight }`.
-
----
-
-## 7. Arquivos
-
-**Criar:**
-- `src/lib/metasPeriod.ts`
-- `src/lib/metasScore.ts`
-- `src/components/metas/PeriodFilterCard.tsx` (card 4)
-- `src/components/metas/ScoreCards.tsx` (cards 1, 2, 3)
-- Migração SQL para `score_weight`.
-
-**Editar:**
-- `src/components/metas/GoalsYearlyGrid.tsx` — integrar filtro + cards no topo, propagar `period` aos filhos.
-- `src/components/metas/GoalYearlyChartCard.tsx` — receber `period`, calcular selo/média com base nele.
-- `src/components/MonthlyGoalsManager.tsx` — campo Pontuação + validação soma = 100.
-- `src/hooks/useMonthlyGoals.ts` — expor `scoreWeight` e helpers.
-
-**Não mexer:**
-- `useLoans`, `useExpenses`, `useClients`, `GoalsCard` do Dashboard (fonte de cálculo real permanece a `computeActual` centralizada).
+Ler `meta` do item para exibir.
 
 ---
 
-## 8. Validação final
-- Somar pontos = 100 exato para permitir salvar.
-- Meta atingida = peso cheio; não atingida = 0 (regra binária).
-- Metas inversas (inadimplência, renegociação): `real ≤ target`.
-- Mesma base de cálculo do Dashboard/gráficos (via `computeActual` compartilhado).
-- Layout responsivo Mobile / Tablet / Desktop nos 4 cards do topo (`grid-cols-1 sm:grid-cols-2 xl:grid-cols-4`, gap consistente).
+## 5. Histórico na ficha do funcionário
+
+Novo componente `EmployeeGoalBonusHistory.tsx` renderizado dentro do detalhe do funcionário (abaixo da seção "Bônus por Metas"):
+
+Tabela responsiva: Competência • Pontuação obtida • Mínima • Valor • Data de geração • Status (badge).
+
+Fonte: `goal_bonus_awards` filtrado pelo `employee_id`.
+
+Ações: apenas visualização + botão **Cancelar** (admin) que muda status para `'cancelado'`.
+
+---
+
+## 6. Relatórios
+
+Em `SalaryDashboard` adicionar bloco **"Bônus por Metas"** com:
+- Total pago no período (soma de awards `status in pago`)
+- Nº de funcionários bonificados no mês
+- Lista compacta (competência, funcionário, pontuação, valor)
+
+Filtro por competência. Reaproveita `goal_bonus_awards`.
+
+---
+
+## 7. Consistência de dados
+
+- Pontuação **sempre** vem de `computePeriodScore` (mesmo cálculo dos cards e da tabela detalhada). Extraí-lo caso ainda esteja acoplado ao componente.
+- Award grava `score_obtained` no momento da geração → imutável mesmo se metas forem editadas depois.
+- Alterações em `employee_goal_bonuses` **não** afetam awards já criados.
+- Geração só ocorre para competência já fechada (`month < currentMonth`).
+
+---
+
+## 8. Responsividade
+
+- Seção de cadastro: mesma grid do form (`grid-cols-1 sm:grid-cols-2`).
+- Histórico: tabela vira card list em `< sm` (padrão do projeto).
+- Dashboard bloco: `grid-cols-1 md:grid-cols-3`.
+
+---
+
+## Detalhes técnicos (para revisão do dev)
+
+**Arquivos a criar**
+- `supabase/migrations/…_goal_bonus.sql` (2 tabelas + RLS + GRANT + índices + unique)
+- `src/hooks/useEmployeeGoalBonuses.ts`
+- `src/hooks/useGoalBonusAwards.ts`
+- `src/hooks/useGoalBonusAutoRun.ts`
+- `src/lib/goalBonusEngine.ts`
+- `src/components/salary/EmployeeGoalBonusSection.tsx` (form)
+- `src/components/salary/EmployeeGoalBonusHistory.tsx`
+- `src/components/salary/GoalBonusReportBlock.tsx`
+
+**Arquivos a editar**
+- `src/components/salary/EmployeeManager.tsx` — inserir seção no form + histórico no detalhe.
+- `src/components/salary/PayrollManager.tsx` + `src/hooks/usePayrolls.ts` — injetar awards como earning; vincular `payroll_id`.
+- `src/lib/payslipPdf.ts` e componente de visualização — renderizar bloco detalhado quando `kind==='goal_bonus'`.
+- `src/components/salary/SalaryDashboard.tsx` — bloco de relatório.
+- `src/components/metas/…` (opcional) — helper `getMonthlyScore(monthKey)` exportado para reuso pelo engine, garantindo fonte única.
+
+**Não mexer**
+- Cálculo/renderização dos cards de Metas.
+- `computePeriodScore`, `metasPeriod.ts` (usar como está).
+
+---
+
+## Fluxo end-to-end (exemplo)
+1. Admin ativa bônus para João: min 85, R$ 500, vigência 01/07/2026 – aberta.
+2. Julho/2026 fecha. Ao abrir Salários, `useGoalBonusAutoRun` roda engine para `2026-07`.
+3. Engine calcula score = 92 → cria award `reference=2026-07`, `payroll_month=2026-08`, `bonus_amount=500`, `status=gerado`.
+4. Admin gera folha de agosto/2026 do João → item **Bônus por Atingimento das Metas R$ 500** é injetado; `payroll_id` vinculado.
+5. Ao pagar folha, award vira `status='pago'`.
+6. Aparece no histórico da ficha e no relatório do Dashboard.
 
 Confirma para eu implementar?
