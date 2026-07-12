@@ -160,10 +160,20 @@ export function GoalYearlyChartCard({
     return fmt(v, unit, hidden);
   };
 
+  const showBadge = totals.activeMonths > 0;
+  const badgeOk = totals.isPositive;
+
   return (
-    <div className="flex h-full flex-col gap-3 rounded-xl border border-border bg-card p-3 sm:p-4">
+    <div
+      data-chart-card
+      onMouseEnter={claim}
+      onMouseMove={claim}
+      onTouchStart={claim}
+      onPointerDown={claim}
+      className="flex h-full flex-col gap-3 rounded-xl border border-border bg-card p-3 sm:p-4"
+    >
       {/* Header */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2 flex-nowrap">
         <div className="h-9 w-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
           <TrendingUp className="h-4 w-4 text-primary" />
         </div>
@@ -173,6 +183,18 @@ export function GoalYearlyChartCard({
             <p className="text-[11px] text-muted-foreground">Realizado (barras) vs Meta (linha)</p>
           )}
         </div>
+        {showBadge && (
+          <span
+            className={`shrink-0 rounded-full font-bold uppercase tracking-wide leading-none whitespace-nowrap px-1.5 py-0.5 text-[9px] sm:px-2.5 sm:py-1 sm:text-[10px] ${
+              badgeOk
+                ? "bg-success/15 text-success border border-success/30"
+                : "bg-destructive/15 text-destructive border border-destructive/30"
+            }`}
+            aria-label={badgeOk ? "Meta OK" : "Atenção"}
+          >
+            {badgeOk ? "OK" : "Atenção"}
+          </span>
+        )}
         <div className="flex items-center gap-1 shrink-0">
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onYearChange(year - 1)} aria-label="Ano anterior">
             <ChevronLeft className="h-4 w-4" />
