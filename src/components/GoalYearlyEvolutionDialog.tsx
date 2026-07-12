@@ -147,20 +147,27 @@ export function GoalYearlyEvolutionDialog({
 
         <div className="flex-1 overflow-auto px-3 sm:px-6 py-4 space-y-4">
           {/* Totais rápidos */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             <div className="rounded-lg border border-border bg-card/60 p-3 text-center">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Realizado no ano</p>
-              <p className="text-sm sm:text-base font-bold text-success mt-1">{fmt(totals.realizedTotal, unit, hidden)}</p>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Realizado no ano (média)</p>
+              <p className="text-sm sm:text-base font-bold text-success mt-1">{fmt(totals.realizedAvg, unit, hidden)}</p>
             </div>
             <div className="rounded-lg border border-border bg-card/60 p-3 text-center">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Meta acumulada</p>
-              <p className="text-sm sm:text-base font-bold text-foreground mt-1">{fmt(totals.targetTotal, unit, hidden)}</p>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Meta acumulada (média)</p>
+              <p className="text-sm sm:text-base font-bold text-foreground mt-1">{fmt(totals.targetAvg, unit, hidden)}</p>
             </div>
-            <div className="rounded-lg border border-border bg-card/60 p-3 text-center col-span-2 sm:col-span-1">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Meses com dados</p>
-              <p className="text-sm sm:text-base font-bold text-primary mt-1">{totals.activeMonths} / 12</p>
+            <div className="rounded-lg border border-border bg-card/60 p-3 text-center">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Meses considerados</p>
+              <p className="text-sm sm:text-base font-bold text-primary mt-1">{totals.activeMonths} de 12</p>
+            </div>
+            <div className="rounded-lg border border-border bg-card/60 p-3 text-center">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Resultado anual</p>
+              <p className={`text-sm sm:text-base font-bold mt-1 ${totals.attainmentPct >= 100 ? "text-success" : "text-destructive"}`}>
+                {totals.targetAvg > 0 ? `${totals.attainmentPct.toFixed(2)}% da meta` : "—"}
+              </p>
             </div>
           </div>
+
 
           {/* Gráfico */}
           <div className="rounded-lg border border-border bg-card p-2 sm:p-4">
