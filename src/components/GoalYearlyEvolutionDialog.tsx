@@ -34,19 +34,19 @@ interface Props {
 function fmt(v: number, unit: Unit, hidden: boolean): string {
   if (!isFinite(v)) return "—";
   if (hidden && unit === "R$") return "R$ ••••";
-  if (unit === "R$") return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
-  if (unit === "%") return `${v.toFixed(1)}%`;
-  return String(Math.round(v));
+  if (unit === "R$") return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+  if (unit === "%") return `${v.toFixed(2)}%`;
+  return v.toFixed(2);
 }
 
 function fmtCompact(v: number, unit: Unit): string {
   if (!isFinite(v)) return "—";
-  if (unit === "%") return `${v.toFixed(0)}%`;
-  if (unit === "qtd") return String(Math.round(v));
+  if (unit === "%") return `${v.toFixed(2)}%`;
+  if (unit === "qtd") return v.toFixed(2);
   const abs = Math.abs(v);
-  if (abs >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `R$ ${(v / 1_000).toFixed(1)}k`;
-  return `R$ ${Math.round(v)}`;
+  if (abs >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(2)}M`;
+  if (abs >= 1_000) return `R$ ${(v / 1_000).toFixed(2)}k`;
+  return `R$ ${v.toFixed(2)}`;
 }
 
 export function GoalYearlyEvolutionDialog({
