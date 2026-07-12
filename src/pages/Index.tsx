@@ -198,6 +198,7 @@ type Tab =
   | "products"
   | "vehicles"
   | "overdue"
+  | "metas"
   | "expenses"
   | "boletos"
   | "salary"
