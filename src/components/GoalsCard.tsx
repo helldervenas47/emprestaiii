@@ -18,6 +18,7 @@ import { Loan, Payment, Expense, Client, InstallmentSchedule, LoanRenegotiation 
 import { todayInAppTz, formatYmdInAppTz } from "@/lib/timezone";
 import { useActiveCapitalSnapshots } from "@/hooks/useActiveCapitalSnapshots";
 import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
+import { allocateInterestByPayment } from "@/lib/interestAllocation";
 import { assertWritable } from "@/lib/readOnlyState";
 import {
   Target, Percent, TrendingUp, Banknote, FileText,
