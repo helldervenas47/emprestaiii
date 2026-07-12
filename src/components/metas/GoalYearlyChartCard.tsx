@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
 import {
@@ -11,6 +11,7 @@ import { useGoalSnapshots } from "@/hooks/useGoalSnapshots";
 import { useActiveCapitalSnapshots } from "@/hooks/useActiveCapitalSnapshots";
 import { computeActual } from "@/components/GoalsCard";
 import { Loan, Payment, Expense, Client, InstallmentSchedule, LoanRenegotiation } from "@/types/loan";
+import { useActiveTooltip } from "./ActiveTooltipContext";
 
 type Unit = "%" | "R$" | "qtd";
 
