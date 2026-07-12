@@ -57,6 +57,8 @@ export function ManagerCommissionsYearlyCard({ year, onYearChange, clients, loan
   const { hidden } = useHideValues();
   const isMobile = useIsMobile();
   const currentYear = new Date().getFullYear();
+  const chartId = useId();
+  const { isActive, claim } = useActiveTooltip(chartId);
 
   const managers = useMemo(
     () => clients.filter((c) => c.isManager && c.active !== false),
