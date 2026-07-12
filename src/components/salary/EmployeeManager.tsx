@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, Search, User } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, User, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DatePickerField } from "@/components/ui/date-picker-field";
@@ -13,7 +13,10 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useEmployees } from "@/hooks/useEmployees";
+import { useEmployeeGoalBonuses } from "@/hooks/useEmployeeGoalBonuses";
 import type { Employee, PaymentType, SalaryItem } from "@/types/salary";
+import { EmployeeGoalBonusSection, type GoalBonusDraft } from "./EmployeeGoalBonusSection";
+import { EmployeeGoalBonusHistory } from "./EmployeeGoalBonusHistory";
 import { toast } from "sonner";
 
 const BRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
