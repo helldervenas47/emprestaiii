@@ -82,12 +82,21 @@ export function GoalYearlyEvolutionDialog({
 
       let realized = 0;
       if (!isFuture) {
-        const snap = getSnapshot(goalType, monthKey);
-        if (isClosed && snap?.finalized && goalType !== "daily_received_avg") {
-          realized = Number(snap.realizedValue) || 0;
+        if (goalType === "active_capital") {
+          // Usa a mesma fonte do card: snapshot do mês (histórico) ou valor atual (mês corrente).
+          if (monthKey === acCurrentMonth) {
+            realized = currentActiveCapital;
+          } else {
+            realized = getSnapshotAmount(monthKey) ?? 0;
+          }
         } else {
-          const v = computeActual(goalType, monthKey, loans, payments, expenses, clients, installmentSchedules, renegotiations);
-          realized = isFinite(v) ? v : 0;
+          const snap = getSnapshot(goalType, monthKey);
+          if (isClosed && snap?.finalized && goalType !== "daily_received_avg") {
+            realized = Number(snap.realizedValue) || 0;
+          } else {
+            const v = computeActual(goalType, monthKey, loans, payments, expenses, clients, installmentSchedules, renegotiations);
+            realized = isFinite(v) ? v : 0;
+          }
         }
       }
 
