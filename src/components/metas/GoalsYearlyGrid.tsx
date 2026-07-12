@@ -10,9 +10,10 @@ import { ManagerCommissionsYearlyCard } from "./ManagerCommissionsYearlyCard";
 import { ActiveTooltipProvider, useActiveTooltip } from "./ActiveTooltipContext";
 import { PeriodFilterCard } from "./PeriodFilterCard";
 import { ScoreCard, VariationCard } from "./ScoreCards";
-import { Target } from "lucide-react";
+import { Target, ListChecks } from "lucide-react";
 import { getPreviousPeriod, PeriodSelection } from "@/lib/metasPeriod";
 import { computePeriodScore } from "@/lib/metasScore";
+import { ScoreDetailDialog } from "./ScoreDetailDialog";
 
 type Unit = "%" | "R$" | "qtd";
 
@@ -124,6 +125,8 @@ function GridInner(props: {
   const handlePeriodChange = useCallback((p: PeriodSelection) => { clearAll(); setPeriod(p); }, [clearAll, setPeriod]);
   const handleYearChange = useCallback((y: number) => { clearAll(); setPeriod({ ...period, year: y }); }, [clearAll, period]);
 
+  const [detailOpen, setDetailOpen] = useState(false);
+
   return (
     <div className="space-y-4">
       {/* 4 cards de topo */}
@@ -133,6 +136,25 @@ function GridInner(props: {
         <VariationCard current={currentScore.total} previous={previousScore.total} />
         <PeriodFilterCard value={period} onChange={handlePeriodChange} />
       </div>
+
+      <div>
+        <button
+          type="button"
+          onClick={() => setDetailOpen(true)}
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-card hover:bg-muted/60 px-4 py-2 text-sm font-semibold text-foreground transition-colors"
+        >
+          <ListChecks className="h-4 w-4 text-primary" />
+          Ver pontuação detalhada
+        </button>
+      </div>
+
+      <ScoreDetailDialog
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        weights={weights}
+        inputs={scoreInputs}
+      />
+
 
       {goalTypes.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-16 text-center border border-dashed border-border rounded-xl bg-muted/20">
