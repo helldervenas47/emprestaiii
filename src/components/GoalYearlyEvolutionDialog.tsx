@@ -9,6 +9,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { useMonthlyGoals, GoalType } from "@/hooks/useMonthlyGoals";
 import { useGoalSnapshots } from "@/hooks/useGoalSnapshots";
+import { useActiveCapitalSnapshots } from "@/hooks/useActiveCapitalSnapshots";
 import { computeActual } from "@/components/GoalsCard";
 import { Loan, Payment, Expense, Client, InstallmentSchedule, LoanRenegotiation } from "@/types/loan";
 
