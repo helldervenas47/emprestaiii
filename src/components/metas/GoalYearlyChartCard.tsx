@@ -2,7 +2,7 @@ import { useId, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
 import {
-  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList,
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList, Cell,
 } from "recharts";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useHideValues } from "@/contexts/HideValuesContext";
@@ -235,6 +235,10 @@ export function GoalYearlyChartCard({
                 <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.95} />
                 <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.55} />
               </linearGradient>
+              <linearGradient id={`goalBarFillOff-${goalType}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="hsl(var(--destructive))" stopOpacity={0.75} />
+                <stop offset="100%" stopColor="hsl(var(--destructive))" stopOpacity={0.4} />
+              </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
             <XAxis
@@ -302,6 +306,15 @@ export function GoalYearlyChartCard({
               maxBarSize={36}
               animationDuration={600}
             >
+              {data.map((d, i) => {
+                const off = d.hasValidGoal && !d.isFuture && (inverse ? d.realized > d.target : d.realized < d.target);
+                return (
+                  <Cell
+                    key={`cell-${i}`}
+                    fill={off ? `url(#goalBarFillOff-${goalType})` : `url(#goalBarFill-${goalType})`}
+                  />
+                );
+              })}
               {!isMobile && (
                 <LabelList
                   dataKey="realized"
@@ -313,6 +326,7 @@ export function GoalYearlyChartCard({
                     const max = Math.max(Math.abs(d.realized), Math.abs(d.target), 1);
                     const rel = Math.abs(d.realized - d.target) / max;
                     const dy = (d.realized < d.target && rel < 0.08) ? -14 : -6;
+                    const off = d.hasValidGoal && !d.isFuture && (inverse ? d.realized > d.target : d.realized < d.target);
                     return (
                       <text
                         x={Number(x) + Number(width) / 2}
@@ -320,7 +334,7 @@ export function GoalYearlyChartCard({
                         textAnchor="middle"
                         fontSize={9}
                         fontWeight={600}
-                        fill="hsl(var(--primary))"
+                        fill={off ? "hsl(var(--destructive))" : "hsl(var(--primary))"}
                       >
                         {labelFmt(value)}
                       </text>
