@@ -154,7 +154,7 @@ export function ManagerCommissionsYearlyDialog({
           <Button
             variant="ghost"
             size="icon"
-            className="absolute left-3 sm:left-4 top-[max(env(safe-area-inset-top),0.5rem)] sm:top-3 h-9 w-9 z-10"
+            className="sm:hidden absolute left-3 top-[max(env(safe-area-inset-top),0.5rem)] h-9 w-9 z-10"
             onClick={onClose}
             aria-label="Fechar"
           >
