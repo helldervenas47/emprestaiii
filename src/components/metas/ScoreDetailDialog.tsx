@@ -40,13 +40,18 @@ export function ScoreDetailDialog({ open, onOpenChange, weights, inputs }: Props
     const rows = goalTypes.map((gt) => {
       const w = Number(weights[gt] || 0);
       const inverse = INVERSE_GOAL_TYPES.has(gt);
+      let validCount = 0;
+      let sumPoints = 0;
       const monthly = Array.from({ length: 12 }, (_, i) => {
         const mk = monthKey(year, i + 1);
         const r = computeMonthResult(gt, mk, inputs);
         if (!r.hasGoal || r.isFuture) return 0;
-        return isGoalReached(inverse, r.target, r.realized) ? w : 0;
+        validCount += 1;
+        const pts = isGoalReached(inverse, r.target, r.realized) ? w : 0;
+        sumPoints += pts;
+        return pts;
       });
-      const total = monthly.reduce((s, v) => s + v, 0);
+      const total = validCount > 0 ? sumPoints / validCount : 0;
       return {
         goalType: gt,
         label: GOAL_LABELS[gt] ?? gt,
