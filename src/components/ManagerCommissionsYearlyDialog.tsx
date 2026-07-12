@@ -191,9 +191,16 @@ export function ManagerCommissionsYearlyDialog({
             <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setYear((y) => y - 1)} aria-label="Ano anterior">
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div className="min-w-[110px] text-center rounded-lg border border-border bg-card px-4 py-1.5">
+            <button
+              type="button"
+              onClick={() => year !== currentYear && setYear(currentYear)}
+              disabled={year === currentYear}
+              title="Voltar ao ano atual"
+              aria-label="Voltar ao ano atual"
+              className="min-w-[110px] text-center rounded-lg border border-border bg-card px-4 py-1.5 transition-colors hover:bg-accent hover:border-primary/40 active:scale-[0.98] disabled:cursor-default disabled:opacity-100 cursor-pointer"
+            >
               <span className="text-lg font-bold text-foreground tabular-nums">{year}</span>
-            </div>
+            </button>
             <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setYear((y) => y + 1)} aria-label="Próximo ano">
               <ChevronRight className="h-4 w-4" />
             </Button>
