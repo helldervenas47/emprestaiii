@@ -109,14 +109,6 @@ export function ScoreDetailDialog({ open, onOpenChange, weights, inputs }: Props
             >
               <ChevronRight className="h-4 w-4" />
             </button>
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              className="ml-2 p-1 rounded-md hover:bg-muted"
-              aria-label="Fechar"
-            >
-              <X className="h-4 w-4" />
-            </button>
           </div>
         </div>
 
