@@ -302,6 +302,12 @@ function EmployeeFormDialog({ open, onOpenChange, initial, initialBonus, onSave 
             <Switch checked={addToIncomes} onCheckedChange={setAddToIncomes} />
           </div>
 
+          <EmployeeGoalBonusSection
+            initial={initialBonus}
+            value={bonusDraft}
+            onChange={setBonusDraft}
+          />
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button data-mutation type="submit">Salvar</Button>
