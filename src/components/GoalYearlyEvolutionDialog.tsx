@@ -147,8 +147,7 @@ export function GoalYearlyEvolutionDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
         style={{ padding: 0 }}
-        hideCloseButton
-        className="w-screen h-[100dvh] max-w-none sm:max-w-none max-h-none rounded-none border-0 flex flex-col gap-0 p-0 overflow-hidden"
+        className="w-screen h-[100dvh] max-w-none sm:max-w-none max-h-none rounded-none border-0 flex flex-col gap-0 p-0 overflow-hidden [&>button.absolute]:hidden"
       >
         <DialogHeader className="shrink-0 px-4 sm:px-5 pt-4 pb-3 border-b border-border/40 bg-background">
           <div className="flex items-center gap-3">
