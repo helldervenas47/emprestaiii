@@ -286,7 +286,7 @@ export function GoalYearlyChartCard({
               maxBarSize={36}
               animationDuration={600}
             >
-              {!isMobile && !compact && (
+              {!isMobile && (
                 <LabelList
                   dataKey="realized"
                   content={(props: any) => {
@@ -323,7 +323,7 @@ export function GoalYearlyChartCard({
               activeDot={{ r: 5 }}
               animationDuration={700}
             >
-              {!isMobile && !compact && (
+              {!isMobile && (
                 <LabelList
                   dataKey="target"
                   content={(props: any) => {
