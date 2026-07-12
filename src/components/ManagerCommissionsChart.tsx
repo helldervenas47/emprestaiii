@@ -415,6 +415,14 @@ export function ManagerCommissionsChart({
         rangeLabel={rangeLabel}
         mask={mask}
       />
+      <ManagerCommissionsYearlyDialog
+        open={yearlyOpen}
+        onClose={() => setYearlyOpen(false)}
+        clients={clients}
+        loans={loans}
+        payments={payments}
+        installmentSchedules={installmentSchedules}
+      />
     </Card>
   );
 }
