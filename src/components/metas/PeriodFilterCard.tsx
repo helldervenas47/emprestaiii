@@ -86,9 +86,17 @@ export function PeriodFilterCard({ value, onChange }: Props) {
               className="rounded-md border border-border bg-background px-2 py-1 text-xs hover:bg-accent"
               aria-label="Mês anterior"
             >‹</button>
-            <span className="text-xs font-semibold tabular-nums min-w-[32px] text-center">
+            <button
+              type="button"
+              onClick={() => {
+                const now = new Date();
+                onChange({ ...value, year: now.getFullYear(), month: now.getMonth() + 1 });
+              }}
+              title="Voltar para o mês atual"
+              className="text-xs font-semibold tabular-nums min-w-[32px] text-center hover:text-primary transition-colors"
+            >
               {MONTHS[(value.month ?? 1) - 1]}
-            </span>
+            </button>
             <button
               type="button"
               onClick={() => {
