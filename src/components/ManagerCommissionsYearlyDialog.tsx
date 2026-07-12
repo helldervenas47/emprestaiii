@@ -211,56 +211,25 @@ export function ManagerCommissionsYearlyDialog({
                     content={({ active, payload }) => {
                       if (!active || !payload || !payload.length) return null;
                       const d: any = payload[0].payload;
-                      const items = managersInYear
-                        .map((m, idx) => ({ id: m.id, name: m.name, value: d[m.id] || 0, color: MANAGER_COLORS[idx % MANAGER_COLORS.length] }))
-                        .filter((it) => it.value > 0)
-                        .sort((a, b) => b.value - a.value);
                       return (
-                        <div className="rounded-md border border-border bg-popover shadow-lg p-3 text-xs min-w-[220px]">
+                        <div className="rounded-md border border-border bg-popover shadow-lg p-3 text-xs min-w-[180px]">
                           <div className="font-semibold text-foreground mb-1.5">{d.monthFull}</div>
-                          {items.length === 0 ? (
-                            <div className="text-muted-foreground">Sem comissões neste mês.</div>
-                          ) : (
-                            <>
-                              {items.map((it) => (
-                                <div key={it.id} className="flex justify-between gap-4 items-center py-0.5">
-                                  <span className="flex items-center gap-1.5 min-w-0">
-                                    <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ background: it.color }} />
-                                    <span className="text-muted-foreground truncate">{it.name}</span>
-                                  </span>
-                                  <span className="font-semibold text-foreground whitespace-nowrap">
-                                    {fmtBRL(it.value, hidden)} <span className="text-muted-foreground font-normal">({((it.value / d.total) * 100).toFixed(2).replace(".", ",")}%)</span>
-                                  </span>
-                                </div>
-                              ))}
-                              <div className="border-t border-border mt-1.5 pt-1.5 flex justify-between gap-4">
-                                <span className="text-muted-foreground">Total do mês</span>
-                                <span className="font-bold text-primary">{fmtBRL(d.total, hidden)}</span>
-                              </div>
-                            </>
-                          )}
+                          <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Comissões pagas</span>
+                            <span className="font-bold text-primary">{fmtBRL(d.total, hidden)}</span>
+                          </div>
                         </div>
                       );
                     }}
                   />
-                  <Legend
-                    verticalAlign="top"
-                    height={36}
-                    wrapperStyle={{ fontSize: 11, color: "hsl(var(--muted-foreground))" }}
-                    iconType="circle"
+                  <Bar
+                    dataKey="total"
+                    name="Comissões pagas"
+                    fill={BAR_COLOR}
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={44}
+                    animationDuration={600}
                   />
-                  {managersInYear.map((m, idx) => (
-                    <Bar
-                      key={m.id}
-                      dataKey={m.id}
-                      name={m.name}
-                      stackId="commissions"
-                      fill={MANAGER_COLORS[idx % MANAGER_COLORS.length]}
-                      radius={idx === managersInYear.length - 1 ? [6, 6, 0, 0] : [0, 0, 0, 0]}
-                      maxBarSize={44}
-                      animationDuration={600}
-                    />
-                  ))}
                 </BarChart>
               </ResponsiveContainer>
             </div>
