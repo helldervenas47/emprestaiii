@@ -9,6 +9,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { useMonthlyGoals, GoalType } from "@/hooks/useMonthlyGoals";
 import { useGoalSnapshots } from "@/hooks/useGoalSnapshots";
+import { useActiveCapitalSnapshots } from "@/hooks/useActiveCapitalSnapshots";
 import { computeActual } from "@/components/GoalsCard";
 import { Loan, Payment, Expense, Client, InstallmentSchedule, LoanRenegotiation } from "@/types/loan";
 
@@ -61,6 +62,15 @@ export function GoalYearlyEvolutionDialog({
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState<number>(currentYear);
 
+  // Fonte única para Capital Ativo: mesmos snapshots usados no card.
+  const currentActiveCapital = useMemo(
+    () => loans
+      .filter((l: any) => l.status !== "completed" && l.status !== "paid")
+      .reduce((s: number, l: any) => s + (Number(l.remainingAmount ?? (l as any).remaining_amount) || 0), 0),
+    [loans]
+  );
+  const { currentMonth: acCurrentMonth, getSnapshotAmount } = useActiveCapitalSnapshots(currentActiveCapital);
+
   const data = useMemo(() => {
     const today = new Date();
     const currentMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
@@ -72,12 +82,21 @@ export function GoalYearlyEvolutionDialog({
 
       let realized = 0;
       if (!isFuture) {
-        const snap = getSnapshot(goalType, monthKey);
-        if (isClosed && snap?.finalized && goalType !== "daily_received_avg") {
-          realized = Number(snap.realizedValue) || 0;
+        if (goalType === "active_capital") {
+          // Usa a mesma fonte do card: snapshot do mês (histórico) ou valor atual (mês corrente).
+          if (monthKey === acCurrentMonth) {
+            realized = currentActiveCapital;
+          } else {
+            realized = getSnapshotAmount(monthKey) ?? 0;
+          }
         } else {
-          const v = computeActual(goalType, monthKey, loans, payments, expenses, clients, installmentSchedules, renegotiations);
-          realized = isFinite(v) ? v : 0;
+          const snap = getSnapshot(goalType, monthKey);
+          if (isClosed && snap?.finalized && goalType !== "daily_received_avg") {
+            realized = Number(snap.realizedValue) || 0;
+          } else {
+            const v = computeActual(goalType, monthKey, loans, payments, expenses, clients, installmentSchedules, renegotiations);
+            realized = isFinite(v) ? v : 0;
+          }
         }
       }
 
@@ -119,7 +138,7 @@ export function GoalYearlyEvolutionDialog({
         hasValidGoal,
       };
     });
-  }, [year, goalType, loans, payments, expenses, clients, installmentSchedules, renegotiations, goals, getSnapshot, inverse]);
+  }, [year, goalType, loans, payments, expenses, clients, installmentSchedules, renegotiations, goals, getSnapshot, inverse, acCurrentMonth, currentActiveCapital, getSnapshotAmount]);
 
   const totals = useMemo(() => {
     const valid = data.filter((d) => d.hasValidGoal && !d.isFuture);
@@ -300,9 +319,28 @@ export function GoalYearlyEvolutionDialog({
                     {!isMobile && (
                       <LabelList
                         dataKey="realized"
-                        position="top"
-                        formatter={labelFmt}
-                        style={{ fontSize: 10, fill: "hsl(var(--primary))", fontWeight: 600 }}
+                        content={(props: any) => {
+                          const { x, y, width, value, index } = props;
+                          if (value == null || value === 0) return null;
+                          const d: any = data[index];
+                          if (!d) return null;
+                          const max = Math.max(Math.abs(d.realized), Math.abs(d.target), 1);
+                          const rel = Math.abs(d.realized - d.target) / max;
+                          // Se realizado ≤ meta e valores muito próximos, meta ficará acima; empurra rótulo do realizado mais para cima
+                          const dy = (d.realized < d.target && rel < 0.08) ? -14 : -6;
+                          return (
+                            <text
+                              x={Number(x) + Number(width) / 2}
+                              y={Number(y) + dy}
+                              textAnchor="middle"
+                              fontSize={10}
+                              fontWeight={600}
+                              fill="hsl(var(--primary))"
+                            >
+                              {labelFmt(value)}
+                            </text>
+                          );
+                        }}
                       />
                     )}
                   </Bar>
@@ -319,9 +357,33 @@ export function GoalYearlyEvolutionDialog({
                     {!isMobile && (
                       <LabelList
                         dataKey="target"
-                        position="bottom"
-                        formatter={labelFmt}
-                        style={{ fontSize: 10, fill: "hsl(var(--success))", fontWeight: 600 }}
+                        content={(props: any) => {
+                          const { x, y, value, index } = props;
+                          if (value == null || value === 0) return null;
+                          const d: any = data[index];
+                          if (!d) return null;
+                          const max = Math.max(Math.abs(d.realized), Math.abs(d.target), 1);
+                          const rel = Math.abs(d.realized - d.target) / max;
+                          // Regra anti-sobreposição:
+                          // - Se realizado ≥ meta: rótulo da meta abaixo da linha (dy = +16).
+                          // - Se realizado < meta e valores próximos: empurra meta bem acima (dy = -22).
+                          // - Caso contrário: acima da linha por padrão (dy = -10).
+                          let dy = -10;
+                          if (d.realized >= d.target) dy = 16;
+                          else if (rel < 0.08) dy = -22;
+                          return (
+                            <text
+                              x={Number(x)}
+                              y={Number(y) + dy}
+                              textAnchor="middle"
+                              fontSize={10}
+                              fontWeight={600}
+                              fill="hsl(var(--success))"
+                            >
+                              {labelFmt(value)}
+                            </text>
+                          );
+                        }}
                       />
                     )}
                   </Line>
