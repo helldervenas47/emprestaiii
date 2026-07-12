@@ -57,6 +57,7 @@ export function GoalYearlyEvolutionDialog({
   const { hidden } = useHideValues();
   const { goals } = useMonthlyGoals();
   const { getSnapshot } = useGoalSnapshots();
+  const isMobile = useIsMobile();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState<number>(currentYear);
 
