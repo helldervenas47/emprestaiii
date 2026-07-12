@@ -15,28 +15,42 @@ interface Props {
 export function DashboardPeriodFilter({ rangeLabel, period, onPrev, onNext, onReset, onChangePeriod }: Props) {
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold text-foreground">Visão Geral</h2>
-      <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-        <div className="flex items-center gap-1 sm:gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPrev}>
+      <h2 className="text-lg md:text-xl font-semibold text-foreground leading-tight">Visão Geral</h2>
+      <div className="flex items-center justify-between gap-3 flex-wrap md:flex-nowrap">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-lg"
+            onClick={onPrev}
+            aria-label="Período anterior"
+          >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span
-            className="text-xs sm:text-sm font-medium text-foreground min-w-[120px] sm:min-w-[160px] text-center cursor-pointer hover:text-primary transition-colors"
+          <button
+            type="button"
             onClick={onReset}
+            title="Voltar para o período atual"
+            className="h-9 min-w-[140px] md:min-w-[180px] px-3 rounded-lg text-sm font-medium text-foreground text-center hover:text-primary hover:bg-accent/40 transition-colors tabular-nums"
           >
             {rangeLabel}
-          </span>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
+          </button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-lg"
+            onClick={onNext}
+            aria-label="Próximo período"
+          >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <div className="flex bg-muted/60 rounded-xl p-0.5 ml-auto backdrop-blur-sm border border-border/30">
+        <div className="grid grid-cols-3 h-9 w-[210px] rounded-lg bg-muted/60 p-0.5 border border-border/30 backdrop-blur-sm">
           {(["day", "week", "month"] as Period[]).map((p) => (
             <button
               key={p}
               onClick={() => onChangePeriod(p)}
-              className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-200 ${
+              className={`h-full rounded-md text-xs md:text-sm font-medium transition-all duration-200 ${
                 period === p ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
               }`}
             >
