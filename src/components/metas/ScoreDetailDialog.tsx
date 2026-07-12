@@ -162,7 +162,7 @@ export function ScoreDetailDialog({ open, onOpenChange, weights, inputs }: Props
                   {monthTotals.map((v, i) => (
                     <td key={i} className="py-3 px-2 text-right tabular-nums">{v > 0 ? v : ""}</td>
                   ))}
-                  <td className="py-3 px-3 text-right tabular-nums bg-muted/60">{grandTotal > 0 ? grandTotal : ""}</td>
+                  <td className="py-3 px-3 text-right tabular-nums bg-muted/60">{grandTotal > 0 ? (Number.isInteger(grandTotal) ? grandTotal : grandTotal.toFixed(2).replace(".", ",")) : ""}</td>
                 </tr>
               </tfoot>
             )}
