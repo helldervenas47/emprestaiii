@@ -5,8 +5,10 @@ export type PayrollStatus = "pendente" | "parcial" | "pago" | "atrasado";
 export interface SalaryItem {
   label: string;
   amount: number;
-  /** Optional kind: benefit / deduction / earning */
+  /** Optional kind: benefit / deduction / earning / goal_bonus */
   kind?: string;
+  /** Optional metadata (e.g. goal-bonus reference month, score obtained). */
+  meta?: Record<string, any>;
 }
 
 export interface Employee {
