@@ -142,7 +142,10 @@ export function ManagerCommissionsYearlyDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-5xl max-h-[calc(100dvh-1rem)] sm:max-h-[92dvh] overflow-hidden flex flex-col p-0">
+      <DialogContent
+        style={{ padding: 0 }}
+        className="w-[calc(100vw-1rem)] sm:max-w-5xl max-h-[calc(100dvh-1rem)] sm:max-h-[92dvh] overflow-hidden flex flex-col gap-0 p-0"
+      >
         <DialogHeader className="shrink-0 px-4 sm:px-5 pt-4 pb-3 border-b border-border/40">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
@@ -176,19 +179,19 @@ export function ManagerCommissionsYearlyDialog({
 
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 sm:px-5 py-3 space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-            <div className="rounded-lg border border-border bg-card/60 p-3 text-center">
+            <div className="rounded-lg border border-border bg-card/60 p-2.5 sm:p-3 text-center">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total anual</p>
               <p className="text-sm sm:text-base font-bold text-success mt-1">{fmtBRL(totalYear, hidden)}</p>
             </div>
-            <div className="rounded-lg border border-border bg-card/60 p-3 text-center">
+            <div className="rounded-lg border border-border bg-card/60 p-2.5 sm:p-3 text-center">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Média mensal</p>
               <p className="text-sm sm:text-base font-bold text-primary mt-1">{fmtBRL(monthlyAvg, hidden)}</p>
             </div>
-            <div className="rounded-lg border border-border bg-card/60 p-3 text-center">
+            <div className="rounded-lg border border-border bg-card/60 p-2.5 sm:p-3 text-center">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Meses com dados</p>
               <p className="text-sm sm:text-base font-bold text-foreground mt-1">{monthsWithData} de 12</p>
             </div>
-            <div className="rounded-lg border border-border bg-card/60 p-3 text-center">
+            <div className="rounded-lg border border-border bg-card/60 p-2.5 sm:p-3 text-center">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Maior comissão</p>
               <p className="text-xs sm:text-sm font-bold text-foreground mt-1 truncate" title={topManager?.name ?? "—"}>
                 {topManager?.name ?? "—"}
@@ -199,8 +202,8 @@ export function ManagerCommissionsYearlyDialog({
             </div>
           </div>
 
-          <div className="rounded-lg border border-border bg-card p-2 sm:p-4">
-            <div className="w-full min-w-0 h-[300px] sm:h-[min(44dvh,360px)] lg:h-[min(46dvh,380px)]">
+          <div className="rounded-lg border border-border bg-card p-2 sm:p-3">
+            <div className="w-full min-w-0 h-[300px] sm:h-[min(40dvh,340px)] lg:h-[min(42dvh,360px)]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={rows} margin={{ top: 10, right: 8, left: 0, bottom: 18 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
