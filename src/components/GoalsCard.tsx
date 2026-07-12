@@ -1121,6 +1121,9 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         payments={payments}
         loans={loans}
         installmentSchedules={installmentSchedules}
+        expenses={expenses}
+        clients={clients}
+        renegotiations={renegotiations}
       />
 
       <CustomizeGoalsDialog
