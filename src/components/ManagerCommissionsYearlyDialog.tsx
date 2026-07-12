@@ -144,7 +144,7 @@ export function ManagerCommissionsYearlyDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
         style={{ padding: 0 }}
-        className="w-[calc(100vw-1rem)] sm:max-w-5xl max-h-[calc(100dvh-1rem)] sm:max-h-[92dvh] overflow-hidden flex flex-col gap-0 p-0"
+        className="w-[calc(100vw_-_1rem)] sm:max-w-5xl max-h-[calc(100dvh_-_1rem)] sm:max-h-[92dvh] overflow-hidden flex flex-col gap-0 p-0"
       >
         <DialogHeader className="shrink-0 px-4 sm:px-5 pt-4 pb-3 border-b border-border/40">
           <div className="flex items-center gap-3">
