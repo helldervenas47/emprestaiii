@@ -25,7 +25,7 @@ interface Props { readOnly?: boolean }
 
 export function EmployeeManager({ readOnly }: Props) {
   const { employees, addEmployee, updateEmployee, deleteEmployee } = useEmployees();
-  const { getForEmployee, upsertForEmployee, removeForEmployee } = useEmployeeGoalBonuses();
+  const { getForEmployee, upsertForEmployee } = useEmployeeGoalBonuses();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
@@ -40,6 +40,8 @@ export function EmployeeManager({ readOnly }: Props) {
 
   const handleNew = () => { setEditing(null); setOpen(true); };
   const handleEdit = (e: Employee) => { setEditing(e); setOpen(true); };
+
+  const editingBonus = editing ? getForEmployee(editing.id) : null;
 
   return (
     <div className="space-y-4">
@@ -101,7 +103,7 @@ export function EmployeeManager({ readOnly }: Props) {
         open={open}
         onOpenChange={setOpen}
         initial={editing}
-        initialBonus={editing ? getForEmployee(editing.id) : null}
+        initialBonus={editingBonus}
         onSave={async (data, bonus) => {
           try {
             let empId = editing?.id ?? null;
@@ -114,15 +116,22 @@ export function EmployeeManager({ readOnly }: Props) {
               toast.success("Funcionário cadastrado");
             }
             if (empId) {
-              if (bonus.enabled) {
-                if (!bonus.startDate) {
-                  toast.warning("Informe a data de início da vigência do bônus.");
-                } else {
-                  await upsertForEmployee(empId, bonus);
-                }
-              } else {
-                // Se havia config anterior e o usuário desativou, remove.
-                await removeForEmployee(empId);
+              const shouldPersistBonus = Boolean(editingBonus)
+                || bonus.enabled
+                || bonus.bonusAmount > 0
+                || bonus.minScore !== 70
+                || Boolean(bonus.startDate)
+                || Boolean(bonus.endDate)
+                || Boolean(bonus.notes?.trim());
+
+              if (shouldPersistBonus) {
+                await upsertForEmployee(empId, {
+                  ...bonus,
+                  // Mesmo se a UI não tiver sincronizado a data automática a tempo,
+                  // persistimos uma vigência válida para não perder valor/switch.
+                  startDate: bonus.startDate || new Date().toISOString().slice(0, 10),
+                  notes: bonus.notes?.trim() || null,
+                });
               }
             }
             setOpen(false);
