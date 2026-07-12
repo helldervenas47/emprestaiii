@@ -125,9 +125,6 @@ const VehicleExpenseForm = lazy(() =>
 const NotificationSettings = lazy(() =>
   import("@/components/NotificationSettings").then((m) => ({ default: m.NotificationSettings })),
 );
-const MonthlyGoalsManager = lazy(() =>
-  import("@/components/MonthlyGoalsManager").then((m) => ({ default: m.MonthlyGoalsManager })),
-);
 const MetasTab = lazy(() =>
   import("@/components/metas/MetasTab").then((m) => ({ default: m.MetasTab })),
 );
