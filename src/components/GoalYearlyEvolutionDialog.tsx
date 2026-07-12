@@ -54,7 +54,7 @@ export function GoalYearlyEvolutionDialog({
   loans, payments, expenses, clients, installmentSchedules, renegotiations,
 }: Props) {
   const { hidden } = useHideValues();
-  const { getGoal } = useMonthlyGoals();
+  const { goals } = useMonthlyGoals();
   const { getSnapshot } = useGoalSnapshots();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState<number>(currentYear);
@@ -79,8 +79,10 @@ export function GoalYearlyEvolutionDialog({
         }
       }
 
-      const g = getGoal(goalType, monthKey);
-      const target = g ? Number(g.targetValue) || 0 : 0;
+      // Meta exata (não herdada) apenas
+      const exactGoal = goals.find((g) => g.goalType === goalType && g.month === monthKey);
+      const hasValidGoal = !!exactGoal;
+      const target = exactGoal ? Number(exactGoal.targetValue) || 0 : 0;
 
       const diff = inverse ? target - realized : realized - target;
       const pct = target > 0 ? (realized / target) * 100 : 0;
@@ -93,16 +95,20 @@ export function GoalYearlyEvolutionDialog({
         diff,
         pct,
         isFuture,
+        hasValidGoal,
       };
     });
-  }, [year, goalType, loans, payments, expenses, clients, installmentSchedules, renegotiations, getGoal, getSnapshot, inverse]);
+  }, [year, goalType, loans, payments, expenses, clients, installmentSchedules, renegotiations, goals, getSnapshot, inverse]);
 
   const totals = useMemo(() => {
-    const realizedTotal = data.reduce((s, d) => s + (d.isFuture ? 0 : d.realized), 0);
-    const targetTotal = data.reduce((s, d) => s + d.target, 0);
-    const activeMonths = data.filter((d) => !d.isFuture).length;
-    return { realizedTotal, targetTotal, activeMonths };
+    const valid = data.filter((d) => d.hasValidGoal && !d.isFuture);
+    const n = valid.length;
+    const realizedAvg = n > 0 ? valid.reduce((s, d) => s + d.realized, 0) / n : 0;
+    const targetAvg = n > 0 ? valid.reduce((s, d) => s + d.target, 0) / n : 0;
+    const attainmentPct = targetAvg > 0 ? (realizedAvg / targetAvg) * 100 : 0;
+    return { realizedAvg, targetAvg, attainmentPct, activeMonths: n };
   }, [data]);
+
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
