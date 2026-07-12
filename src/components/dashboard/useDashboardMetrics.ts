@@ -403,7 +403,38 @@ export function useDashboardMetrics(input: UseDashboardMetricsInput) {
     }, 0);
 
     const totalReceived = payments.reduce((s, p) => s + p.amount, 0);
-    const estimatedProfit = activeLoans.reduce((s, l) => s + getLoanRemainingAmount(l, payments), 0) - capitalOnStreet;
+    // Lucro Estimado = soma dos "Juros a Receber" (pendentes) por contrato ativo,
+    // usando a MESMA fórmula do módulo Histórico do Cliente (ClientLoanHistory)
+    // para garantir consistência entre Dashboard e histórico.
+    const todayForEstimate = new Date(); todayForEstimate.setHours(0, 0, 0, 0);
+    const estimatedProfit = activeLoans.reduce((sum, l) => {
+      const principal = l.amount || 0;
+      const expected = calculateTotalWithInterest(principal, l.interestRate, l.installments);
+      const totalPaid = payments
+        .filter((p) => p.loanId === l.id)
+        .reduce((s, p) => s + (p.amount || 0), 0);
+      const baseRemaining =
+        l.remainingAmount != null && l.remainingAmount > 0
+          ? l.remainingAmount
+          : Math.max(0, expected - totalPaid);
+      const due = l.dueDate ? new Date(`${l.dueDate}T00:00:00`) : null;
+      const daysOverdue = due && !isNaN(due.getTime())
+        ? Math.max(0, Math.floor((todayForEstimate.getTime() - due.getTime()) / 86400000))
+        : 0;
+      let lateFees = 0;
+      if (daysOverdue > 0) {
+        if (l.lateInterestValue != null && l.lateInterestValue > 0) {
+          lateFees += l.lateInterestType === "fixed"
+            ? l.lateInterestValue * daysOverdue
+            : baseRemaining * (l.lateInterestValue / 100) * daysOverdue;
+        }
+        if (l.penaltyValue != null && l.penaltyValue > 0) {
+          lateFees += l.penaltyValue;
+        }
+      }
+      const interestRatio = expected > 0 ? 1 - principal / expected : 0;
+      return sum + Math.max(0, baseRemaining * interestRatio + lateFees);
+    }, 0);
 
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
