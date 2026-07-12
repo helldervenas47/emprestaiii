@@ -54,8 +54,9 @@ export function GoalsYearlyGrid({
   const { goals, loading } = useMonthlyGoals();
   const { renegotiations } = useLoanRenegotiations();
   const [period, setPeriod] = useState<PeriodSelection>({
-    mode: "year",
+    mode: "month",
     year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
   });
 
   const goalTypes = useMemo<GoalType[]>(() => {
