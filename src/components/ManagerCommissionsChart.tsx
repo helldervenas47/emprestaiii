@@ -9,7 +9,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useManagerCommissions } from "@/hooks/useManagerCommissions";
 import { Client, Loan, InstallmentSchedule, Payment, ManagerCommission } from "@/types/loan";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { Briefcase, UserCog, CalendarDays, Check, CheckCircle2, Clock, Pencil, Tag } from "lucide-react";
+import { Briefcase, UserCog, CalendarDays, Check, CheckCircle2, Clock, Pencil, Tag, TrendingUp } from "lucide-react";
+import { ManagerCommissionsYearlyDialog } from "./ManagerCommissionsYearlyDialog";
 
 const MANAGER_FILTER_STORAGE_KEY = "manager-commissions-visible-managers";
 
@@ -96,6 +97,7 @@ export function ManagerCommissionsChart({
   const { commissions } = useManagerCommissions(true);
   const { mask } = useHideValues();
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
+  const [yearlyOpen, setYearlyOpen] = useState(false);
   const [selectedManagerIds, setSelectedManagerIds] = useState<string[]>(() => {
     if (typeof window === "undefined") return [];
     try {
@@ -327,7 +329,20 @@ export function ManagerCommissionsChart({
               </div>
             </div>
           </div>
+          <div className="flex justify-center sm:justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              onClick={() => setYearlyOpen(true)}
+            >
+              <TrendingUp className="h-3.5 w-3.5" />
+              Ver evolução anual
+            </Button>
+          </div>
         </div>
+
+
 
         {filteredData.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">
@@ -399,6 +414,14 @@ export function ManagerCommissionsChart({
         range={range}
         rangeLabel={rangeLabel}
         mask={mask}
+      />
+      <ManagerCommissionsYearlyDialog
+        open={yearlyOpen}
+        onClose={() => setYearlyOpen(false)}
+        clients={clients}
+        loans={loans}
+        payments={payments}
+        installmentSchedules={installmentSchedules}
       />
     </Card>
   );
