@@ -82,7 +82,7 @@ export function DashboardMainCards({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* Saldo em Conta */}
-      <Card no3d className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
+      <Card no3d className="animate-fade-in h-full" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
         <CardContent className="p-4 h-full relative flex flex-col">
           {!readOnly && (
             <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
@@ -129,7 +129,7 @@ export function DashboardMainCards({
       </Card>
 
       {/* Valores Recebidos — dinâmico conforme filtro de período */}
-      <Card no3d className="animate-fade-in" style={{ animationDelay: '120ms', animationFillMode: 'backwards' }}>
+      <Card no3d className="animate-fade-in h-full" style={{ animationDelay: '120ms', animationFillMode: 'backwards' }}>
         <CardContent className="p-4 h-full relative flex flex-col">
           <div className="flex items-center justify-center">
             <div className="text-center flex-col flex items-center justify-center">
@@ -191,7 +191,7 @@ export function DashboardMainCards({
       </Card>
 
       {/* Taxa de Juros Mensal */}
-      <Card no3d className="animate-fade-in cursor-pointer" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }} onClick={() => setExpandedBreakdown(expandedBreakdown === "interest-rate" ? null : "interest-rate")}>
+      <Card no3d className="animate-fade-in cursor-pointer h-full" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }} onClick={() => setExpandedBreakdown(expandedBreakdown === "interest-rate" ? null : "interest-rate")}>
         <CardContent className="p-4 h-full relative flex flex-col">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
@@ -297,7 +297,7 @@ export function DashboardMainCards({
       </Card>
 
       {/* Profit Card — Faturamento do Período */}
-      <Card no3d className="animate-fade-in" style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}>
+      <Card no3d className="animate-fade-in h-full" style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}>
         <CardContent className="p-4">
           <div className="flex items-center gap-3 mb-3">
             <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
