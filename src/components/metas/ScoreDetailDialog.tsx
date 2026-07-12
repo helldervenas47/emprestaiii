@@ -157,7 +157,7 @@ export function ScoreDetailDialog({ open, onOpenChange, weights, inputs }: Props
                       </td>
                     ))}
                     <td className="py-2 px-3 text-right tabular-nums font-semibold bg-muted/20">
-                      {r.total > 0 ? r.total : ""}
+                      {r.total > 0 ? (Number.isInteger(r.total) ? r.total : r.total.toFixed(2).replace(".", ",")) : ""}
                     </td>
                   </tr>
                 ))
