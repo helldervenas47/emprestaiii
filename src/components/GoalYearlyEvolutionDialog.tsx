@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
+import { ChevronLeft, ChevronRight, TrendingUp, X } from "lucide-react";
 import {
-  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList,
 } from "recharts";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { useMonthlyGoals, GoalType } from "@/hooks/useMonthlyGoals";
 import { useGoalSnapshots } from "@/hooks/useGoalSnapshots";
@@ -56,6 +57,7 @@ export function GoalYearlyEvolutionDialog({
   const { hidden } = useHideValues();
   const { goals } = useMonthlyGoals();
   const { getSnapshot } = useGoalSnapshots();
+  const isMobile = useIsMobile();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState<number>(currentYear);
 
@@ -135,14 +137,23 @@ export function GoalYearlyEvolutionDialog({
   }, [data, inverse]);
 
 
+  const labelFmt = (v: number) => {
+    if (!isFinite(v) || v === 0) return "";
+    if (hidden && unit === "R$") return "••••";
+    return fmt(v, unit, hidden);
+  };
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
         style={{ padding: 0 }}
-        className="w-[calc(100vw_-_1rem)] sm:max-w-5xl max-h-[calc(100dvh_-_1rem)] sm:max-h-[92dvh] overflow-hidden flex flex-col gap-0 p-0"
+        className="w-screen h-[100dvh] max-w-none sm:max-w-none max-h-none rounded-none border-0 flex flex-col gap-0 p-0 overflow-hidden [&>button.absolute]:hidden"
       >
-        <DialogHeader className="shrink-0 px-4 sm:px-5 pt-4 pb-3 border-b border-border/40">
+        <DialogHeader className="shrink-0 px-4 sm:px-5 pt-4 pb-3 border-b border-border/40 bg-background">
           <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={onClose} aria-label="Fechar">
+              <X className="h-5 w-5" />
+            </Button>
             <div className="h-10 w-10 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
               <TrendingUp className="h-5 w-5 text-primary" />
             </div>
@@ -152,10 +163,25 @@ export function GoalYearlyEvolutionDialog({
                 Comparativo mês a mês entre o realizado (barras) e a meta (linha).
               </DialogDescription>
             </div>
+            <div className="hidden sm:flex items-center gap-2">
+              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setYear((y) => y - 1)} aria-label="Ano anterior">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="min-w-[90px] text-center rounded-lg border border-border bg-card px-3 py-1.5">
+                <span className="text-base font-bold text-foreground tabular-nums">{year}</span>
+              </div>
+              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setYear((y) => y + 1)} aria-label="Próximo ano">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              {year !== currentYear && (
+                <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => setYear(currentYear)}>
+                  Hoje
+                </Button>
+              )}
+            </div>
           </div>
 
-          {/* Year selector */}
-          <div className="mt-3 flex items-center justify-center gap-2">
+          <div className="mt-3 flex sm:hidden items-center justify-center gap-2">
             <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setYear((y) => y - 1)} aria-label="Ano anterior">
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -173,9 +199,9 @@ export function GoalYearlyEvolutionDialog({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 sm:px-5 py-3 space-y-3">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 sm:px-5 py-3 flex flex-col gap-3">
           {/* Totais rápidos */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 shrink-0">
             <div className="rounded-lg border border-border bg-card/60 p-2.5 sm:p-3 text-center">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Realizado no ano (média)</p>
               <p className="text-sm sm:text-base font-bold text-success mt-1">{fmt(totals.realizedAvg, unit, hidden)}</p>
@@ -196,12 +222,11 @@ export function GoalYearlyEvolutionDialog({
             </div>
           </div>
 
-
-          {/* Gráfico */}
-          <div className="rounded-lg border border-border bg-card p-2 sm:p-3">
-            <div className="w-full min-w-0 h-[300px] sm:h-[min(40dvh,340px)] lg:h-[min(42dvh,360px)]">
+          {/* Gráfico ocupa espaço restante */}
+          <div className="rounded-lg border border-border bg-card p-2 sm:p-3 flex-1 min-h-[280px] flex flex-col">
+            <div className="w-full min-w-0 flex-1 min-h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={data} margin={{ top: 10, right: 8, left: 0, bottom: 18 }}>
+                <ComposedChart data={data} margin={{ top: isMobile ? 10 : 24, right: 12, left: 0, bottom: 18 }}>
                   <defs>
                     <linearGradient id="goalBarFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.95} />
@@ -271,7 +296,16 @@ export function GoalYearlyEvolutionDialog({
                     radius={[6, 6, 0, 0]}
                     maxBarSize={44}
                     animationDuration={600}
-                  />
+                  >
+                    {!isMobile && (
+                      <LabelList
+                        dataKey="realized"
+                        position="top"
+                        formatter={labelFmt}
+                        style={{ fontSize: 10, fill: "hsl(var(--primary))", fontWeight: 600 }}
+                      />
+                    )}
+                  </Bar>
                   <Line
                     type="monotone"
                     dataKey="target"
@@ -281,13 +315,22 @@ export function GoalYearlyEvolutionDialog({
                     dot={{ r: 3, fill: "hsl(var(--success))", strokeWidth: 0 }}
                     activeDot={{ r: 5 }}
                     animationDuration={700}
-                  />
+                  >
+                    {!isMobile && (
+                      <LabelList
+                        dataKey="target"
+                        position="bottom"
+                        formatter={labelFmt}
+                        style={{ fontSize: 10, fill: "hsl(var(--success))", fontWeight: 600 }}
+                      />
+                    )}
+                  </Line>
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          <p className="text-[10px] text-muted-foreground text-center italic">
+          <p className="text-[10px] text-muted-foreground text-center italic shrink-0">
             Passe o mouse (ou toque) sobre um mês para ver o detalhamento completo.
           </p>
         </div>
