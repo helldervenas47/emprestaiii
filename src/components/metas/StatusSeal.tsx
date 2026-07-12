@@ -11,7 +11,6 @@ interface Props {
  */
 export function StatusSeal({ ok, size = 56 }: Props) {
   const label = ok ? "BOM" : "ATENÇÃO";
-  const sub = ok ? "DESEMPENHO" : "REVISAR";
   const Icon = ok ? ThumbsUp : AlertTriangle;
 
   // Cores via tokens do design system
