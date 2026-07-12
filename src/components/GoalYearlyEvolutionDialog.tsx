@@ -62,6 +62,15 @@ export function GoalYearlyEvolutionDialog({
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState<number>(currentYear);
 
+  // Fonte única para Capital Ativo: mesmos snapshots usados no card.
+  const currentActiveCapital = useMemo(
+    () => loans
+      .filter((l: any) => l.status !== "completed" && l.status !== "paid")
+      .reduce((s: number, l: any) => s + (Number(l.remainingAmount ?? (l as any).remaining_amount) || 0), 0),
+    [loans]
+  );
+  const { currentMonth: acCurrentMonth, getSnapshotAmount } = useActiveCapitalSnapshots(currentActiveCapital);
+
   const data = useMemo(() => {
     const today = new Date();
     const currentMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
