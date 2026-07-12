@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, Search, User } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, User, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DatePickerField } from "@/components/ui/date-picker-field";
@@ -13,7 +13,10 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useEmployees } from "@/hooks/useEmployees";
+import { useEmployeeGoalBonuses } from "@/hooks/useEmployeeGoalBonuses";
 import type { Employee, PaymentType, SalaryItem } from "@/types/salary";
+import { EmployeeGoalBonusSection, type GoalBonusDraft } from "./EmployeeGoalBonusSection";
+import { EmployeeGoalBonusHistory } from "./EmployeeGoalBonusHistory";
 import { toast } from "sonner";
 
 const BRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -22,10 +25,12 @@ interface Props { readOnly?: boolean }
 
 export function EmployeeManager({ readOnly }: Props) {
   const { employees, addEmployee, updateEmployee, deleteEmployee } = useEmployees();
+  const { getForEmployee, upsertForEmployee, removeForEmployee } = useEmployeeGoalBonuses();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [toDelete, setToDelete] = useState<Employee | null>(null);
+  const [historyOf, setHistoryOf] = useState<Employee | null>(null);
 
   const filtered = employees.filter((e) =>
     e.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -71,12 +76,17 @@ export function EmployeeManager({ readOnly }: Props) {
                 <span className="font-semibold">{BRL(e.baseSalary)}</span>
               </div>
               <div className="text-xs text-muted-foreground capitalize">Pagamento: {e.paymentType}</div>
-              {!readOnly && (
-                <div className="flex gap-2 pt-1">
-                  <Button data-mutation size="sm" variant="outline" className="flex-1" onClick={() => handleEdit(e)}><Pencil className="h-3 w-3" /> Editar</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setToDelete(e)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                </div>
-              )}
+              <div className="flex gap-2 pt-1">
+                <Button size="sm" variant="outline" onClick={() => setHistoryOf(e)} title="Bônus por metas">
+                  <Trophy className="h-3 w-3 text-primary" />
+                </Button>
+                {!readOnly && (
+                  <>
+                    <Button data-mutation size="sm" variant="outline" className="flex-1" onClick={() => handleEdit(e)}><Pencil className="h-3 w-3" /> Editar</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setToDelete(e)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  </>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -91,14 +101,29 @@ export function EmployeeManager({ readOnly }: Props) {
         open={open}
         onOpenChange={setOpen}
         initial={editing}
-        onSave={async (data) => {
+        initialBonus={editing ? getForEmployee(editing.id) : null}
+        onSave={async (data, bonus) => {
           try {
+            let empId = editing?.id ?? null;
             if (editing) {
               await updateEmployee(editing.id, data);
               toast.success("Funcionário atualizado");
             } else {
-              await addEmployee(data as any);
+              const created = await addEmployee(data as any);
+              empId = created?.id ?? null;
               toast.success("Funcionário cadastrado");
+            }
+            if (empId) {
+              if (bonus.enabled) {
+                if (!bonus.startDate) {
+                  toast.warning("Informe a data de início da vigência do bônus.");
+                } else {
+                  await upsertForEmployee(empId, bonus);
+                }
+              } else {
+                // Se havia config anterior e o usuário desativou, remove.
+                await removeForEmployee(empId);
+              }
             }
             setOpen(false);
           } catch (e: any) {
@@ -120,15 +145,25 @@ export function EmployeeManager({ readOnly }: Props) {
           }
         }}
       />
+
+      <Dialog open={!!historyOf} onOpenChange={(o) => !o && setHistoryOf(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Bônus por metas — {historyOf?.name}</DialogTitle>
+          </DialogHeader>
+          {historyOf && <EmployeeGoalBonusHistory employeeId={historyOf.id} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function EmployeeFormDialog({ open, onOpenChange, initial, onSave }: {
+function EmployeeFormDialog({ open, onOpenChange, initial, initialBonus, onSave }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   initial: Employee | null;
-  onSave: (data: Partial<Employee>) => void | Promise<void>;
+  initialBonus: import("@/hooks/useEmployeeGoalBonuses").EmployeeGoalBonus | null;
+  onSave: (data: Partial<Employee>, bonus: GoalBonusDraft) => void | Promise<void>;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [cpf, setCpf] = useState(initial?.cpf ?? "");
@@ -146,6 +181,14 @@ function EmployeeFormDialog({ open, onOpenChange, initial, onSave }: {
   const [benefits, setBenefits] = useState<SalaryItem[]>(initial?.benefits ?? []);
   const [deductions, setDeductions] = useState<SalaryItem[]>(initial?.deductions ?? []);
   const [addToIncomes, setAddToIncomes] = useState<boolean>(initial?.addToIncomes ?? false);
+  const [bonusDraft, setBonusDraft] = useState<GoalBonusDraft>(() => ({
+    enabled: initialBonus?.enabled ?? false,
+    minScore: initialBonus?.minScore ?? 70,
+    bonusAmount: initialBonus?.bonusAmount ?? 0,
+    startDate: initialBonus?.startDate ?? "",
+    endDate: initialBonus?.endDate ?? null,
+    notes: initialBonus?.notes ?? null,
+  }));
 
   // Resync form whenever the dialog opens with a different employee
   useEffect(() => {
@@ -166,7 +209,15 @@ function EmployeeFormDialog({ open, onOpenChange, initial, onSave }: {
     setBenefits(initial?.benefits ?? []);
     setDeductions(initial?.deductions ?? []);
     setAddToIncomes(initial?.addToIncomes ?? false);
-  }, [open, initial]);
+    setBonusDraft({
+      enabled: initialBonus?.enabled ?? false,
+      minScore: initialBonus?.minScore ?? 70,
+      bonusAmount: initialBonus?.bonusAmount ?? 0,
+      startDate: initialBonus?.startDate ?? "",
+      endDate: initialBonus?.endDate ?? null,
+      notes: initialBonus?.notes ?? null,
+    });
+  }, [open, initial, initialBonus]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,7 +239,7 @@ function EmployeeFormDialog({ open, onOpenChange, initial, onSave }: {
       benefits,
       deductions,
       addToIncomes,
-    });
+    }, bonusDraft);
   };
 
   return (
@@ -250,6 +301,12 @@ function EmployeeFormDialog({ open, onOpenChange, initial, onSave }: {
             </div>
             <Switch checked={addToIncomes} onCheckedChange={setAddToIncomes} />
           </div>
+
+          <EmployeeGoalBonusSection
+            initial={initialBonus}
+            value={bonusDraft}
+            onChange={setBonusDraft}
+          />
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
