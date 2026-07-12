@@ -223,7 +223,7 @@ export function GoalYearlyEvolutionDialog({
                           </div>
                           <div className="flex justify-between gap-4">
                             <span className="text-muted-foreground">Atingimento</span>
-                            <span className={`font-semibold ${okColor}`}>{d.target > 0 ? `${d.pct.toFixed(1)}%` : "—"}</span>
+                            <span className={`font-semibold ${okColor}`}>{d.target > 0 ? `${d.pct.toFixed(2).replace(".", ",")}%` : "—"}</span>
                           </div>
                           <div className="flex justify-between gap-4">
                             <span className="text-muted-foreground">Diferença</span>
