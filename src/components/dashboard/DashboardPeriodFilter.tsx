@@ -31,7 +31,7 @@ export function DashboardPeriodFilter({ rangeLabel, period, onPrev, onNext, onRe
             type="button"
             onClick={onReset}
             title="Voltar para o período atual"
-            className="h-9 min-w-[140px] md:min-w-[180px] px-3 rounded-lg text-sm font-medium text-foreground text-center hover:text-primary hover:bg-accent/40 transition-colors tabular-nums"
+            className="h-9 min-w-[110px] md:min-w-[180px] px-2 md:px-3 rounded-lg text-xs md:text-sm font-medium text-foreground text-center hover:text-primary hover:bg-accent/40 transition-colors tabular-nums"
           >
             {rangeLabel}
           </button>
