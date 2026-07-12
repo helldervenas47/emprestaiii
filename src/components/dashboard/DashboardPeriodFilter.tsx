@@ -17,7 +17,7 @@ export function DashboardPeriodFilter({ rangeLabel, period, onPrev, onNext, onRe
     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <h2 className="text-lg md:text-xl font-semibold text-foreground leading-tight">Visão Geral</h2>
       <div className="flex items-center justify-between gap-2 flex-nowrap md:justify-start md:gap-3">
-        <div className="flex items-center gap-1 md:gap-2 md:order-2">
+        <div className="flex items-center gap-1 md:gap-2 md:order-1">
           <Button
             variant="ghost"
             size="icon"
