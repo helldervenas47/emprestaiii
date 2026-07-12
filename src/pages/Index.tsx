@@ -128,6 +128,9 @@ const NotificationSettings = lazy(() =>
 const MonthlyGoalsManager = lazy(() =>
   import("@/components/MonthlyGoalsManager").then((m) => ({ default: m.MonthlyGoalsManager })),
 );
+const MetasTab = lazy(() =>
+  import("@/components/metas/MetasTab").then((m) => ({ default: m.MetasTab })),
+);
 const AccountantReport = lazy(() =>
   import("@/components/AccountantReport").then((m) => ({ default: m.AccountantReport })),
 );
