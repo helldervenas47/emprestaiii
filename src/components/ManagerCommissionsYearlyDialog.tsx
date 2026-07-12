@@ -204,7 +204,7 @@ export function ManagerCommissionsYearlyDialog({
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={rows} margin={{ top: 12, right: 8, left: 0, bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={{ stroke: "hsl(var(--border))" }} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={{ stroke: "hsl(var(--border))" }} interval={0} minTickGap={0} />
                   <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={{ stroke: "hsl(var(--border))" }} tickFormatter={(v: number) => fmtCompactBRL(v)} width={70} />
                   <Tooltip
                     cursor={{ fill: "hsl(var(--primary) / 0.06)" }}
