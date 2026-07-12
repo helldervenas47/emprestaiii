@@ -171,11 +171,11 @@ export function GoalYearlyEvolutionDialog({
         <DialogHeader
           className="shrink-0 relative px-4 sm:px-5 pb-3 border-b border-border/40 bg-background pt-[max(env(safe-area-inset-top),0.75rem)] sm:pt-4"
         >
-          {/* Botão fechar fixo no canto superior esquerdo (respeita safe-area) */}
+          {/* Botão fechar: absoluto no mobile (canto sup. esquerdo) / inline no desktop/tablet */}
           <Button
             variant="ghost"
             size="icon"
-            className="absolute left-3 sm:left-4 top-[max(env(safe-area-inset-top),0.5rem)] sm:top-3 h-9 w-9 z-10"
+            className="sm:hidden absolute left-3 top-[max(env(safe-area-inset-top),0.5rem)] h-9 w-9 z-10"
             onClick={onClose}
             aria-label="Fechar"
           >
@@ -198,7 +198,10 @@ export function GoalYearlyEvolutionDialog({
           </div>
 
           {/* Desktop/Tablet: layout em linha */}
-          <div className="hidden sm:flex items-center gap-3 pl-12">
+          <div className="hidden sm:flex items-center gap-3">
+            <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={onClose} aria-label="Fechar">
+              <X className="h-5 w-5" />
+            </Button>
             <div className="h-10 w-10 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
               <TrendingUp className="h-5 w-5 text-primary" />
             </div>
