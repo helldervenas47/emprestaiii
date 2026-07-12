@@ -1292,13 +1292,14 @@ function getInstallmentDueMonth(
   return `${dueDt.getFullYear()}-${String(dueDt.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, installmentSchedules }: DialogProps) {
+function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, installmentSchedules, expenses, clients, renegotiations }: DialogProps) {
   const { hidden } = useHideValues();
   const { upsertGoal } = useMonthlyGoals();
   const { settings } = useAccountSettings();
   const [creating, setCreating] = useState(false);
   const [editingCreate, setEditingCreate] = useState(false);
   const [newTarget, setNewTarget] = useState<string>("");
+  const [showEvolution, setShowEvolution] = useState(false);
 
   // Reset edição ao trocar de meta/mês
   useMemo(() => {
