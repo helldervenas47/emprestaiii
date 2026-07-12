@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useMonthlyGoals, GoalType } from "@/hooks/useMonthlyGoals";
 import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
 import { Loan, Payment, Expense, Client, InstallmentSchedule } from "@/types/loan";
 import { GoalYearlyChartCard } from "./GoalYearlyChartCard";
 import { ManagerCommissionsYearlyCard } from "./ManagerCommissionsYearlyCard";
+import { ActiveTooltipProvider, useActiveTooltip } from "./ActiveTooltipContext";
 import { Target } from "lucide-react";
 
 type Unit = "%" | "R$" | "qtd";
