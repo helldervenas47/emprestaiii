@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { assertWritable } from "@/lib/readOnlyState";
 
+let cachedBonuses: EmployeeGoalBonus[] = [];
+
 export interface EmployeeGoalBonus {
   id: string;
   employeeId: string;
@@ -36,11 +38,12 @@ function rowToBonus(r: any): EmployeeGoalBonus {
 
 export function useEmployeeGoalBonuses() {
   const { user, dataOwnerId } = useAuth();
-  const [bonuses, setBonuses] = useState<EmployeeGoalBonus[]>([]);
+  const [bonuses, setBonuses] = useState<EmployeeGoalBonus[]>(cachedBonuses);
   const [loading, setLoading] = useState(false);
 
   const fetchAll = useCallback(async () => {
     if (!user) {
+      cachedBonuses = [];
       setBonuses([]);
       return;
     }
@@ -54,7 +57,9 @@ export function useEmployeeGoalBonuses() {
       setLoading(false);
       return;
     }
-    setBonuses(((data as any[]) ?? []).map(rowToBonus));
+    const next = ((data as any[]) ?? []).map(rowToBonus);
+    cachedBonuses = next;
+    setBonuses(next);
     setLoading(false);
   }, [user]);
 
@@ -110,7 +115,7 @@ export function useEmployeeGoalBonuses() {
       if (insertError) throw insertError;
     }
     await fetchAll();
-  }, [dataOwnerId, bonuses, fetchAll]);
+  }, [dataOwnerId, fetchAll]);
 
   const removeForEmployee = useCallback(async (employeeId: string) => {
     assertWritable();
