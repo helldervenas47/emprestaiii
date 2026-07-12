@@ -25,10 +25,12 @@ interface Props { readOnly?: boolean }
 
 export function EmployeeManager({ readOnly }: Props) {
   const { employees, addEmployee, updateEmployee, deleteEmployee } = useEmployees();
+  const { getForEmployee, upsertForEmployee, removeForEmployee } = useEmployeeGoalBonuses();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [toDelete, setToDelete] = useState<Employee | null>(null);
+  const [historyOf, setHistoryOf] = useState<Employee | null>(null);
 
   const filtered = employees.filter((e) =>
     e.name.toLowerCase().includes(search.toLowerCase()) ||
