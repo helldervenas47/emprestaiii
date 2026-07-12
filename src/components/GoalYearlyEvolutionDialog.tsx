@@ -211,6 +211,8 @@ export function GoalYearlyEvolutionDialog({
                     tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                     tickLine={false}
                     axisLine={{ stroke: "hsl(var(--border))" }}
+                    interval={0}
+                    minTickGap={0}
                   />
                   <YAxis
                     tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}

@@ -314,22 +314,33 @@ export function ManagerCommissionsChart({
                 <p className="text-[10px] text-muted-foreground">Exibindo: {filterLabel}{rangeLabel ? ` • ${rangeLabel}` : ""}</p>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-2 w-full sm:w-auto sm:flex sm:gap-6">
-              <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
-                <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Pendente</p>
-                <p className="text-xs sm:text-sm font-bold text-primary leading-tight">{mask(rawFormatCurrency(totalProjected))}</p>
-              </div>
-              <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
-                <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Pago</p>
-                <p className="text-xs sm:text-sm font-bold text-success leading-tight">{mask(rawFormatCurrency(totalPaid))}</p>
-              </div>
-              <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
-                <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Total</p>
-                <p className="text-xs sm:text-sm font-bold text-foreground leading-tight">{mask(rawFormatCurrency(totalGeneral))}</p>
+            <div className="flex items-center gap-3 w-full sm:w-auto sm:gap-4">
+              <Button
+                variant="outline"
+                size="sm"
+                className="hidden sm:inline-flex h-8 text-xs gap-1.5 shrink-0"
+                onClick={() => setYearlyOpen(true)}
+              >
+                <TrendingUp className="h-3.5 w-3.5" />
+                Ver evolução anual
+              </Button>
+              <div className="grid grid-cols-3 gap-2 w-full sm:w-auto sm:flex sm:gap-6">
+                <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
+                  <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Pendente</p>
+                  <p className="text-xs sm:text-sm font-bold text-primary leading-tight">{mask(rawFormatCurrency(totalProjected))}</p>
+                </div>
+                <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
+                  <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Pago</p>
+                  <p className="text-xs sm:text-sm font-bold text-success leading-tight">{mask(rawFormatCurrency(totalPaid))}</p>
+                </div>
+                <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
+                  <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Total</p>
+                  <p className="text-xs sm:text-sm font-bold text-foreground leading-tight">{mask(rawFormatCurrency(totalGeneral))}</p>
+                </div>
               </div>
             </div>
           </div>
-          <div className="flex justify-center sm:justify-end">
+          <div className="flex justify-center sm:hidden">
             <Button
               variant="outline"
               size="sm"
