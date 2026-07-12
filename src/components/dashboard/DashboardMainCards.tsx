@@ -80,7 +80,7 @@ export function DashboardMainCards({
   formatCurrency,
 }: Props) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5 items-stretch">
       {/* Saldo em Conta */}
       <Card no3d className="animate-fade-in h-full" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
         <CardContent className="p-4 h-full relative flex flex-col">
