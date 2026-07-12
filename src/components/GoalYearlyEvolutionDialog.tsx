@@ -94,7 +94,17 @@ export function GoalYearlyEvolutionDialog({
       const target = exactGoal ? Number(exactGoal.targetValue) || 0 : 0;
 
       const diff = inverse ? target - realized : realized - target;
-      const pct = target > 0 ? (realized / target) * 100 : 0;
+      // Atingimento inverso: quanto menor o realizado, melhor. target/realized*100.
+      let pct = 0;
+      if (target > 0) {
+        if (inverse) {
+          pct = realized <= 0 ? 200 : (target / realized) * 100;
+        } else {
+          pct = (realized / target) * 100;
+        }
+      } else if (inverse && target === 0) {
+        pct = realized === 0 ? 100 : 0;
+      }
 
       return {
         month: MONTH_LABELS[i],
@@ -114,9 +124,15 @@ export function GoalYearlyEvolutionDialog({
     const n = valid.length;
     const realizedAvg = n > 0 ? valid.reduce((s, d) => s + d.realized, 0) / n : 0;
     const targetAvg = n > 0 ? valid.reduce((s, d) => s + d.target, 0) / n : 0;
-    const attainmentPct = targetAvg > 0 ? (realizedAvg / targetAvg) * 100 : 0;
-    return { realizedAvg, targetAvg, attainmentPct, activeMonths: n };
-  }, [data]);
+    let attainmentPct = 0;
+    if (targetAvg > 0) {
+      attainmentPct = inverse ? (realizedAvg <= 0 ? 200 : (targetAvg / realizedAvg) * 100) : (realizedAvg / targetAvg) * 100;
+    } else if (inverse && targetAvg === 0) {
+      attainmentPct = realizedAvg === 0 ? 100 : 0;
+    }
+    const isPositive = inverse ? realizedAvg <= targetAvg : realizedAvg >= targetAvg;
+    return { realizedAvg, targetAvg, attainmentPct, activeMonths: n, isPositive };
+  }, [data, inverse]);
 
 
   return (
