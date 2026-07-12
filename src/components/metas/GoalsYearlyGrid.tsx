@@ -1,15 +1,21 @@
 import { useMemo, useState, useCallback } from "react";
 import { useMonthlyGoals, GoalType } from "@/hooks/useMonthlyGoals";
 import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
+import { useGoalSnapshots } from "@/hooks/useGoalSnapshots";
+import { useActiveCapitalSnapshots } from "@/hooks/useActiveCapitalSnapshots";
+import { useGoalScoreWeights } from "@/hooks/useGoalScoreWeights";
 import { Loan, Payment, Expense, Client, InstallmentSchedule } from "@/types/loan";
 import { GoalYearlyChartCard } from "./GoalYearlyChartCard";
 import { ManagerCommissionsYearlyCard } from "./ManagerCommissionsYearlyCard";
 import { ActiveTooltipProvider, useActiveTooltip } from "./ActiveTooltipContext";
+import { PeriodFilterCard } from "./PeriodFilterCard";
+import { ScoreCard, VariationCard } from "./ScoreCards";
 import { Target } from "lucide-react";
+import { getPreviousPeriod, PeriodSelection } from "@/lib/metasPeriod";
+import { computePeriodScore } from "@/lib/metasScore";
 
 type Unit = "%" | "R$" | "qtd";
 
-// Sincronizado com GOAL_TYPE_META em GoalsCard.tsx
 const GOAL_META: Record<GoalType, { label: string; unit: Unit; inverse?: boolean }> = {
   interest_rate:      { label: "Taxa de Juros Mensal", unit: "%" },
   profit:             { label: "Faturamento do Período", unit: "%" },
@@ -46,13 +52,14 @@ export function GoalsYearlyGrid({
 }: Props) {
   const { goals, loading } = useMonthlyGoals();
   const { renegotiations } = useLoanRenegotiations();
-  const [year, setYear] = useState<number>(new Date().getFullYear());
+  const [period, setPeriod] = useState<PeriodSelection>({
+    mode: "year",
+    year: new Date().getFullYear(),
+  });
 
-  // Exibir todas as metas cadastradas (qualquer goalType com pelo menos uma meta em qualquer mês).
   const goalTypes = useMemo<GoalType[]>(() => {
     const set = new Set<GoalType>();
     goals.forEach((g) => set.add(g.goalType));
-    // Manter ordem consistente com ALL_GOAL_TYPES.
     return ALL_GOAL_TYPES.filter((t) => set.has(t));
   }, [goals]);
 
@@ -64,27 +71,11 @@ export function GoalsYearlyGrid({
     );
   }
 
-  if (goalTypes.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 py-16 text-center border border-dashed border-border rounded-xl bg-muted/20">
-        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <Target className="h-6 w-6 text-primary" />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-foreground">Nenhuma meta cadastrada</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Vá em <span className="font-medium">Configuração de Metas</span> para cadastrar sua primeira meta.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <ActiveTooltipProvider>
       <GridInner
-        year={year}
-        setYear={setYear}
+        period={period}
+        setPeriod={setPeriod}
         goalTypes={goalTypes}
         loans={loans}
         payments={payments}
@@ -98,8 +89,8 @@ export function GoalsYearlyGrid({
 }
 
 function GridInner(props: {
-  year: number;
-  setYear: (y: number) => void;
+  period: PeriodSelection;
+  setPeriod: (p: PeriodSelection) => void;
   goalTypes: GoalType[];
   loans: Loan[];
   payments: Payment[];
@@ -108,40 +99,85 @@ function GridInner(props: {
   installmentSchedules: InstallmentSchedule[];
   renegotiations: ReturnType<typeof useLoanRenegotiations>["renegotiations"];
 }) {
-  const { year, setYear, goalTypes, loans, payments, expenses, clients, installmentSchedules, renegotiations } = props;
+  const { period, setPeriod, goalTypes, loans, payments, expenses, clients, installmentSchedules, renegotiations } = props;
   const { clearAll } = useActiveTooltip("__grid__");
-  const handleYearChange = useCallback((y: number) => { clearAll(); setYear(y); }, [clearAll, setYear]);
+  const { goals } = useMonthlyGoals();
+  const { getSnapshot } = useGoalSnapshots();
+  const { weights } = useGoalScoreWeights();
+
+  const currentActiveCapital = useMemo(
+    () => loans
+      .filter((l: any) => l.status !== "completed" && l.status !== "paid")
+      .reduce((s: number, l: any) => s + (Number(l.remainingAmount ?? l.remaining_amount) || 0), 0),
+    [loans],
+  );
+  const { currentMonth: acCurrentMonth, getSnapshotAmount } = useActiveCapitalSnapshots(currentActiveCapital);
+
+  const scoreInputs = useMemo(() => ({
+    loans, payments, expenses, clients, installmentSchedules, renegotiations,
+    goals, getSnapshot, acCurrentMonth, currentActiveCapital, getSnapshotAmount,
+  }), [loans, payments, expenses, clients, installmentSchedules, renegotiations, goals, getSnapshot, acCurrentMonth, currentActiveCapital, getSnapshotAmount]);
+
+  const currentScore = useMemo(() => computePeriodScore(period, weights, scoreInputs), [period, weights, scoreInputs]);
+  const previousScore = useMemo(() => computePeriodScore(getPreviousPeriod(period), weights, scoreInputs), [period, weights, scoreInputs]);
+
+  const handlePeriodChange = useCallback((p: PeriodSelection) => { clearAll(); setPeriod(p); }, [clearAll, setPeriod]);
+  const handleYearChange = useCallback((y: number) => { clearAll(); setPeriod({ ...period, year: y }); }, [clearAll, period]);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-[440px]">
-      <ManagerCommissionsYearlyCard
-        year={year}
-        onYearChange={handleYearChange}
-        clients={clients}
-        loans={loans}
-        payments={payments}
-      />
-      {goalTypes.map((gt) => {
-        const meta = GOAL_META[gt];
-        return (
-          <GoalYearlyChartCard
-            key={gt}
-            goalType={gt}
-            goalLabel={meta.label}
-            unit={meta.unit}
-            inverse={meta.inverse}
-            year={year}
+    <div className="space-y-4">
+      {/* 4 cards de topo */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        <ScoreCard label="Pontuação Atual" value={currentScore.total} max={100} variant="current" />
+        <ScoreCard label="Pontuação Anterior" value={previousScore.total} max={100} variant="previous" />
+        <VariationCard current={currentScore.total} previous={previousScore.total} />
+        <PeriodFilterCard value={period} onChange={handlePeriodChange} />
+      </div>
+
+      {goalTypes.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-16 text-center border border-dashed border-border rounded-xl bg-muted/20">
+          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+            <Target className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground">Nenhuma meta cadastrada</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Vá em <span className="font-medium">Configuração de Metas</span> para cadastrar sua primeira meta.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-[440px]">
+          <ManagerCommissionsYearlyCard
+            year={period.year}
             onYearChange={handleYearChange}
+            clients={clients}
             loans={loans}
             payments={payments}
-            expenses={expenses}
-            clients={clients}
-            installmentSchedules={installmentSchedules}
-            renegotiations={renegotiations}
-            compact
           />
-        );
-      })}
+          {goalTypes.map((gt) => {
+            const meta = GOAL_META[gt];
+            return (
+              <GoalYearlyChartCard
+                key={gt}
+                goalType={gt}
+                goalLabel={meta.label}
+                unit={meta.unit}
+                inverse={meta.inverse}
+                year={period.year}
+                onYearChange={handleYearChange}
+                loans={loans}
+                payments={payments}
+                expenses={expenses}
+                clients={clients}
+                installmentSchedules={installmentSchedules}
+                renegotiations={renegotiations}
+                compact
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
