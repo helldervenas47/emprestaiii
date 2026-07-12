@@ -35,17 +35,17 @@ function fmt(v: number, unit: Unit, hidden: boolean): string {
   if (!isFinite(v)) return "—";
   if (hidden && unit === "R$") return "R$ ••••";
   if (unit === "R$") return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
-  if (unit === "%") return `${v.toFixed(2)}%`;
-  return v.toFixed(2);
+  if (unit === "%") return `${v.toFixed(2).replace(".", ",")}%`;
+  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(Math.round(v));
 }
 
 function fmtCompact(v: number, unit: Unit): string {
   if (!isFinite(v)) return "—";
-  if (unit === "%") return `${v.toFixed(2)}%`;
-  if (unit === "qtd") return v.toFixed(2);
+  if (unit === "%") return `${v.toFixed(2).replace(".", ",")}%`;
+  if (unit === "qtd") return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(Math.round(v));
   const abs = Math.abs(v);
-  if (abs >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(2)}M`;
-  if (abs >= 1_000) return `R$ ${(v / 1_000).toFixed(2)}k`;
+  if (abs >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(2).replace(".", ",")}M`;
+  if (abs >= 1_000) return `R$ ${(v / 1_000).toFixed(2).replace(".", ",")}k`;
   return `R$ ${v.toFixed(2)}`;
 }
 
