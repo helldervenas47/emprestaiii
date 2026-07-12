@@ -438,20 +438,29 @@ function ScoreWeightsCard() {
 
   const reset = () => setDraft(null);
   const hasChanges = !!draft;
+  const [open, setOpen] = useState(false);
 
   return (
     <Card no3d>
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            className="flex items-center gap-2 text-left hover:opacity-80 transition-opacity"
+            aria-expanded={open}
+          >
             <Target className="h-5 w-5 text-primary" />
             <div>
-              <h3 className="font-semibold text-foreground">Pontuação das Metas</h3>
+              <h3 className="font-semibold text-foreground flex items-center gap-1.5">
+                Pontuação das Metas
+                <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`} />
+              </h3>
               <p className="text-xs text-muted-foreground">
                 Cada meta tem um peso. Meta atingida = peso cheio; não atingida = 0. Soma deve ser exatamente 100.
               </p>
             </div>
-          </div>
+          </button>
           <div className="flex items-center gap-2">
             <Badge
               variant={draftTotal === 100 ? "default" : "destructive"}
