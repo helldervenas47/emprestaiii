@@ -265,6 +265,7 @@ export function GoalYearlyChartCard({
               width={54}
             />
             <Tooltip
+              {...(isActive ? {} : { active: false })}
               cursor={{ fill: "hsl(var(--primary) / 0.06)" }}
               content={({ active, payload }) => {
                 if (!active || !payload || !payload.length) return null;
