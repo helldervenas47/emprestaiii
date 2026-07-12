@@ -18,6 +18,7 @@ import { Loan, Payment, Expense, Client, InstallmentSchedule, LoanRenegotiation 
 import { todayInAppTz, formatYmdInAppTz } from "@/lib/timezone";
 import { useActiveCapitalSnapshots } from "@/hooks/useActiveCapitalSnapshots";
 import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
+import { allocateInterestByPayment } from "@/lib/interestAllocation";
 import { assertWritable } from "@/lib/readOnlyState";
 import {
   Target, Percent, TrendingUp, Banknote, FileText,
@@ -271,85 +272,14 @@ function fmtValue(v: number, unit: Unit, hidden: boolean): string {
 //    para o último pagamento (captura bônus/descontos na quitação).
 //  - Soma o juros alocado aos pagamentos com data no mês `m`.
 function computeProfitRealized(loans: Loan[], payments: Payment[], m: string): number {
-  const getLoanId = (p: any) => p.loanId || p.loan_id;
-  const getInstNum = (p: any) => (p.installmentNumber ?? p.installment_number);
-  const getDate = (p: any) => p.date || "";
-  const getCreatedAt = (p: any) => p.createdAt ?? p.created_at ?? "";
-
   const paymentsSorted = [...payments].sort((a: any, b: any) => {
-    const d = getDate(a).localeCompare(getDate(b));
+    const d = (a.date || "").localeCompare(b.date || "");
     if (d !== 0) return d;
-    return getCreatedAt(a).localeCompare(getCreatedAt(b));
+    return (a.createdAt ?? a.created_at ?? "").localeCompare(b.createdAt ?? b.created_at ?? "");
   });
-
-  const interestByPaymentId = new Map<string, number>();
-  const loanInterestRemaining = new Map<string, number>();
-  loans.forEach((l: any) => {
-    const principal = Number(l.amount) || 0;
-    const rate = Number(l.interestRate ?? l.interest_rate) || 0;
-    const inst = Number(l.installments) || 1;
-    const total = calculateTotalWithInterest(principal, rate, inst);
-    loanInterestRemaining.set(l.id, Math.max(0, total - principal));
-  });
-
-  paymentsSorted.forEach((p: any) => {
-    const amt = Number(p.amount) || 0;
-    if (amt <= 0) { interestByPaymentId.set(p.id, 0); return; }
-    const loanId = getLoanId(p);
-    if (getInstNum(p) === 0 || getInstNum(p) === -2) {
-      // Juros avulso / multa-encargos (late_fee): 100% juros
-      interestByPaymentId.set(p.id, amt);
-      const rem = loanInterestRemaining.get(loanId) ?? 0;
-      loanInterestRemaining.set(loanId, Math.max(0, rem - amt));
-    } else if (getInstNum(p) === -3) {
-      // Amortização: 100% principal
-      interestByPaymentId.set(p.id, 0);
-    } else if (getInstNum(p) === -1) {
-      // Pagamento parcial: juros proporcional à composição da operação
-      const loan = loans.find((l: any) => l.id === loanId);
-      const principal = Number(loan?.amount) || 0;
-      const rate = Number((loan as any)?.interestRate ?? (loan as any)?.interest_rate) || 0;
-      const inst = Number(loan?.installments) || 1;
-      const totalWithInterest = loan ? calculateTotalWithInterest(principal, rate, inst) : 0;
-      const ratio = totalWithInterest > 0 ? Math.max(0, 1 - principal / totalWithInterest) : 0;
-      const rem = loanInterestRemaining.get(loanId) ?? 0;
-      const interest = Math.min(rem, Math.max(0, amt * ratio));
-      interestByPaymentId.set(p.id, interest);
-      loanInterestRemaining.set(loanId, Math.max(0, rem - interest));
-    } else {
-      // Parcela regular: juros proporcional à composição da operação
-      const loan = loans.find((l: any) => l.id === loanId);
-      const principal = Number((loan as any)?.amount) || 0;
-      const rate = Number((loan as any)?.interestRate ?? (loan as any)?.interest_rate) || 0;
-      const inst = Number((loan as any)?.installments) || 1;
-      const totalWithInterest = loan ? calculateTotalWithInterest(principal, rate, inst) : 0;
-      const ratio = totalWithInterest > 0 ? Math.max(0, 1 - principal / totalWithInterest) : 0;
-      const rem = loanInterestRemaining.get(loanId) ?? 0;
-      const interest = Math.min(rem, Math.max(0, amt * ratio));
-      interestByPaymentId.set(p.id, interest);
-      loanInterestRemaining.set(loanId, Math.max(0, rem - interest));
-    }
-  });
-
-  const lastPaymentByLoanId = new Map<string, string>();
-  paymentsSorted.forEach((p: any) => { lastPaymentByLoanId.set(getLoanId(p), p.id); });
-
-  loans.forEach((l: any) => {
-    if (l.status !== "paid") return;
-    const lastId = lastPaymentByLoanId.get(l.id);
-    if (!lastId) return;
-    const loanPays = payments.filter((p: any) => getLoanId(p) === l.id);
-    const totalPaid = loanPays.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
-    const allocated = loanPays.reduce((s: number, p: any) => s + (interestByPaymentId.get(p.id) ?? 0), 0);
-    const principalRef = Number(l.originalAmount ?? l.original_amount ?? l.amount ?? 0);
-    const diff = (totalPaid - principalRef) - allocated;
-    if (Math.abs(diff) < 0.005) return;
-    const cur = interestByPaymentId.get(lastId) ?? 0;
-    interestByPaymentId.set(lastId, Math.max(0, cur + diff));
-  });
-
+  const interestByPaymentId = allocateInterestByPayment(loans as any, paymentsSorted as any);
   return payments
-    .filter((p: any) => inMonth(getDate(p), m))
+    .filter((p: any) => inMonth(p.date || "", m))
     .reduce((s: number, p: any) => s + (interestByPaymentId.get(p.id) ?? 0), 0);
 }
 
