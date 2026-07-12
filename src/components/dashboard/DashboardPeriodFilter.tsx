@@ -14,10 +14,10 @@ interface Props {
 
 export function DashboardPeriodFilter({ rangeLabel, period, onPrev, onNext, onReset, onChangePeriod }: Props) {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <h2 className="text-lg md:text-xl font-semibold text-foreground leading-tight">Visão Geral</h2>
-      <div className="flex items-center justify-between gap-3 flex-wrap md:flex-nowrap">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-end gap-3 flex-wrap md:flex-nowrap">
+        <div className="flex items-center gap-2 md:order-2">
           <Button
             variant="ghost"
             size="icon"
@@ -45,7 +45,7 @@ export function DashboardPeriodFilter({ rangeLabel, period, onPrev, onNext, onRe
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <div className="grid grid-cols-3 h-9 w-[210px] rounded-lg bg-muted/60 p-0.5 border border-border/30 backdrop-blur-sm">
+        <div className="grid grid-cols-3 h-9 w-[210px] rounded-lg bg-muted/60 p-0.5 border border-border/30 backdrop-blur-sm md:order-1">
           {(["day", "week", "month"] as Period[]).map((p) => (
             <button
               key={p}
