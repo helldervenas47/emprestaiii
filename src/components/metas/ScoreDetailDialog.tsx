@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { GoalType } from "@/hooks/useMonthlyGoals";
 import { computeMonthResult, type RealizedInputs } from "@/lib/metasMonthResult";
 import { isGoalReached, monthKey } from "@/lib/metasPeriod";
@@ -108,14 +108,6 @@ export function ScoreDetailDialog({ open, onOpenChange, weights, inputs }: Props
               aria-label="Próximo ano"
             >
               <ChevronRight className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              className="ml-2 p-1 rounded-md hover:bg-muted"
-              aria-label="Fechar"
-            >
-              <X className="h-4 w-4" />
             </button>
           </div>
         </div>
