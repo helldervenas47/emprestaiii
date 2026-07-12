@@ -11,7 +11,6 @@ interface Props {
  */
 export function StatusSeal({ ok, size = 56 }: Props) {
   const label = ok ? "BOM" : "ATENÇÃO";
-  const sub = ok ? "DESEMPENHO" : "REVISAR";
   const Icon = ok ? ThumbsUp : AlertTriangle;
 
   // Cores via tokens do design system
@@ -74,12 +73,6 @@ export function StatusSeal({ ok, size = 56 }: Props) {
           style={{ width: size * 0.28, height: size * 0.28 }}
           strokeWidth={2.5}
         />
-        <span
-          className="text-background font-black leading-none mt-0.5"
-          style={{ fontSize: size * 0.12, letterSpacing: "0.3px" }}
-        >
-          {sub}
-        </span>
       </div>
     </div>
   );
