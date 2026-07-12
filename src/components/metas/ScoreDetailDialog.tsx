@@ -1,5 +1,6 @@
-import { useMemo } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useMemo, useState } from "react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import type { GoalType } from "@/hooks/useMonthlyGoals";
 import { computeMonthResult, type RealizedInputs } from "@/lib/metasMonthResult";
 import { isGoalReached, monthKey } from "@/lib/metasPeriod";
@@ -31,7 +32,7 @@ interface Props {
 }
 
 export function ScoreDetailDialog({ open, onOpenChange, weights, inputs }: Props) {
-  const year = new Date().getFullYear();
+  const [year, setYear] = useState(new Date().getFullYear());
 
   const { rows, monthTotals, grandTotal } = useMemo(() => {
     const goalTypes = (Object.keys(weights) as GoalType[]).filter((gt) => Number(weights[gt] || 0) > 0);
@@ -61,16 +62,61 @@ export function ScoreDetailDialog({ open, onOpenChange, weights, inputs }: Props
     const grandTotal = monthTotals.reduce((s, v) => s + v, 0);
 
     return { rows, monthTotals, grandTotal };
-  }, [weights, inputs, year, open]);
+  }, [weights, inputs, year]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] md:max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Pontuação das Metas — {year}</DialogTitle>
-        </DialogHeader>
+      <DialogContent
+        className="p-0 gap-0 w-screen h-[100dvh] max-w-none sm:max-w-none sm:rounded-none border-0 translate-x-0 translate-y-0 left-0 top-0 flex flex-col"
+        style={{ transform: "none" }}
+      >
+        {/* Cabeçalho fixo */}
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border bg-background shrink-0">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-foreground hover:bg-muted"
+            aria-label="Voltar"
+          >
+            <ChevronLeft className="h-5 w-5" />
+            <span className="hidden sm:inline">Voltar</span>
+          </button>
 
-        <div className="overflow-auto flex-1">
+          <DialogTitle className="text-base sm:text-lg font-semibold truncate">
+            Pontuação das Metas
+          </DialogTitle>
+
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setYear((y) => y - 1)}
+              className="p-1 rounded-md hover:bg-muted"
+              aria-label="Ano anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="tabular-nums text-sm font-medium w-12 text-center">{year}</span>
+            <button
+              type="button"
+              onClick={() => setYear((y) => y + 1)}
+              className="p-1 rounded-md hover:bg-muted"
+              aria-label="Próximo ano"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="ml-2 p-1 rounded-md hover:bg-muted"
+              aria-label="Fechar"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Conteúdo com rolagem */}
+        <div className="flex-1 overflow-auto">
           <table className="w-full text-sm border-collapse">
             <thead className="sticky top-0 bg-background z-10">
               <tr className="border-b border-border">
@@ -101,15 +147,12 @@ export function ScoreDetailDialog({ open, onOpenChange, weights, inputs }: Props
                       {r.label}
                     </td>
                     {r.monthly.map((v, i) => (
-                      <td
-                        key={i}
-                        className={`py-2 px-2 text-right tabular-nums ${v > 0 ? "text-foreground" : "text-muted-foreground"}`}
-                      >
-                        {v}
+                      <td key={i} className="py-2 px-2 text-right tabular-nums text-foreground">
+                        {v > 0 ? v : ""}
                       </td>
                     ))}
                     <td className="py-2 px-3 text-right tabular-nums font-semibold bg-muted/20">
-                      {r.total}
+                      {r.total > 0 ? r.total : ""}
                     </td>
                   </tr>
                 ))
@@ -120,9 +163,9 @@ export function ScoreDetailDialog({ open, onOpenChange, weights, inputs }: Props
                 <tr className="border-t-2 border-border font-semibold bg-muted/40">
                   <td className="py-3 px-3 sticky left-0 bg-muted/40 z-10">Pontuação Geral</td>
                   {monthTotals.map((v, i) => (
-                    <td key={i} className="py-3 px-2 text-right tabular-nums">{v}</td>
+                    <td key={i} className="py-3 px-2 text-right tabular-nums">{v > 0 ? v : ""}</td>
                   ))}
-                  <td className="py-3 px-3 text-right tabular-nums bg-muted/60">{grandTotal}</td>
+                  <td className="py-3 px-3 text-right tabular-nums bg-muted/60">{grandTotal > 0 ? grandTotal : ""}</td>
                 </tr>
               </tfoot>
             )}
