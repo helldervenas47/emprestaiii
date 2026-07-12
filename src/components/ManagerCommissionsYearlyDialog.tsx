@@ -146,10 +146,13 @@ export function ManagerCommissionsYearlyDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
         style={{ padding: 0 }}
-        className="w-[calc(100vw_-_1rem)] sm:max-w-5xl max-h-[calc(100dvh_-_1rem)] sm:max-h-[92dvh] overflow-hidden flex flex-col gap-0 p-0"
+        className="w-screen h-[100dvh] max-w-none sm:max-w-none max-h-none rounded-none border-0 flex flex-col gap-0 p-0 overflow-hidden [&>button.absolute]:hidden"
       >
-        <DialogHeader className="shrink-0 px-4 sm:px-5 pt-4 pb-3 border-b border-border/40">
+        <DialogHeader className="shrink-0 px-4 sm:px-5 pt-4 pb-3 border-b border-border/40 bg-background">
           <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={onClose} aria-label="Fechar">
+              <X className="h-5 w-5" />
+            </Button>
             <div className="h-10 w-10 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
               <TrendingUp className="h-5 w-5 text-primary" />
             </div>
@@ -159,9 +162,25 @@ export function ManagerCommissionsYearlyDialog({
                 Valor real de comissões pagas em cada mês, agrupado por gerente.
               </DialogDescription>
             </div>
+            <div className="hidden sm:flex items-center gap-2">
+              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setYear((y) => y - 1)} aria-label="Ano anterior">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="min-w-[90px] text-center rounded-lg border border-border bg-card px-3 py-1.5">
+                <span className="text-base font-bold text-foreground tabular-nums">{year}</span>
+              </div>
+              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setYear((y) => y + 1)} aria-label="Próximo ano">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              {year !== currentYear && (
+                <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => setYear(currentYear)}>
+                  Hoje
+                </Button>
+              )}
+            </div>
           </div>
 
-          <div className="mt-3 flex items-center justify-center gap-2">
+          <div className="mt-3 flex sm:hidden items-center justify-center gap-2">
             <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setYear((y) => y - 1)} aria-label="Ano anterior">
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -179,8 +198,8 @@ export function ManagerCommissionsYearlyDialog({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 sm:px-5 py-3 space-y-3">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 sm:px-5 py-3 flex flex-col gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 shrink-0">
             <div className="rounded-lg border border-border bg-card/60 p-2.5 sm:p-3 text-center">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total anual</p>
               <p className="text-sm sm:text-base font-bold text-success mt-1">{fmtBRL(totalYear, hidden)}</p>
@@ -204,10 +223,10 @@ export function ManagerCommissionsYearlyDialog({
             </div>
           </div>
 
-          <div className="rounded-lg border border-border bg-card p-2 sm:p-3">
-            <div className="w-full min-w-0 h-[300px] sm:h-[min(40dvh,340px)] lg:h-[min(42dvh,360px)]">
+          <div className="rounded-lg border border-border bg-card p-2 sm:p-3 flex-1 min-h-[280px] flex flex-col">
+            <div className="w-full min-w-0 flex-1 min-h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={rows} margin={{ top: 10, right: 8, left: 0, bottom: 18 }}>
+                <BarChart data={rows} margin={{ top: isMobile ? 10 : 24, right: 12, left: 0, bottom: 18 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
                   <XAxis dataKey="month" height={34} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} tickMargin={8} axisLine={{ stroke: "hsl(var(--border))" }} interval={0} minTickGap={0} />
                   <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={{ stroke: "hsl(var(--border))" }} tickFormatter={(v: number) => fmtCompactBRL(v)} width={70} />
@@ -234,16 +253,25 @@ export function ManagerCommissionsYearlyDialog({
                     radius={[6, 6, 0, 0]}
                     maxBarSize={44}
                     animationDuration={600}
-                  />
+                  >
+                    {!isMobile && (
+                      <LabelList
+                        dataKey="total"
+                        position="top"
+                        formatter={(v: number) => (v > 0 ? fmtBRL(v, hidden) : "")}
+                        style={{ fontSize: 10, fill: "hsl(var(--primary))", fontWeight: 600 }}
+                      />
+                    )}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
             {managersInYear.length === 0 && (
-              <p className="text-center text-sm text-muted-foreground py-4">Sem comissões registradas em {year}.</p>
+              <p className="text-center text-sm text-muted-foreground py-2">Sem comissões registradas em {year}.</p>
             )}
           </div>
 
-          <p className="text-[10px] text-muted-foreground text-center italic">
+          <p className="text-[10px] text-muted-foreground text-center italic shrink-0">
             Passe o mouse (ou toque) sobre um mês para ver a participação de cada gerente.
           </p>
         </div>
