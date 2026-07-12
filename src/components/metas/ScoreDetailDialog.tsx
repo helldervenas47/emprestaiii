@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { GoalType } from "@/hooks/useMonthlyGoals";
 import { computeMonthResult, type RealizedInputs } from "@/lib/metasMonthResult";
 import { isGoalReached, monthKey } from "@/lib/metasPeriod";
