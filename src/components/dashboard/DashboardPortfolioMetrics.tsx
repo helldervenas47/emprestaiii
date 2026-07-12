@@ -49,17 +49,26 @@ export function DashboardPortfolioMetrics({
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4 items-stretch">
       {items.map((item) => (
-        <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
-          <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center relative">
+        <Card
+          no3d
+          key={item.label}
+          className={`h-full ${item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""}`}
+          onClick={item.onClick}
+        >
+          <CardContent className="h-full p-4 flex flex-col items-center text-center relative gap-2">
             {item.tooltip && <InfoPopover text={item.tooltip} />}
-            {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
-            <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
+            {item.onClick && <Eye className="h-3.5 w-3.5 text-muted-foreground absolute top-2 right-2" />}
+            <div className={`h-9 w-9 rounded-lg ${item.iconBg} flex items-center justify-center shrink-0`}>
               <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
             </div>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</p>
-            <p className={`text-sm sm:text-lg font-bold ${item.color} mt-0.5`}>{item.value}</p>
+            <p className="text-xs font-medium text-muted-foreground leading-tight min-h-[32px] flex items-center justify-center px-1">
+              {item.label}
+            </p>
+            <p className={`text-base md:text-lg font-bold tabular-nums leading-tight ${item.color} mt-auto`}>
+              {item.value}
+            </p>
           </CardContent>
         </Card>
       ))}
