@@ -1543,6 +1543,15 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
 
         <div className="flex-1 -mx-6 px-6 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
           <div className="space-y-4 pb-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-9 gap-2 border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary"
+              onClick={() => setShowEvolution(true)}
+            >
+              <BarChart3 className="h-4 w-4" />
+              Ver Evolução Anual
+            </Button>
             {/* Resumo */}
             <Card no3d className="bg-muted/30">
               <CardContent className="p-4">
