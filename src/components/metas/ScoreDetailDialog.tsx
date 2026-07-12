@@ -64,7 +64,7 @@ export function ScoreDetailDialog({ open, onOpenChange, weights, inputs }: Props
     const monthTotals = Array.from({ length: 12 }, (_, i) =>
       rows.reduce((s, r) => s + r.monthly[i], 0),
     );
-    const grandTotal = monthTotals.reduce((s, v) => s + v, 0);
+    const grandTotal = rows.reduce((s, r) => s + r.total, 0);
 
     return { rows, monthTotals, grandTotal };
   }, [weights, inputs, year]);
