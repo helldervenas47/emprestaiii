@@ -138,7 +138,7 @@ export function DashboardMainCards({
               </div>
               <p className="text-xs text-muted-foreground">Valores Recebidos</p>
               <p className="text-lg md:text-xl font-bold tabular-nums text-success">{formatCurrency(receivedByMethod.total)}</p>
-              <p className="text-[10px] text-muted-foreground">{range.label}</p>
+              
             </div>
           </div>
           <div className="mt-3 flex-1">
