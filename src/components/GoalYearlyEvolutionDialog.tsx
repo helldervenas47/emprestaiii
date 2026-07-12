@@ -138,7 +138,7 @@ export function GoalYearlyEvolutionDialog({
         hasValidGoal,
       };
     });
-  }, [year, goalType, loans, payments, expenses, clients, installmentSchedules, renegotiations, goals, getSnapshot, inverse]);
+  }, [year, goalType, loans, payments, expenses, clients, installmentSchedules, renegotiations, goals, getSnapshot, inverse, acCurrentMonth, currentActiveCapital, getSnapshotAmount]);
 
   const totals = useMemo(() => {
     const valid = data.filter((d) => d.hasValidGoal && !d.isFuture);
