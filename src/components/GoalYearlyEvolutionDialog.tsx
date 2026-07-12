@@ -34,19 +34,19 @@ interface Props {
 function fmt(v: number, unit: Unit, hidden: boolean): string {
   if (!isFinite(v)) return "—";
   if (hidden && unit === "R$") return "R$ ••••";
-  if (unit === "R$") return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
-  if (unit === "%") return `${v.toFixed(1)}%`;
-  return String(Math.round(v));
+  if (unit === "R$") return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+  if (unit === "%") return `${v.toFixed(2)}%`;
+  return v.toFixed(2);
 }
 
 function fmtCompact(v: number, unit: Unit): string {
   if (!isFinite(v)) return "—";
-  if (unit === "%") return `${v.toFixed(0)}%`;
-  if (unit === "qtd") return String(Math.round(v));
+  if (unit === "%") return `${v.toFixed(2)}%`;
+  if (unit === "qtd") return v.toFixed(2);
   const abs = Math.abs(v);
-  if (abs >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `R$ ${(v / 1_000).toFixed(1)}k`;
-  return `R$ ${Math.round(v)}`;
+  if (abs >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(2)}M`;
+  if (abs >= 1_000) return `R$ ${(v / 1_000).toFixed(2)}k`;
+  return `R$ ${v.toFixed(2)}`;
 }
 
 export function GoalYearlyEvolutionDialog({
@@ -54,7 +54,7 @@ export function GoalYearlyEvolutionDialog({
   loans, payments, expenses, clients, installmentSchedules, renegotiations,
 }: Props) {
   const { hidden } = useHideValues();
-  const { getGoal } = useMonthlyGoals();
+  const { goals } = useMonthlyGoals();
   const { getSnapshot } = useGoalSnapshots();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState<number>(currentYear);
@@ -79,8 +79,10 @@ export function GoalYearlyEvolutionDialog({
         }
       }
 
-      const g = getGoal(goalType, monthKey);
-      const target = g ? Number(g.targetValue) || 0 : 0;
+      // Meta exata (não herdada) apenas
+      const exactGoal = goals.find((g) => g.goalType === goalType && g.month === monthKey);
+      const hasValidGoal = !!exactGoal;
+      const target = exactGoal ? Number(exactGoal.targetValue) || 0 : 0;
 
       const diff = inverse ? target - realized : realized - target;
       const pct = target > 0 ? (realized / target) * 100 : 0;
@@ -93,16 +95,20 @@ export function GoalYearlyEvolutionDialog({
         diff,
         pct,
         isFuture,
+        hasValidGoal,
       };
     });
-  }, [year, goalType, loans, payments, expenses, clients, installmentSchedules, renegotiations, getGoal, getSnapshot, inverse]);
+  }, [year, goalType, loans, payments, expenses, clients, installmentSchedules, renegotiations, goals, getSnapshot, inverse]);
 
   const totals = useMemo(() => {
-    const realizedTotal = data.reduce((s, d) => s + (d.isFuture ? 0 : d.realized), 0);
-    const targetTotal = data.reduce((s, d) => s + d.target, 0);
-    const activeMonths = data.filter((d) => !d.isFuture).length;
-    return { realizedTotal, targetTotal, activeMonths };
+    const valid = data.filter((d) => d.hasValidGoal && !d.isFuture);
+    const n = valid.length;
+    const realizedAvg = n > 0 ? valid.reduce((s, d) => s + d.realized, 0) / n : 0;
+    const targetAvg = n > 0 ? valid.reduce((s, d) => s + d.target, 0) / n : 0;
+    const attainmentPct = targetAvg > 0 ? (realizedAvg / targetAvg) * 100 : 0;
+    return { realizedAvg, targetAvg, attainmentPct, activeMonths: n };
   }, [data]);
+
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -141,20 +147,27 @@ export function GoalYearlyEvolutionDialog({
 
         <div className="flex-1 overflow-auto px-3 sm:px-6 py-4 space-y-4">
           {/* Totais rápidos */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             <div className="rounded-lg border border-border bg-card/60 p-3 text-center">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Realizado no ano</p>
-              <p className="text-sm sm:text-base font-bold text-success mt-1">{fmt(totals.realizedTotal, unit, hidden)}</p>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Realizado no ano (média)</p>
+              <p className="text-sm sm:text-base font-bold text-success mt-1">{fmt(totals.realizedAvg, unit, hidden)}</p>
             </div>
             <div className="rounded-lg border border-border bg-card/60 p-3 text-center">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Meta acumulada</p>
-              <p className="text-sm sm:text-base font-bold text-foreground mt-1">{fmt(totals.targetTotal, unit, hidden)}</p>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Meta acumulada (média)</p>
+              <p className="text-sm sm:text-base font-bold text-foreground mt-1">{fmt(totals.targetAvg, unit, hidden)}</p>
             </div>
-            <div className="rounded-lg border border-border bg-card/60 p-3 text-center col-span-2 sm:col-span-1">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Meses com dados</p>
-              <p className="text-sm sm:text-base font-bold text-primary mt-1">{totals.activeMonths} / 12</p>
+            <div className="rounded-lg border border-border bg-card/60 p-3 text-center">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Meses considerados</p>
+              <p className="text-sm sm:text-base font-bold text-primary mt-1">{totals.activeMonths} de 12</p>
+            </div>
+            <div className="rounded-lg border border-border bg-card/60 p-3 text-center">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Resultado anual</p>
+              <p className={`text-sm sm:text-base font-bold mt-1 ${totals.attainmentPct >= 100 ? "text-success" : "text-destructive"}`}>
+                {totals.targetAvg > 0 ? `${totals.attainmentPct.toFixed(2)}% da meta` : "—"}
+              </p>
             </div>
           </div>
+
 
           {/* Gráfico */}
           <div className="rounded-lg border border-border bg-card p-2 sm:p-4">
