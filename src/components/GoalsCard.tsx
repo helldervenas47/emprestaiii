@@ -1260,6 +1260,9 @@ interface DialogProps {
   payments: Payment[];
   loans: Loan[];
   installmentSchedules: InstallmentSchedule[];
+  expenses: Expense[];
+  clients: Client[];
+  renegotiations: LoanRenegotiation[];
 }
 
 // Calcula o mês de vencimento (YYYY-MM) de uma parcela específica de um empréstimo.
