@@ -181,6 +181,14 @@ function EmployeeFormDialog({ open, onOpenChange, initial, initialBonus, onSave 
   const [benefits, setBenefits] = useState<SalaryItem[]>(initial?.benefits ?? []);
   const [deductions, setDeductions] = useState<SalaryItem[]>(initial?.deductions ?? []);
   const [addToIncomes, setAddToIncomes] = useState<boolean>(initial?.addToIncomes ?? false);
+  const [bonusDraft, setBonusDraft] = useState<GoalBonusDraft>(() => ({
+    enabled: initialBonus?.enabled ?? false,
+    minScore: initialBonus?.minScore ?? 70,
+    bonusAmount: initialBonus?.bonusAmount ?? 0,
+    startDate: initialBonus?.startDate ?? "",
+    endDate: initialBonus?.endDate ?? null,
+    notes: initialBonus?.notes ?? null,
+  }));
 
   // Resync form whenever the dialog opens with a different employee
   useEffect(() => {
@@ -201,7 +209,15 @@ function EmployeeFormDialog({ open, onOpenChange, initial, initialBonus, onSave 
     setBenefits(initial?.benefits ?? []);
     setDeductions(initial?.deductions ?? []);
     setAddToIncomes(initial?.addToIncomes ?? false);
-  }, [open, initial]);
+    setBonusDraft({
+      enabled: initialBonus?.enabled ?? false,
+      minScore: initialBonus?.minScore ?? 70,
+      bonusAmount: initialBonus?.bonusAmount ?? 0,
+      startDate: initialBonus?.startDate ?? "",
+      endDate: initialBonus?.endDate ?? null,
+      notes: initialBonus?.notes ?? null,
+    });
+  }, [open, initial, initialBonus]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -223,7 +239,7 @@ function EmployeeFormDialog({ open, onOpenChange, initial, initialBonus, onSave 
       benefits,
       deductions,
       addToIncomes,
-    });
+    }, bonusDraft);
   };
 
   return (
