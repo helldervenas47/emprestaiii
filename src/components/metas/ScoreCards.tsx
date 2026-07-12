@@ -45,12 +45,12 @@ export function VariationCard({ current, previous }: { current: number; previous
   const color = neutral ? "text-muted-foreground" : positive ? "text-success" : "text-destructive";
   const Icon = neutral ? Minus : positive ? TrendingUp : TrendingDown;
   return (
-    <div className="rounded-xl border border-border bg-card p-3 flex flex-col gap-1 h-full">
-      <div className="flex items-center justify-between">
+    <div className="rounded-xl border border-border bg-card p-3 flex flex-col items-center text-center gap-1 h-full">
+      <div className="flex items-center justify-center gap-1.5 w-full">
         <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Variação</p>
         <Icon className={`h-3.5 w-3.5 ${color}`} />
       </div>
-      <div className="flex items-baseline gap-1">
+      <div className="flex items-baseline justify-center gap-1">
         <span className={`text-3xl font-bold tabular-nums ${color}`}>
           {positive ? "+" : ""}{Math.round(diff)}
         </span>
