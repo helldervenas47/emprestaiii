@@ -190,6 +190,7 @@ function EmployeeFormDialog({ open, onOpenChange, initial, initialBonus, onSave 
   const [benefits, setBenefits] = useState<SalaryItem[]>(initial?.benefits ?? []);
   const [deductions, setDeductions] = useState<SalaryItem[]>(initial?.deductions ?? []);
   const [addToIncomes, setAddToIncomes] = useState<boolean>(initial?.addToIncomes ?? false);
+  const [bonusDirty, setBonusDirty] = useState(false);
   const [bonusDraft, setBonusDraft] = useState<GoalBonusDraft>(() => ({
     enabled: initialBonus?.enabled ?? false,
     minScore: initialBonus?.minScore ?? 70,
@@ -218,6 +219,7 @@ function EmployeeFormDialog({ open, onOpenChange, initial, initialBonus, onSave 
     setBenefits(initial?.benefits ?? []);
     setDeductions(initial?.deductions ?? []);
     setAddToIncomes(initial?.addToIncomes ?? false);
+    setBonusDirty(false);
     setBonusDraft({
       enabled: initialBonus?.enabled ?? false,
       minScore: initialBonus?.minScore ?? 70,
@@ -232,6 +234,29 @@ function EmployeeFormDialog({ open, onOpenChange, initial, initialBonus, onSave 
     // back to false while the user is still editing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial?.id]);
+
+  useEffect(() => {
+    if (!open || !initial?.id || !initialBonus || bonusDirty) return;
+    setBonusDraft({
+      enabled: initialBonus.enabled,
+      minScore: initialBonus.minScore,
+      bonusAmount: initialBonus.bonusAmount,
+      startDate: initialBonus.startDate,
+      endDate: initialBonus.endDate,
+      notes: initialBonus.notes,
+    });
+  }, [
+    open,
+    initial?.id,
+    initialBonus?.id,
+    initialBonus?.enabled,
+    initialBonus?.minScore,
+    initialBonus?.bonusAmount,
+    initialBonus?.startDate,
+    initialBonus?.endDate,
+    initialBonus?.notes,
+    bonusDirty,
+  ]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -319,7 +344,10 @@ function EmployeeFormDialog({ open, onOpenChange, initial, initialBonus, onSave 
           <EmployeeGoalBonusSection
             initial={initialBonus}
             value={bonusDraft}
-            onChange={setBonusDraft}
+            onChange={(next) => {
+              setBonusDirty(true);
+              setBonusDraft(next);
+            }}
           />
 
           <DialogFooter>
