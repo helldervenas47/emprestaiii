@@ -346,9 +346,10 @@ export function GoalYearlyEvolutionDialog({
                     }}
                   />
                   <Legend
-                    verticalAlign="top"
-                    height={28}
-                    wrapperStyle={{ fontSize: 12, color: "hsl(var(--muted-foreground))" }}
+                    verticalAlign={isMobile ? "bottom" : "top"}
+                    align="center"
+                    height={isMobile ? 24 : 28}
+                    wrapperStyle={{ fontSize: 12, color: "hsl(var(--muted-foreground))", paddingTop: isMobile ? 4 : 0 }}
                     iconType="circle"
                   />
                   <Bar
