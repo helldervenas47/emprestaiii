@@ -45,7 +45,7 @@ export function DashboardPeriodFilter({ rangeLabel, period, onPrev, onNext, onRe
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <div className="grid grid-cols-3 h-9 w-[210px] rounded-lg bg-muted/60 p-0.5 border border-border/30 backdrop-blur-sm">
+        <div className="grid grid-cols-3 h-9 w-[210px] rounded-lg bg-muted/60 p-0.5 border border-border/30 backdrop-blur-sm md:order-1">
           {(["day", "week", "month"] as Period[]).map((p) => (
             <button
               key={p}
