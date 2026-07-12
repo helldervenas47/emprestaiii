@@ -96,23 +96,37 @@ export function useEmployeeGoalBonuses() {
       notes: patch.notes,
     };
 
+    const syncSavedRow = (row: any) => {
+      if (!row) return;
+      const saved = rowToBonus(row);
+      cachedBonuses = [
+        saved,
+        ...cachedBonuses.filter((b) => b.employeeId !== saved.employeeId),
+      ];
+      setBonuses(cachedBonuses);
+    };
+
     // Atualiza por funcionário em vez de depender apenas do estado local.
     // Assim, ao sair/voltar da aba ou salvar logo após o carregamento, a config
     // existente não é perdida nem duplicada e o flag `enabled` fica persistido.
     const { data: updatedRows, error: updateError } = await supabase
       .from("employee_goal_bonuses" as any)
       .update(payload)
+      .eq("user_id", dataOwnerId)
       .eq("employee_id", employeeId)
       .select(COLUMNS);
     if (updateError) throw updateError;
 
     if (!updatedRows || (updatedRows as any[]).length === 0) {
-      const { error: insertError } = await supabase
+      const { data: insertedRow, error: insertError } = await supabase
         .from("employee_goal_bonuses" as any)
         .insert(payload)
         .select(COLUMNS)
         .single();
       if (insertError) throw insertError;
+      syncSavedRow(insertedRow);
+    } else {
+      syncSavedRow((updatedRows as any[])[0]);
     }
     await fetchAll();
   }, [dataOwnerId, fetchAll]);

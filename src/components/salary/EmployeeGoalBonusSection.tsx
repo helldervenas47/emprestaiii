@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -24,16 +23,6 @@ interface Props {
 }
 
 export function EmployeeGoalBonusSection({ initial, value, onChange }: Props) {
-  const [amountStr, setAmountStr] = useState(String(value.bonusAmount || ""));
-  const [minScoreStr, setMinScoreStr] = useState(String(value.minScore || ""));
-
-  useEffect(() => {
-    setAmountStr(String(value.bonusAmount || ""));
-    setMinScoreStr(String(value.minScore || ""));
-    // Resync when initial changes (dialog reopen)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initial?.id]);
-
   return (
     <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
       <div className="flex items-start justify-between gap-3">
@@ -71,9 +60,8 @@ export function EmployeeGoalBonusSection({ initial, value, onChange }: Props) {
               max={100}
               step={1}
               inputMode="numeric"
-              value={minScoreStr}
+              value={String(value.minScore ?? "")}
               onChange={(e) => {
-                setMinScoreStr(e.target.value);
                 onChange({ ...value, minScore: Math.max(0, Math.min(100, Number(e.target.value) || 0)) });
               }}
             />
@@ -81,9 +69,8 @@ export function EmployeeGoalBonusSection({ initial, value, onChange }: Props) {
           <div>
             <Label>Valor do bônus (R$)</Label>
             <MoneyInput
-              value={amountStr}
+              value={value.bonusAmount > 0 ? String(value.bonusAmount) : ""}
               onChange={(v) => {
-                setAmountStr(v);
                 onChange({ ...value, bonusAmount: Number(v) || 0 });
               }}
               placeholder="0,00"
