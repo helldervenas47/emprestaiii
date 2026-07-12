@@ -3,6 +3,7 @@ import { useMonthlyGoals, GoalType } from "@/hooks/useMonthlyGoals";
 import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
 import { Loan, Payment, Expense, Client, InstallmentSchedule } from "@/types/loan";
 import { GoalYearlyChartCard } from "./GoalYearlyChartCard";
+import { ManagerCommissionsYearlyCard } from "./ManagerCommissionsYearlyCard";
 import { Target } from "lucide-react";
 
 type Unit = "%" | "R$" | "qtd";
@@ -80,6 +81,13 @@ export function GoalsYearlyGrid({
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-[440px]">
+      <ManagerCommissionsYearlyCard
+        year={year}
+        onYearChange={setYear}
+        clients={clients}
+        loans={loans}
+        payments={payments}
+      />
       {goalTypes.map((gt) => {
         const meta = GOAL_META[gt];
         return (
