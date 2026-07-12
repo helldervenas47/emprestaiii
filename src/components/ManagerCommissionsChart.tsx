@@ -329,7 +329,20 @@ export function ManagerCommissionsChart({
               </div>
             </div>
           </div>
+          <div className="flex justify-center sm:justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              onClick={() => setYearlyOpen(true)}
+            >
+              <TrendingUp className="h-3.5 w-3.5" />
+              Ver evolução anual
+            </Button>
+          </div>
         </div>
+
+
 
         {filteredData.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">
