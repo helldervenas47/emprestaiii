@@ -14,6 +14,7 @@ import {
 import { RowActions } from "@/components/ui/row-actions";
 import { toast } from "sonner";
 import { useMonthlyGoals, GoalType, currentMonthKey, formatMonthLabel } from "@/hooks/useMonthlyGoals";
+import { useGoalScoreWeights } from "@/hooks/useGoalScoreWeights";
 import { computeActual as computeActualFromGoalsCard } from "@/components/GoalsCard";
 import { useLoans } from "@/hooks/useLoans";
 import { useClients } from "@/hooks/useClients";
@@ -183,6 +184,7 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
 
   return (
     <div className="space-y-4 w-full max-w-full overflow-x-hidden">
+      {!readOnly && <ScoreWeightsCard />}
       {!readOnly && (
       <Card no3d>
         <CardContent className="p-4 space-y-4">
