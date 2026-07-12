@@ -512,6 +512,7 @@ function ScoreWeightsCard() {
             );
           })}
         </div>
+        )}
       </CardContent>
     </Card>
   );
