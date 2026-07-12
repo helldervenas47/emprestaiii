@@ -417,24 +417,18 @@ function computeRenegotiationRate(
   const [yy, mm] = m.split("-").map(Number);
   if (!yy || !mm) return 0;
 
-  // Overrides manuais fornecidos pelo usuário (contagem histórica travada
-  // apenas para meses passados, quando os dados de renegociação não existem
-  // mais na base atual). Nunca aplicar ao mês corrente/futuro — sempre
-  // recalcular a partir das renegociações reais.
-  const MANUAL_OVERRIDES: Record<string, number> = {
-    "2026-06": 7,
-  };
-  if (m in MANUAL_OVERRIDES) return MANUAL_OVERRIDES[m];
-
-  // Quantidade de contratos renegociados no mês (cada contrato conta uma única vez).
-  // Usa o fuso configurado do app para não contaminar meses vizinhos (ex.: uma
-  // renegociação feita 01/jul 00:30 BRT chega como 03:30Z e, se comparada em UTC
-  // local do browser, poderia cair em junho).
+  // Quantidade de contratos renegociados no mês (cada contrato conta uma única
+  // vez, ainda que tenha múltiplas renegociações no mesmo mês). Utiliza SEMPRE
+  // a data efetiva da renegociação (`renegotiated_at`) — nunca `created_at`,
+  // vencimento ou update — e o fuso configurado do app para evitar que uma
+  // renegociação feita perto da meia-noite caia no mês vizinho (ex.: 01/jul
+  // 00:30 BRT chega como 03:30Z e, se comparada em UTC, cairia em junho).
+  // Fonte única de verdade: tabela `loan_renegotiations` persistida no banco.
   const seen = new Set<string>();
   (renegotiations || [])
     .filter((r) => {
       const ts = r.renegotiatedAt || r.createdAt;
-      if (!ts) return false;
+      if (!ts || !r.loanId) return false;
       const d = new Date(ts);
       if (isNaN(d.getTime())) return false;
       return formatYmdInAppTz(d).slice(0, 7) === m;
