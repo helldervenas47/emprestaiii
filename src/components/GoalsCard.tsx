@@ -429,6 +429,13 @@ function computeRenegotiationRate(
     .filter((r) => {
       const ts = r.renegotiatedAt || r.createdAt;
       if (!ts || !r.loanId) return false;
+      // `renegotiated_at` é gravado como data ISO "YYYY-MM-DD" (todayInAppTz).
+      // Não converter para Date, pois `new Date("2026-07-01")` é UTC 00:00 e,
+      // em fusos negativos (ex.: BRT-3), retornaria "2026-06-30" — jogando a
+      // renegociação para o mês anterior. Comparamos direto o prefixo AAAA-MM.
+      if (typeof ts === "string" && /^\d{4}-\d{2}-\d{2}/.test(ts)) {
+        return ts.slice(0, 7) === m;
+      }
       const d = new Date(ts);
       if (isNaN(d.getTime())) return false;
       return formatYmdInAppTz(d).slice(0, 7) === m;
