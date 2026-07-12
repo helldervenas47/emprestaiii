@@ -60,6 +60,7 @@ export function ManagerCommissionsYearlyDialog({
 }: Props) {
   const { commissions } = useManagerCommissions(true);
   const { hidden } = useHideValues();
+  const isMobile = useIsMobile();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState<number>(currentYear);
 
