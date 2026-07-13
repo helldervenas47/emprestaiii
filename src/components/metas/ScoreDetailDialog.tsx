@@ -109,6 +109,18 @@ export function ScoreDetailDialog({ open, onOpenChange, weights, inputs }: Props
             >
               <ChevronRight className="h-4 w-4" />
             </button>
+            {/* Botão de fechar dedicado para tablet/desktop — o botão nativo do Radix
+                está oculto pelas classes acima, então garantimos uma saída visível
+                em todas as viewports. */}
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="ml-2 hidden sm:inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-muted text-foreground"
+              aria-label="Fechar"
+              title="Fechar"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
         </div>
 
