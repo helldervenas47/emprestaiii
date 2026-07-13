@@ -13,6 +13,8 @@ import { computeActual } from "@/components/GoalsCard";
 import { Loan, Payment, Expense, Client, InstallmentSchedule, LoanRenegotiation } from "@/types/loan";
 import { useActiveTooltip } from "./ActiveTooltipContext";
 import { StatusSeal } from "./StatusSeal";
+import { computeMonthResult } from "@/lib/metasMonthResult";
+import { computePeriodAverage, getPeriodMonths, isGoalReached, PeriodSelection } from "@/lib/metasPeriod";
 
 type Unit = "%" | "R$" | "qtd";
 
@@ -34,6 +36,8 @@ interface Props {
   renegotiations: LoanRenegotiation[];
   /** Reduced chrome (used inside grid cells) */
   compact?: boolean;
+  /** Período usado para calcular o selo de status (OK / Atenção). */
+  period?: PeriodSelection;
 }
 
 function fmt(v: number, unit: Unit, hidden: boolean): string {
@@ -58,6 +62,7 @@ export function GoalYearlyChartCard({
   goalType, goalLabel, unit, inverse, year, onYearChange,
   loans, payments, expenses, clients, installmentSchedules, renegotiations,
   compact = false,
+  period,
 }: Props) {
   const { hidden } = useHideValues();
   const { goals } = useMonthlyGoals();
@@ -161,8 +166,29 @@ export function GoalYearlyChartCard({
     return fmt(v, unit, hidden);
   };
 
-  const showBadge = totals.activeMonths > 0;
-  const badgeOk = totals.isPositive;
+  // Selo de status: usa o período selecionado (padrão = mês vigente),
+  // independente do resultado anual — mesma lógica dos cards/pontuação.
+  const seal = useMemo(() => {
+    const today = new Date();
+    const effective: PeriodSelection = period ?? {
+      mode: "month",
+      year: today.getFullYear(),
+      month: today.getMonth() + 1,
+    };
+    const months = getPeriodMonths(effective);
+    const rows = months.map((mk) =>
+      computeMonthResult(goalType, mk, {
+        loans, payments, expenses, clients, installmentSchedules, renegotiations,
+        goals, getSnapshot, acCurrentMonth, currentActiveCapital, getSnapshotAmount,
+      }),
+    );
+    const { targetAvg, realizedAvg, validCount } = computePeriodAverage(rows);
+    const ok = validCount > 0 && isGoalReached(!!inverse, targetAvg, realizedAvg);
+    return { show: validCount > 0, ok };
+  }, [period, goalType, inverse, loans, payments, expenses, clients, installmentSchedules, renegotiations, goals, getSnapshot, acCurrentMonth, currentActiveCapital, getSnapshotAmount]);
+
+  const showBadge = seal.show;
+  const badgeOk = seal.ok;
 
   return (
     <div
