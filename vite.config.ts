@@ -77,47 +77,8 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Framework core
           vendor: ["react", "react-dom", "react-router-dom"],
-          query: ["@tanstack/react-query", "@tanstack/query-core"],
-          // UI primitives
-          "radix-overlay": [
-            "@radix-ui/react-dialog",
-            "@radix-ui/react-alert-dialog",
-            "@radix-ui/react-popover",
-            "@radix-ui/react-dropdown-menu",
-            "@radix-ui/react-hover-card",
-            "@radix-ui/react-context-menu",
-            "@radix-ui/react-tooltip",
-          ],
-          "radix-form": [
-            "@radix-ui/react-select",
-            "@radix-ui/react-checkbox",
-            "@radix-ui/react-radio-group",
-            "@radix-ui/react-switch",
-            "@radix-ui/react-slider",
-            "@radix-ui/react-toggle",
-            "@radix-ui/react-toggle-group",
-            "@radix-ui/react-label",
-          ],
-          "radix-layout": [
-            "@radix-ui/react-tabs",
-            "@radix-ui/react-accordion",
-            "@radix-ui/react-collapsible",
-            "@radix-ui/react-scroll-area",
-            "@radix-ui/react-separator",
-            "@radix-ui/react-navigation-menu",
-            "@radix-ui/react-menubar",
-          ],
-          icons: ["lucide-react"],
-          dates: ["date-fns", "react-day-picker"],
-          forms: ["react-hook-form", "@hookform/resolvers", "zod"],
           charts: ["recharts"],
-          supabase: ["@supabase/supabase-js"],
-          offline: ["dexie"],
-          toast: ["sonner"],
-          markdown: ["react-markdown"],
-          // Heavy, page-scoped — kept off the critical path
           pdf: ["jspdf", "jspdf-autotable", "html2pdf.js"],
           excel: ["xlsx"],
           image: ["html-to-image"],
@@ -132,11 +93,6 @@ export default defineConfig(({ mode }) => ({
       "react-router-dom",
       "@tanstack/react-query",
       "@supabase/supabase-js",
-      "date-fns",
-      "sonner",
-      "lucide-react",
-      "clsx",
-      "tailwind-merge",
     ],
   },
 }));
