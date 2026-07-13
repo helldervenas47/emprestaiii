@@ -11,7 +11,7 @@ import { ReadOnlyOverlay } from "@/components/upgrade/ReadOnlyOverlay";
 export function TelegramBotsHub() {
   return (
     <ReadOnlyOverlay message="Seu plano de teste expirou. Os bots cadastrados continuam visíveis, mas não é possível conectar ou alterar configurações sem um plano ativo.">
-    <div className="space-y-4">
+    <div id="telegram-bots-hub" className="space-y-4 scroll-mt-24">
       <Card no3d>
         <CardContent className="p-4">
           <div className="flex items-center gap-2">

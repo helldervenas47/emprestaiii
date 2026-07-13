@@ -15,7 +15,10 @@ export function useWhatsappAssistant() {
   const [loading, setLoading] = useState(false);
 
   const webhookUrl = useMemo(() => {
-    const base = (import.meta.env.VITE_EXTERNAL_SUPABASE_URL as string) || "";
+    const base =
+      (import.meta.env.VITE_EXTERNAL_SUPABASE_URL as string | undefined) ||
+      (import.meta.env.VITE_SUPABASE_URL as string | undefined) ||
+      "";
     return `${base.replace(/\/$/, "")}/functions/v1/whatsapp-assistant-webhook`;
   }, []);
 
@@ -88,12 +91,18 @@ export function useWhatsappAssistant() {
 }
 
 
-const APP_FUNCTIONS_URL = import.meta.env.VITE_EXTERNAL_SUPABASE_URL as string;
-const APP_FUNCTIONS_PUBLISHABLE_KEY = import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY as string;
+const APP_FUNCTIONS_URL =
+  (import.meta.env.VITE_EXTERNAL_SUPABASE_URL as string | undefined) ||
+  (import.meta.env.VITE_SUPABASE_URL as string | undefined) ||
+  "";
+const APP_FUNCTIONS_PUBLISHABLE_KEY =
+  (import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY as string | undefined) ||
+  (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
+  "";
 
 if (!APP_FUNCTIONS_URL || !APP_FUNCTIONS_PUBLISHABLE_KEY) {
   throw new Error(
-    "[telegram] VITE_EXTERNAL_SUPABASE_URL e VITE_EXTERNAL_SUPABASE_ANON_KEY são obrigatórios para chamar as funções do app.",
+    "[telegram] As variáveis do backend são obrigatórias para chamar as funções do app.",
   );
 }
 
