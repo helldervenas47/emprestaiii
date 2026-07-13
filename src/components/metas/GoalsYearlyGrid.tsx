@@ -196,6 +196,7 @@ function GridInner(props: {
                 installmentSchedules={installmentSchedules}
                 renegotiations={renegotiations}
                 compact
+                period={period}
               />
             );
           })}
