@@ -3,6 +3,7 @@ import { Client } from "@/types/loan";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
+import { toast } from "@/hooks/use-toast";
 import {
   cacheRows,
   getCachedRows,
