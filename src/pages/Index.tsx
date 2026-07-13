@@ -527,9 +527,11 @@ const Index = () => {
   const [vehicleSubTab, setVehicleSubTab] = useState<VehicleSubTab>("veiculos");
   const [planMgmtSubTab, setPlanMgmtSubTab] = useState<PlanMgmtSubTab>("subscribers");
   const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("bot-telegram");
-  // Sempre abrir a aba Relatório em "Bot Telegram" por padrão
+  // Ao sair da aba Relatório, reinicia o sub-tab para "Bot Telegram"
+  // (assim, na próxima vez que abrir, ela começa lá — sem sobrescrever
+  // sub-tabs definidos por deep links via app:navigate).
   useEffect(() => {
-    if (tab === "overdue") setOverdueSubTab("bot-telegram");
+    if (tab !== "overdue") setOverdueSubTab("bot-telegram");
   }, [tab]);
   const [expenseSubTab, setExpenseSubTab] = useState<ExpenseSubTab>("personal");
   const [personalSubTab, setPersonalSubTab] = useState<PersonalSubTab>("expenses");
