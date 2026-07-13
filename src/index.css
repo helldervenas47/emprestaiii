@@ -1,4 +1,4 @@
-/* Fonts (Sora display + Manrope body) are preloaded in index.html for perf */
+/* Fonts (Space Grotesk display + DM Sans body) are preloaded in index.html for perf */
 
 @tailwind base;
 @tailwind components;
@@ -25,110 +25,111 @@
 @layer base {
   :root {
     /* ─────────────────────────────────────────
-       Midnight Indigo — Light theme
-       Base clara, sofisticada, com \u00edndigo el\u00e9trico como acento
+       Cloud White + Blue — Light theme
+       Base: #fafbfc / #e8ecf1 / #94a3b8 / #3b82f6
+       Airy SaaS aesthetic, financial clarity
        ───────────────────────────────────────── */
-    --background: 240 30% 98%;
-    --foreground: 240 30% 10%;
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 30% 10%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 30% 10%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 244 76% 59%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 30% 96%;
-    --secondary-foreground: 240 35% 22%;
+    --secondary: 213 27% 94%;
+    --secondary-foreground: 222 47% 20%;
 
-    --muted: 240 20% 95%;
-    --muted-foreground: 240 10% 42%;
+    --muted: 213 27% 95%;
+    --muted-foreground: 215 16% 42%;
 
-    --accent: 244 76% 59%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 213 94% 68%;
+    --accent-foreground: 222 47% 11%;
 
-    --destructive: 0 78% 58%;
+    --destructive: 0 78% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 15% 90%;
-    --input: 240 15% 90%;
-    --ring: 244 76% 59%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 91% 60%;
 
-    --radius: 0.875rem;
+    --radius: 0.75rem;
 
-    --warning: 32 95% 55%;
+    --warning: 32 95% 52%;
     --warning-foreground: 0 0% 100%;
 
-    --success: 158 78% 42%;
+    --success: 152 68% 40%;
     --success-foreground: 0 0% 100%;
 
     --purple: 262 80% 62%;
     --purple-foreground: 0 0% 100%;
 
-    --sidebar-background: 240 30% 99%;
-    --sidebar-foreground: 240 25% 22%;
-    --sidebar-primary: 244 76% 59%;
+    --sidebar-background: 210 20% 99%;
+    --sidebar-foreground: 222 30% 22%;
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 30% 96%;
-    --sidebar-accent-foreground: 240 30% 12%;
-    --sidebar-border: 240 15% 90%;
-    --sidebar-ring: 244 76% 59%;
+    --sidebar-accent: 213 27% 94%;
+    --sidebar-accent-foreground: 222 47% 15%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 217 91% 60%;
   }
 
   .dark {
     /* ─────────────────────────────────────────
-       Midnight Indigo — Dark theme
-       #0a0a1a → #141432 → #1e1e5a → #4f46e5
+       Cloud White + Blue — Dark theme
+       Deep navy surfaces with vivid blue accent
        ───────────────────────────────────────── */
-    --background: 240 43% 7%;
-    --foreground: 240 20% 96%;
+    --background: 222 47% 7%;
+    --foreground: 210 20% 96%;
 
-    --card: 240 43% 11%;
-    --card-foreground: 240 20% 96%;
+    --card: 222 44% 11%;
+    --card-foreground: 210 20% 96%;
 
-    --popover: 240 43% 11%;
-    --popover-foreground: 240 20% 96%;
+    --popover: 222 44% 11%;
+    --popover-foreground: 210 20% 96%;
 
-    --primary: 244 90% 68%;
-    --primary-foreground: 240 43% 8%;
+    --primary: 217 91% 62%;
+    --primary-foreground: 222 47% 8%;
 
-    --secondary: 240 40% 16%;
-    --secondary-foreground: 240 20% 92%;
+    --secondary: 222 35% 16%;
+    --secondary-foreground: 210 20% 92%;
 
-    --muted: 240 35% 14%;
-    --muted-foreground: 240 15% 72%;
+    --muted: 222 30% 14%;
+    --muted-foreground: 215 20% 72%;
 
-    --accent: 244 90% 68%;
-    --accent-foreground: 240 43% 8%;
+    --accent: 213 94% 68%;
+    --accent-foreground: 222 47% 8%;
 
-    --destructive: 0 84% 62%;
-    --destructive-foreground: 240 20% 96%;
+    --destructive: 0 78% 60%;
+    --destructive-foreground: 210 20% 96%;
 
-    --border: 240 30% 20%;
-    --input: 240 30% 20%;
-    --ring: 244 90% 68%;
+    --border: 222 24% 20%;
+    --input: 222 24% 20%;
+    --ring: 217 91% 62%;
 
-    --radius: 1rem;
+    --radius: 0.75rem;
 
-    --warning: 38 92% 60%;
-    --warning-foreground: 240 43% 8%;
+    --warning: 38 92% 58%;
+    --warning-foreground: 222 47% 8%;
 
-    --success: 158 84% 48%;
-    --success-foreground: 240 43% 8%;
+    --success: 152 65% 46%;
+    --success-foreground: 222 47% 8%;
 
     --purple: 262 83% 72%;
-    --purple-foreground: 240 43% 8%;
+    --purple-foreground: 222 47% 8%;
 
-    --sidebar-background: 240 43% 9%;
-    --sidebar-foreground: 240 15% 78%;
-    --sidebar-primary: 244 90% 68%;
-    --sidebar-primary-foreground: 240 43% 8%;
-    --sidebar-accent: 240 43% 12%;
-    --sidebar-accent-foreground: 240 20% 92%;
-    --sidebar-border: 240 30% 20%;
-    --sidebar-ring: 244 90% 68%;
+    --sidebar-background: 222 47% 8%;
+    --sidebar-foreground: 215 20% 78%;
+    --sidebar-primary: 217 91% 62%;
+    --sidebar-primary-foreground: 222 47% 8%;
+    --sidebar-accent: 222 40% 12%;
+    --sidebar-accent-foreground: 210 20% 92%;
+    --sidebar-border: 222 24% 20%;
+    --sidebar-ring: 217 91% 62%;
   }
 }
 
@@ -188,31 +189,31 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: '"DM Sans"', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.005em;
     min-height: 100vh;
     min-height: 100dvh;
     background-image:
-      radial-gradient(1100px 600px at 10% -10%, hsl(244 76% 59% / 0.10), transparent 60%),
-      radial-gradient(900px 500px at 110% 5%, hsl(262 80% 65% / 0.08), transparent 60%),
-      radial-gradient(800px 600px at 50% 110%, hsl(244 90% 68% / 0.06), transparent 65%);
+      radial-gradient(1100px 600px at 10% -10%, hsl(217 91% 60% / 0.08), transparent 60%),
+      radial-gradient(900px 500px at 110% 5%, hsl(213 94% 68% / 0.06), transparent 60%),
+      radial-gradient(800px 600px at 50% 110%, hsl(217 91% 60% / 0.05), transparent 65%);
     background-attachment: fixed;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Sora', 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: '"Space Grotesk"', '"DM Sans"', -apple-system, BlinkMacSystemFont, sans-serif;
     letter-spacing: -0.02em;
     font-feature-settings: 'ss01', 'cv11';
   }
 
   .dark body {
-    background-color: hsl(240 43% 5%);
+    background-color: hsl(222 47% 5%);
     background-image:
-      radial-gradient(1200px 600px at 10% -10%, hsl(244 90% 60% / 0.18), transparent 60%),
-      radial-gradient(900px 500px at 110% 5%, hsl(262 70% 55% / 0.16), transparent 60%),
-      radial-gradient(900px 700px at 50% 115%, hsl(244 80% 40% / 0.14), transparent 65%);
+      radial-gradient(1200px 600px at 10% -10%, hsl(217 91% 55% / 0.20), transparent 60%),
+      radial-gradient(900px 500px at 110% 5%, hsl(213 94% 60% / 0.14), transparent 60%),
+      radial-gradient(900px 700px at 50% 115%, hsl(217 91% 45% / 0.12), transparent 65%);
   }
 
   /* Imersivo: quando rodando como PWA instalado, ocupa tela inteira sem chrome do browser */
@@ -324,36 +325,36 @@
 
 @layer utilities {
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(244 76% 59%), hsl(262 80% 62%));
+    background: linear-gradient(135deg, hsl(217 91% 60%), hsl(213 94% 68%));
   }
   .gradient-success {
-    background: linear-gradient(135deg, hsl(158 78% 42%), hsl(170 65% 38%));
+    background: linear-gradient(135deg, hsl(152 68% 40%), hsl(170 65% 38%));
   }
   .gradient-warning {
     background: linear-gradient(135deg, hsl(32 90% 54%), hsl(20 85% 50%));
   }
   .gradient-card {
-    background: linear-gradient(145deg, hsl(240 40% 14%), hsl(240 43% 9%));
+    background: linear-gradient(145deg, hsl(222 40% 13%), hsl(222 44% 9%));
   }
   .glass {
-    background: hsl(0 0% 100% / 0.65);
+    background: hsl(0 0% 100% / 0.72);
     backdrop-filter: blur(24px) saturate(200%);
     -webkit-backdrop-filter: blur(24px) saturate(200%);
-    border: 1px solid hsl(0 0% 0% / 0.05);
+    border: 1px solid hsl(214 32% 91% / 0.8);
   }
   .dark .glass {
-    background: hsl(230 16% 8% / 0.65);
+    background: hsl(222 44% 10% / 0.65);
     border: 1px solid hsl(0 0% 100% / 0.06);
   }
   .glow-primary {
-    box-shadow: 0 0 20px -8px hsl(225 100% 62% / 0.15),
-                0 0 40px -16px hsl(262 80% 58% / 0.06);
+    box-shadow: 0 0 20px -8px hsl(217 91% 60% / 0.22),
+                0 0 40px -16px hsl(213 94% 68% / 0.10);
   }
   .glow-success {
-    box-shadow: 0 0 20px -8px hsl(160 75% 42% / 0.15);
+    box-shadow: 0 0 20px -8px hsl(152 68% 42% / 0.18);
   }
   .glow-purple {
-    box-shadow: 0 0 20px -8px hsl(262 80% 62% / 0.15);
+    box-shadow: 0 0 20px -8px hsl(217 91% 60% / 0.18);
   }
 
   /* Reusable glassmorphism surface */
@@ -399,7 +400,7 @@
     opacity: 1;
   }
   .btn-gradient-hover--primary::before {
-    background: linear-gradient(90deg, hsl(var(--primary)), hsl(262 80% 58%));
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(213 94% 68%));
   }
   .btn-gradient-hover--destructive::before {
     background: linear-gradient(90deg, hsl(var(--destructive)), hsl(20 85% 50%));
