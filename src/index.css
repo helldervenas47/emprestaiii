@@ -1,4 +1,4 @@
-/* Fonts (Sora display + Manrope body) are preloaded in index.html for perf */
+/* Fonts (Space Grotesk display + DM Sans body) are preloaded in index.html for perf */
 
 @tailwind base;
 @tailwind components;
