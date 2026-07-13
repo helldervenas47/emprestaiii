@@ -224,8 +224,8 @@ export function PersonalAIInsightsCard({
                       new CustomEvent("app:navigate", {
                         detail: {
                           tab: "overdue",
-                          subTab: "cobrancas",
-                          scrollTo: "telegram-reports-config",
+                          subTab: "bot-telegram",
+                          scrollTo: "telegram-bots-hub",
                         },
                       }),
                     );

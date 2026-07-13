@@ -461,7 +461,9 @@ const Index = () => {
       const detail = (e as CustomEvent).detail || {};
       const { tab: targetTab, subTab, scrollTo } = detail;
       if (targetTab) setTab(targetTab);
-      if (subTab && targetTab === "overdue") setOverdueSubTab(subTab);
+      if (targetTab === "overdue" && subTab) {
+        setOverdueSubTab(subTab === "whatsapp-cobranca" ? "whatsapp-cobranca" : "bot-telegram");
+      }
       if (scrollTo) {
         // Wait for tab content to mount
         setTimeout(() => {
