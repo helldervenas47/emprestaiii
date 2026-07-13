@@ -8,6 +8,8 @@
 --
 -- Behavior is unchanged; only the security qualifier is added.
 
+DROP FUNCTION IF EXISTS public.list_my_sessions();
+
 CREATE OR REPLACE FUNCTION public.list_my_sessions()
  RETURNS TABLE(
    id uuid,
