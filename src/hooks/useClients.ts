@@ -3,6 +3,7 @@ import { Client } from "@/types/loan";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
+import { toast } from "@/hooks/use-toast";
 import {
   cacheRows,
   getCachedRows,
@@ -187,6 +188,7 @@ export function useClients() {
 
   const deleteClient = useCallback(async (id: string) => {
     assertWritable();
+    const removed = clients.find((c) => c.id === id) ?? null;
     commit((prev) => prev.filter((c) => c.id !== id));
     await removeCachedRow("clients", id);
     if (!isOnline()) {
@@ -195,9 +197,33 @@ export function useClients() {
     }
     const { error } = await supabase.from("clients").delete().eq("id", id);
     if (error) {
+      const code = (error as any).code as string | undefined;
+      // 23503 = foreign_key_violation; 42501 = insufficient_privilege; PGRST = REST-level errors
+      const isPermanent =
+        code === "23503" ||
+        code === "42501" ||
+        (code ?? "").startsWith("PGRST") ||
+        /row-level|foreign key|violates|permission/i.test(error.message);
+      if (isPermanent) {
+        // Restaura no estado local — o servidor ainda tem o registro.
+        if (removed) commit((prev) => (prev.some((c) => c.id === id) ? prev : [removed, ...prev]));
+        await upsertCachedRow("clients", {
+          id: removed?.id ?? id,
+          name: removed?.name,
+          created_at: removed?.createdAt,
+        });
+        const msg = code === "23503"
+          ? "Este cliente possui empréstimos, vendas ou pagamentos vinculados. Remova-os antes de excluir."
+          : code === "42501"
+            ? "Você não tem permissão para excluir este cliente."
+            : (error.message || "Não foi possível excluir o cliente.");
+        toast({ title: "Não foi possível excluir", description: msg, variant: "destructive" });
+        return;
+      }
+      // Erro transitório (rede, etc.) — enfileira para retry offline.
       await enqueueMutation({ table: "clients", op: "delete", recordId: id });
     }
-  }, [commit]);
+  }, [clients, commit]);
 
   const updateClient = useCallback(async (id: string, data: Partial<Omit<Client, "id" | "createdAt">>) => {
     assertWritable();
