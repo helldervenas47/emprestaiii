@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* Fonts (Sora display + Manrope body) are preloaded in index.html for perf */
 
 @tailwind base;
 @tailwind components;
