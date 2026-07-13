@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* Fonts (Sora display + Manrope body) are preloaded in index.html for perf */
 
 @tailwind base;
 @tailwind components;
@@ -24,33 +24,37 @@
 
 @layer base {
   :root {
-    --background: 220 35% 97%;
-    --foreground: 230 30% 12%;
+    /* ─────────────────────────────────────────
+       Midnight Indigo — Light theme
+       Base clara, sofisticada, com \u00edndigo el\u00e9trico como acento
+       ───────────────────────────────────────── */
+    --background: 240 30% 98%;
+    --foreground: 240 30% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 230 30% 12%;
+    --card-foreground: 240 30% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 230 30% 12%;
+    --popover-foreground: 240 30% 10%;
 
-    --primary: 235 85% 60%;
+    --primary: 244 76% 59%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 60% 95%;
-    --secondary-foreground: 230 35% 28%;
+    --secondary: 240 30% 96%;
+    --secondary-foreground: 240 35% 22%;
 
-    --muted: 220 30% 94%;
-    --muted-foreground: 225 12% 45%;
+    --muted: 240 20% 95%;
+    --muted-foreground: 240 10% 42%;
 
-    --accent: 172 78% 42%;
+    --accent: 244 76% 59%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 82% 60%;
+    --destructive: 0 78% 58%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 20% 88%;
-    --input: 220 20% 88%;
-    --ring: 235 85% 60%;
+    --border: 240 15% 90%;
+    --input: 240 15% 90%;
+    --ring: 244 76% 59%;
 
     --radius: 0.875rem;
 
@@ -63,66 +67,68 @@
     --purple: 262 80% 62%;
     --purple-foreground: 0 0% 100%;
 
-    --sidebar-background: 220 40% 98%;
-    --sidebar-foreground: 230 25% 28%;
-    --sidebar-primary: 235 85% 60%;
+    --sidebar-background: 240 30% 99%;
+    --sidebar-foreground: 240 25% 22%;
+    --sidebar-primary: 244 76% 59%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 60% 95%;
-    --sidebar-accent-foreground: 230 30% 12%;
-    --sidebar-border: 220 20% 88%;
-    --sidebar-ring: 235 85% 60%;
+    --sidebar-accent: 240 30% 96%;
+    --sidebar-accent-foreground: 240 30% 12%;
+    --sidebar-border: 240 15% 90%;
+    --sidebar-ring: 244 76% 59%;
   }
 
   .dark {
-    /* Deep navy base — alinhada ao gradient #0B1120 → #0F172A → #1E293B do FinancialHealthDashboard */
-    --background: 222 47% 8%;
-    --foreground: 210 40% 96%;
+    /* ─────────────────────────────────────────
+       Midnight Indigo — Dark theme
+       #0a0a1a → #141432 → #1e1e5a → #4f46e5
+       ───────────────────────────────────────── */
+    --background: 240 43% 7%;
+    --foreground: 240 20% 96%;
 
-    /* Cards / superfícies translúcidas premium */
-    --card: 222 40% 13%;
-    --card-foreground: 210 40% 96%;
+    --card: 240 43% 11%;
+    --card-foreground: 240 20% 96%;
 
-    --popover: 222 40% 13%;
-    --popover-foreground: 210 40% 96%;
+    --popover: 240 43% 11%;
+    --popover-foreground: 240 20% 96%;
 
-    --primary: 230 90% 65%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 244 90% 68%;
+    --primary-foreground: 240 43% 8%;
 
-    --secondary: 222 30% 18%;
-    --secondary-foreground: 210 30% 88%;
+    --secondary: 240 40% 16%;
+    --secondary-foreground: 240 20% 92%;
 
-    --muted: 222 30% 14%;
-    --muted-foreground: 215 20% 70%;
+    --muted: 240 35% 14%;
+    --muted-foreground: 240 15% 72%;
 
-    --accent: 188 95% 55%;
-    --accent-foreground: 222 47% 8%;
+    --accent: 244 90% 68%;
+    --accent-foreground: 240 43% 8%;
 
     --destructive: 0 84% 62%;
-    --destructive-foreground: 210 40% 96%;
+    --destructive-foreground: 240 20% 96%;
 
-    --border: 215 25% 22%;
-    --input: 215 25% 22%;
-    --ring: 230 90% 65%;
+    --border: 240 30% 20%;
+    --input: 240 30% 20%;
+    --ring: 244 90% 68%;
 
     --radius: 1rem;
 
     --warning: 38 92% 60%;
-    --warning-foreground: 222 47% 8%;
+    --warning-foreground: 240 43% 8%;
 
-    --success: 158 84% 45%;
-    --success-foreground: 222 47% 8%;
+    --success: 158 84% 48%;
+    --success-foreground: 240 43% 8%;
 
-    --purple: 262 83% 70%;
-    --purple-foreground: 222 47% 8%;
+    --purple: 262 83% 72%;
+    --purple-foreground: 240 43% 8%;
 
-    --sidebar-background: 222 47% 9%;
-    --sidebar-foreground: 215 20% 75%;
-    --sidebar-primary: 230 90% 65%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 40% 13%;
-    --sidebar-accent-foreground: 210 30% 90%;
-    --sidebar-border: 215 25% 22%;
-    --sidebar-ring: 230 90% 65%;
+    --sidebar-background: 240 43% 9%;
+    --sidebar-foreground: 240 15% 78%;
+    --sidebar-primary: 244 90% 68%;
+    --sidebar-primary-foreground: 240 43% 8%;
+    --sidebar-accent: 240 43% 12%;
+    --sidebar-accent-foreground: 240 20% 92%;
+    --sidebar-border: 240 30% 20%;
+    --sidebar-ring: 244 90% 68%;
   }
 }
 
@@ -182,24 +188,31 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     letter-spacing: -0.01em;
     min-height: 100vh;
     min-height: 100dvh;
     background-image:
-      radial-gradient(1100px 600px at 10% -10%, hsl(188 95% 55% / 0.10), transparent 60%),
-      radial-gradient(900px 500px at 110% 5%, hsl(262 80% 65% / 0.10), transparent 60%),
-      radial-gradient(800px 600px at 50% 110%, hsl(158 84% 45% / 0.08), transparent 65%);
+      radial-gradient(1100px 600px at 10% -10%, hsl(244 76% 59% / 0.10), transparent 60%),
+      radial-gradient(900px 500px at 110% 5%, hsl(262 80% 65% / 0.08), transparent 60%),
+      radial-gradient(800px 600px at 50% 110%, hsl(244 90% 68% / 0.06), transparent 65%);
     background-attachment: fixed;
   }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sora', 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.02em;
+    font-feature-settings: 'ss01', 'cv11';
+  }
+
   .dark body {
-    background-color: hsl(222 47% 6%);
+    background-color: hsl(240 43% 5%);
     background-image:
-      radial-gradient(1200px 600px at 10% -10%, hsl(188 95% 50% / 0.18), transparent 60%),
+      radial-gradient(1200px 600px at 10% -10%, hsl(244 90% 60% / 0.18), transparent 60%),
       radial-gradient(900px 500px at 110% 5%, hsl(262 70% 55% / 0.16), transparent 60%),
-      radial-gradient(900px 700px at 50% 115%, hsl(158 84% 40% / 0.14), transparent 65%);
+      radial-gradient(900px 700px at 50% 115%, hsl(244 80% 40% / 0.14), transparent 65%);
   }
 
   /* Imersivo: quando rodando como PWA instalado, ocupa tela inteira sem chrome do browser */
@@ -311,16 +324,16 @@
 
 @layer utilities {
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(225 100% 62%), hsl(262 80% 58%));
+    background: linear-gradient(135deg, hsl(244 76% 59%), hsl(262 80% 62%));
   }
   .gradient-success {
-    background: linear-gradient(135deg, hsl(160 75% 42%), hsl(170 65% 38%));
+    background: linear-gradient(135deg, hsl(158 78% 42%), hsl(170 65% 38%));
   }
   .gradient-warning {
     background: linear-gradient(135deg, hsl(32 90% 54%), hsl(20 85% 50%));
   }
   .gradient-card {
-    background: linear-gradient(145deg, hsl(220 12% 15%), hsl(220 14% 10%));
+    background: linear-gradient(145deg, hsl(240 40% 14%), hsl(240 43% 9%));
   }
   .glass {
     background: hsl(0 0% 100% / 0.65);
