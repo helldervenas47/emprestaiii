@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import type { GoalType } from "@/hooks/useMonthlyGoals";
 import { computeMonthResult, type RealizedInputs } from "@/lib/metasMonthResult";
 import { isGoalReached, monthKey } from "@/lib/metasPeriod";
@@ -108,6 +108,18 @@ export function ScoreDetailDialog({ open, onOpenChange, weights, inputs }: Props
               aria-label="Próximo ano"
             >
               <ChevronRight className="h-4 w-4" />
+            </button>
+            {/* Botão de fechar dedicado para tablet/desktop — o botão nativo do Radix
+                está oculto pelas classes acima, então garantimos uma saída visível
+                em todas as viewports. */}
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="ml-2 hidden sm:inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-muted text-foreground"
+              aria-label="Fechar"
+              title="Fechar"
+            >
+              <X className="h-5 w-5" />
             </button>
           </div>
         </div>
