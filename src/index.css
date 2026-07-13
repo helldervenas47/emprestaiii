@@ -185,6 +185,38 @@
     margin: 0;
     padding: 0;
     overscroll-behavior: none;
+    /* Blindagem contra scroll horizontal indesejado em qualquer viewport */
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  #root {
+    /* Contém filhos que porventura ultrapassem a largura da viewport */
+    overflow-x: clip;
+    max-width: 100vw;
+  }
+
+  /* Mídia responsiva por padrão — evita quebrar layout com <img> largas */
+  img, video, canvas, svg, iframe {
+    max-width: 100%;
+    height: auto;
+  }
+  svg {
+    /* SVG icons com dimensões explícitas mantêm seu tamanho, o "height:auto"
+       acima só se aplica se a largura for reduzida pelo container */
+    height: auto;
+  }
+
+  /* Palavras muito longas (URLs, emails, códigos) não estouram containers */
+  p, span, dt, dd, li, td, th, label, small, strong, em, a, div {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  /* Áreas roláveis horizontais explícitas (tabelas amplas) preservam scroll */
+  .overflow-x-auto,
+  .overflow-x-scroll {
+    -webkit-overflow-scrolling: touch;
   }
 
   body {
