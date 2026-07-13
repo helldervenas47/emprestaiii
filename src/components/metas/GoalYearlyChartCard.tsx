@@ -13,6 +13,8 @@ import { computeActual } from "@/components/GoalsCard";
 import { Loan, Payment, Expense, Client, InstallmentSchedule, LoanRenegotiation } from "@/types/loan";
 import { useActiveTooltip } from "./ActiveTooltipContext";
 import { StatusSeal } from "./StatusSeal";
+import { computeMonthResult } from "@/lib/metasMonthResult";
+import { computePeriodAverage, getPeriodMonths, isGoalReached, PeriodSelection } from "@/lib/metasPeriod";
 
 type Unit = "%" | "R$" | "qtd";
 
