@@ -62,6 +62,7 @@ export function GoalYearlyChartCard({
   goalType, goalLabel, unit, inverse, year, onYearChange,
   loans, payments, expenses, clients, installmentSchedules, renegotiations,
   compact = false,
+  period,
 }: Props) {
   const { hidden } = useHideValues();
   const { goals } = useMonthlyGoals();
