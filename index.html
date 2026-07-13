@@ -9,9 +9,26 @@
     <title>EmprestAI</title>
     <meta name="description" content="EmprestAI - Controle de empréstimos">
     <link rel="icon" href="/favicon.png" type="image/png" />
+
+    <!-- Perf: parallelize third-party origins -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Manrope:wght@300;400;500;600;700;800&display=swap" />
+    <link rel="dns-prefetch" href="https://lcjelojqxpnphupsnmuq.supabase.co" />
+    <link rel="preconnect" href="https://lcjelojqxpnphupsnmuq.supabase.co" crossorigin />
+
+    <!-- Non-blocking font load: paints with system fallback, swaps to Sora/Manrope once ready -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap"
+      onload="this.rel='stylesheet'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap"
+      />
+    </noscript>
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
