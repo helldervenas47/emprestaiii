@@ -60,10 +60,10 @@ const DialogContent = React.forwardRef<
           top: "calc(env(safe-area-inset-top) + 1rem)",
           right: "calc(env(safe-area-inset-right) + 1rem)",
         }}
-        className="absolute rounded-sm opacity-70 ring-offset-background transition-opacity data-[state=open]:bg-accent data-[state=open]:text-muted-foreground hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+        className="absolute inline-flex items-center justify-center min-h-11 min-w-11 rounded-md opacity-70 ring-offset-background transition-opacity data-[state=open]:bg-accent data-[state=open]:text-muted-foreground hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
       >
-        <X className="w-[30px] h-[30px]" />
-        <span className="sr-only">Close</span>
+        <X className="w-5 h-5" aria-hidden="true" />
+        <span className="sr-only">Fechar</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </DialogPortal>
