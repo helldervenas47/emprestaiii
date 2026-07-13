@@ -400,7 +400,7 @@
     opacity: 1;
   }
   .btn-gradient-hover--primary::before {
-    background: linear-gradient(90deg, hsl(var(--primary)), hsl(262 80% 58%));
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(213 94% 68%));
   }
   .btn-gradient-hover--destructive::before {
     background: linear-gradient(90deg, hsl(var(--destructive)), hsl(20 85% 50%));
