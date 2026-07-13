@@ -527,6 +527,10 @@ const Index = () => {
   const [vehicleSubTab, setVehicleSubTab] = useState<VehicleSubTab>("veiculos");
   const [planMgmtSubTab, setPlanMgmtSubTab] = useState<PlanMgmtSubTab>("subscribers");
   const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("bot-telegram");
+  // Sempre abrir a aba Relatório em "Bot Telegram" por padrão
+  useEffect(() => {
+    if (tab === "overdue") setOverdueSubTab("bot-telegram");
+  }, [tab]);
   const [expenseSubTab, setExpenseSubTab] = useState<ExpenseSubTab>("personal");
   const [personalSubTab, setPersonalSubTab] = useState<PersonalSubTab>("expenses");
   const [incExpTab, setIncExpTab] = useState<IncExpTab>("incomes");
