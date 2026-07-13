@@ -325,36 +325,36 @@
 
 @layer utilities {
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(244 76% 59%), hsl(262 80% 62%));
+    background: linear-gradient(135deg, hsl(217 91% 60%), hsl(213 94% 68%));
   }
   .gradient-success {
-    background: linear-gradient(135deg, hsl(158 78% 42%), hsl(170 65% 38%));
+    background: linear-gradient(135deg, hsl(152 68% 40%), hsl(170 65% 38%));
   }
   .gradient-warning {
     background: linear-gradient(135deg, hsl(32 90% 54%), hsl(20 85% 50%));
   }
   .gradient-card {
-    background: linear-gradient(145deg, hsl(240 40% 14%), hsl(240 43% 9%));
+    background: linear-gradient(145deg, hsl(222 40% 13%), hsl(222 44% 9%));
   }
   .glass {
-    background: hsl(0 0% 100% / 0.65);
+    background: hsl(0 0% 100% / 0.72);
     backdrop-filter: blur(24px) saturate(200%);
     -webkit-backdrop-filter: blur(24px) saturate(200%);
-    border: 1px solid hsl(0 0% 0% / 0.05);
+    border: 1px solid hsl(214 32% 91% / 0.8);
   }
   .dark .glass {
-    background: hsl(230 16% 8% / 0.65);
+    background: hsl(222 44% 10% / 0.65);
     border: 1px solid hsl(0 0% 100% / 0.06);
   }
   .glow-primary {
-    box-shadow: 0 0 20px -8px hsl(225 100% 62% / 0.15),
-                0 0 40px -16px hsl(262 80% 58% / 0.06);
+    box-shadow: 0 0 20px -8px hsl(217 91% 60% / 0.22),
+                0 0 40px -16px hsl(213 94% 68% / 0.10);
   }
   .glow-success {
-    box-shadow: 0 0 20px -8px hsl(160 75% 42% / 0.15);
+    box-shadow: 0 0 20px -8px hsl(152 68% 42% / 0.18);
   }
   .glow-purple {
-    box-shadow: 0 0 20px -8px hsl(262 80% 62% / 0.15);
+    box-shadow: 0 0 20px -8px hsl(217 91% 60% / 0.18);
   }
 
   /* Reusable glassmorphism surface */
