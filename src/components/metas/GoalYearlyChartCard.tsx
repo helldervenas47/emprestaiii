@@ -36,6 +36,8 @@ interface Props {
   renegotiations: LoanRenegotiation[];
   /** Reduced chrome (used inside grid cells) */
   compact?: boolean;
+  /** Período usado para calcular o selo de status (OK / Atenção). */
+  period?: PeriodSelection;
 }
 
 function fmt(v: number, unit: Unit, hidden: boolean): string {
