@@ -56,7 +56,7 @@ export function DashboardBreakdownSection({
                 <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedBreakdown === "payments" ? "rotate-0" : "-rotate-90"}`} />
                 Parcelas recebidas ({data.filteredPayments.length})
               </span>
-              <span className="font-medium">{formatCurrency(data.incomeFromPayments)}</span>
+              <span className="font-medium whitespace-nowrap shrink-0 ml-2">{formatCurrency(data.incomeFromPayments)}</span>
             </button>
             {expandedBreakdown === "payments" && (
               <div className="ml-5 space-y-1 max-h-[200px] overflow-y-auto">
@@ -82,7 +82,7 @@ export function DashboardBreakdownSection({
               </span>
               <span className="flex items-center gap-2">
                 <Switch checked={includeSales} onCheckedChange={setIncludeSales} className="scale-75" onClick={(e) => e.stopPropagation()} />
-                <span className={`font-medium ${!includeSales ? "opacity-50" : ""}`}>{formatCurrency(data.incomeFromSales)}</span>
+                <span className={`font-medium whitespace-nowrap shrink-0 ${!includeSales ? "opacity-50" : ""}`}>{formatCurrency(data.incomeFromSales)}</span>
               </span>
             </button>
             {expandedBreakdown === "sales" && (
@@ -115,7 +115,7 @@ export function DashboardBreakdownSection({
                 <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedBreakdown === "loans" ? "rotate-0" : "-rotate-90"}`} />
                 Empréstimos concedidos ({data.filteredLoans.length})
               </span>
-              <span className="font-medium">{formatCurrency(data.totalLoanOutgoing)}</span>
+              <span className="font-medium whitespace-nowrap shrink-0 ml-2">{formatCurrency(data.totalLoanOutgoing)}</span>
             </button>
             {expandedBreakdown === "loans" && (
               <div className="ml-5 space-y-1 max-h-[200px] overflow-y-auto">
@@ -136,7 +136,7 @@ export function DashboardBreakdownSection({
                 <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedBreakdown === "expenses" ? "rotate-0" : "-rotate-90"}`} />
                 Despesas pagas ({data.filteredExpenses.length})
               </span>
-              <span className="font-medium">{formatCurrency(data.totalExpenses)}</span>
+              <span className="font-medium whitespace-nowrap shrink-0 ml-2">{formatCurrency(data.totalExpenses)}</span>
             </button>
             {expandedBreakdown === "expenses" && (
               <div className="ml-5 space-y-1 max-h-[200px] overflow-y-auto">
