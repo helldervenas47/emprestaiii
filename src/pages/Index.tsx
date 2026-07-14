@@ -850,7 +850,9 @@ const Index = () => {
       <div
         className="min-h-[100dvh] bg-background"
         style={{
-          paddingBottom: `calc(env(safe-area-inset-bottom) + ${isMobile ? "72px" : "0px"})`,
+          paddingBottom: isMobile
+            ? `calc(env(safe-area-inset-bottom) + 60px)`
+            : undefined,
         }}
       >
         <SubscriptionBanner />
@@ -1029,10 +1031,10 @@ const Index = () => {
         )}
 
         <main
-          className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-6 space-y-4 sm:space-y-6"
+          className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 pb-2 sm:py-6 space-y-4 sm:space-y-6"
           style={{
             ...(preservedPageHeight ? { minHeight: `${preservedPageHeight}px` } : {}),
-            paddingTop: isMobile ? "max(0.5rem, env(safe-area-inset-top))" : undefined,
+            paddingTop: isMobile ? "calc(env(safe-area-inset-top) + 0.25rem)" : undefined,
           }}
         >
           {(() => {
@@ -1697,7 +1699,7 @@ const Index = () => {
         {isMobile && (
           <>
             <nav
-              className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-card/90 backdrop-blur-xl backdrop-saturate-150 shadow-[0_-4px_20px_-8px_hsl(0_0%_0%/0.25)] animate-fade-in"
+              className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-card backdrop-blur-xl backdrop-saturate-150 shadow-[0_-4px_20px_-8px_hsl(0_0%_0%/0.25)] animate-fade-in"
               style={{
                 paddingLeft: "env(safe-area-inset-left)",
                 paddingRight: "env(safe-area-inset-right)",
