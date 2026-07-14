@@ -848,23 +848,21 @@ const Index = () => {
   return (
     <HideValuesProvider>
       <div
-        className="min-h-screen bg-background"
+        className="min-h-[100dvh] bg-background"
         style={{
           paddingBottom: `calc(env(safe-area-inset-bottom) + ${isMobile ? "72px" : "0px"})`,
-          paddingLeft: "env(safe-area-inset-left)",
-          paddingRight: "env(safe-area-inset-right)",
         }}
       >
         <SubscriptionBanner />
         <TrialBanner />
 
-        <header
-          className="border-b border-border/30 glass sticky top-0 z-40"
-          style={{ paddingTop: "env(safe-area-inset-top)" }}
-        >
-          <div className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-3 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              {!isMobile && (
+        {!isMobile && (
+          <header
+            className="border-b border-border/30 glass sticky top-0 z-40"
+            style={{ paddingTop: "env(safe-area-inset-top)" }}
+          >
+            <div className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                 <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
                   <SheetTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -944,102 +942,98 @@ const Index = () => {
                     </div>
                   </SheetContent>
                 </Sheet>
-              )}
-              <AppLogo area="header" alt={brandName} className="w-auto hidden md:block" />
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-foreground tracking-tight">{brandName}</h1>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
+                <AppLogo area="header" alt={brandName} className="w-auto hidden md:block" />
+                <div className="hidden sm:block">
+                  <h1 className="text-lg font-bold text-foreground tracking-tight">{brandName}</h1>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-0.5 sm:gap-1.5 justify-end">
+                {!isMobileOrTablet && (
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 text-xs text-muted-foreground mr-1">
+                    <User className="h-3 w-3" />
+                    <span className="max-w-[120px] truncate">
+                      {user?.user_metadata?.display_name || user?.email || "—"}
+                    </span>
+                    {role && (
+                      <Badge
+                        variant={role === "admin" ? "default" : role === "visualizador" ? "outline" : "secondary"}
+                        className="text-[10px] px-1.5 py-0"
+                      >
+                        {role === "admin"
+                          ? "Admin"
+                          : role === "gerente"
+                            ? "Gerente"
+                            : role === "cliente"
+                              ? "Cliente"
+                              : "Vis."}
+                      </Badge>
+                    )}
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors border-primary/40 text-primary"
+                      onClick={() => navigate("/planos")}
+                    >
+                      {hasActiveSub && subscription
+                        ? subscription.product_id === "basico_plan"
+                          ? "Básico"
+                          : subscription.product_id === "profissional_plan"
+                            ? "Profissional"
+                            : subscription.product_id === "empresarial_plan"
+                              ? "Empresarial"
+                              : "Plano"
+                        : "Sem Plano"}
+                    </Badge>
+                  </div>
+                )}
+                <HideValuesToggle />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleHardRefresh}
+                  disabled={refreshing}
+                  className="inline-flex h-9 w-9"
+                  title="Atualizar"
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                </Button>
+                <div className="inline-flex">
+                  <NotificationsFeedButton
+                    loans={filteredLoans}
+                    payments={filteredPayments}
+                    installmentSchedules={filteredInstallments}
+                    clients={filteredClients}
+                    onSelectLoan={(loanId) => {
+                      setTab("dashboard");
+                      try {
+                        sessionStorage.setItem("highlightLoanId", loanId);
+                      } catch {}
+                    }}
+                  />
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleTheme}
+                  className="inline-flex h-9 w-9"
+                  title={dark ? "Modo claro" : "Modo escuro"}
+                >
+                  {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </Button>
+                <Button variant="ghost" size="icon" onClick={signOut} className="inline-flex h-9 w-9" title="Sair">
+                  <LogOut className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-            <div className="flex items-center gap-0.5 sm:gap-1.5 justify-end">
-              {!isMobileOrTablet && (
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 text-xs text-muted-foreground mr-1">
-                  <User className="h-3 w-3" />
-                  <span className="max-w-[120px] truncate">
-                    {user?.user_metadata?.display_name || user?.email || "—"}
-                  </span>
-                  {role && (
-                    <Badge
-                      variant={role === "admin" ? "default" : role === "visualizador" ? "outline" : "secondary"}
-                      className="text-[10px] px-1.5 py-0"
-                    >
-                      {role === "admin"
-                        ? "Admin"
-                        : role === "gerente"
-                          ? "Gerente"
-                          : role === "cliente"
-                            ? "Cliente"
-                            : "Vis."}
-                    </Badge>
-                  )}
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors border-primary/40 text-primary"
-                    onClick={() => navigate("/planos")}
-                  >
-                    {hasActiveSub && subscription
-                      ? subscription.product_id === "basico_plan"
-                        ? "Básico"
-                        : subscription.product_id === "profissional_plan"
-                          ? "Profissional"
-                          : subscription.product_id === "empresarial_plan"
-                            ? "Empresarial"
-                            : "Plano"
-                      : "Sem Plano"}
-                  </Badge>
-                </div>
-              )}
-              {/* Acessos rápidos do topo: visíveis em tablet e desktop; em mobile ficam disponíveis em "Mais" */}
-              {!isMobile && (
-                <>
-                  <HideValuesToggle />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleHardRefresh}
-                    disabled={refreshing}
-                    className="inline-flex h-9 w-9"
-                    title="Atualizar"
-                  >
-                    <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-                  </Button>
-                  <div className="inline-flex">
-                    <NotificationsFeedButton
-                      loans={filteredLoans}
-                      payments={filteredPayments}
-                      installmentSchedules={filteredInstallments}
-                      clients={filteredClients}
-                      onSelectLoan={(loanId) => {
-                        setTab("dashboard");
-                        try {
-                          sessionStorage.setItem("highlightLoanId", loanId);
-                        } catch {}
-                      }}
-                    />
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={toggleTheme}
-                    className="inline-flex h-9 w-9"
-                    title={dark ? "Modo claro" : "Modo escuro"}
-                  >
-                    {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={signOut} className="inline-flex h-9 w-9" title="Sair">
-                    <LogOut className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Abas superiores desktop removidas — navegação agora usa o mesmo menu lateral retrátil da versão Tablet. */}
-        </header>
+          </header>
+        )}
 
         <main
           className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-6 space-y-4 sm:space-y-6"
-          style={preservedPageHeight ? { minHeight: `${preservedPageHeight}px` } : undefined}
+          style={{
+            ...(preservedPageHeight ? { minHeight: `${preservedPageHeight}px` } : {}),
+            paddingTop: isMobile ? "max(0.5rem, env(safe-area-inset-top))" : undefined,
+          }}
         >
           {(() => {
             const current = tabConfig.find((t) => t.id === tab);
@@ -1705,12 +1699,11 @@ const Index = () => {
             <nav
               className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-card/90 backdrop-blur-xl backdrop-saturate-150 shadow-[0_-4px_20px_-8px_hsl(0_0%_0%/0.25)] animate-fade-in"
               style={{
-                paddingBottom: "env(safe-area-inset-bottom)",
                 paddingLeft: "env(safe-area-inset-left)",
                 paddingRight: "env(safe-area-inset-right)",
               }}
             >
-              <div className="flex items-stretch justify-around h-[60px]">
+              <div className="flex items-stretch justify-around min-h-[60px]" style={{ height: "calc(60px + env(safe-area-inset-bottom))" }}>
                 {bottomItems.map((item) => {
                   const active = tab === item.id;
                   const Icon = item.icon;
@@ -1721,7 +1714,7 @@ const Index = () => {
                       onClick={() => setTab(item.id)}
                       className={`flex-1 flex-col gap-0.5 px-1 transition-all duration-200 touch-manipulation focus-visible:outline-none ${
                         active ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                      } flex items-center justify-end`}
+                      } flex items-center justify-center`}
                     >
                       <div
                         className={`flex items-center justify-center h-6 transition-transform duration-200 ${active ? "scale-110" : ""}`}
@@ -1743,7 +1736,7 @@ const Index = () => {
                   onClick={() => setMoreOpen(true)}
                   className={`relative flex-1 flex-col gap-0.5 px-1 transition-all duration-200 touch-manipulation focus-visible:outline-none ${
                     moreOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                  } flex items-center justify-end`}
+                  } flex items-center justify-center`}
                 >
                   <div
                     className={`relative flex items-center justify-center h-6 transition-transform duration-200 ${moreOpen ? "scale-110" : ""}`}

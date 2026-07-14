@@ -350,29 +350,6 @@
     touch-action: auto;
   }
 
-  /* Translucent bar behind iOS status bar — matches background, blurs scrolled content */
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: env(safe-area-inset-top);
-    background: hsl(var(--background) / 0.55);
-    backdrop-filter: blur(12px) saturate(180%);
-    -webkit-backdrop-filter: blur(12px) saturate(180%);
-    z-index: 100;
-    pointer-events: none;
-    transition: background-color 0.25s ease, backdrop-filter 0.25s ease;
-  }
-  /* Deepen the tint once the user has scrolled past the header */
-  body[data-scrolled="true"]::before {
-    background: hsl(var(--background) / 0.92);
-    backdrop-filter: blur(20px) saturate(200%);
-    -webkit-backdrop-filter: blur(20px) saturate(200%);
-    box-shadow: 0 1px 0 0 hsl(var(--border) / 0.5);
-  }
-
   ::-webkit-scrollbar {
     width: 5px;
     height: 5px;
@@ -603,10 +580,6 @@
       0 0 12px -6px hsl(var(--primary) / 0.10);
   }
 
-  /* Body status-bar overlay — sombra inferior mais discreta no dark */
-  .dark body[data-scrolled="true"]::before {
-    box-shadow: 0 1px 0 0 hsl(var(--border) / 0.35);
-  }
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
