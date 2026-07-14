@@ -25,111 +25,112 @@
 @layer base {
   :root {
     /* ─────────────────────────────────────────
-       Cloud White + Blue — Light theme
-       Base: #fafbfc / #e8ecf1 / #94a3b8 / #3b82f6
-       Airy SaaS aesthetic, financial clarity
+       Executive Blue — Light theme
+       Primary #163A70 · Secondary #2F6FED
+       Background #F6F9FC · Surface #FFFFFF
        ───────────────────────────────────────── */
-    --background: 210 20% 98%;
-    --foreground: 222 47% 11%;
+    --background: 214 43% 97%;
+    --foreground: 220 30% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 220 30% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 220 30% 15%;
 
-    --primary: 217 91% 60%;
+    --primary: 215 68% 26%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 213 27% 94%;
-    --secondary-foreground: 222 47% 20%;
+    --secondary: 219 100% 97%;
+    --secondary-foreground: 215 68% 26%;
 
-    --muted: 213 27% 95%;
-    --muted-foreground: 215 16% 42%;
+    --muted: 214 30% 95%;
+    --muted-foreground: 218 13% 46%;
 
-    --accent: 213 94% 68%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 219 85% 55%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 78% 55%;
+    --destructive: 0 74% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 217 91% 60%;
+    --border: 216 12% 91%;
+    --input: 216 12% 91%;
+    --ring: 219 85% 55%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    --warning: 32 95% 52%;
+    --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --success: 152 68% 40%;
+    --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
 
-    --purple: 262 80% 62%;
+    --purple: 219 85% 55%;
     --purple-foreground: 0 0% 100%;
 
-    --sidebar-background: 210 20% 99%;
-    --sidebar-foreground: 222 30% 22%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 25% 22%;
+    --sidebar-primary: 215 68% 26%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 213 27% 94%;
-    --sidebar-accent-foreground: 222 47% 15%;
-    --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 219 100% 97%;
+    --sidebar-accent-foreground: 215 68% 26%;
+    --sidebar-border: 216 12% 91%;
+    --sidebar-ring: 219 85% 55%;
   }
 
   .dark {
     /* ─────────────────────────────────────────
-       Cloud White + Blue — Dark theme
-       Deep navy surfaces with vivid blue accent
+       Executive Blue — Dark theme
+       Background #08111F · Surface #101C30
+       Primary #2459D3 · Accent #4C8DFF
        ───────────────────────────────────────── */
-    --background: 222 47% 7%;
-    --foreground: 210 20% 96%;
+    --background: 217 60% 8%;
+    --foreground: 214 47% 97%;
 
-    --card: 222 44% 11%;
-    --card-foreground: 210 20% 96%;
+    --card: 217 51% 13%;
+    --card-foreground: 214 47% 97%;
 
-    --popover: 222 44% 11%;
-    --popover-foreground: 210 20% 96%;
+    --popover: 217 51% 13%;
+    --popover-foreground: 214 47% 97%;
 
-    --primary: 217 91% 62%;
-    --primary-foreground: 222 47% 8%;
+    --primary: 219 71% 49%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 222 35% 16%;
-    --secondary-foreground: 210 20% 92%;
+    --secondary: 219 51% 17%;
+    --secondary-foreground: 214 47% 97%;
 
-    --muted: 222 30% 14%;
-    --muted-foreground: 215 20% 72%;
+    --muted: 219 51% 17%;
+    --muted-foreground: 217 20% 76%;
 
-    --accent: 213 94% 68%;
-    --accent-foreground: 222 47% 8%;
+    --accent: 217 100% 65%;
+    --accent-foreground: 217 60% 8%;
 
-    --destructive: 0 78% 60%;
-    --destructive-foreground: 210 20% 96%;
+    --destructive: 0 74% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 222 24% 20%;
-    --input: 222 24% 20%;
-    --ring: 217 91% 62%;
+    --border: 218 37% 23%;
+    --input: 218 37% 23%;
+    --ring: 217 100% 65%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    --warning: 38 92% 58%;
-    --warning-foreground: 222 47% 8%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 217 60% 8%;
 
-    --success: 152 65% 46%;
-    --success-foreground: 222 47% 8%;
+    --success: 142 65% 45%;
+    --success-foreground: 0 0% 100%;
 
-    --purple: 262 83% 72%;
-    --purple-foreground: 222 47% 8%;
+    --purple: 217 100% 65%;
+    --purple-foreground: 217 60% 8%;
 
-    --sidebar-background: 222 47% 8%;
-    --sidebar-foreground: 215 20% 78%;
-    --sidebar-primary: 217 91% 62%;
-    --sidebar-primary-foreground: 222 47% 8%;
-    --sidebar-accent: 222 40% 12%;
-    --sidebar-accent-foreground: 210 20% 92%;
-    --sidebar-border: 222 24% 20%;
-    --sidebar-ring: 217 91% 62%;
+    --sidebar-background: 217 60% 8%;
+    --sidebar-foreground: 217 20% 82%;
+    --sidebar-primary: 217 100% 65%;
+    --sidebar-primary-foreground: 217 60% 8%;
+    --sidebar-accent: 219 51% 17%;
+    --sidebar-accent-foreground: 214 47% 97%;
+    --sidebar-border: 218 37% 23%;
+    --sidebar-ring: 217 100% 65%;
   }
 }
 
