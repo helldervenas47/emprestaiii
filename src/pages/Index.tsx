@@ -848,11 +848,11 @@ const Index = () => {
   return (
     <HideValuesProvider>
       <div
-        className="min-h-[100dvh] bg-background"
+        className="min-h-screen bg-background"
         style={{
-          paddingBottom: isMobile
-            ? `calc(env(safe-area-inset-bottom) + 60px)`
-            : undefined,
+          paddingBottom: `calc(env(safe-area-inset-bottom) + ${isMobile ? "72px" : "0px"})`,
+          paddingLeft: "env(safe-area-inset-left)",
+          paddingRight: "env(safe-area-inset-right)",
         }}
       >
         <SubscriptionBanner />
@@ -1699,11 +1699,11 @@ const Index = () => {
         {isMobile && (
           <>
             <nav
-              className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-card backdrop-blur-xl backdrop-saturate-150 shadow-[0_-4px_20px_-8px_hsl(0_0%_0%/0.25)] animate-fade-in"
+              className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-card/90 backdrop-blur-xl backdrop-saturate-150 shadow-[0_-4px_20px_-8px_hsl(0_0%_0%/0.25)] animate-fade-in"
               style={{
+                paddingBottom: "env(safe-area-inset-bottom)",
                 paddingLeft: "env(safe-area-inset-left)",
                 paddingRight: "env(safe-area-inset-right)",
-                paddingBottom: "env(safe-area-inset-bottom)",
               }}
             >
               <div className="flex items-stretch justify-around h-[60px]">
@@ -1717,7 +1717,7 @@ const Index = () => {
                       onClick={() => setTab(item.id)}
                       className={`flex-1 flex-col gap-0.5 px-1 transition-all duration-200 touch-manipulation focus-visible:outline-none ${
                         active ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                      } flex items-center justify-center`}
+                      } flex items-center justify-end`}
                     >
                       <div
                         className={`flex items-center justify-center h-6 transition-transform duration-200 ${active ? "scale-110" : ""}`}
@@ -1739,7 +1739,7 @@ const Index = () => {
                   onClick={() => setMoreOpen(true)}
                   className={`relative flex-1 flex-col gap-0.5 px-1 transition-all duration-200 touch-manipulation focus-visible:outline-none ${
                     moreOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                  } flex items-center justify-center`}
+                  } flex items-center justify-end`}
                 >
                   <div
                     className={`relative flex items-center justify-center h-6 transition-transform duration-200 ${moreOpen ? "scale-110" : ""}`}
