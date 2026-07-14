@@ -1031,10 +1031,10 @@ const Index = () => {
         )}
 
         <main
-          className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-6 space-y-4 sm:space-y-6"
+          className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 pb-2 sm:py-6 space-y-4 sm:space-y-6"
           style={{
             ...(preservedPageHeight ? { minHeight: `${preservedPageHeight}px` } : {}),
-            paddingTop: isMobile ? "max(0.5rem, env(safe-area-inset-top))" : undefined,
+            paddingTop: isMobile ? "calc(env(safe-area-inset-top) + 0.25rem)" : undefined,
           }}
         >
           {(() => {
