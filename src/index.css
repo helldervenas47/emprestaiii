@@ -80,56 +80,59 @@
 
   .dark {
     /* ─────────────────────────────────────────
-       Midnight Indigo — Dark theme
-       Deep midnight surfaces + electric indigo accent
+       Midnight Indigo — Dark theme (soft navy)
+       Blue-gray surfaces (never near-black), tuned
+       for long reading sessions with clear layering:
+         bg   → sidebar → card → hover
+         ~#151A24 → ~#111621 → ~#1D2331 → ~#252C3D
        ───────────────────────────────────────── */
-    --background: 240 45% 7%;
-    --foreground: 240 15% 96%;
+    --background: 222 25% 12%;
+    --foreground: 220 20% 96%;
 
-    --card: 240 43% 12%;
-    --card-foreground: 240 15% 96%;
+    --card: 222 22% 16%;
+    --card-foreground: 220 20% 96%;
 
-    --popover: 240 43% 12%;
-    --popover-foreground: 240 15% 96%;
+    --popover: 222 22% 16%;
+    --popover-foreground: 220 20% 96%;
 
-    --primary: 244 90% 66%;
-    --primary-foreground: 240 45% 7%;
+    --primary: 244 90% 70%;
+    --primary-foreground: 222 30% 10%;
 
-    --secondary: 240 40% 18%;
-    --secondary-foreground: 240 15% 96%;
+    --secondary: 222 20% 22%;
+    --secondary-foreground: 220 20% 96%;
 
-    --muted: 240 35% 15%;
-    --muted-foreground: 240 12% 72%;
+    --muted: 222 20% 19%;
+    --muted-foreground: 220 14% 76%;
 
-    --accent: 244 90% 66%;
-    --accent-foreground: 240 45% 7%;
+    --accent: 244 90% 70%;
+    --accent-foreground: 222 30% 10%;
 
-    --destructive: 0 78% 62%;
+    --destructive: 0 74% 62%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 30% 22%;
-    --input: 240 30% 22%;
-    --ring: 244 90% 66%;
+    --border: 222 18% 26%;
+    --input: 222 18% 26%;
+    --ring: 244 90% 70%;
 
     --radius: 1rem;
 
-    --warning: 38 92% 58%;
-    --warning-foreground: 240 45% 7%;
+    --warning: 38 92% 62%;
+    --warning-foreground: 222 30% 10%;
 
-    --success: 152 65% 46%;
-    --success-foreground: 240 45% 7%;
+    --success: 152 60% 50%;
+    --success-foreground: 222 30% 10%;
 
-    --purple: 262 83% 72%;
-    --purple-foreground: 240 45% 7%;
+    --purple: 262 83% 74%;
+    --purple-foreground: 222 30% 10%;
 
-    --sidebar-background: 240 45% 7%;
-    --sidebar-foreground: 240 15% 82%;
-    --sidebar-primary: 244 90% 66%;
-    --sidebar-primary-foreground: 240 45% 7%;
-    --sidebar-accent: 240 40% 15%;
-    --sidebar-accent-foreground: 240 15% 96%;
-    --sidebar-border: 240 30% 22%;
-    --sidebar-ring: 244 90% 66%;
+    --sidebar-background: 222 28% 10%;
+    --sidebar-foreground: 220 16% 82%;
+    --sidebar-primary: 244 90% 70%;
+    --sidebar-primary-foreground: 222 30% 10%;
+    --sidebar-accent: 222 22% 18%;
+    --sidebar-accent-foreground: 220 20% 96%;
+    --sidebar-border: 222 18% 24%;
+    --sidebar-ring: 244 90% 70%;
   }
 }
 
