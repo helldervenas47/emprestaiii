@@ -1699,7 +1699,7 @@ const Index = () => {
         {isMobile && (
           <>
             <nav
-              className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-card/90 backdrop-blur-xl backdrop-saturate-150 shadow-[0_-4px_20px_-8px_hsl(0_0%_0%/0.25)] animate-fade-in"
+              className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-card backdrop-blur-xl backdrop-saturate-150 shadow-[0_-4px_20px_-8px_hsl(0_0%_0%/0.25)] animate-fade-in"
               style={{
                 paddingLeft: "env(safe-area-inset-left)",
                 paddingRight: "env(safe-area-inset-right)",
