@@ -748,7 +748,18 @@ export function useLoans() {
     const dateStr = paymentDate || todayInAppTz();
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) throw new Error("Empréstimo não encontrado");
-    const newRemaining = Math.max(0, getLoanRemainingAmount(loan, payments) - amount);
+    // Aplica pagamento primeiro sobre o saldo base (principal + juros contratuais);
+    // o excedente abate a multa/penalidade em aberto (loan.penaltyValue) para que
+    // pagamentos maiores que o saldo base não sejam silenciosamente descartados.
+    const currentBase = getLoanRemainingAmount(loan, payments);
+    const appliedToBase = Math.min(currentBase, amount);
+    const newRemaining = Math.max(0, currentBase - appliedToBase);
+    let overflow = amount - appliedToBase;
+    const currentPenalty = Number(loan.penaltyValue ?? 0);
+    const appliedToPenalty = Math.min(Math.max(0, currentPenalty), Math.max(0, overflow));
+    overflow -= appliedToPenalty;
+    const newPenalty = Math.max(0, currentPenalty - appliedToPenalty);
+    const penaltyChanged = appliedToPenalty > 0;
     const online = isOnline();
 
     const tempPaymentId = crypto.randomUUID();
@@ -760,13 +771,14 @@ export function useLoans() {
       payment_method_id: paymentMethodId ?? null,
     };
     if (splitMetadata) paymentPayload.metadata = splitMetadata;
-    const loanUpdate = { remaining_amount: newRemaining };
+    const loanUpdate: any = { remaining_amount: newRemaining };
+    if (penaltyChanged) loanUpdate.penalty_value = newPenalty;
 
     setPayments((prev) => [
       { id: tempPaymentId, loanId, amount, date: dateStr, installmentNumber: -1, paymentMethodId: paymentMethodId ?? null, metadata: (splitMetadata as any) ?? null },
       ...prev,
     ]);
-    setLoans((prev) => prev.map((l) => l.id === loanId ? { ...l, remainingAmount: newRemaining } : l));
+    setLoans((prev) => prev.map((l) => l.id === loanId ? { ...l, remainingAmount: newRemaining, ...(penaltyChanged ? { penaltyValue: newPenalty } : {}) } : l));
     await upsertCachedRow("payments", { ...paymentPayload, created_at: new Date().toISOString() });
 
     if (!online) {
@@ -825,6 +837,18 @@ export function useLoans() {
         await supabase.from("payments").delete().eq("id", tempPaymentId);
         await revertOptimisticState();
         throw new Error(loanError?.message ?? "Falha ao atualizar o empréstimo");
+      }
+    }
+
+    // Persiste a redução da multa (penalty_value) quando o pagamento excedeu o saldo base.
+    // A RPC atômica só atualiza remaining_amount, então aplicamos aqui em passo separado.
+    if (penaltyChanged) {
+      const { error: penaltyError } = await supabase
+        .from("loans")
+        .update({ penalty_value: newPenalty } as any)
+        .eq("id", loanId);
+      if (penaltyError) {
+        console.error("[addPartialPayment] update penalty_value failed:", penaltyError);
       }
     }
 
