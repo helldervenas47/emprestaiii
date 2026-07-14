@@ -58,25 +58,15 @@ export function ClientLoanHistory({ loans, payments }: Props) {
   const [showSummary, setShowSummary] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches);
   const [sortBy, setSortBy] = useState<SortOption>("name-asc");
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
-  const savedScrollRef = useRef<number | null>(null);
   const { hidden } = useHideValues();
 
   const openClient = useCallback((name: string) => {
-    savedScrollRef.current = window.scrollY;
     setSelectedClient(name);
   }, []);
 
   const closeClient = useCallback(() => {
     setSelectedClient(null);
   }, []);
-
-  useLayoutEffect(() => {
-    if (selectedClient === null && savedScrollRef.current != null) {
-      const y = savedScrollRef.current;
-      savedScrollRef.current = null;
-      requestAnimationFrame(() => window.scrollTo(0, y));
-    }
-  }, [selectedClient]);
 
   const rows = useMemo<ClientRow[]>(() => {
     const byName: Record<string, Loan[]> = {};
