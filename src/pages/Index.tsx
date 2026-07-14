@@ -850,7 +850,9 @@ const Index = () => {
       <div
         className="min-h-[100dvh] bg-background"
         style={{
-          paddingBottom: `calc(env(safe-area-inset-bottom) + ${isMobile ? "72px" : "0px"})`,
+          paddingBottom: isMobile
+            ? `calc(env(safe-area-inset-bottom) + 60px)`
+            : undefined,
         }}
       >
         <SubscriptionBanner />
