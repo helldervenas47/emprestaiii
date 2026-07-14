@@ -158,15 +158,12 @@ export function useAppFont() {
         const { data: sess } = await supabase.auth.getUser();
         const uid = sess?.user?.id;
         if (!uid) return;
-        const { data, error } = await supabase
-          .from("profiles")
+        const { data, error } = await (supabase.from("profiles") as any)
           .select("ui_font")
-          // @ts-expect-error coluna adicionada via migração; safe se ausente
           .eq("user_id", uid)
           .maybeSingle();
         if (!alive || error || !data) return;
-        // @ts-expect-error idem
-        const remote = data.ui_font as string | null | undefined;
+        const remote = (data as { ui_font?: string | null }).ui_font;
         if (remote && APP_FONTS.some((f) => f.id === remote)) {
           setFontState(remote as AppFontId);
           safeSet(remote as AppFontId);
