@@ -591,6 +591,9 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                   <TableCell className="text-right tabular-nums font-bold text-warning">
                     {mask(formatCurrency(rows.reduce((s, r) => s + r.pending, 0)))}
                   </TableCell>
+                  <TableCell className="text-right tabular-nums font-bold text-success">
+                    {mask(formatCurrency(rows.reduce((s, r) => s + r.paid + r.interestPaid, 0)))}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums font-bold">
                     {mask(formatCurrency(rows.reduce((s, r) => s + r.total, 0)))}
                   </TableCell>
