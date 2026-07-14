@@ -70,19 +70,27 @@ export function buildInstallmentBreakdown(
 ): InstallmentBreakdownEntry[] {
   const principal = Math.max(0, Number(loan.amount) || 0);
   const N = Math.max(1, Math.floor(Number(loan.installments) || 1));
-  const total = totalWithInterest(principal, Number(loan.interestRate) || 0);
-  const totalInterest = Math.max(0, total - principal);
+  const rawTotal = totalWithInterest(principal, Number(loan.interestRate) || 0);
 
   if (N === 1) {
-    const amt = customAmounts?.[0] ?? total;
-    return [{ installmentNumber: 1, amount: round2(amt), interest: round2(totalInterest), principal: round2(amt - totalInterest) }];
+    const amt = customAmounts?.[0] ?? rawTotal;
+    // Se o pago acordado (amt) for maior que principal+juros contratado,
+    // o excedente é multa de renegociação e também deve ser reconhecido
+    // como juros/receita (aparece em "Juros Recebidos").
+    const totalInterest1 = Math.max(0, Math.max(rawTotal, amt) - principal);
+    return [{ installmentNumber: 1, amount: round2(amt), interest: round2(totalInterest1), principal: round2(amt - totalInterest1) }];
   }
 
   const hasCustom = Array.isArray(customAmounts) && customAmounts.length === N;
   const amounts: number[] = hasCustom
     ? customAmounts!.map((v) => round2(Number(v) || 0))
-    : Array.from({ length: N }, () => round2(total / N));
+    : Array.from({ length: N }, () => round2(rawTotal / N));
   const amountsSum = amounts.reduce((s, v) => s + v, 0);
+  // Em contratos renegociados com multa, a multa é diluída nas parcelas,
+  // então a soma real das parcelas ultrapassa `principal*(1+rate)`. O
+  // excedente é receita adicional e precisa entrar no juros total.
+  const total = hasCustom ? Math.max(rawTotal, amountsSum) : rawTotal;
+  const totalInterest = Math.max(0, total - principal);
 
   const entries: InstallmentBreakdownEntry[] = [];
   let interestAccum = 0;
