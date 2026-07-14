@@ -17,7 +17,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tag } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { WarrantyManager } from "@/components/warranty/WarrantyManager";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { CustomIncomeCategory } from "@/hooks/useIncomeCategories";
 import { personalIconMap } from "@/lib/personalExpenseCategories";
 import { Sale } from "@/types/loan";
@@ -30,7 +29,8 @@ import {
 } from "./productSalesUtils";
 import { RegisterSalePaymentDialog, SalePaymentHistoryDialog } from "./ProductSalesDialogs";
 
-export function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnly = false, incomeCategoryByName }: {
+
+export function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnly = false, incomeCategoryByName, expanded, onToggle }: {
   sale: Sale;
   onEdit: () => void;
   onDelete: () => void;
@@ -38,6 +38,8 @@ export function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, 
   formatCurrency: (v: number) => string;
   readOnly?: boolean;
   incomeCategoryByName?: Map<string, CustomIncomeCategory>;
+  expanded: boolean;
+  onToggle: () => void;
 }) {
   const [confirmDeleteSale, setConfirmDeleteSale] = useState(false);
   const [showPartial, setShowPartial] = useState(false);
@@ -59,8 +61,6 @@ export function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, 
   const CatIcon = incomeCat ? (personalIconMap[incomeCat.icon] ?? personalIconMap.Package) : Tag;
   const catColor = incomeCat ? `hsl(${incomeCat.color})` : undefined;
 
-  const isMobile = useIsMobile();
-  const [expanded, setExpanded] = useState(false);
   const totalPaidIncludingPartial = paidAmount + (sale.partialPaid || 0);
   const statusInfo = isPaid
     ? { label: "Quitado", cls: "bg-success/15 text-success border-success/30" }
@@ -74,8 +74,8 @@ export function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, 
     <div className="flex flex-col">
     <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 hover:bg-muted/30 transition-colors">
       <div
-        className={`contents text-left ${isMobile ? "cursor-pointer" : ""}`}
-        onClick={isMobile ? () => setExpanded((v) => !v) : undefined}
+        className="contents text-left cursor-pointer"
+        onClick={onToggle}
       >
         <div className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-primary-foreground font-bold text-[10px] sm:text-xs shrink-0 ${
           category === "paid" ? "bg-success" : category === "overdue" ? "bg-destructive" : category === "due_today" ? "bg-warning" : "gradient-primary"
@@ -134,134 +134,11 @@ export function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, 
             </>
           )}
         </div>
-        {isMobile && (
-          <div className="shrink-0 pl-1">
-            {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-          </div>
-        )}
+        <div className="shrink-0 pl-1">
+          {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        </div>
       </div>
 
-      {(isPaid || readOnly) ? (
-        <div className="shrink-0 w-0 md:w-[180px] lg:w-[200px] flex items-center justify-end gap-1">
-
-
-          {!isMobile && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-success hover:bg-success/10 relative"
-              title="Histórico de pagamentos"
-              onClick={(e) => { e.stopPropagation(); setShowPayments(true); }}
-            >
-              <Receipt className="h-4 w-4" />
-              {historyCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-success text-success-foreground text-[10px] font-bold flex items-center justify-center">
-                  {historyCount}
-                </span>
-              )}
-            </Button>
-          )}
-          {!isMobile && sale.businessType !== "aluguel_veiculo" && <WarrantyManager sale={sale} iconOnly />}
-          {!readOnly && !isMobile && (
-            <Button data-mutation
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground"
-              title="Editar"
-              onClick={onEdit}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-          )}
-          {!readOnly && !isMobile && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-              title="Excluir"
-              onClick={(e) => { e.stopPropagation(); setConfirmDeleteSale(true); }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="shrink-0 w-0 md:w-[180px] lg:w-[200px] flex items-center justify-end gap-1">
-          {!isMobile && (
-            <>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-primary hover:bg-primary/10"
-                    title="Pagar"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <HandCoins className="h-4 w-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-52 p-1" align="end">
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setShowPayDatePicker(true); }}
-                    className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground hover:bg-primary/10 transition-colors"
-                  >
-                    <CheckCircle className="h-4 w-4 text-primary" />
-                    <span>Pagar Parcela</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setShowPartial(true); }}
-                    className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground hover:bg-warning/10 transition-colors"
-                  >
-                    <HandCoins className="h-4 w-4 text-warning" />
-                    <span>Pagar Parcial</span>
-                  </button>
-                  {sale.businessType !== "aluguel_veiculo" && (
-                    <div className="pt-1 mt-1 border-t border-border [&_button]:w-full [&_button]:justify-start [&_button]:h-9 [&_button]:border-0 [&_button]:bg-transparent [&_button]:hover:bg-primary/10 [&_button]:px-2">
-                      <WarrantyManager sale={sale} />
-                    </div>
-                  )}
-                </PopoverContent>
-              </Popover>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-success hover:bg-success/10 relative"
-                title="Histórico de pagamentos"
-                onClick={(e) => { e.stopPropagation(); setShowPayments(true); }}
-              >
-                <Receipt className="h-4 w-4" />
-                {historyCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-success text-success-foreground text-[10px] font-bold flex items-center justify-center">
-                    {historyCount}
-                  </span>
-                )}
-              </Button>
-
-              <Button data-mutation
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground"
-                title="Editar"
-                onClick={onEdit}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                title="Excluir"
-                onClick={(e) => { e.stopPropagation(); setConfirmDeleteSale(true); }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </>
-          )}
-        </div>
-      )}
       <SalePaymentHistoryDialog
         open={showPayments}
         onOpenChange={setShowPayments}
@@ -292,9 +169,10 @@ export function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, 
       )}
     </div>
 
-    {isMobile && expanded && (() => {
+    {expanded && (() => {
       const pct = sale.total > 0 ? Math.min(100, (totalPaidIncludingPartial / sale.total) * 100) : 0;
       return (
+
       <div className="px-2.5 pb-2.5 pt-2 mx-2 mb-2 rounded-xl bg-muted/30 border border-border/40 animate-in slide-in-from-top-1 fade-in duration-200 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
@@ -455,6 +333,7 @@ export function ProductSalesTable({
   onDeleteSale: (id: string) => void;
   onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void;
 }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   return (
     <Card no3d className="overflow-hidden">
       <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 border-b border-border/50 bg-muted/40">
@@ -465,7 +344,7 @@ export function ProductSalesTable({
 
         <p className="w-[78px] sm:w-[88px] lg:w-[110px] shrink-0 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Vencimento</p>
         <p className="w-[102px] sm:w-[108px] lg:w-[140px] shrink-0 text-right text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Valor</p>
-        <div className="w-0 md:w-[180px] lg:w-[200px] shrink-0" aria-hidden />
+        <div className="w-4 shrink-0" aria-hidden />
       </div>
       <div className="divide-y divide-border/30">
         {sales.map((sale) => (
@@ -478,6 +357,8 @@ export function ProductSalesTable({
             formatCurrency={formatCurrency}
             readOnly={readOnly}
             incomeCategoryByName={incomeCategoryByName}
+            expanded={expandedId === sale.id}
+            onToggle={() => setExpandedId((prev) => (prev === sale.id ? null : sale.id))}
           />
         ))}
       </div>
