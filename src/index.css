@@ -323,12 +323,11 @@
     min-height: 100vh;
     min-height: 100dvh;
   }
-  /* Apply lateral & bottom safe insets globally so nothing sits under home indicator / curved edges */
-  body {
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
+  /* Não aplicamos safe-area insets como padding no body — isso criava faixas
+     "vazias" nas laterais/rodapé e o PWA não parecia ocupar a tela toda.
+     O fundo agora se estende de ponta a ponta; use as utilities .pl-safe /
+     .pr-safe / .pb-safe nos containers internos que precisam respeitar o
+     notch ou o home indicator. */
 
   /* Touch-action: only on clickable elements; inputs keep default behavior */
   button, [role="button"], a {
