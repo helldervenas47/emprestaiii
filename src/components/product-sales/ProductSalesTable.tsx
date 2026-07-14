@@ -61,8 +61,6 @@ export function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, 
   const CatIcon = incomeCat ? (personalIconMap[incomeCat.icon] ?? personalIconMap.Package) : Tag;
   const catColor = incomeCat ? `hsl(${incomeCat.color})` : undefined;
 
-  const isMobile = useIsMobile();
-  const [expanded, setExpanded] = useState(false);
   const totalPaidIncludingPartial = paidAmount + (sale.partialPaid || 0);
   const statusInfo = isPaid
     ? { label: "Quitado", cls: "bg-success/15 text-success border-success/30" }
