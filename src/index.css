@@ -191,12 +191,22 @@
     /* Blindagem contra scroll horizontal indesejado em qualquer viewport */
     overflow-x: hidden;
     max-width: 100vw;
+    /* Garante que o fundo do app se estenda até as bordas físicas da tela,
+       cobrindo qualquer faixa desenhada pelo sistema (status/nav bar) mesmo
+       quando o conteúdo ainda não carregou. */
+    background-color: hsl(var(--background));
   }
 
   #root {
     /* Contém filhos que porventura ultrapassem a largura da viewport */
     overflow-x: clip;
     max-width: 100vw;
+    /* Preenche a área útil real do dispositivo (dvh acompanha barra de URL
+       do Chrome/Safari e teclado virtual sem deixar faixas vazias). */
+    min-height: 100vh;
+    min-height: 100svh;
+    min-height: 100dvh;
+    background-color: hsl(var(--background));
   }
 
   /* Mídia responsiva por padrão — evita quebrar layout com <img> largas */
@@ -241,6 +251,7 @@
     -moz-osx-font-smoothing: grayscale;
     letter-spacing: -0.005em;
     min-height: 100vh;
+    min-height: 100svh;
     min-height: 100dvh;
     background-image:
       radial-gradient(1100px 600px at 10% -10%, hsl(244 76% 59% / 0.06), transparent 60%),
@@ -278,6 +289,7 @@
       width: 100%;
       max-width: 100%;
       height: 100vh;
+      height: 100svh;
       height: 100dvh;
       overflow-x: hidden;
       position: relative;
@@ -293,6 +305,7 @@
     }
     #root {
       min-height: 100vh;
+      min-height: 100svh;
       min-height: 100dvh;
     }
   }
