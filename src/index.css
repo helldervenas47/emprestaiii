@@ -356,22 +356,22 @@
 
 @layer utilities {
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(217 87% 30%), hsl(219 100% 58%));
+    background: linear-gradient(135deg, hsl(244 76% 55%), hsl(262 80% 62%));
   }
   .gradient-premium {
-    background: linear-gradient(135deg, hsl(219 87% 51%), hsl(217 100% 65%));
+    background: linear-gradient(135deg, hsl(240 51% 24%), hsl(244 76% 59%));
   }
   .gradient-progress {
-    background: linear-gradient(90deg, hsl(219 100% 58%), hsl(213 100% 74%));
+    background: linear-gradient(90deg, hsl(244 76% 59%), hsl(262 80% 68%));
   }
   .gradient-success {
-    background: linear-gradient(135deg, hsl(145 100% 39%), hsl(150 80% 42%));
+    background: linear-gradient(135deg, hsl(152 68% 40%), hsl(170 65% 38%));
   }
   .gradient-warning {
-    background: linear-gradient(135deg, hsl(41 100% 56%), hsl(32 100% 50%));
+    background: linear-gradient(135deg, hsl(32 92% 52%), hsl(20 85% 50%));
   }
   .gradient-card {
-    background: linear-gradient(145deg, hsl(217 64% 17%), hsl(217 64% 13%));
+    background: linear-gradient(145deg, hsl(240 43% 14%), hsl(240 43% 10%));
   }
   .glass {
     background: hsl(0 0% 100% / 0.72);
