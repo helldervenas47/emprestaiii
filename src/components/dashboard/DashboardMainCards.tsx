@@ -137,7 +137,7 @@ export function DashboardMainCards({
                 <ArrowDownToLine className="h-5 w-5 text-success" />
               </div>
               <p className="text-xs text-muted-foreground">Valores Recebidos</p>
-              <p className="text-lg md:text-xl font-bold tabular-nums text-success">{formatCurrency(receivedByMethod.total)}</p>
+              <p className="font-bold tabular-nums text-success whitespace-nowrap tracking-tight" style={{ fontSize: "clamp(0.95rem, 1.6vw, 1.25rem)" }}>{formatCurrency(receivedByMethod.total)}</p>
               
             </div>
           </div>
