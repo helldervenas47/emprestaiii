@@ -225,7 +225,7 @@ const Auth = () => {
 
         <div className="text-center text-sm text-muted-foreground">
           Não tem conta?{" "}
-          <button onClick={() => window.location.assign("/planos")} className="text-primary hover:underline font-medium">
+          <button onClick={() => window.location.assign("/cadastro")} className="text-primary hover:underline font-medium">
             Criar conta
           </button>
         </div>
