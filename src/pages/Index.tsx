@@ -848,11 +848,11 @@ const Index = () => {
   return (
     <HideValuesProvider>
       <div
-        className="min-h-[100dvh] bg-background"
+        className="min-h-screen bg-background"
         style={{
-          paddingBottom: isMobile
-            ? `calc(env(safe-area-inset-bottom) + 60px)`
-            : undefined,
+          paddingBottom: `calc(env(safe-area-inset-bottom) + ${isMobile ? "72px" : "0px"})`,
+          paddingLeft: "env(safe-area-inset-left)",
+          paddingRight: "env(safe-area-inset-right)",
         }}
       >
         <SubscriptionBanner />
