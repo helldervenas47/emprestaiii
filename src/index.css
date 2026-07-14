@@ -228,8 +228,8 @@
     min-height: 100vh;
     min-height: 100dvh;
     background-image:
-      radial-gradient(1100px 600px at 10% -10%, hsl(217 87% 30% / 0.06), transparent 60%),
-      radial-gradient(900px 500px at 110% 5%, hsl(219 100% 58% / 0.05), transparent 60%);
+      radial-gradient(1100px 600px at 10% -10%, hsl(244 76% 59% / 0.06), transparent 60%),
+      radial-gradient(900px 500px at 110% 5%, hsl(244 76% 65% / 0.04), transparent 60%);
     background-attachment: fixed;
   }
 
