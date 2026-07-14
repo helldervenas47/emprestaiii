@@ -6,8 +6,8 @@
   "scope": "/",
   "display": "fullscreen",
   "display_override": ["fullscreen", "standalone", "minimal-ui"],
-  "background_color": "#171c26",
-  "theme_color": "#171c26",
+  "background_color": "#15181D",
+  "theme_color": "#15181D",
   "orientation": "any",
   "categories": ["finance", "business"],
   "icons": [
