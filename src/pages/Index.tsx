@@ -528,12 +528,12 @@ const Index = () => {
   const [loanSubTab, setLoanSubTab] = useState<"loans" | "history">("loans");
   const [vehicleSubTab, setVehicleSubTab] = useState<VehicleSubTab>("veiculos");
   const [planMgmtSubTab, setPlanMgmtSubTab] = useState<PlanMgmtSubTab>("subscribers");
-  const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("bot-telegram");
+  const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("whatsapp-cobranca");
   // Ao sair da aba Relatório, reinicia o sub-tab para "Bot Telegram"
   // (assim, na próxima vez que abrir, ela começa lá — sem sobrescrever
   // sub-tabs definidos por deep links via app:navigate).
   useEffect(() => {
-    if (tab !== "overdue") setOverdueSubTab("bot-telegram");
+    if (tab !== "overdue") setOverdueSubTab("whatsapp-cobranca");
   }, [tab]);
   const [expenseSubTab, setExpenseSubTab] = useState<ExpenseSubTab>("personal");
   const [personalSubTab, setPersonalSubTab] = useState<PersonalSubTab>("expenses");
