@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useRef, useLayoutEffect } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { Loan, Payment } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
