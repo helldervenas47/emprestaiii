@@ -186,9 +186,7 @@ export function useAppFont() {
       const uid = sess?.user?.id;
       if (!uid) return;
       // upsert silencioso; ignora erro se coluna não existir
-      await supabase
-        .from("profiles")
-        // @ts-expect-error coluna opcional
+      await (supabase.from("profiles") as any)
         .update({ ui_font: id })
         .eq("user_id", uid);
     } catch {
