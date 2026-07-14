@@ -539,7 +539,8 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                 <TableHead className="text-right">Principal Pago</TableHead>
                 <TableHead className="text-right">Juros Pago</TableHead>
                 <TableHead className="text-right">Pendente</TableHead>
-                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="text-right">Total Pago</TableHead>
+                <TableHead className="text-right">Total Geral</TableHead>
                 <TableHead className="text-right">Taxa de Variação</TableHead>
               </TableRow>
             </TableHeader>
