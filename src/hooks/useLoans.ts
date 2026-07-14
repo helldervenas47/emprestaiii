@@ -845,7 +845,7 @@ export function useLoans() {
     if (penaltyChanged) {
       const { error: penaltyError } = await supabase
         .from("loans")
-        .update({ penalty_value: newPenalty })
+        .update({ penalty_value: newPenalty } as any)
         .eq("id", loanId);
       if (penaltyError) {
         console.error("[addPartialPayment] update penalty_value failed:", penaltyError);
