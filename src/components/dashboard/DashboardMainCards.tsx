@@ -105,7 +105,7 @@ export function DashboardMainCards({
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditBalance}><X className="h-3.5 w-3.5 text-destructive" /></Button>
                 </div>
               ) : (
-                <p className={`text-lg md:text-xl font-bold tabular-nums ${accountBalance < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance)}</p>
+                <p className={`font-bold tabular-nums whitespace-nowrap tracking-tight ${accountBalance < 0 ? "text-destructive" : "text-foreground"}`} style={{ fontSize: "clamp(0.95rem, 1.6vw, 1.25rem)" }}>{formatCurrency(accountBalance)}</p>
               )}
             </div>
           </div>
