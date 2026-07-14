@@ -106,6 +106,7 @@ const App = () => (
               <BrandFaviconSync />
               <AppTimezoneSync />
               <StatusBarScrollSync />
+              <AppFontSync />
               <ViewAsBanner />
               <Suspense fallback={<PageLoader />}>
                 <LazyChunkErrorBoundary>
