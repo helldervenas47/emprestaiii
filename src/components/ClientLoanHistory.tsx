@@ -643,7 +643,11 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                   <div className="tabular-nums font-medium text-warning">{mask(formatCurrency(r.pending))}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Total</div>
+                  <div className="text-muted-foreground">Total Pago</div>
+                  <div className="tabular-nums font-medium text-success">{mask(formatCurrency(r.paid + r.interestPaid))}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Total Geral</div>
                   <div className="tabular-nums font-semibold">{mask(formatCurrency(r.total))}</div>
                 </div>
                 <div className="col-span-2 pt-1 border-t border-border/40">
