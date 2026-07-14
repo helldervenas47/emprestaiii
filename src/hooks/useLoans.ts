@@ -840,6 +840,18 @@ export function useLoans() {
       }
     }
 
+    // Persiste a redução da multa (penalty_value) quando o pagamento excedeu o saldo base.
+    // A RPC atômica só atualiza remaining_amount, então aplicamos aqui em passo separado.
+    if (penaltyChanged) {
+      const { error: penaltyError } = await supabase
+        .from("loans")
+        .update({ penalty_value: newPenalty })
+        .eq("id", loanId);
+      if (penaltyError) {
+        console.error("[addPartialPayment] update penalty_value failed:", penaltyError);
+      }
+    }
+
     try {
       await applyPaymentBalance(amount, paymentMethodId ?? null, normalizedSplit);
       await recordPaymentLedgerSplit({
