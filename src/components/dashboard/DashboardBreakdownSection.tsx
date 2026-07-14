@@ -65,7 +65,7 @@ export function DashboardBreakdownSection({
                   return (
                     <div key={p.id} className="flex justify-between text-xs py-1 border-b border-border/20 last:border-0">
                       <span className="text-muted-foreground truncate mr-2">Parcela {p.installmentNumber} — {loan?.borrowerName || "Empréstimo"}</span>
-                      <span className="font-medium shrink-0 text-success">{formatCurrency(p.amount)}</span>
+                      <span className="font-medium shrink-0 whitespace-nowrap text-success">{formatCurrency(p.amount)}</span>
                     </div>
                   );
                 })}
@@ -90,7 +90,7 @@ export function DashboardBreakdownSection({
                 {data.salesWithReceived.map((s) => (
                   <div key={s.id} className="flex justify-between text-xs py-1 border-b border-border/20 last:border-0">
                     <span className="text-muted-foreground truncate mr-2">{s.productName}{s.customerName ? ` — ${s.customerName}` : ""}</span>
-                    <span className="font-medium shrink-0 text-success">{formatCurrency(s.received)}</span>
+                    <span className="font-medium shrink-0 whitespace-nowrap text-success">{formatCurrency(s.received)}</span>
                   </div>
                 ))}
                 {data.salesWithReceived.length === 0 && <p className="text-xs text-muted-foreground py-1">Nenhuma venda no período</p>}
@@ -98,7 +98,7 @@ export function DashboardBreakdownSection({
             )}
             <div className="border-t pt-2 flex justify-between text-sm font-semibold px-2">
               <span>Total</span>
-              <span className="text-success">{formatCurrency(data.totalIncome)}</span>
+              <span className="text-success whitespace-nowrap">{formatCurrency(data.totalIncome)}</span>
             </div>
           </div>
         </CardContent>
@@ -122,7 +122,7 @@ export function DashboardBreakdownSection({
                 {data.filteredLoans.map((l) => (
                   <div key={l.id} className="flex justify-between text-xs py-1 border-b border-border/20 last:border-0">
                     <span className="text-muted-foreground truncate mr-2">{l.borrowerName}</span>
-                    <span className="font-medium shrink-0 text-destructive">{formatCurrency(l.amount)}</span>
+                    <span className="font-medium shrink-0 whitespace-nowrap text-destructive">{formatCurrency(l.amount)}</span>
                   </div>
                 ))}
                 {data.filteredLoans.length === 0 && <p className="text-xs text-muted-foreground py-1">Nenhum empréstimo no período</p>}
@@ -143,7 +143,7 @@ export function DashboardBreakdownSection({
                 {data.filteredExpenses.map((e) => (
                   <div key={e.id} className="flex justify-between text-xs py-1 border-b border-border/20 last:border-0">
                     <span className="text-muted-foreground truncate mr-2">{e.description}</span>
-                    <span className="font-medium shrink-0 text-destructive">{formatCurrency(e.amount)}</span>
+                    <span className="font-medium shrink-0 whitespace-nowrap text-destructive">{formatCurrency(e.amount)}</span>
                   </div>
                 ))}
                 {data.filteredExpenses.length === 0 && <p className="text-xs text-muted-foreground py-1">Nenhuma despesa no período</p>}
@@ -151,7 +151,7 @@ export function DashboardBreakdownSection({
             )}
             <div className="border-t pt-2 flex justify-between text-sm font-semibold px-2">
               <span>Total</span>
-              <span className="text-destructive">{formatCurrency(data.totalOutgoing)}</span>
+              <span className="text-destructive whitespace-nowrap">{formatCurrency(data.totalOutgoing)}</span>
             </div>
           </div>
         </CardContent>
