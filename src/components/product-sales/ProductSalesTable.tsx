@@ -17,7 +17,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tag } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { WarrantyManager } from "@/components/warranty/WarrantyManager";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { CustomIncomeCategory } from "@/hooks/useIncomeCategories";
 import { personalIconMap } from "@/lib/personalExpenseCategories";
 import { Sale } from "@/types/loan";
@@ -29,6 +28,7 @@ import {
   saleCategoryConfig,
 } from "./productSalesUtils";
 import { RegisterSalePaymentDialog, SalePaymentHistoryDialog } from "./ProductSalesDialogs";
+
 
 export function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnly = false, incomeCategoryByName }: {
   sale: Sale;
