@@ -352,7 +352,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           <h2 className="text-base font-semibold truncate">{selectedClient}</h2>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-7 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-2 sm:gap-3">
           <Card>
             <CardContent className="p-3 flex flex-col items-center justify-center text-center">
               <div className="text-[11px] text-muted-foreground mb-0.5">Emprestado</div>
@@ -371,30 +371,6 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           </Card>
           <Card>
             <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-              <div className="text-[11px] text-muted-foreground mb-0.5">Pendente</div>
-              <div className="font-bold tabular-nums text-warning text-sm sm:text-base">
-                {mask(formatCurrency(pendingTotal))}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-              <div className="text-[11px] text-muted-foreground mb-0.5">Total Pago</div>
-              <div className="font-bold tabular-nums text-success text-sm sm:text-base">
-                {mask(formatCurrency(paidTotal + interestReceived))}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-              <div className="text-[11px] text-muted-foreground mb-0.5">Total Geral</div>
-              <div className="font-bold tabular-nums text-primary text-sm sm:text-base">
-                {mask(formatCurrency(grandTotal))}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3 flex flex-col items-center justify-center text-center">
               <div className="text-[11px] text-muted-foreground mb-0.5">Juros Recebidos</div>
               <div className="font-bold tabular-nums text-success text-sm sm:text-base">
                 {mask(formatCurrency(interestReceived))}
@@ -406,6 +382,22 @@ export function ClientLoanHistory({ loans, payments }: Props) {
               <div className="text-[11px] text-muted-foreground mb-0.5">Juros a Receber</div>
               <div className="font-bold tabular-nums text-warning text-sm sm:text-base">
                 {mask(formatCurrency(interestPending))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+              <div className="text-[11px] text-muted-foreground mb-0.5">Pendente</div>
+              <div className="font-bold tabular-nums text-warning text-sm sm:text-base">
+                {mask(formatCurrency(pendingTotal))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+              <div className="text-[11px] text-muted-foreground mb-0.5">Total</div>
+              <div className="font-bold tabular-nums text-primary text-sm sm:text-base">
+                {mask(formatCurrency(grandTotal))}
               </div>
             </CardContent>
           </Card>
