@@ -105,7 +105,7 @@ export function DashboardMainCards({
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditBalance}><X className="h-3.5 w-3.5 text-destructive" /></Button>
                 </div>
               ) : (
-                <p className={`text-lg md:text-xl font-bold tabular-nums ${accountBalance < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance)}</p>
+                <p className={`font-bold tabular-nums whitespace-nowrap tracking-tight ${accountBalance < 0 ? "text-destructive" : "text-foreground"}`} style={{ fontSize: "clamp(0.95rem, 1.6vw, 1.25rem)" }}>{formatCurrency(accountBalance)}</p>
               )}
             </div>
           </div>
@@ -115,14 +115,14 @@ export function DashboardMainCards({
                 <Calendar className="h-3 w-3 text-primary" />
                 <p className="text-[10px] text-muted-foreground">Domingo</p>
               </div>
-              <p className={`text-sm font-semibold tabular-nums ${(accountBalance + portfolio.forecastSunday) < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance + portfolio.forecastSunday)}</p>
+              <p className={`text-sm font-semibold tabular-nums whitespace-nowrap ${(accountBalance + portfolio.forecastSunday) < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance + portfolio.forecastSunday)}</p>
             </div>
             <div className="bg-muted/50 rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center min-h-[72px] md:min-h-[88px] md:h-[88px]">
               <div className="flex items-center gap-1.5 mb-1">
                 <Calendar className="h-3 w-3 text-primary" />
                 <p className="text-[10px] text-muted-foreground">Fim do Mês</p>
               </div>
-              <p className={`text-sm font-semibold tabular-nums ${(accountBalance + portfolio.forecastEndMonth) < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance + portfolio.forecastEndMonth)}</p>
+              <p className={`text-sm font-semibold tabular-nums whitespace-nowrap ${(accountBalance + portfolio.forecastEndMonth) < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance + portfolio.forecastEndMonth)}</p>
             </div>
           </div>
         </CardContent>
@@ -137,7 +137,7 @@ export function DashboardMainCards({
                 <ArrowDownToLine className="h-5 w-5 text-success" />
               </div>
               <p className="text-xs text-muted-foreground">Valores Recebidos</p>
-              <p className="text-lg md:text-xl font-bold tabular-nums text-success">{formatCurrency(receivedByMethod.total)}</p>
+              <p className="font-bold tabular-nums text-success whitespace-nowrap tracking-tight" style={{ fontSize: "clamp(0.95rem, 1.6vw, 1.25rem)" }}>{formatCurrency(receivedByMethod.total)}</p>
               
             </div>
           </div>
@@ -167,7 +167,7 @@ export function DashboardMainCards({
                         <Icon className="h-3 w-3 text-success" />
                         <p className="text-[10px] text-muted-foreground">{displayName}</p>
                       </div>
-                      <p className="text-sm font-semibold tabular-nums text-foreground">{formatCurrency(it.amount)}</p>
+                      <p className="text-sm font-semibold tabular-nums whitespace-nowrap text-foreground">{formatCurrency(it.amount)}</p>
                     </button>
                   );
                 })}
@@ -181,7 +181,7 @@ export function DashboardMainCards({
                       <DollarSign className="h-3 w-3 text-muted-foreground" />
                       <p className="text-[10px] text-muted-foreground">Sem forma</p>
                     </div>
-                    <p className="text-sm font-semibold tabular-nums text-foreground">{formatCurrency(receivedByMethod.unassigned)}</p>
+                    <p className="text-sm font-semibold tabular-nums whitespace-nowrap text-foreground">{formatCurrency(receivedByMethod.unassigned)}</p>
                   </button>
                 )}
               </div>
