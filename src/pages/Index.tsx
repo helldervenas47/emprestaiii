@@ -533,7 +533,7 @@ const Index = () => {
   // (assim, na próxima vez que abrir, ela começa lá — sem sobrescrever
   // sub-tabs definidos por deep links via app:navigate).
   useEffect(() => {
-    if (tab !== "overdue") setOverdueSubTab("bot-telegram");
+    if (tab !== "overdue") setOverdueSubTab("whatsapp-cobranca");
   }, [tab]);
   const [expenseSubTab, setExpenseSubTab] = useState<ExpenseSubTab>("personal");
   const [personalSubTab, setPersonalSubTab] = useState<PersonalSubTab>("expenses");
