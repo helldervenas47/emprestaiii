@@ -251,6 +251,7 @@
     -moz-osx-font-smoothing: grayscale;
     letter-spacing: -0.005em;
     min-height: 100vh;
+    min-height: 100svh;
     min-height: 100dvh;
     background-image:
       radial-gradient(1100px 600px at 10% -10%, hsl(244 76% 59% / 0.06), transparent 60%),
