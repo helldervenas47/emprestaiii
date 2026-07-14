@@ -10,11 +10,13 @@
     <meta name="description" content="EmprestAI - Controle de empréstimos">
     <link rel="icon" href="/favicon.png" type="image/png" />
 
-    <!-- Perf: parallelize third-party origins -->
+    <!-- Perf: parallelize third-party origins.
+         Preconnect ao host Supabase externo (real) evita pagar DNS+TLS na primeira
+         chamada de auth/API, encurtando o TTFB do primeiro request em ~100-300ms. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="dns-prefetch" href="https://lcjelojqxpnphupsnmuq.supabase.co" />
-    <link rel="preconnect" href="https://lcjelojqxpnphupsnmuq.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://syyxnqzxqabeuqbuptkh.supabase.co" />
+    <link rel="preconnect" href="https://syyxnqzxqabeuqbuptkh.supabase.co" crossorigin />
 
     <!-- Non-blocking font load: paints with system fallback, swaps to Space Grotesk / DM Sans once ready -->
     <link
