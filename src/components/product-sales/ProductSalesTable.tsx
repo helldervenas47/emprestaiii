@@ -333,6 +333,7 @@ export function ProductSalesTable({
   onDeleteSale: (id: string) => void;
   onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void;
 }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   return (
     <Card no3d className="overflow-hidden">
       <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 border-b border-border/50 bg-muted/40">
@@ -343,7 +344,7 @@ export function ProductSalesTable({
 
         <p className="w-[78px] sm:w-[88px] lg:w-[110px] shrink-0 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Vencimento</p>
         <p className="w-[102px] sm:w-[108px] lg:w-[140px] shrink-0 text-right text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Valor</p>
-        <div className="w-0 md:w-[180px] lg:w-[200px] shrink-0" aria-hidden />
+        <div className="w-4 shrink-0" aria-hidden />
       </div>
       <div className="divide-y divide-border/30">
         {sales.map((sale) => (
@@ -356,6 +357,8 @@ export function ProductSalesTable({
             formatCurrency={formatCurrency}
             readOnly={readOnly}
             incomeCategoryByName={incomeCategoryByName}
+            expanded={expandedId === sale.id}
+            onToggle={() => setExpandedId((prev) => (prev === sale.id ? null : sale.id))}
           />
         ))}
       </div>
