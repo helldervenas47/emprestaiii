@@ -219,7 +219,12 @@ export function allocateInterestByPayment(
       const k = p.installmentNumber;
       if (k >= 1 && k <= N) amounts[k - 1] = round2(Number(p.amount) || amounts[k - 1]);
     }
-    scheduleByLoan.set(loan.id, buildInstallmentBreakdown(loan, amounts));
+    const schedule = buildInstallmentBreakdown(loan, amounts);
+    scheduleByLoan.set(loan.id, schedule);
+    // Sincroniza o saldo de juros com o cronograma real (que já inclui
+    // eventual multa de renegociação diluída nas parcelas).
+    const scheduledInterest = schedule.reduce((s, e) => s + e.interest, 0);
+    interestRemainingByLoan.set(loan.id, Math.max(interestRemainingByLoan.get(loan.id) ?? 0, scheduledInterest));
   }
 
   for (const p of sorted) {
