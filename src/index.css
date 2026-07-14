@@ -241,11 +241,10 @@
   }
 
   .dark body {
-    background-color: hsl(222 47% 5%);
+    background-color: hsl(217 60% 6%);
     background-image:
-      radial-gradient(1200px 600px at 10% -10%, hsl(217 91% 55% / 0.20), transparent 60%),
-      radial-gradient(900px 500px at 110% 5%, hsl(213 94% 60% / 0.14), transparent 60%),
-      radial-gradient(900px 700px at 50% 115%, hsl(217 91% 45% / 0.12), transparent 65%);
+      radial-gradient(1200px 600px at 10% -10%, hsl(219 71% 49% / 0.14), transparent 60%),
+      radial-gradient(900px 500px at 110% 5%, hsl(217 100% 65% / 0.08), transparent 60%);
   }
 
   /* Imersivo: quando rodando como PWA instalado, ocupa tela inteira sem chrome do browser */
