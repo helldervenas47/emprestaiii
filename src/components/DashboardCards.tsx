@@ -89,16 +89,21 @@ export function DashboardCards({ loans, payments }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {cards.map((card, i) => (
-          <div key={card.title} className={`rounded-2xl p-5 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm ${card.glowClass} transition-all duration-400 ease-out hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] text-center animate-fade-in`} style={{ animationDelay: `${i * 80}ms`, animationFillMode: 'backwards' }}>
-            <div className="flex items-center justify-center mb-3">
+          <div key={card.title} className={`rounded-2xl p-4 sm:p-4 lg:p-5 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm ${card.glowClass} transition-all duration-400 ease-out hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] text-center animate-fade-in flex flex-col items-center justify-start min-w-0`} style={{ animationDelay: `${i * 80}ms`, animationFillMode: 'backwards' }}>
+            <div className="flex items-center justify-center mb-2 sm:mb-3">
               <div className={`h-8 w-8 rounded-lg ${card.bgClass} flex items-center justify-center`}>
                 <card.icon className={`h-4 w-4 ${card.accentClass}`} />
               </div>
             </div>
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{card.title}</span>
-            <p className={`text-2xl font-bold ${card.accentClass} mt-1`}>{card.isCurrency ? mask(card.value) : card.value}</p>
+            <span className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider leading-tight">{card.title}</span>
+            <p
+              className={`font-bold ${card.accentClass} mt-1 w-full whitespace-nowrap tabular-nums tracking-tight`}
+              style={{ fontSize: card.isCurrency ? "clamp(0.95rem, 2.2vw, 1.5rem)" : "1.5rem" }}
+            >
+              {card.isCurrency ? mask(card.value) : card.value}
+            </p>
             {card.subtitle && (
               <p className="text-xs mt-2 text-muted-foreground flex items-center justify-center gap-1">
                 {card.subtitleIcon && <card.subtitleIcon className="h-3 w-3 text-destructive" />}
