@@ -15,6 +15,7 @@ import { OfflineBadge } from "./components/OfflineBadge";
 import { AppTimezoneSync } from "./components/AppTimezoneSync";
 import { StatusBarScrollSync } from "./components/StatusBarScrollSync";
 import { ViewAsBanner } from "./components/ViewAsBanner";
+import { AppFontSync } from "./hooks/useAppFont";
 import { wireAutoSync } from "./lib/offline/sync";
 import { DevCacheErrorBoundary } from "./components/DevCacheErrorBoundary";
 import { PaymentCelebrationProvider } from "./hooks/usePaymentCelebration";
