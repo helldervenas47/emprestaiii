@@ -559,6 +559,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                   <TableCell className="text-right tabular-nums text-success">{mask(formatCurrency(r.paid))}</TableCell>
                   <TableCell className="text-right tabular-nums text-primary">{mask(formatCurrency(r.interestPaid))}</TableCell>
                   <TableCell className="text-right tabular-nums text-warning">{mask(formatCurrency(r.pending))}</TableCell>
+                  <TableCell className="text-right tabular-nums text-success font-medium">{mask(formatCurrency(r.paid + r.interestPaid))}</TableCell>
                   <TableCell className="text-right tabular-nums font-semibold">{mask(formatCurrency(r.total))}</TableCell>
                   <TableCell className="text-right tabular-nums text-primary font-medium">
                     {hidden ? "•••" : `${r.interestRate.toFixed(2).replace(".", ",")}%`}
