@@ -311,7 +311,11 @@ export function allocateInterestByPayment(
     const last = lastPaymentByLoan.get(loan.id);
     if (!last) continue;
     const total = totalWithInterest(loan.amount, loan.interestRate);
-    const expectedInterest = Math.max(0, total - loan.amount);
+    // Considera também juros do cronograma real (inclui multa de renegociação
+    // diluída nas parcelas), para não deixar penalidade sem alocação.
+    const scheduled = scheduleByLoan.get(loan.id);
+    const scheduledInterest = scheduled ? scheduled.reduce((s, e) => s + e.interest, 0) : 0;
+    const expectedInterest = Math.max(0, Math.max(total - loan.amount, scheduledInterest));
     const allocated = payments
       .filter((p) => p.loanId === loan.id)
       .reduce((s, p) => s + (byId.get(p.id) ?? 0), 0);
