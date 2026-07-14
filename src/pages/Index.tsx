@@ -1701,9 +1701,10 @@ const Index = () => {
               style={{
                 paddingLeft: "env(safe-area-inset-left)",
                 paddingRight: "env(safe-area-inset-right)",
+                paddingBottom: "env(safe-area-inset-bottom)",
               }}
             >
-              <div className="flex items-stretch justify-around min-h-[60px]" style={{ height: "calc(60px + env(safe-area-inset-bottom))" }}>
+              <div className="flex items-stretch justify-around h-[60px]">
                 {bottomItems.map((item) => {
                   const active = tab === item.id;
                   const Icon = item.icon;
