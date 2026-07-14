@@ -141,6 +141,8 @@ export function SystemSettings() {
             </Card>
           )}
 
+          <AppFontSelector />
+
           <ThemeSettingsCard />
         </TabsContent>
 
