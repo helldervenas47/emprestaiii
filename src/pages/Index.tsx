@@ -864,7 +864,7 @@ const Index = () => {
         >
           <div className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              {isMobileOrTablet && !isMobile && (
+              {!isMobile && (
                 <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
                   <SheetTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1034,26 +1034,7 @@ const Index = () => {
             </div>
           </div>
 
-          {!isMobileOrTablet && (
-            <div className="max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-8 pb-2">
-              <nav className="flex gap-1 overflow-x-auto scrollbar-hide bg-muted/60 p-1 rounded-xl border border-border/50">
-                {visibleTabs.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setTab(t.id)}
-                    className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-semibold rounded-lg transition-all whitespace-nowrap uppercase tracking-wide ${
-                      tab === t.id
-                        ? "bg-background !text-primary shadow-sm"
-                        : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                    }`}
-                  >
-                    <t.icon className={`h-3.5 w-3.5 shrink-0 ${tab === t.id ? "!text-primary" : ""}`} />
-                    <span className="hidden xs:inline">{t.label}</span>
-                  </button>
-                ))}
-              </nav>
-            </div>
-          )}
+          {/* Abas superiores desktop removidas — navegação agora usa o mesmo menu lateral retrátil da versão Tablet. */}
         </header>
 
         <main
