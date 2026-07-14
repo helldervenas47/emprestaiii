@@ -30,7 +30,7 @@ import {
 import { RegisterSalePaymentDialog, SalePaymentHistoryDialog } from "./ProductSalesDialogs";
 
 
-export function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnly = false, incomeCategoryByName }: {
+export function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, readOnly = false, incomeCategoryByName, expanded, onToggle }: {
   sale: Sale;
   onEdit: () => void;
   onDelete: () => void;
@@ -38,6 +38,8 @@ export function SaleListRow({ sale, onEdit, onDelete, onUpdate, formatCurrency, 
   formatCurrency: (v: number) => string;
   readOnly?: boolean;
   incomeCategoryByName?: Map<string, CustomIncomeCategory>;
+  expanded: boolean;
+  onToggle: () => void;
 }) {
   const [confirmDeleteSale, setConfirmDeleteSale] = useState(false);
   const [showPartial, setShowPartial] = useState(false);
