@@ -1,4 +1,4 @@
-import { getExternalUserClient } from "../_shared/external-supabase.ts";
+import { getUserClient } from "../_shared/supabase.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userClient = getExternalUserClient();
+    const userClient = getUserClient();
     const { data: { user } } = await userClient.auth.getUser(authHeader.replace("Bearer ", ""));
     if (!user) {
       return new Response(JSON.stringify({ ok: false, error: "Não autenticado" }), {

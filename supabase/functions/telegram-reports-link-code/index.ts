@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getReportsBotId } from "../_shared/reports-bot.ts";
-import { getExternalAdmin, getExternalUserClient } from "../_shared/external-supabase.ts";
+import { getAdminClient, getUserClient } from "../_shared/supabase.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
 
-  const userClient = getExternalUserClient();
+  const userClient = getUserClient();
   const token = authHeader.replace(/^Bearer\s+/i, "");
   const { data: { user }, error: userErr } = await userClient.auth.getUser(token);
   const userId = user?.id;
@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
   }
 
-  const admin = getExternalAdmin();
+  const admin = getAdminClient();
   let body: any = {};
   try { body = await req.json(); } catch { body = {}; }
 

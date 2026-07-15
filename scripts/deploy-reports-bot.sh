@@ -5,17 +5,17 @@
 #   - Supabase CLI instalado (https://supabase.com/docs/guides/cli)
 #   - Logado: `supabase login`
 #   - Variáveis de ambiente:
-#       EXTERNAL_PROJECT_REF=syyxnqzxqabeuqbuptkh
+#       SUPABASE_PROJECT_REF=syyxnqzxqabeuqbuptkh
 #
 # Uso:
 #   chmod +x scripts/deploy-reports-bot.sh
-#   EXTERNAL_PROJECT_REF=syyxnqzxqabeuqbuptkh ./scripts/deploy-reports-bot.sh
+#   SUPABASE_PROJECT_REF=syyxnqzxqabeuqbuptkh ./scripts/deploy-reports-bot.sh
 
 set -euo pipefail
 
-PROJECT_REF="${EXTERNAL_PROJECT_REF:-}"
+PROJECT_REF="${SUPABASE_PROJECT_REF:-}"
 if [[ -z "$PROJECT_REF" ]]; then
-  echo "ERRO: defina EXTERNAL_PROJECT_REF (ex: syyxnqzxqabeuqbuptkh)" >&2
+  echo "ERRO: defina SUPABASE_PROJECT_REF (ex: syyxnqzxqabeuqbuptkh)" >&2
   exit 1
 fi
 

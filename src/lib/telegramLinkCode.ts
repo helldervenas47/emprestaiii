@@ -1,11 +1,11 @@
 import { supabase } from "@/integrations/supabase/userClient";
 
-// Sempre apontar para o Supabase EXTERNO. Nunca cair para VITE_SUPABASE_* (Lovable Cloud ociosa).
-const APP_FUNCTIONS_URL = import.meta.env.VITE_EXTERNAL_SUPABASE_URL as string;
-const APP_FUNCTIONS_PUBLISHABLE_KEY = import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY as string;
+// As funções usam o mesmo projeto Supabase do cliente principal.
+const APP_FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const APP_FUNCTIONS_PUBLISHABLE_KEY = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY) as string;
 
 if (!APP_FUNCTIONS_URL || !APP_FUNCTIONS_PUBLISHABLE_KEY) {
-  throw new Error("[telegram] VITE_EXTERNAL_SUPABASE_URL e VITE_EXTERNAL_SUPABASE_ANON_KEY são obrigatórios para chamar as funções do app.");
+  throw new Error("[telegram] VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY são obrigatórios para chamar as funções do app.");
 }
 
 type TelegramLinkCodeFunction = "telegram-link-code" | "telegram-reports-link-code";

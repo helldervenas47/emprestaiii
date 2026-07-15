@@ -2,7 +2,7 @@
 // (via the public.user_roles table). Returns a Response on failure, or
 // the verified user id on success.
 // ⚠️ Sempre opera no Supabase EXTERNO (banco principal do app).
-import { getExternalAdmin, getExternalUserClient } from "./external-supabase.ts";
+import { getAdminClient, getUserClient } from "./supabase.ts";
 
 export const adminCors = {
   "Access-Control-Allow-Origin": "*",
@@ -18,8 +18,8 @@ export async function requireAdmin(req: Request): Promise<{ userId: string } | R
   }
   let userClient, admin;
   try {
-    userClient = getExternalUserClient();
-    admin = getExternalAdmin();
+    userClient = getUserClient();
+    admin = getAdminClient();
   } catch (e) {
     return new Response(JSON.stringify({ error: "Server misconfigured", detail: (e as Error).message }), {
       status: 500, headers: { ...adminCors, "Content-Type": "application/json" },

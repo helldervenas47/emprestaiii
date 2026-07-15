@@ -1,3 +1,4 @@
+import { getAnonKey as getProjectAnonKey, getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 // asaas-create-subscription
 //
 // Segurança (Prioridade 1.3):
@@ -10,9 +11,9 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const SUPABASE_URL = Deno.env.get("EXTERNAL_SUPABASE_URL")!;
-const SERVICE_ROLE_KEY = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
-const ANON_KEY = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SERVICE_ROLE_KEY = getProjectServiceRoleKey()!;
+const ANON_KEY = getProjectAnonKey()!;
 
 const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 

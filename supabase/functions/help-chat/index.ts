@@ -1,3 +1,4 @@
+import { getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 // Help chat — assistente IA que conhece o app EmprestAI a fundo.
 // Recebe { messages: [{role, content}] } e devolve { reply: string }.
 //
@@ -115,20 +116,10 @@ REGRAS DE RESPOSTA (obrigatórias)
 
 interface ChatMsg { role: "user" | "assistant" | "system"; content: string }
 
-// --- Clientes Supabase ---------------------------------------------------
-// Cloud (para system_telegram_bots — onde a lista de bots vive)
-async function getCloudClient() {
+// --- Cliente Supabase ----------------------------------------------------
+async function getSupabaseClient() {
   const url = Deno.env.get("SUPABASE_URL");
-  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!url || !key) return null;
-  const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
-  return createClient(url, key);
-}
-
-// External (onde fica a base de conhecimento incremental do help-chat)
-async function getExternalClient() {
-  const url = Deno.env.get("EXTERNAL_SUPABASE_URL");
-  const key = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
+  const key = getProjectServiceRoleKey();
   if (!url || !key) return null;
   const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
   return createClient(url, key);
@@ -168,7 +159,7 @@ async function ensureKnowledgeTable(supa: any) {
 // --- Contexto: bots do Telegram -----------------------------------------
 async function fetchBotsContext(): Promise<string> {
   try {
-    const supa = await getExternalClient();
+    const supa = await getSupabaseClient();
     if (!supa) return "\n\nBots oficiais do Telegram: (não foi possível consultar — NÃO invente @usernames).";
     const { data, error } = await supa
       .from("system_telegram_bots")
@@ -215,7 +206,7 @@ function extractKeywords(text: string): string[] {
 
 async function fetchKnowledgeContext(question: string): Promise<string> {
   try {
-    const supa = await getExternalClient();
+    const supa = await getSupabaseClient();
     if (!supa) return "";
     await ensureKnowledgeTable(supa);
 
@@ -247,7 +238,7 @@ async function fetchKnowledgeContext(question: string): Promise<string> {
 
 async function saveKnowledge(question: string, answer: string, userId: string | null) {
   try {
-    const supa = await getExternalClient();
+    const supa = await getSupabaseClient();
     if (!supa) return;
     await ensureKnowledgeTable(supa);
     if (!question || !answer) return;
@@ -387,7 +378,7 @@ Deno.serve(async (req) => {
       const authHeader = req.headers.get("Authorization") || "";
       const token = authHeader.replace(/^Bearer\s+/i, "");
       if (token) {
-        const supa = await getExternalClient();
+        const supa = await getSupabaseClient();
         if (supa) {
           const { data } = await supa.auth.getUser(token);
           userId = data.user?.id ?? null;

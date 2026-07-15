@@ -1,4 +1,4 @@
-import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { getAdminClient } from "../_shared/supabase.ts";
 import { runReportCommand } from "../_shared/reports-commands.ts";
 import { sendReportsMessage } from "../_shared/reports-bot.ts";
 
@@ -22,7 +22,7 @@ function localDateInTimezone(tz = "America/Sao_Paulo") {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const admin = getExternalAdmin();
+  const admin = getAdminClient();
   const url = new URL(req.url);
   const forceUserId = url.searchParams.get("user_id");
 

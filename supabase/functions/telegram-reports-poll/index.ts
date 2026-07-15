@@ -1,5 +1,6 @@
+import { getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getExternalAdmin, getExternalServiceRoleKey } from "../_shared/external-supabase.ts";
+import { getAdminClient, getServiceRoleKey } from "../_shared/supabase.ts";
 import { parseReportCommand, runReportCommand, renderMenu } from "../_shared/reports-commands.ts";
 
 
@@ -271,10 +272,10 @@ Deno.serve(async (req) => {
 
   const startTime = Date.now();
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const SUPABASE_SERVICE_ROLE_KEY = getProjectServiceRoleKey()!;
   const EXPENSES_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
   const REPORTS_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN_REPORTS") ?? "";
-  const supabase = getExternalAdmin();
+  const supabase = getAdminClient();
 
   // Concurrency guard: if another invocation logged a run < 15s ago and we're not
   // forced, skip silently to prevent overlapping getUpdates → 409 noise.

@@ -1,3 +1,4 @@
+import { getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 // Edge function: recalculate-credit-limits
 // Runs monthly (cron) to adjust credit limits for all clients based on payment behavior.
 
@@ -99,8 +100,8 @@ Deno.serve(async (req: Request) => {
 
   try {
     const supabase = createClient(
-      Deno.env.get("EXTERNAL_SUPABASE_URL")!,
-      Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!,
+      Deno.env.get("SUPABASE_URL")!,
+      getProjectServiceRoleKey()!,
     );
 
     // Auth: require shared cron secret (header or query) matching app_internal_config.cron_secret

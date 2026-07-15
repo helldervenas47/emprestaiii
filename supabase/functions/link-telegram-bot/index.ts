@@ -1,9 +1,10 @@
+import { getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 // Vincula o usuário autenticado a um chat do Telegram a partir de um código.
 // Fluxos aceitos:
 // 1) /start no bot -> usuário cola o código alfanumérico no app.
 // 2) código numérico do app -> usuário enviou /start CODE ao bot.
 import { getReportsBotId } from "../_shared/reports-bot.ts";
-import { getExternalAdmin, getExternalServiceRoleKey, getExternalUserClient } from "../_shared/external-supabase.ts";
+import { getAdminClient, getServiceRoleKey, getUserClient } from "../_shared/supabase.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -87,8 +88,8 @@ async function linkByBotCode(admin: any, userId: string, rawCode: string, reques
 
     const chatId = Number(message.chat_id);
     const validCodes = [
-      await generateChatLinkCode(chatId, kind, getExternalServiceRoleKey()),
-      await generateChatLinkCode(chatId, kind, getExternalServiceRoleKey(), Date.now() - 15 * 60 * 1000),
+      await generateChatLinkCode(chatId, kind, getServiceRoleKey()),
+      await generateChatLinkCode(chatId, kind, getServiceRoleKey(), Date.now() - 15 * 60 * 1000),
     ];
 
     if (validCodes.some((code) => codesEquivalent(code, botCode))) {
@@ -209,12 +210,12 @@ Deno.serve(async (req) => {
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const SUPABASE_SERVICE_ROLE_KEY = getProjectServiceRoleKey()!;
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return json({ error: "Unauthorized" }, 401);
 
-    const userClient = getExternalUserClient();
+    const userClient = getUserClient();
     const token = authHeader.replace(/^Bearer\s+/i, "");
     const { data: { user }, error: userErr } = await userClient.auth.getUser(token);
     const userId = user?.id;
@@ -227,24 +228,24 @@ Deno.serve(async (req) => {
     const rawCode = typeof body?.bot_code === "string" ? body.bot_code : "";
     const requestedKind = body?.kind === "reports" || body?.kind === "expenses" ? body.kind : undefined;
     console.log("[link-telegram-bot] received", { userId, requestedKind, rawCodeLen: rawCode.length, rawBodyLen: rawBodyText.length, bodyKeys: Object.keys(body ?? {}) });
-    const admin = getExternalAdmin();
+    const admin = getAdminClient();
 
     // Flush pending Telegram updates so the recent /start message is persisted.
     await Promise.all([
       fetch(`${SUPABASE_URL}/functions/v1/telegram-poll`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+        headers: { "Content-Type": "application/json", apikey: SUPABASE_SERVICE_ROLE_KEY },
         body: "{}",
       }).catch(() => null),
       fetch(`${SUPABASE_URL}/functions/v1/telegram-reports-poll?force=1`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+        headers: { "Content-Type": "application/json", apikey: SUPABASE_SERVICE_ROLE_KEY },
         body: "{}",
       }).catch(() => null),
     ]);
     await fetch(`${SUPABASE_URL}/functions/v1/telegram-process`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+      headers: { "Content-Type": "application/json", apikey: SUPABASE_SERVICE_ROLE_KEY },
       body: "{}",
     }).catch(() => null);
 

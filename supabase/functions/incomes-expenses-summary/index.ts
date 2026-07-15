@@ -1,4 +1,5 @@
-import { getExternalAdmin, getExternalUserClient, getExternalAnonKey } from "../_shared/external-supabase.ts";
+import { getAnonKey as getProjectAnonKey } from "../_shared/supabase.ts";
+import { getAdminClient, getUserClient, getAnonKey } from "../_shared/supabase.ts";
 import { sendReportsMessage, getReportsLinkForUser, sendReportsAsImage } from "../_shared/reports-bot.ts";
 import { dueSlotKeys } from "../_shared/schedule.ts";
 
@@ -270,7 +271,7 @@ async function buildAndSend(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const admin = getExternalAdmin();
+  const admin = getAdminClient();
   const url = new URL(req.url);
   if (url.searchParams.get("debug") === "1") {
     const { data: bots } = await admin.from("system_telegram_bots")
@@ -292,8 +293,8 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "").trim();
   const anonKeys = new Set([
-    getExternalAnonKey(),
-    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    getAnonKey(),
+    getProjectAnonKey() ?? "",
     Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "",
   ].filter(Boolean));
   const jwtPayload = decodeJwtPayload(token);
@@ -301,7 +302,7 @@ Deno.serve(async (req) => {
 
   // Manual on-demand send — valida o JWT contra o Supabase EXTERNO (onde o usuário está logado)
   if (hasUserJwt && req.method === "POST") {
-    const userClient = getExternalUserClient();
+    const userClient = getUserClient();
     const { data: { user }, error: userErr } = await userClient.auth.getUser(token);
     if (userErr || !user) {
       return new Response(

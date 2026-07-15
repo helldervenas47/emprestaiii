@@ -1,5 +1,6 @@
+import { getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { getAdminClient } from "../_shared/supabase.ts";
 
 // Keep polling short and non-overlapping. The UI can call this while the
 // dialog is open, so long-polling here creates Telegram 409 conflicts.
@@ -134,7 +135,7 @@ Deno.serve(async (req) => {
 
   const startTime = Date.now();
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const SUPABASE_SERVICE_ROLE_KEY = getProjectServiceRoleKey();
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return new Response(JSON.stringify({ error: "Missing env" }), { status: 500, headers: corsHeaders });
@@ -166,7 +167,7 @@ Deno.serve(async (req) => {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-  const supabase = getExternalAdmin();
+  const supabase = getAdminClient();
 
   const { data: bots, error: botsErr } = await supabase
     .from("system_telegram_bots")

@@ -1,5 +1,5 @@
 -- Execute este SQL no SQL Editor do seu Supabase EXTERNO
--- (o mesmo apontado por EXTERNAL_SUPABASE_URL).
+-- (o mesmo apontado por SUPABASE_URL).
 -- Cria as tabelas dedicadas ao bot de Relatórios, isoladas do bot de Despesas.
 
 -- =========================================

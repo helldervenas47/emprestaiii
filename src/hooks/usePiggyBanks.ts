@@ -572,8 +572,8 @@ export function usePiggyBanks() {
       if (!accessToken) {
         throw new Error("Sessão expirada. Faça login novamente.");
       }
-      const baseUrl = (import.meta as any).env.VITE_EXTERNAL_SUPABASE_URL as string;
-      const anonKey = (import.meta as any).env.VITE_EXTERNAL_SUPABASE_ANON_KEY as string;
+      const baseUrl = (import.meta as any).env.VITE_SUPABASE_URL as string;
+      const anonKey = ((import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY || (import.meta as any).env.VITE_SUPABASE_ANON_KEY) as string;
       const url = `${baseUrl}/functions/v1/${fnName}`;
       let res: Response;
       try {

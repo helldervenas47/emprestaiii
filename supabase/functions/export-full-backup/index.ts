@@ -1,3 +1,4 @@
+import { getAnonKey as getProjectAnonKey, getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 // Exporta backup completo do owner como arquivo JSON para download.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { BACKUP_TABLES, BACKUP_VERSION, sha256Hex } from "../_shared/backup-tables.ts";
@@ -11,9 +12,9 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const SUPABASE_URL = Deno.env.get("EXTERNAL_SUPABASE_URL")!;
-  const SERVICE_ROLE = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
-  const ANON = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY")!;
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SERVICE_ROLE = getProjectServiceRoleKey()!;
+  const ANON = getProjectAnonKey()!;
 
   const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
   if (!token) {

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Deploy das edge functions do Telegram no projeto Supabase do usuário
-# Projeto: syyxnqzxqabeuqbuptkh
+# Deploy das edge functions do Telegram no projeto Supabase configurado
 #
 # Pré-requisitos:
 #   - Supabase CLI instalado (https://supabase.com/docs/guides/cli)
@@ -14,17 +13,18 @@
 #   chmod +x scripts/deploy-telegram-functions.sh
 #   ./scripts/deploy-telegram-functions.sh
 #
-# Variáveis de ambiente opcionais (sobrescrevem os defaults):
+# Variáveis de ambiente obrigatórias:
 #   SUPABASE_ACCESS_TOKEN  Token pessoal do Supabase (sbp_...)
-#   PROJECT_REF            Ref do projeto (default: syyxnqzxqabeuqbuptkh)
+#   SUPABASE_PROJECT_REF   Ref do projeto
 #   DB_PASSWORD            Senha do banco (usada no link)
 # =============================================================================
 set -euo pipefail
 
-# ---- Credenciais ------------------------------------------------------------
-export SUPABASE_ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN:-sbp_d13540ddf0999a4c1a0c407202ae94debaa169e9}"
-PROJECT_REF="${PROJECT_REF:-syyxnqzxqabeuqbuptkh}"
-DB_PASSWORD="${DB_PASSWORD:-Emprestai05}"
+# ---- Credenciais (nunca gravar valores reais neste arquivo) -----------------
+: "${SUPABASE_ACCESS_TOKEN:?defina SUPABASE_ACCESS_TOKEN}"
+: "${SUPABASE_PROJECT_REF:?defina SUPABASE_PROJECT_REF}"
+: "${DB_PASSWORD:?defina DB_PASSWORD}"
+PROJECT_REF="$SUPABASE_PROJECT_REF"
 
 # ---- Sanity check -----------------------------------------------------------
 if ! command -v supabase >/dev/null 2>&1; then
@@ -85,7 +85,7 @@ fi
 echo "============================================================"
 
 # ---- Lembrete sobre secrets -------------------------------------------------
-cat <<'EOF'
+cat <<EOF
 
 Próximo passo (uma única vez) — definir os SECRETS no projeto externo:
 
@@ -93,12 +93,11 @@ Próximo passo (uma única vez) — definir os SECRETS no projeto externo:
     TELEGRAM_BOT_TOKEN="..." \
     TELEGRAM_BOT_TOKEN_REPORTS="..." \
     TELEGRAM_API_KEY="..." \
-    LOVABLE_API_KEY="..." \
     GEMINI_API_KEY="..."
 
 OBS: SUPABASE_URL, SUPABASE_ANON_KEY e SUPABASE_SERVICE_ROLE_KEY são
 injetados automaticamente pelo Supabase em cada function — não precisa setar.
 
 Em seguida, registre o webhook de cada bot apontando para:
-  https://syyxnqzxqabeuqbuptkh.supabase.co/functions/v1/telegram-webhook
+  https://${PROJECT_REF}.supabase.co/functions/v1/telegram-webhook
 EOF

@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { adminGuard, guardCors as corsHeaders } from "../_shared/admin-guard.ts";
+import { getServiceRoleKey } from "../_shared/supabase.ts";
 
 
 
@@ -35,15 +36,15 @@ Deno.serve(async (req) => {
 
   try {
     const env = Deno.env.toObject();
-    const SUPABASE_URL = env.EXTERNAL_SUPABASE_URL ?? "";
-    const service_role_key = env.EXTERNAL_SUPABASE_SERVICE_ROLE_KEY ?? "";
+    const SUPABASE_URL = env.SUPABASE_URL ?? "";
+    const service_role_key = getServiceRoleKey();
 
     // Return only the NAMES of configured secrets, never the values.
     const secret_names: string[] = [];
     for (const [k] of Object.entries(env)) {
       if (SYSTEM_VARS.has(k)) continue;
       if (k.startsWith("XDG_")) continue;
-      if (["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_DB_URL"].includes(k)) continue;
+      if (["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_PUBLISHABLE_KEYS", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY", "SUPABASE_SECRET_KEYS", "SUPABASE_DB_URL"].includes(k)) continue;
       secret_names.push(k);
     }
 

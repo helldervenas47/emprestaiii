@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getExternalAdmin, getExternalSupabaseUrl, getExternalAnonKey } from "./external-supabase.ts";
+import { getAdminClient, getSupabaseUrl, getAnonKey } from "./supabase.ts";
 import { dueSlotKeys, isTimeDueToday } from "./schedule.ts";
 import { runReportCommand } from "./reports-commands.ts";
 import { sendReportsMessage, getReportsLinkForUser } from "./reports-bot.ts";
@@ -35,9 +35,9 @@ export function buildScheduledReportHandler(opts: {
   return async (req: Request): Promise<Response> => {
     if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-    const SUPABASE_URL = getExternalSupabaseUrl();
-    const SUPABASE_ANON_KEY = getExternalAnonKey();
-    const admin = getExternalAdmin();
+    const SUPABASE_URL = getSupabaseUrl();
+    const SUPABASE_ANON_KEY = getAnonKey();
+    const admin = getAdminClient();
 
     try {
       // Manual call (with auth) → run for that user only and send/return text.

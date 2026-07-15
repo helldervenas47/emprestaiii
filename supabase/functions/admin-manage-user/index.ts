@@ -1,5 +1,5 @@
 import { corsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
-import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { getAdminClient } from "../_shared/supabase.ts";
 
 Deno.serve(async (req) => {
   const pre = handleCorsPreflight(req);
@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
 
     // Client Supabase EXTERNO padronizado (Passo 5).
     // Toda autenticação e escrita passa pelo mesmo projeto externo.
-    const adminClient = getExternalAdmin();
+    const adminClient = getAdminClient();
 
 
     // Validate the caller JWT against the same external auth project used by the

@@ -11,6 +11,7 @@ import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { validateInviteCode } from "@/hooks/useInviteCodes";
 import { toast } from "sonner";
+import { AUTH_PATHS } from "@/lib/authNavigation";
 
 const Cadastro = () => {
   const [searchParams] = useSearchParams();
@@ -92,7 +93,7 @@ const Cadastro = () => {
         options: {
           // Volta para /cadastro (mesma rota SPA, dentro do escopo do
           // manifest) para preservar o modo standalone do PWA.
-          redirectTo: `${window.location.origin}/cadastro`,
+          redirectTo: `${window.location.origin}${AUTH_PATHS.signup}`,
           queryParams: { prompt: "select_account" },
         },
       });
@@ -255,7 +256,7 @@ const Cadastro = () => {
     } else {
       toast.success("Conta criada! Verifique seu email para confirmar.");
     }
-    navigate("/auth");
+    navigate(AUTH_PATHS.login);
   };
 
   return (
@@ -406,7 +407,7 @@ const Cadastro = () => {
 
         <div className="text-center text-sm text-muted-foreground">
           Já tem conta?{" "}
-          <button onClick={() => navigate("/auth")} className="text-primary hover:underline font-medium">
+          <button onClick={() => navigate(AUTH_PATHS.login)} className="text-primary hover:underline font-medium">
             Entrar
           </button>
         </div>

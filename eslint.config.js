@@ -5,7 +5,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  { ignores: ["dist", "node_modules", "work", "outputs"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -21,9 +21,7 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
-      // Banco principal do app é o Supabase EXTERNO (userClient).
-      // Importar o client da Lovable Cloud (`@/integrations/supabase/client`)
-      // graveria dados no banco ocioso. Use sempre o userClient.
+      // Mantém todos os módulos no cliente canônico do projeto.
       "no-restricted-imports": [
         "error",
         {
@@ -31,7 +29,7 @@ export default tseslint.config(
             {
               name: "@/integrations/supabase/client",
               message:
-                "Use @/integrations/supabase/userClient. O banco principal do app é o Supabase externo; o client da Lovable Cloud está ocioso.",
+                "Use @/integrations/supabase/userClient para compartilhar a única instância do Supabase.",
             },
           ],
         },

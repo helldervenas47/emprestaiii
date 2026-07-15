@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getExternalAdmin, getExternalUserClient } from "../_shared/external-supabase.ts";
+import { getAdminClient, getUserClient } from "../_shared/supabase.ts";
 
 
 const corsHeaders = {
@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const supabase = getExternalAdmin();
+    const supabase = getAdminClient();
 
     let ownerId: string | null = null;
     let force = false;
@@ -238,7 +238,7 @@ Deno.serve(async (req) => {
     
     if (token) {
       // Validate token against the EXTERNAL Supabase where users are actually authenticated
-      const userClient = getExternalUserClient();
+      const userClient = getUserClient();
       const { data: userData } = await userClient.auth.getUser(token);
       if (userData?.user) {
         const { data: ownerRow } = await supabase

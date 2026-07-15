@@ -1,3 +1,4 @@
+import { getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getReportsBotId, getReportsLinkForUser } from "../_shared/reports-bot.ts";
 
@@ -21,8 +22,8 @@ Deno.serve(async (req) => {
     }
 
     const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_BOT_TOKEN");
-    const SUPABASE_URL = Deno.env.get("EXTERNAL_SUPABASE_URL")!;
-    const SERVICE_KEY = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SERVICE_KEY = getProjectServiceRoleKey()!;
 
     if (!TELEGRAM_API_KEY) {
       // Telegram not configured — skip silently

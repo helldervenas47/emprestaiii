@@ -11,9 +11,13 @@
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, relative } from "node:path";
 
-const ACCESS_TOKEN = process.env.SUPABASE_ACCESS_TOKEN
-  || "sbp_d13540ddf0999a4c1a0c407202ae94debaa169e9";
-const PROJECT_REF  = process.env.SUPABASE_PROJECT_REF || "syyxnqzxqabeuqbuptkh";
+const ACCESS_TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
+const PROJECT_REF = process.env.SUPABASE_PROJECT_REF;
+
+if (!ACCESS_TOKEN || !PROJECT_REF) {
+  console.error("Defina SUPABASE_ACCESS_TOKEN e SUPABASE_PROJECT_REF.");
+  process.exit(1);
+}
 
 const ROOT = "supabase/functions";
 const API  = `https://api.supabase.com/v1/projects/${PROJECT_REF}/functions`;

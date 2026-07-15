@@ -1,3 +1,4 @@
+import { getAnonKey as getProjectAnonKey } from "../_shared/supabase.ts";
 // Recebe áudio (base64) gravado pelo usuário, transcreve e extrai os campos
 // de uma despesa (descrição, valor, categoria, vencimento, observações)
 // usando a API nativa do Gemini (suporta audio/webm inline).
@@ -80,8 +81,8 @@ Deno.serve(async (req) => {
     if (!authHeader.toLowerCase().startsWith("bearer ")) {
       return jsonResponse({ error: "Unauthorized" }, 401);
     }
-    const SUPABASE_URL = Deno.env.get("EXTERNAL_SUPABASE_URL");
-    const SUPABASE_ANON_KEY = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY") ?? Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_ANON_KEY = getProjectAnonKey();
     let userId: string | null = null;
     if (SUPABASE_URL && SUPABASE_ANON_KEY) {
       const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");

@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getExternalAdmin, getExternalAnonKey, getExternalSupabaseUrl } from "../_shared/external-supabase.ts";
+import { getAdminClient, getAnonKey, getSupabaseUrl } from "../_shared/supabase.ts";
 import { dueSlotKeys } from "../_shared/schedule.ts";
 
 const GATEWAY_URL = "https://api.telegram.org";
@@ -312,10 +312,10 @@ async function buildAndSend(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const SUPABASE_URL = getExternalSupabaseUrl();
-  const SUPABASE_ANON_KEY = getExternalAnonKey();
+  const SUPABASE_URL = getSupabaseUrl();
+  const SUPABASE_ANON_KEY = getAnonKey();
 
-  const admin = getExternalAdmin();
+  const admin = getAdminClient();
 
   let brandName = "EmprestAI";
   try {

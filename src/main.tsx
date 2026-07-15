@@ -13,7 +13,7 @@ import { ConfigErrorScreen } from "./components/ConfigErrorScreen";
 bootstrapAppTheme();
 
 // Migração única: copia a sessão da storageKey padrão (derivada da URL do
-// projeto externo) para a nova chave dedicada, preservando logins existentes
+// projeto) para a chave dedicada, preservando logins existentes
 // após a unificação dos clients. Idempotente: roda no máximo uma vez por device.
 (() => {
   try {

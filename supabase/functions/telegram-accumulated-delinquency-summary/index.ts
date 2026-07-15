@@ -1,5 +1,6 @@
+import { getAnonKey as getProjectAnonKey, getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getExternalAdmin, getExternalSupabaseUrl, getExternalAnonKey } from "../_shared/external-supabase.ts";
+import { getAdminClient, getSupabaseUrl, getAnonKey } from "../_shared/supabase.ts";
 
 import { dueSlotKeys } from "../_shared/schedule.ts";
 
@@ -263,10 +264,10 @@ Deno.serve(async (req) => {
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const SUPABASE_ANON_KEY = getProjectAnonKey()!;
+    const SUPABASE_SERVICE_ROLE_KEY = getProjectServiceRoleKey()!;
 
-    const admin = getExternalAdmin();
+    const admin = getAdminClient();
     const url = new URL(req.url);
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const bodyUserId = typeof body.user_id === "string" ? body.user_id : null;
@@ -280,7 +281,7 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: "Auth required" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      const userClient = createClient(getExternalSupabaseUrl(), getExternalAnonKey(), {
+      const userClient = createClient(getSupabaseUrl(), getAnonKey(), {
         global: { headers: { Authorization: `Bearer ${token}` } },
       });
 

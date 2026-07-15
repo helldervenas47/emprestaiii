@@ -46,7 +46,7 @@ const REPORTS_COMMANDS = [
 
 
 async function publishCommands(
-  lovableKey: string,
+  serviceRoleKey: string,
   telegramKey: string,
   commands: { command: string; description: string }[],
 ) {

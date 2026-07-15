@@ -1,3 +1,4 @@
+import { getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -24,8 +25,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("EXTERNAL_SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = getProjectServiceRoleKey()!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
     // Get all enabled webhook settings

@@ -1,7 +1,7 @@
 // Seed inicial para novos usuários: copia categorias do "template owner"
 // (usuário com maior número de categorias) para o user_id do chamador.
 // Idempotente — não duplica categorias já existentes (case-insensitive por nome).
-import { getExternalAdmin, getExternalUserClient } from "../_shared/external-supabase.ts";
+import { getAdminClient, getUserClient } from "../_shared/supabase.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,7 +18,7 @@ interface Body {
 
 type CatRow = { name: string; icon: string; color: string };
 
-async function getTemplateUserId(admin: ReturnType<typeof getExternalAdmin>): Promise<string | null> {
+async function getTemplateUserId(admin: ReturnType<typeof getAdminClient>): Promise<string | null> {
   // Pick the user with the most personal_expense_categories as the template.
   const { data } = await admin
     .from("personal_expense_categories")
@@ -37,7 +37,7 @@ async function getTemplateUserId(admin: ReturnType<typeof getExternalAdmin>): Pr
 }
 
 async function fetchTemplateCategories(
-  admin: ReturnType<typeof getExternalAdmin>,
+  admin: ReturnType<typeof getAdminClient>,
   templateUserId: string,
 ) {
   const [exp, inc] = await Promise.all([
@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userClient = getExternalUserClient();
+    const userClient = getUserClient();
     const { data: userRes, error: authError } = await userClient.auth.getUser(token);
     if (authError || !userRes?.user) {
       return new Response(JSON.stringify({ error: "invalid_token" }), {
@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
     const body: Body = await req.json().catch(() => ({}));
     const mode = body.mode ?? "preview";
 
-    const admin = getExternalAdmin();
+    const admin = getAdminClient();
 
     // --- Find template owner
     const templateUserId = await getTemplateUserId(admin);

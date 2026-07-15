@@ -1,3 +1,4 @@
+import { getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 // Envia um relatório financeiro resumido pelo WhatsApp (Whatsmiau / Evolution API).
 // Pensado para ser colado no Dashboard do Supabase EXTERNO (Edge Functions → New).
 // Body: { owner_id: string, phone?: string, report_type?: "daily"|"weekly"|"monthly"|"accountant" }
@@ -103,8 +104,8 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const SUPABASE_URL = Deno.env.get("EXTERNAL_SUPABASE_URL")!;
-    const SERVICE_KEY = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SERVICE_KEY = getProjectServiceRoleKey()!;
     const API_KEY = Deno.env.get("WHATSMIAU_API_KEY") ?? "";
     if (!API_KEY) {
       return new Response(JSON.stringify({ error: "WHATSMIAU_API_KEY not set" }),

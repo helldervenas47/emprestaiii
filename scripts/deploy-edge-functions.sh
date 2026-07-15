@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Deploy de TODAS as edge functions para o projeto Supabase do usuário
-# Projeto: syyxnqzxqabeuqbuptkh
+# Deploy de TODAS as edge functions para o projeto Supabase configurado
 #
 # Pré-requisitos (instalar uma vez):
 #   - Supabase CLI: https://supabase.com/docs/guides/cli
@@ -14,15 +13,16 @@
 #   chmod +x scripts/deploy-edge-functions.sh
 #   ./scripts/deploy-edge-functions.sh
 #
-# Para definir/atualizar os SECRETS extras (TELEGRAM_BOT_TOKEN, LOVABLE_API_KEY,
+# Para definir/atualizar os SECRETS extras (TELEGRAM_BOT_TOKEN,
 # GEMINI_API_KEY, etc.), preencha o bloco SECRETS abaixo e descomente.
 # =============================================================================
 set -euo pipefail
 
-# ---- Credenciais ------------------------------------------------------------
-export SUPABASE_ACCESS_TOKEN="sbp_d13540ddf0999a4c1a0c407202ae94debaa169e9"
-PROJECT_REF="syyxnqzxqabeuqbuptkh"
-DB_PASSWORD="Emprestai05"
+# ---- Credenciais (nunca gravar valores reais neste arquivo) -----------------
+: "${SUPABASE_ACCESS_TOKEN:?defina SUPABASE_ACCESS_TOKEN}"
+: "${SUPABASE_PROJECT_REF:?defina SUPABASE_PROJECT_REF}"
+: "${DB_PASSWORD:?defina DB_PASSWORD}"
+PROJECT_REF="$SUPABASE_PROJECT_REF"
 
 # ---- Link ao projeto --------------------------------------------------------
 echo "==> Linkando projeto $PROJECT_REF ..."
@@ -109,7 +109,6 @@ echo "============================================================"
 # supabase secrets set --project-ref "$PROJECT_REF" \
 #   TELEGRAM_BOT_TOKEN="..." \
 #   TELEGRAM_BOT_TOKEN_REPORTS="..." \
-#   LOVABLE_API_KEY="..." \
 #   GEMINI_API_KEY="..." \
 #   WHATSMIAU_API_KEY="..." \
 #   HTML_TO_IMAGE_USER_ID="..." \

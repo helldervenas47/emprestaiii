@@ -1,3 +1,4 @@
+import { getAnonKey as getProjectAnonKey, getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 // Exclusão total dos dados de um owner.
 // Exige confirmação literal: { confirmation: "EXCLUIR TODOS OS DADOS" }
 // Não apaga auth.users, subscriptions, user_roles, user_owner.
@@ -38,9 +39,9 @@ Deno.serve(async (req) => {
     });
   }
 
-  const SUPABASE_URL = Deno.env.get("EXTERNAL_SUPABASE_URL")!;
-  const SERVICE_ROLE = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
-  const ANON = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY")!;
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SERVICE_ROLE = getProjectServiceRoleKey()!;
+  const ANON = getProjectAnonKey()!;
 
   const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
   if (!token) {

@@ -1,9 +1,10 @@
+import { getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { verifyWebhook, EventName, type PaddleEnv } from '../_shared/paddle.ts';
 
 const supabase = createClient(
-  Deno.env.get('EXTERNAL_SUPABASE_URL')!,
-  Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY')!
+  Deno.env.get('SUPABASE_URL')!,
+  getProjectServiceRoleKey()!
 );
 
 // Map product_id from subscription to plan name

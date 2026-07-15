@@ -1,3 +1,4 @@
+import { getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 // Auto-pays expenses whose payment method is "Débito automático" (or notes tag
 // "[Débito automático]") when due_date <= today. Mirrors useExpenses.payExpense
 // for parcelada vs simple expenses, across all scopes.
@@ -15,8 +16,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const supabase = createClient(
-    Deno.env.get("EXTERNAL_SUPABASE_URL")!,
-    Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!,
+    Deno.env.get("SUPABASE_URL")!,
+    getProjectServiceRoleKey()!,
   );
 
   const today = new Date().toISOString().split("T")[0];

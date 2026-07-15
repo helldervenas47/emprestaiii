@@ -1,5 +1,5 @@
 // Helper compartilhado de rate limit (usa public.check_rate_limit no banco externo).
-import { getExternalAdmin } from "./external-supabase.ts";
+import { getAdminClient } from "./supabase.ts";
 
 export interface RateLimitOptions {
   bucket: string;        // identificador do endpoint
@@ -15,7 +15,7 @@ export interface RateLimitOptions {
  */
 export async function checkRateLimit(opts: RateLimitOptions): Promise<boolean> {
   try {
-    const admin = getExternalAdmin();
+    const admin = getAdminClient();
     const { data, error } = await admin.rpc("check_rate_limit", {
       _bucket: opts.bucket,
       _key: opts.key,

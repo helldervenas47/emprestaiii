@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getReportsBotId } from "../_shared/reports-bot.ts";
-import { getExternalAdmin, getExternalUserClient } from "../_shared/external-supabase.ts";
+import { getAdminClient, getUserClient } from "../_shared/supabase.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,14 +22,14 @@ Deno.serve(async (req) => {
     return json({ error: "Unauthorized" }, 401);
   }
 
-  const userClient = getExternalUserClient();
+  const userClient = getUserClient();
   const token = authHeader.replace(/^Bearer\s+/i, "").trim();
   const { data: { user }, error: userErr } = await userClient.auth.getUser(token);
   if (userErr || !user) {
     return json({ error: "Unauthorized" }, 401);
   }
 
-  const admin = getExternalAdmin();
+  const admin = getAdminClient();
 
   const reportsBotId = await getReportsBotId(admin);
   const { data: activeExpenseBot } = await admin.from("system_telegram_bots")

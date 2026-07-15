@@ -4,21 +4,21 @@ import { ConfigErrorScreen } from "@/components/ConfigErrorScreen";
 
 describe("ConfigErrorScreen", () => {
   it("renders the incomplete-config heading", () => {
-    render(<ConfigErrorScreen missing={["VITE_EXTERNAL_SUPABASE_URL"]} />);
+    render(<ConfigErrorScreen missing={["VITE_SUPABASE_URL"]} />);
     expect(screen.getByText(/Configuração incompleta/i)).toBeInTheDocument();
   });
 
   it("lists each missing env var", () => {
     render(
       <ConfigErrorScreen
-        missing={["VITE_EXTERNAL_SUPABASE_URL", "VITE_EXTERNAL_SUPABASE_ANON_KEY"]}
+        missing={["VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY"]}
       />,
     );
     expect(
-      screen.getByText("VITE_EXTERNAL_SUPABASE_URL"),
+      screen.getByText("VITE_SUPABASE_URL"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("VITE_EXTERNAL_SUPABASE_ANON_KEY"),
+      screen.getByText("VITE_SUPABASE_ANON_KEY"),
     ).toBeInTheDocument();
   });
 

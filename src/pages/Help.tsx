@@ -12,8 +12,8 @@ interface Msg {
   content: string;
 }
 
-const HELP_CHAT_URL = `${import.meta.env.VITE_EXTERNAL_SUPABASE_URL}/functions/v1/help-chat`;
-const HELP_CHAT_KEY = import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY;
+const HELP_CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/help-chat`;
+const HELP_CHAT_KEY = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 const SUGGESTIONS = [
   "Como cadastrar um empréstimo parcelado?",

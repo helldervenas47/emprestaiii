@@ -3,7 +3,7 @@
 // devolver o valor completo da chave ao frontend.
 //
 // Padronizado no Passo 5:
-// - client Supabase EXTERNO via helper `getExternalAdmin`
+// - client Supabase EXTERNO via helper `getAdminClient`
 // - CORS via `_shared/cors.ts`
 // - respostas JSON e erros via `_shared/json-response.ts`
 
@@ -16,7 +16,7 @@ import {
   notFound,
   unauthorized,
 } from "../_shared/json-response.ts";
-import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { getAdminClient } from "../_shared/supabase.ts";
 
 function last4(s: string): string {
   const trimmed = (s ?? "").trim();
@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
   if (!token) return unauthorized("missing_token");
 
-  const admin = getExternalAdmin();
+  const admin = getAdminClient();
 
   const { data: userRes, error: userErr } = await admin.auth.getUser(token);
   if (userErr || !userRes?.user) return unauthorized("invalid_token");

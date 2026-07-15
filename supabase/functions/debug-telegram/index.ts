@@ -1,4 +1,4 @@
-import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { getAdminClient } from "../_shared/supabase.ts";
 import { requireAdmin, adminCors as corsHeaders } from "../_shared/require-admin.ts";
 
 Deno.serve(async (req) => {
@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
   const gate = await requireAdmin(req);
   if (gate instanceof Response) return gate;
 
-  const supabase = getExternalAdmin();
+  const supabase = getAdminClient();
 
   // Auto-populate system_telegram_bots if empty
   const { data: currentBots } = await supabase.from("system_telegram_bots").select("id");

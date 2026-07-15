@@ -1,5 +1,5 @@
 import { corsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
-import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { getAdminClient } from "../_shared/supabase.ts";
 
 Deno.serve(async (req) => {
   const pre = handleCorsPreflight(req);
@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const adminClient = getExternalAdmin();
+    const adminClient = getAdminClient();
 
 
 

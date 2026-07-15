@@ -1,6 +1,7 @@
+import { getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getReportsBotId } from "../_shared/reports-bot.ts";
-import { getExternalServiceRoleKey, getExternalAdmin } from "../_shared/external-supabase.ts";
+import { getServiceRoleKey, getAdminClient } from "../_shared/supabase.ts";
 
 
 const GATEWAY_URL = "https://api.telegram.org";
@@ -175,8 +176,8 @@ async function invokeExternalCofrinhoFn(
   body: Record<string, unknown>,
 ): Promise<{ ok: boolean; error?: string; data?: any }> {
   try {
-    const url = `${Deno.env.get("EXTERNAL_SUPABASE_URL")}/functions/v1/${fn}`;
-    const key = await getExternalServiceRoleKey();
+    const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/${fn}`;
+    const key = await getServiceRoleKey();
     const r = await fetch(url, {
       method: "POST",
       headers: {
@@ -507,7 +508,7 @@ async function suggestIncomeCategoryWithLLM(
   admin: any,
   userId: string,
   description: string,
-  lovableKey: string,
+  serviceRoleKey: string,
 ): Promise<string | null> {
   const allowed = ["Vendas","Serviços","Comissões","Aluguel","Investimentos","Salário","Reembolso","Outros"];
   const { data: recent } = await admin
@@ -569,7 +570,7 @@ async function resolveIncomeCategoryHybrid(
   userId: string,
   description: string,
   initialGuess: string,
-  lovableKey: string,
+  serviceRoleKey: string,
 ): Promise<string> {
   const allowed = ["Vendas","Serviços","Comissões","Aluguel","Investimentos","Salário","Reembolso","Outros"];
   const learned = await suggestIncomeCategoryFromHints(admin, userId, description);
@@ -1530,7 +1531,7 @@ async function checkBudgetAndAlert(
   userId: string,
   chatId: number,
   category: string,
-  lovableKey: string,
+  serviceRoleKey: string,
   telegramKey: string,
 ) {
   try {
@@ -1586,7 +1587,7 @@ async function checkBudgetAndAlert(
     await tgSend(
       chatId,
       `🚨 *Orçamento estourado!*\n\n📂 ${category}\n💸 Gasto: ${fmtTotal} / ${fmtBudget} (${pct}%)\n\nVocê ultrapassou o limite mensal desta categoria.`,
-      lovableKey,
+      serviceRoleKey,
       telegramKey,
     );
   } catch (e) {
@@ -2273,7 +2274,7 @@ interface NLQueryFilters {
 async function parseNLQueryWithAI(
   text: string,
   customCategories: string[],
-  lovableKey: string,
+  serviceRoleKey: string,
 ): Promise<NLQueryFilters | null> {
   const today = todayBR();
   const allCats = Array.from(new Set([...CATEGORIES, ...customCategories]));
@@ -2473,9 +2474,9 @@ Deno.serve(async (req) => {
 
   const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const SUPABASE_SERVICE_ROLE_KEY = getProjectServiceRoleKey()!;
 
-  const admin = getExternalAdmin();
+  const admin = getAdminClient();
 
 
   const { data: messages, error } = await admin

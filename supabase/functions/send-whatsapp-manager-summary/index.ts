@@ -1,3 +1,4 @@
+import { getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 // Sends a weekly WhatsApp summary to users with the "gerente" role,
 // listing loans (from their owner's account) that are due during the
 // current week (Mon..Sun). Triggered by cron or manually with
@@ -73,8 +74,8 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const SUPABASE_URL = Deno.env.get("EXTERNAL_SUPABASE_URL")!;
-    const SERVICE_KEY = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SERVICE_KEY = getProjectServiceRoleKey()!;
     const API_KEY = Deno.env.get("WHATSMIAU_API_KEY") ?? "";
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 

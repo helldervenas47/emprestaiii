@@ -173,12 +173,12 @@ export function BackupExport({
         data: { session },
       } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Sessão expirada");
-      const url = `${import.meta.env.VITE_EXTERNAL_SUPABASE_URL}/functions/v1/export-full-backup`;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-full-backup`;
       const r = await fetch(url, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${session.access_token}`,
-          apikey: import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
+          apikey: (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY),
         },
       });
       if (!r.ok) {

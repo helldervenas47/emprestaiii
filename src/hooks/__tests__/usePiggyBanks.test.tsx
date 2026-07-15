@@ -131,8 +131,8 @@ beforeEach(() => {
     text: async () => JSON.stringify({ ok: true }),
   });
   (globalThis as any).fetch = fetchMock;
-  vi.stubEnv("VITE_EXTERNAL_SUPABASE_URL", "https://ex.supabase.co");
-  vi.stubEnv("VITE_EXTERNAL_SUPABASE_ANON_KEY", "anon-key");
+  vi.stubEnv("VITE_SUPABASE_URL", "https://ex.supabase.co");
+  vi.stubEnv("VITE_SUPABASE_ANON_KEY", "anon-key");
 });
 
 afterEach(() => {

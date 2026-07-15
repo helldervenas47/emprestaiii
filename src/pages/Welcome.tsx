@@ -15,8 +15,7 @@ import { Loader2, CheckCircle2, ArrowRight, ArrowLeft, Sparkles } from "lucide-r
 import { resolvePersonalIcon, personalCategories, getIconName } from "@/lib/personalExpenseCategories";
 
 async function invokeSeed<T = unknown>(body: Record<string, unknown>) {
-  // Edge function is deployed on Lovable Cloud, but JWT belongs to the external project.
-  // Pass the external session token explicitly so the function can validate it.
+  // Envia explicitamente o token da sessão para a função validar o usuário.
   const { data: sess } = await userSupabase.auth.getSession();
   const token = sess.session?.access_token;
   return userSupabase.functions.invoke<T>("seed-new-user", {

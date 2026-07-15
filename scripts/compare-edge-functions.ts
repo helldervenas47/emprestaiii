@@ -3,16 +3,16 @@
 //
 // Uso:
 //   export SUPABASE_ACCESS_TOKEN=sbp_xxx        # https://supabase.com/dashboard/account/tokens
-//   export EXTERNAL_PROJECT_REF=xxxxxxxx        # ref do projeto externo
+//   export SUPABASE_PROJECT_REF=xxxxxxxx        # ref do projeto externo
 //   deno run -A scripts/compare-edge-functions.ts
 //
 // (ou rode com bun: `bun scripts/compare-edge-functions.ts` após `bun add -d tsx` — Deno é mais simples)
 
 const TOKEN = Deno.env.get("SUPABASE_ACCESS_TOKEN");
-const REF = Deno.env.get("EXTERNAL_PROJECT_REF");
+const REF = Deno.env.get("SUPABASE_PROJECT_REF");
 
 if (!TOKEN || !REF) {
-  console.error("❌ Defina SUPABASE_ACCESS_TOKEN e EXTERNAL_PROJECT_REF");
+  console.error("❌ Defina SUPABASE_ACCESS_TOKEN e SUPABASE_PROJECT_REF");
   Deno.exit(1);
 }
 

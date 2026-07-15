@@ -1,121 +1,32 @@
 # EmprestAI
 
-Aplicativo de controle de empréstimos e finanças pessoais.
+Aplicativo de controle de empréstimos e finanças pessoais, importado do repositório original e conectado diretamente a um único projeto Supabase.
 
----
+## Configuração
 
-# Arquitetura do Banco de Dados
+1. Copie `.env.example` para `.env`.
+2. Preencha `VITE_SUPABASE_URL` e uma chave pública em `VITE_SUPABASE_PUBLISHABLE_KEY` ou `VITE_SUPABASE_ANON_KEY`.
+3. Instale as dependências com `npm install`.
+4. Inicie com `npm run dev`.
 
-## Banco oficial do sistema
+O frontend usa somente `src/integrations/supabase/userClient.ts`. O arquivo `client.ts` apenas reexporta a mesma instância para compatibilidade com imports antigos.
 
-O sistema utiliza exclusivamente **um único banco de dados Supabase em produção**.
+## Edge functions
 
-**Projeto:**
+As funções em `supabase/functions` usam as variáveis nativas do projeto:
 
-- Project Ref: `syyxnqzxqabeuqbuptkh`
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEYS` (com fallback para `SUPABASE_PUBLISHABLE_KEY`/`SUPABASE_ANON_KEY` localmente)
+- `SUPABASE_SECRET_KEYS` (com fallback para `SUPABASE_SECRET_KEY`/`SUPABASE_SERVICE_ROLE_KEY` localmente)
 
-**Frontend:**
+No Supabase hospedado, essas variáveis são fornecidas ao runtime das edge functions. Para execução local, copie `supabase/.env.example` para `supabase/.env.local` e preencha os valores. A service role nunca deve receber o prefixo `VITE_` nem ser importada pelo frontend.
 
-- Client oficial: `src/integrations/supabase/userClient.ts`
+O projeto vinculado pela configuração do Supabase é `syyxnqzxqabeuqbuptkh`.
 
-**Variáveis utilizadas:**
+## Validação
 
-- `VITE_EXTERNAL_SUPABASE_URL`
-- `VITE_EXTERNAL_SUPABASE_ANON_KEY`
-
-**Todos os módulos utilizam exclusivamente este client:**
-
-- Hooks
-- Repositories
-- Components
-- Services
-- Edge Functions
-- Bots Telegram
-- GitHub Actions
-- Webhooks
-- Backups
-
-> Nenhum código de aplicação deve criar outro client Supabase.
-
----
-
-## Lovable Cloud
-
-A Lovable Cloud permanece habilitada apenas porque faz parte da infraestrutura da plataforma.
-
-**Projeto:**
-
-- Project Ref: `lcjelojqxpnphupsnmuq`
-
-**Arquivo:**
-
-- `src/integrations/supabase/client.ts`
-
-**Status:**
-
-- ❌ NÃO é utilizado pelo sistema.
-- ❌ NÃO contém os dados oficiais do app.
-- ❌ NÃO deve ser importado.
-
-O arquivo existe apenas porque é gerado automaticamente pela Lovable.
-
----
-
-## Regra obrigatória
-
-Todo acesso ao banco deve utilizar exclusivamente:
-
-```
-src/integrations/supabase/userClient.ts
-```
-
-Nunca utilizar:
-
-```
-src/integrations/supabase/client.ts
-```
-
-A regra de ESLint (`no-restricted-imports`) protege essa arquitetura e impede imports acidentais.
-
----
-
-## Como adicionar novas funcionalidades
-
-Toda nova funcionalidade deve:
-
-- importar apenas `userClient`;
-- utilizar apenas o banco externo;
-- nunca criar um novo `createClient`;
-- nunca adicionar URLs ou chaves do Supabase diretamente no código;
-- utilizar apenas as variáveis `VITE_EXTERNAL_SUPABASE_*`.
-
----
-
-## Checklist para Pull Requests
-
-- [ ] Nenhum novo `createClient` foi criado.
-- [ ] Nenhum import de `src/integrations/supabase/client.ts`.
-- [ ] Nenhuma URL do Supabase foi hardcoded.
-- [ ] Nenhuma anon key foi hardcoded.
-- [ ] Apenas `userClient.ts` foi utilizado.
-- [ ] Build TypeScript sem erros.
-
----
-
-## Arquitetura
-
-```mermaid
-flowchart TD
-    A[Frontend React] --> B[userClient.ts]
-    B --> C[Supabase Externo]
-    C --> D[(Banco Oficial)]
-
-    E[Edge Functions] --> C
-    F[Telegram Bot] --> C
-    G[GitHub Actions] --> C
-    H[Webhooks] --> C
-
-    I[Lovable Cloud]:::inactive
-
-    classDef inactive fill:#f3f4f6,stroke:#999,color:#666;
+```bash
+npm test
+npm run lint
+npm run build
 ```

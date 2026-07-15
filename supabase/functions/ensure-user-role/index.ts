@@ -1,18 +1,18 @@
-import { getExternalAdmin, getExternalUserClient } from "../_shared/external-supabase.ts";
+import { getAdminClient, getUserClient } from "../_shared/supabase.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-async function ensureClienteEnum(admin: ReturnType<typeof getExternalAdmin>) {
+async function ensureClienteEnum(admin: ReturnType<typeof getAdminClient>) {
   await admin.rpc("exec_sql", {
     sql_query: "ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'cliente';",
   });
 }
 
 async function resolvePublicSignupUser(
-  admin: ReturnType<typeof getExternalAdmin>,
+  admin: ReturnType<typeof getAdminClient>,
   body: Record<string, unknown>,
 ) {
   const userId = typeof body.userId === "string" ? body.userId : "";
@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const admin = getExternalAdmin();
+    const admin = getAdminClient();
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace(/^Bearer\s+/i, "");
     let userRes = null;

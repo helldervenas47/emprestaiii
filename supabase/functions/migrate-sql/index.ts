@@ -1,3 +1,4 @@
+import { getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { adminGuard, guardCors as corsHeaders } from "../_shared/admin-guard.ts";
 
@@ -17,8 +18,8 @@ Deno.serve(async (req) => {
       });
     }
     const supabase = createClient(
-      Deno.env.get("EXTERNAL_SUPABASE_URL")!,
-      Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!,
+      Deno.env.get("SUPABASE_URL")!,
+      getProjectServiceRoleKey()!,
     );
     const { data, error } = await supabase.rpc("exec_sql", { sql_query });
     if (error) {

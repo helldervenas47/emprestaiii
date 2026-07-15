@@ -1,7 +1,7 @@
 // Shared auth helpers for edge functions that mix cron + manual runs.
 // - validateCronSecret: checks an X-Cron-Secret header against app_internal_config.cron_secret
 // - validateUserOwner: validates a JWT and confirms get_data_owner_id(auth.uid()) === requestedOwnerId
-import { getExternalUserClient } from "./external-supabase.ts";
+import { getUserClient } from "./supabase.ts";
 
 export async function validateCronSecret(
   admin: any,
@@ -29,7 +29,7 @@ export async function validateUserOwner(
   const token = auth.replace(/^Bearer\s+/i, "");
   if (!token) return { ok: false, reason: "missing_token" };
 
-  const userClient = getExternalUserClient();
+  const userClient = getUserClient();
   const { data: userRes, error } = await userClient.auth.getUser(token);
   if (error || !userRes?.user) return { ok: false, reason: "invalid_token" };
 

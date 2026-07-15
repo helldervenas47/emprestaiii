@@ -1,3 +1,4 @@
+import { getAnonKey as getProjectAnonKey, getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -36,8 +37,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("EXTERNAL_SUPABASE_URL")!;
-    const anonKey = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = getProjectAnonKey()!;
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: `Bearer ${token}` } },
     });
@@ -50,7 +51,7 @@ Deno.serve(async (req) => {
     }
 
     // Restrict to admins
-    const serviceClient = createClient(supabaseUrl, Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!);
+    const serviceClient = createClient(supabaseUrl, getProjectServiceRoleKey()!);
     const { data: roleRow } = await serviceClient
       .from("user_roles")
       .select("role")

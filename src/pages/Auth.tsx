@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/userClient";
 
 import { Button } from "@/components/ui/button";
@@ -9,8 +10,10 @@ import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { toast } from "sonner";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
+import { AUTH_PATHS, buildSignupPath } from "@/lib/authNavigation";
 
 const Auth = () => {
+  const navigate = useNavigate();
   const [isForgot, setIsForgot] = useState(false);
   const [loginId, setLoginId] = useState("");
   const [email, setEmail] = useState("");
@@ -41,7 +44,7 @@ const Auth = () => {
         // New user via Google on login page — block and sign out
         await supabase.auth.signOut();
         toast.error("Você ainda não tem uma conta. Crie uma conta primeiro escolhendo um plano.");
-        window.location.assign("/planos");
+        navigate("/planos", { replace: true });
       }
     };
 
@@ -53,7 +56,7 @@ const Auth = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
@@ -64,7 +67,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth`,
+          redirectTo: `${window.location.origin}${AUTH_PATHS.login}`,
           queryParams: { prompt: "select_account" },
         },
       });
@@ -134,7 +137,7 @@ const Auth = () => {
     }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${window.location.origin}${AUTH_PATHS.resetPassword}`,
     });
     setLoading(false);
     if (error) {
@@ -225,7 +228,11 @@ const Auth = () => {
 
         <div className="text-center text-sm text-muted-foreground">
           Não tem conta?{" "}
-          <button onClick={() => window.location.assign("/planos")} className="text-primary hover:underline font-medium">
+          <button
+            type="button"
+            onClick={() => navigate(buildSignupPath())}
+            className="text-primary hover:underline font-medium"
+          >
             Criar conta
           </button>
         </div>
@@ -233,7 +240,7 @@ const Auth = () => {
           <Button
             variant="outline"
             className="w-full h-11 rounded-xl text-sm font-semibold border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
-            onClick={() => window.location.assign("/planos")}
+            onClick={() => navigate("/planos")}
           >
             Ver planos e preços
           </Button>

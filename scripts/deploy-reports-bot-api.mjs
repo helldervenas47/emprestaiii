@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Deploy edge functions to the EXTERNAL Supabase project via the Management API.
-// Requires env: EXTERNAL_SUPABASE_ACCESS_TOKEN (Personal Access Token sbp_...)
-//               EXTERNAL_PROJECT_REF (defaults to syyxnqzxqabeuqbuptkh)
+// Deploy edge functions to the configured Supabase project via the Management API.
+// Requires env: SUPABASE_ACCESS_TOKEN (Personal Access Token sbp_...)
+//               SUPABASE_PROJECT_REF
 
 import { readFileSync, statSync } from "node:fs";
 import { join, relative, dirname } from "node:path";
@@ -12,11 +12,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 const FUNCTIONS_DIR = join(ROOT, "supabase", "functions");
 
-const TOKEN = process.env.EXTERNAL_SUPABASE_ACCESS_TOKEN;
-const PROJECT_REF = process.env.EXTERNAL_PROJECT_REF || "syyxnqzxqabeuqbuptkh";
+const TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
+const PROJECT_REF = process.env.SUPABASE_PROJECT_REF;
 
-if (!TOKEN) {
-  console.error("ERROR: EXTERNAL_SUPABASE_ACCESS_TOKEN is required");
+if (!TOKEN || !PROJECT_REF) {
+  console.error("ERROR: SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required");
   process.exit(1);
 }
 
@@ -55,7 +55,7 @@ async function deployOne(slug) {
   form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
 
   for (const filePath of files) {
-    const rel = relative(fnDir, filePath); // e.g. "index.ts" or "../_shared/external-supabase.ts"
+    const rel = relative(fnDir, filePath); // e.g. "index.ts" or "../_shared/supabase.ts"
     const content = readFileSync(filePath);
     form.append("file", new Blob([content], { type: "application/typescript" }), rel);
   }

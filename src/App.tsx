@@ -21,6 +21,7 @@ import { PaymentCelebrationProvider } from "./hooks/usePaymentCelebration";
 import ScrollToTop from "./components/ScrollToTop";
 import { TrialExpiredGate } from "./components/upgrade/TrialExpiredGate";
 import { ReadOnlyModeSync } from "./components/upgrade/ReadOnlyModeSync";
+import { AUTH_PATHS } from "./lib/authNavigation";
 
 wireAutoSync();
 
@@ -63,11 +64,11 @@ function DevQueryLogger() {
   useEffect(() => {
     if (!import.meta.env.DEV) return;
 
-    const debugState = ((window as any).__lovableSupabaseLoopDebug ??= {
+    const debugState = ((window as any).__supabaseLoopDebug ??= {
       invalidations: [] as any[],
     });
 
-    const patchedFlag = "__lovableInvalidateLoggerPatched";
+    const patchedFlag = "__supabaseInvalidateLoggerPatched";
     if (!(client as any)[patchedFlag]) {
       const originalInvalidateQueries = client.invalidateQueries.bind(client);
       (client as any).invalidateQueries = (...args: Parameters<typeof client.invalidateQueries>) => {
@@ -164,12 +165,12 @@ function shortStack(stack: string) {
 function DevNetworkLogger() {
   useEffect(() => {
     if (!import.meta.env.DEV) return;
-    const patchedFlag = "__lovableSupabaseFetchLoggerPatched";
+    const patchedFlag = "__supabaseFetchLoggerPatched";
     if ((window as any)[patchedFlag]) return;
     (window as any)[patchedFlag] = true;
 
     const originalFetch = window.fetch.bind(window);
-    const debugState = ((window as any).__lovableSupabaseLoopDebug ??= {
+    const debugState = ((window as any).__supabaseLoopDebug ??= {
       invalidations: [] as any[],
     });
     debugState.requests ??= {} as Record<string, any[]>;
@@ -353,7 +354,7 @@ function ProtectedRoute({
         userId: null,
       });
     }
-    return <Navigate to="/auth" replace />;
+    return <Navigate to={AUTH_PATHS.login} replace />;
   }
   if (status === "pending") return <PendingApprovalScreen />;
   if (status === "rejected") return <PendingApprovalScreen rejected />;
@@ -430,7 +431,7 @@ const App = () => (
                     }
                   />
                   <Route
-                    path="/auth"
+                    path={AUTH_PATHS.login}
                     element={
                       <PublicRoute>
                         <Auth />
@@ -438,7 +439,7 @@ const App = () => (
                     }
                   />
                   <Route
-                    path="/cadastro"
+                    path={AUTH_PATHS.signup}
                     element={
                       <PublicRoute>
                         <Cadastro />
@@ -449,7 +450,7 @@ const App = () => (
                   <Route path="/termos" element={<Terms />} />
                   <Route path="/reembolso" element={<RefundPolicy />} />
                   <Route path="/privacidade" element={<PrivacyPolicy />} />
-                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path={AUTH_PATHS.resetPassword} element={<ResetPassword />} />
                   <Route
                     path="/planejamento-do-dia"
                     element={

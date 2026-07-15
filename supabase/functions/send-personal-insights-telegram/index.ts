@@ -1,5 +1,6 @@
+import { getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { getAdminClient } from "../_shared/supabase.ts";
 import { dueSlotKeys } from "../_shared/schedule.ts";
 
 const corsHeaders = {
@@ -32,7 +33,7 @@ function safeTruncate(text: string, max = 3800) {
 
 async function generateInsight(supabase: any, ownerId: string, force = false) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const serviceKey = getProjectServiceRoleKey()!;
   const r = await fetch(`${supabaseUrl}/functions/v1/generate-personal-insights`, {
     method: "POST",
     headers: {
@@ -101,8 +102,8 @@ Deno.serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = getExternalAdmin();
+    const serviceKey = getProjectServiceRoleKey()!;
+    const supabase = getAdminClient();
 
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const mode = body.mode || "scheduled"; // "scheduled" | "trigger"

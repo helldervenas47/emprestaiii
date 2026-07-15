@@ -1,3 +1,4 @@
+import { getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 // Sends a WEEKLY per-manager summary to the user's Telegram REPORTS bot.
 // For each owner with prefs enabled at the configured weekday/time:
 //   - identifies all active managers (clients.is_manager = true, active = true)
@@ -14,7 +15,7 @@
 // Triggered by pg_cron every 5 minutes.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getExternalAdmin } from "../_shared/external-supabase.ts";
+import { getAdminClient } from "../_shared/supabase.ts";
 import { isTimeDueToday } from "../_shared/schedule.ts";
 
 const GATEWAY_URL = "https://api.telegram.org";
@@ -321,8 +322,8 @@ Deno.serve(async (req) => {
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const admin = getExternalAdmin();
+    const SERVICE_KEY = getProjectServiceRoleKey()!;
+    const admin = getAdminClient();
 
     let body: any = {};
     try { body = await req.json(); } catch { /* no body */ }

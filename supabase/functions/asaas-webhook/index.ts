@@ -1,8 +1,9 @@
+import { getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const supabase = createClient(
-  Deno.env.get("EXTERNAL_SUPABASE_URL")!,
-  Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!
+  Deno.env.get("SUPABASE_URL")!,
+  getProjectServiceRoleKey()!
 );
 
 const ASAAS_WEBHOOK_TOKEN = Deno.env.get("ASAAS_WEBHOOK_TOKEN")!;

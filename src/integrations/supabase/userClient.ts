@@ -1,15 +1,16 @@
-// Cliente Supabase apontando EXCLUSIVAMENTE para o projeto do usuário
-// (syyxnqzxqabeuqbuptkh). NUNCA fazer fallback para a Lovable Cloud
-// (VITE_SUPABASE_URL) — isso causaria divergência entre o app e os bots.
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-export const USER_SUPABASE_URL = import.meta.env.VITE_EXTERNAL_SUPABASE_URL as string;
-export const USER_SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY as string;
+export const USER_SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL ?? "") as string;
+export const USER_SUPABASE_PUBLISHABLE_KEY = (
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  ""
+) as string;
 
 export const MISSING_SUPABASE_ENV: string[] = [
-  !USER_SUPABASE_URL && "VITE_EXTERNAL_SUPABASE_URL",
-  !USER_SUPABASE_PUBLISHABLE_KEY && "VITE_EXTERNAL_SUPABASE_ANON_KEY",
+  !USER_SUPABASE_URL && "VITE_SUPABASE_URL",
+  !USER_SUPABASE_PUBLISHABLE_KEY && "VITE_SUPABASE_PUBLISHABLE_KEY (ou VITE_SUPABASE_ANON_KEY)",
 ].filter(Boolean) as string[];
 
 export const IS_SUPABASE_CONFIGURED = MISSING_SUPABASE_ENV.length === 0;
@@ -19,15 +20,11 @@ if (!IS_SUPABASE_CONFIGURED && import.meta.env.DEV) {
   console.error(
     "[supabase] Variáveis de ambiente ausentes:",
     MISSING_SUPABASE_ENV.join(", "),
-    "\nDefina-as no .env (veja .env.example). Não use VITE_SUPABASE_URL (Lovable Cloud).",
+    "\nDefina-as no .env (veja .env.example).",
   );
 }
 
-// Chave de storage EXCLUSIVA do projeto externo. Evita colisão caso o
-// client auto-gerado da Lovable Cloud (src/integrations/supabase/client.ts)
-// seja instanciado em paralelo por alguma dependência — sem isso ambos
-// compartilhariam a mesma chave `sb-*-auth-token` e causariam logout
-// silencioso / sessão trocada entre projetos.
+// Mantém compatibilidade com as sessões criadas pela versão importada.
 export const USER_SUPABASE_STORAGE_KEY = "sb-user-external-auth";
 
 // Se as variáveis estiverem ausentes, exportamos um placeholder inerte para

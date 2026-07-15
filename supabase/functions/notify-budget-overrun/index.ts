@@ -1,3 +1,4 @@
+import { getServiceRoleKey as getProjectServiceRoleKey } from "../_shared/supabase.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getReportsBotId } from "../_shared/reports-bot.ts";
 
@@ -127,7 +128,7 @@ async function sendPush(sub: { endpoint: string; p256dh: string; auth: string },
 
 const TELEGRAM_GATEWAY = "https://api.telegram.org";
 
-async function sendTelegram(chatId: number, text: string, lovableKey: string, telegramKey: string) {
+async function sendTelegram(chatId: number, text: string, serviceRoleKey: string, telegramKey: string) {
   try {
     await fetch(`${TELEGRAM_GATEWAY}/bot${telegramKey}/sendMessage`, {
       method: "POST",
@@ -145,8 +146,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const supabaseUrl = Deno.env.get("EXTERNAL_SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = getProjectServiceRoleKey()!;
     const vapidPub = Deno.env.get("VAPID_PUBLIC_KEY")!;
     const vapidPriv = Deno.env.get("VAPID_PRIVATE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);

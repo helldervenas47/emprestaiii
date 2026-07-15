@@ -35,8 +35,8 @@ Deno.serve(async (req) => {
       Deno.env.get("TELEGRAM_BOT_TOKEN_REPORTS"),
     ].filter(Boolean) as string[];
 
-    const { getExternalAdmin } = await import("../_shared/external-supabase.ts");
-    const supabase = getExternalAdmin();
+    const { getAdminClient } = await import("../_shared/supabase.ts");
+    const supabase = getAdminClient();
     const { data: activeDbBots } = await supabase
       .from("system_telegram_bots")
       .select("id, token")

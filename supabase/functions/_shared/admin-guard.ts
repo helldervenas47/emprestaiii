@@ -1,7 +1,7 @@
 // Guard compartilhado para Edge Functions destrutivas / privilegiadas.
 // Exige: JWT válido + role admin + header x-admin-secret + confirmação no body.
 // Registra auditoria em system_audit_logs (best-effort).
-import { getExternalAdmin, getExternalUserClient } from "./external-supabase.ts";
+import { getAdminClient, getUserClient } from "./supabase.ts";
 
 export const guardCors = {
   "Access-Control-Allow-Origin": "*",
@@ -19,7 +19,7 @@ function forbid(reason: string, status = 403) {
 }
 
 async function logAttempt(
-  admin: ReturnType<typeof getExternalAdmin>,
+  admin: ReturnType<typeof getAdminClient>,
   req: Request,
   action: string,
   userId: string | null,
@@ -55,7 +55,7 @@ export interface AdminGuardSuccess {
   ok: true;
   userId: string;
   ownerId: string;
-  admin: ReturnType<typeof getExternalAdmin>;
+  admin: ReturnType<typeof getAdminClient>;
   body: Record<string, unknown>;
 }
 
@@ -68,7 +68,7 @@ export async function adminGuard(
 ): Promise<Response | AdminGuardSuccess> {
   let admin;
   try {
-    admin = getExternalAdmin();
+    admin = getAdminClient();
   } catch (e) {
     return new Response(
       JSON.stringify({ error: "Server misconfigured", detail: (e as Error).message }),
@@ -103,7 +103,7 @@ export async function adminGuard(
     await logAttempt(admin, req, opts.action, null, null, false, "missing_token");
     return forbid("Forbidden: missing bearer token");
   }
-  const userClient = getExternalUserClient();
+  const userClient = getUserClient();
   const { data: userRes, error: uErr } = await userClient.auth.getUser(token);
   if (uErr || !userRes?.user) {
     await logAttempt(admin, req, opts.action, null, null, false, "invalid_token");

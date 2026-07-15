@@ -18,6 +18,11 @@ import {
 import { useAsaasCheckout } from "@/hooks/useAsaasCheckout";
 import { useAuth } from "@/hooks/useAuth";
 import logoIcon from "@/assets/logo-icon.png";
+import {
+  AUTH_PATHS,
+  buildSignupPath,
+  getPlanSelectionDestination,
+} from "@/lib/authNavigation";
 
 interface Plan {
   id: string;
@@ -148,7 +153,11 @@ const Pricing = () => {
   };
 
   const handleSubscribe = async (plan: Plan) => {
-    if (!user) { navigate("/auth"); return; }
+    const signupDestination = getPlanSelectionDestination(Boolean(user), plan.name);
+    if (signupDestination) {
+      navigate(signupDestination);
+      return;
+    }
     setCheckoutPlan(plan.name);
     await openCheckout({
       planName: plan.name,
@@ -175,7 +184,7 @@ const Pricing = () => {
             <Button variant="ghost" onClick={scrollToPlans} className="hidden sm:inline-flex">
               Planos
             </Button>
-            <Button variant="outline" onClick={() => navigate("/auth")}>
+            <Button variant="outline" onClick={() => navigate(AUTH_PATHS.login)}>
               Entrar
             </Button>
           </div>
@@ -203,7 +212,7 @@ const Pricing = () => {
             <Button size="lg" onClick={scrollToPlans} className="text-base px-8">
               Começar agora <ArrowRight className="h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate("/auth")} className="text-base px-8">
+            <Button size="lg" variant="outline" onClick={() => navigate(AUTH_PATHS.login)} className="text-base px-8">
               Já tenho conta
             </Button>
           </div>
@@ -408,7 +417,7 @@ const Pricing = () => {
                           </>
                         ) : (
                           <>
-                            Assinar agora <ArrowRight className="h-4 w-4" />
+                            {user ? "Assinar agora" : "Criar conta"} <ArrowRight className="h-4 w-4" />
                           </>
                         )}
                       </Button>
@@ -430,7 +439,7 @@ const Pricing = () => {
         <p className="text-muted-foreground max-w-lg mx-auto mb-8">
           Crie sua conta gratuitamente e comece a gerenciar seus empréstimos com mais controle e menos dor de cabeça.
         </p>
-        <Button size="lg" onClick={scrollToPlans} className="text-base px-8">
+        <Button size="lg" onClick={() => navigate(buildSignupPath())} className="text-base px-8">
           Criar conta grátis <ArrowRight className="h-4 w-4" />
         </Button>
       </section>
@@ -443,7 +452,7 @@ const Pricing = () => {
             <span>EmprestAI © {new Date().getFullYear()}</span>
           </div>
           <div className="flex flex-wrap gap-6">
-            <button onClick={() => navigate("/auth")} className="hover:text-foreground transition-colors">
+            <button onClick={() => navigate(AUTH_PATHS.login)} className="hover:text-foreground transition-colors">
               Entrar
             </button>
             <button onClick={scrollToPlans} className="hover:text-foreground transition-colors">
