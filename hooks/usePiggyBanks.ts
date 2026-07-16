@@ -1,0 +1,835 @@
+import { useEffect, useState, useCallback, useMemo, useRef, useId } from "react";
+import { supabase } from "@/integrations/supabase/userClient";
+import { useAuth } from "./useAuth";
+import { useDataOwner } from "./useDataOwner";
+import { toast } from "sonner";
+import { assertWritable } from "@/lib/readOnlyState";
+import type { PiggyDetailed, RatePeriod } from "@/lib/piggyTax";
+import { financeFetchStart, financeFetchSuccess, financeInvalidate, financeRealtimeEvent, financeSetState, useFinanceHookDebug } from "@/lib/financeDebug";
+
+/**
+ * Adapter sobre a nova arquitetura financeira (tabelas `cofrinhos`,
+ * `cofrinho_aportes`, `cofrinho_eventos`, `cofrinho_rendimento_diario`,
+ * `taxa_referencia`) + Edge Functions:
+ *   - processar-deposito-cofrinho
+ *   - processar-resgate-cofrinho
+ *   - sync-taxas-financeiras
+ *
+ * A interface pública foi mantida intacta para preservar compatibilidade
+ * com todos os consumidores existentes (PiggyBankList, PiggyBankDetail,
+ * useAccountBalance, useExternalAccountSources, ConsolidatedBalanceCards,
+ * IncomePendingCalendar, FinancialHealthDashboard, PiggyBanksSummaryCard,
+ * PiggyBanksBreakdownDialog, PersonalExpenseForm, etc.).
+ *
+ * A tabela legada `piggy_banks` NÃO é mais lida nem escrita. Permanece no
+ * banco para preservar histórico — não está sendo dropada nesta migração.
+ *
+ * Cores/ícones/categoria/data-alvo são serializados em `cofrinhos.descricao`
+ * como JSON, já que o novo schema não possui esses campos.
+ */
+
+export interface PiggyBankRateHistory {
+  id: string;
+  piggyBankId: string;
+  annualRate: number;
+  effectiveFrom: string;
+  createdAt: string;
+}
+
+export interface PiggyBank {
+  id: string;
+  shortId: number | null;
+  name: string;
+  color: string;
+  icon: string;
+  annualRate: number;
+  autoRate: boolean;
+  cdiPercent: number;
+  goalAmount: number | null;
+  category: string | null;
+  targetDate: string | null;
+  createdAt: string;
+}
+
+export interface MarketRate {
+  indicator: string;
+  annualRate: number;
+  source: string | null;
+  referenceDate: string | null;
+  fetchedAt: string;
+}
+
+export interface PiggyBankDeposit {
+  id: string;
+  piggyBankId: string;
+  expenseId?: string | null;
+  amount: number;
+  depositDate: string;
+  source?: string;
+  recurrenceId?: string | null;
+}
+
+export interface PiggyBankRecurrence {
+  id: string;
+  piggyBankId: string;
+  amount: number;
+  startDate: string;
+  endDate: string | null;
+  dayOfMonth: number;
+  description?: string | null;
+  active: boolean;
+  lastGeneratedDate: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Compat layer: as funções abaixo são exportadas porque outros módulos do app
+// (PersonalExpenseForm, useExpenses, etc.) ainda dependem delas para marcar
+// expenses como transferências para cofrinho.
+// ---------------------------------------------------------------------------
+
+const PIGGY_TAG_RE = /\[cofrinho:([0-9a-f-]{36})\]/i;
+
+export const buildPiggyTag = (piggyId: string, original?: string) =>
+  `[cofrinho:${piggyId}]${original ? " " + original : ""}`;
+
+export const extractPiggyId = (notes?: string | null): string | null => {
+  if (!notes) return null;
+  const m = notes.match(PIGGY_TAG_RE);
+  return m ? m[1] : null;
+};
+
+export const isPiggyExpense = (notes?: string | null) => !!extractPiggyId(notes);
+
+/**
+ * Mantida para compat com módulos que ainda chamam diretamente. NÃO é usada
+ * internamente — o backend é a fonte de verdade do saldo agora.
+ */
+export function computePiggyBalance(
+  deposits: PiggyBankDeposit[],
+  annualRatePct: number,
+  asOf: Date = new Date(),
+) {
+  const dailyFactor = Math.pow(1 + annualRatePct / 100, 1 / 365);
+  const todayMs = new Date(asOf.getFullYear(), asOf.getMonth(), asOf.getDate()).getTime();
+  let principal = 0;
+  let total = 0;
+  for (const d of deposits) {
+    const [y, m, day] = d.depositDate.split("-").map(Number);
+    const depMs = new Date(y, (m || 1) - 1, day || 1).getTime();
+    const days = Math.max(0, Math.floor((todayMs - depMs) / 86_400_000));
+    principal += d.amount;
+    if (d.amount >= 0) total += d.amount * Math.pow(dailyFactor, days);
+    else total += d.amount;
+  }
+  return { principal, balance: total, yield: total - principal };
+}
+
+const ymd = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+// ---------------------------------------------------------------------------
+// Descricao JSON helpers — extras visuais que o novo schema não comporta.
+// ---------------------------------------------------------------------------
+interface DescricaoMeta {
+  cor?: string;
+  icone?: string;
+  categoria?: string | null;
+  data_prevista?: string | null;
+  short_id?: number | null;
+  note?: string;
+  // legacy keys (compat com registros antigos)
+  color?: string;
+  icon?: string;
+  category?: string | null;
+  targetDate?: string | null;
+  shortId?: number | null;
+}
+
+const parseDescricao = (raw: any): DescricaoMeta => {
+  if (raw == null) return {};
+  if (typeof raw === "object") return { ...(raw as DescricaoMeta) };
+  if (typeof raw !== "string") return {};
+  const trimmed = raw.trim();
+  if (!trimmed) return {};
+  if (!trimmed.startsWith("{")) return { note: trimmed };
+  try {
+    const parsed = JSON.parse(trimmed);
+    return typeof parsed === "object" && parsed ? parsed : { note: trimmed };
+  } catch {
+    return { note: trimmed };
+  }
+};
+
+const readMeta = (m: DescricaoMeta) => ({
+  cor: m.cor ?? m.color ?? DEFAULT_COLOR,
+  icone: m.icone ?? m.icon ?? DEFAULT_ICON,
+  categoria: m.categoria ?? m.category ?? null,
+  data_prevista: m.data_prevista ?? m.targetDate ?? null,
+  short_id: m.short_id ?? m.shortId ?? null,
+});
+
+const DEFAULT_COLOR = "210 80% 55%";
+const DEFAULT_ICON = "PiggyBank";
+
+export function usePiggyBanks() {
+  useFinanceHookDebug("usePiggyBanks");
+  const instanceId = useId();
+  const { user } = useAuth();
+  const dataOwnerId = useDataOwner();
+  const [piggyBanks, setPiggyBanks] = useState<PiggyBank[]>([]);
+  const [deposits, setDeposits] = useState<PiggyBankDeposit[]>([]);
+  const [cofrinhoRows, setCofrinhoRows] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState(true);
+  const [cdiRate, setCdiRate] = useState<MarketRate | null>(null);
+
+  // Recurrences/RateHistory ainda não migradas para a nova arquitetura.
+  // Mantidas como arrays vazios para preservar a interface pública.
+  const recurrences: PiggyBankRecurrence[] = [];
+  const rateHistory: PiggyBankRateHistory[] = [];
+
+  const reload = useCallback(async () => {
+    if (!dataOwnerId) return;
+    financeFetchStart("usePiggyBanks", "cofrinhos/taxa_referencia/cofrinho_ledger/cofrinho_eventos", { ownerId: "present" });
+    const [cofRes, taxaRes] = await Promise.all([
+      supabase
+        .from("cofrinhos" as any)
+        .select("id, ativo, nome, descricao, percentual_cdi, meta, created_at, saldo_principal, saldo_total, saldo_rendimento_bruto, saldo_rendimento_liquido")
+        .eq("usuario_id", dataOwnerId)
+        .order("created_at"),
+      supabase
+        .from("taxa_referencia" as any)
+        .select(
+          "data_referencia, reference_date, atualizado_em, updated_at, taxa_anual, valor_anual, taxa, valor, annual_rate, fonte, source"
+        )
+        .limit(50),
+    ]);
+
+    let activeCofrinhoIds: string[] = [];
+    if (!cofRes.error && Array.isArray(cofRes.data)) {
+      const rowsMap: Record<string, any> = {};
+      const list: PiggyBank[] = (cofRes.data as any[])
+        .filter((r) => r.ativo !== false)
+        .map((r) => {
+          rowsMap[r.id] = r;
+          const meta = parseDescricao(r.descricao);
+          const m = readMeta(meta);
+          return {
+            id: r.id,
+            shortId: m.short_id,
+            name: r.nome,
+            color: m.cor,
+            icon: m.icone,
+            annualRate: 0, // backend controla; campo legado mantido por compat
+            autoRate: true,
+            cdiPercent: r.percentual_cdi != null ? Number(r.percentual_cdi) : 100,
+            goalAmount: r.meta != null ? Number(r.meta) : null,
+            category: m.categoria,
+            targetDate: m.data_prevista,
+            createdAt: r.created_at,
+          };
+        });
+      financeSetState("usePiggyBanks", "piggyBanks", { rows: list.length });
+      setPiggyBanks(list);
+      financeSetState("usePiggyBanks", "cofrinhoRows", { rows: Object.keys(rowsMap).length });
+      setCofrinhoRows(rowsMap);
+      activeCofrinhoIds = list.map((pb) => pb.id);
+    }
+
+    if (activeCofrinhoIds.length > 0) {
+      const [ledgerRes, eventosRes] = await Promise.all([
+        supabase
+          .from("cofrinho_ledger" as any)
+          .select("id, cofrinho_id, tipo, valor, data_evento, created_at, evento_id, aporte_id, resgate_id")
+          .in("cofrinho_id", activeCofrinhoIds)
+          .order("data_evento", { ascending: false })
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("cofrinho_eventos" as any)
+          .select("id, cofrinho_id, tipo, valor, data_evento, created_at")
+          .in("cofrinho_id", activeCofrinhoIds)
+          .in("tipo", ["DEPOSITO", "RESGATE", "AJUSTE"]),
+      ]);
+
+      // Merge ledger + eventos para garantir que entradas/saídas históricas
+      // não se percam quando uma das fontes estiver incompleta. A
+      // deduplicação por evento_id/aporte_id/resgate_id evita contar
+      // duas vezes a mesma movimentação.
+      const ledgerRows = !ledgerRes.error && Array.isArray(ledgerRes.data) ? ledgerRes.data : [];
+      const eventosRows = !eventosRes.error && Array.isArray(eventosRes.data) ? eventosRes.data : [];
+      const movementRows = [...ledgerRows, ...eventosRows];
+
+      if (movementRows.length > 0) {
+        const seen = new Set<string>();
+        financeSetState("usePiggyBanks", "deposits", { movementRows: movementRows.length });
+        setDeposits(
+          (movementRows as any[]).flatMap((r) => {
+            const tipo = String(r.tipo || "").toUpperCase().replace("Ó", "O");
+            if (tipo === "RENDIMENTO") return [];
+            const rawDate = String(r.data_evento ?? r.created_at ?? "").slice(0, 10);
+            const uniqueId = String(
+              r.evento_id ||
+                r.aporte_id ||
+                r.resgate_id ||
+                r.id ||
+                `${r.cofrinho_id}-${rawDate}-${r.tipo}-${r.valor}`,
+            );
+            if (seen.has(uniqueId)) return [];
+            seen.add(uniqueId);
+
+            const rawValue = Number(r.valor || 0);
+            let amount = rawValue;
+            let source: PiggyBankDeposit["source"] = "manual";
+            if (tipo === "DEPOSITO") {
+              amount = Math.abs(rawValue);
+              source = "transfer_in";
+            } else if (tipo === "RESGATE") {
+              amount = -Math.abs(rawValue);
+              source = "transfer_out";
+            }
+
+            return [{
+              id: uniqueId,
+              piggyBankId: r.cofrinho_id,
+              expenseId: null,
+              amount,
+              depositDate: rawDate,
+              source,
+              recurrenceId: null,
+            }];
+          }),
+        );
+      } else {
+        financeSetState("usePiggyBanks", "deposits", { rows: 0 });
+        setDeposits([]);
+      }
+    } else {
+      financeSetState("usePiggyBanks", "deposits", { rows: 0, reason: "no active cofrinhos" });
+      setDeposits([]);
+    }
+
+    if (!taxaRes.error && Array.isArray(taxaRes.data) && taxaRes.data.length > 0) {
+      // A tabela `taxa_referencia` pode usar nomes diferentes para a data
+      // (data_referencia / reference_date / atualizado_em / updated_at).
+      // Selecionamos com `*` e ordenamos em JS pegando a mais recente que
+      // tenha qualquer um desses campos preenchidos.
+      const rows = (taxaRes.data as any[]).slice();
+      const dateOf = (r: any) =>
+        r.data_referencia ?? r.reference_date ?? r.atualizado_em ?? r.updated_at ?? "";
+      rows.sort((a, b) => String(dateOf(b)).localeCompare(String(dateOf(a))));
+      const r: any = rows[0];
+      const annual =
+        r.taxa_anual ?? r.valor_anual ?? r.taxa ?? r.valor ?? r.annual_rate ?? null;
+      if (annual != null) {
+        financeSetState("usePiggyBanks", "cdiRate", { annualRate: Number(annual) });
+        setCdiRate({
+          indicator: "cdi",
+          annualRate: Number(annual),
+          source: r.fonte ?? r.source ?? null,
+          referenceDate: r.data_referencia ?? r.reference_date ?? null,
+          fetchedAt: r.atualizado_em ?? r.updated_at ?? new Date().toISOString(),
+        });
+      }
+    }
+
+    setLoading(false);
+    financeSetState("usePiggyBanks", "loading", { value: false });
+    financeFetchSuccess("usePiggyBanks", "cofrinhos/taxa_referencia/cofrinho_ledger/cofrinho_eventos", {
+      cofrinhos: Array.isArray(cofRes.data) ? cofRes.data.length : 0,
+      taxaReferencia: Array.isArray(taxaRes.data) ? taxaRes.data.length : 0,
+    });
+  }, [dataOwnerId]);
+
+  useEffect(() => {
+    financeInvalidate("usePiggyBanks", "cofrinhos/taxa_referencia/cofrinho_ledger/cofrinho_eventos", { reason: "initial effect" });
+    reload();
+  }, [reload]);
+
+  // Realtime — debounced fallback (agregações não permitem patch por payload sem
+  // recomputar totais; ao invés de SELECT completo por evento, agrupamos rajadas
+  // em uma única recarga a cada ~1500ms e ignoramos eventos com aba oculta.)
+  const reloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!dataOwnerId) return;
+    const scheduleReload = (source: string) => {
+      financeRealtimeEvent("usePiggyBanks", source);
+      if (typeof document !== "undefined" && document.hidden) return;
+      if (reloadTimerRef.current) return;
+      reloadTimerRef.current = setTimeout(() => {
+        reloadTimerRef.current = null;
+        financeInvalidate("usePiggyBanks", "cofrinhos/taxa_referencia/cofrinho_ledger/cofrinho_eventos", { reason: `realtime ${source} (debounced)` });
+        reload();
+      }, 1500);
+    };
+    const channel = supabase
+      .channel(`cofrinhos:${dataOwnerId}:${instanceId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "cofrinhos" }, () => scheduleReload("cofrinhos"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_aportes" }, () => scheduleReload("cofrinho_aportes"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_eventos" }, () => scheduleReload("cofrinho_eventos"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "cofrinho_ledger" }, () => scheduleReload("cofrinho_ledger"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "taxa_referencia" }, () => scheduleReload("taxa_referencia"))
+      .subscribe();
+    return () => {
+      if (reloadTimerRef.current) { clearTimeout(reloadTimerRef.current); reloadTimerRef.current = null; }
+      supabase.removeChannel(channel);
+    };
+  }, [dataOwnerId, reload, instanceId]);
+
+  // ---------------------------------------------------------------------------
+  // CRUD de cofrinhos
+  // ---------------------------------------------------------------------------
+
+  const createPiggyBank = useCallback(
+    async (data: {
+      name: string;
+      color?: string;
+      icon?: string;
+      annualRate?: number;
+      autoRate?: boolean;
+      cdiPercent?: number;
+      shortId?: number | null;
+      goalAmount?: number | null;
+      category?: string | null;
+      targetDate?: string | null;
+    }) => {
+      assertWritable();
+      if (!user || !dataOwnerId) return null;
+      const descricao: DescricaoMeta = {
+        cor: data.color ?? DEFAULT_COLOR,
+        icone: data.icon ?? DEFAULT_ICON,
+        categoria: data.category ?? null,
+        data_prevista: data.targetDate ?? null,
+        short_id: data.shortId ?? null,
+      };
+      const payload: any = {
+        usuario_id: dataOwnerId,
+        nome: data.name,
+        descricao,
+        meta: data.goalAmount ?? null,
+        percentual_cdi: data.cdiPercent ?? 100,
+        tipo_rendimento: "CDI",
+        rendimento_automatico: true,
+        ativo: true,
+      };
+      const { data: row, error } = await (supabase as any)
+        .from("cofrinhos")
+        .insert(payload)
+        .select()
+        .single();
+      if (error) {
+        toast.error(error.message || "Erro ao criar cofrinho");
+        return null;
+      }
+      await reload();
+      return (row as any)?.id as string;
+    },
+    [user, dataOwnerId, reload],
+  );
+
+  const updatePiggyBank = useCallback(
+    async (
+      id: string,
+      patch: Partial<{
+        name: string;
+        color: string;
+        icon: string;
+        annualRate: number;
+        autoRate: boolean;
+        cdiPercent: number;
+        shortId: number | null;
+        goalAmount: number | null;
+        category: string | null;
+        targetDate: string | null;
+      }>,
+    ) => {
+      assertWritable();
+      const current = cofrinhoRows[id];
+      const meta = parseDescricao(current?.descricao);
+      // Normaliza para chaves PT e remove chaves legadas (color/icon/etc.)
+      const base = readMeta(meta);
+      const newMeta: DescricaoMeta = {
+        cor: base.cor,
+        icone: base.icone,
+        categoria: base.categoria,
+        data_prevista: base.data_prevista,
+        short_id: base.short_id,
+      };
+      if (patch.color !== undefined) newMeta.cor = patch.color;
+      if (patch.icon !== undefined) newMeta.icone = patch.icon;
+      if (patch.category !== undefined) newMeta.categoria = patch.category;
+      if (patch.targetDate !== undefined) newMeta.data_prevista = patch.targetDate;
+      if (patch.shortId !== undefined) newMeta.short_id = patch.shortId;
+      const dbPatch: any = { descricao: newMeta };
+      if (patch.name !== undefined) dbPatch.nome = patch.name;
+      // `percentual_cdi` é controlado automaticamente pelo backend (CDI).
+      // Ignoramos qualquer alteração vinda do modal para não bloquear o update
+      // dos demais campos por triggers/policies que protegem essa coluna.
+      if (patch.goalAmount !== undefined) dbPatch.meta = patch.goalAmount;
+
+      const { data, error } = await supabase
+        .from("cofrinhos" as any)
+        .update(dbPatch)
+        .eq("id", id)
+        .select();
+
+      if (error) {
+        toast.error(error.message || "Erro ao atualizar");
+        return false;
+      }
+      // referência mantida para futura leitura do registro atualizado
+      void data;
+      await reload();
+      return true;
+    },
+    [cofrinhoRows, reload],
+  );
+
+
+  const deletePiggyBank = useCallback(
+    async (id: string) => {
+      assertWritable();
+      // Soft delete para preservar histórico de aportes/eventos.
+      const { error } = await supabase
+        .from("cofrinhos" as any)
+        .update({ ativo: false })
+        .eq("id", id);
+      if (error) {
+        toast.error("Erro ao excluir cofrinho");
+        return;
+      }
+      await reload();
+    },
+    [reload],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Depósitos e resgates — TODOS via Edge Function
+  // ---------------------------------------------------------------------------
+
+  // Chama a edge function via fetch explícito para garantir que o
+  // Authorization (access_token do usuário) e a apikey sejam enviados.
+  // `supabase.functions.invoke` às vezes falha com
+  // "failed to send a request to the edge function" quando a sessão
+  // ainda não foi hidratada no client externo.
+  const callCofrinhoFn = useCallback(
+    async (fnName: string, payload: Record<string, unknown>) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) {
+        throw new Error("Sessão expirada. Faça login novamente.");
+      }
+      const baseUrl = (import.meta as any).env.VITE_EXTERNAL_SUPABASE_URL as string;
+      const anonKey = (import.meta as any).env.VITE_EXTERNAL_SUPABASE_ANON_KEY as string;
+      const url = `${baseUrl}/functions/v1/${fnName}`;
+      let res: Response;
+      try {
+        res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+            apikey: anonKey,
+          },
+          body: JSON.stringify(payload),
+        });
+      } catch (e: any) {
+        throw new Error(e?.message || "Falha de rede ao chamar edge function");
+      }
+      const text = await res.text();
+      let json: any = null;
+      try {
+        json = text ? JSON.parse(text) : null;
+      } catch {
+        /* resposta não-JSON */
+      }
+      if (!res.ok) {
+        const msg = json?.error || json?.message || text || `HTTP ${res.status}`;
+        throw new Error(msg);
+      }
+      return json;
+    },
+    [],
+  );
+
+  const invokeDeposit = useCallback(
+    async (cofrinhoId: string, valor: number, dataAporte?: string, percentualCdi?: number) => {
+      const payload: Record<string, unknown> = {
+        cofrinho_id: cofrinhoId,
+        valor,
+        percentual_cdi: percentualCdi ?? 100,
+      };
+      if (dataAporte) payload.data_aporte = dataAporte;
+      return callCofrinhoFn("processar-deposito-cofrinho", payload);
+    },
+    [callCofrinhoFn],
+  );
+
+  const invokeWithdraw = useCallback(
+    async (cofrinhoId: string, valor: number, dataResgate?: string) => {
+      const payload: Record<string, unknown> = {
+        cofrinho_id: cofrinhoId,
+        valor,
+      };
+      if (dataResgate) payload.data_resgate = dataResgate;
+      return callCofrinhoFn("processar-resgate-cofrinho", payload);
+    },
+    [callCofrinhoFn],
+  );
+
+  /** Aporte simples (compat). */
+  const addDeposit = useCallback(
+    async (input: {
+      piggyBankId: string;
+      amount: number;
+      depositDate: string;
+      expenseId?: string;
+      source?: string;
+    }) => {
+      assertWritable();
+      try {
+        await invokeDeposit(input.piggyBankId, input.amount, input.depositDate);
+        try {
+          window.dispatchEvent(new CustomEvent("balance:changed"));
+        } catch {
+          /* noop */
+        }
+        await reload();
+      } catch (e: any) {
+        toast.error(e?.message || "Erro ao registrar aporte");
+      }
+    },
+    [invokeDeposit, reload],
+  );
+
+  /**
+   * Remoção via expenseId: no novo schema os aportes não carregam expense_id,
+   * então essa operação vira no-op silencioso (a despesa será apagada pelo
+   * fluxo normal de despesas; o cofrinho continua com o aporte registrado).
+   */
+  const removeDepositByExpenseId = useCallback(async (_expenseId: string) => {
+    // intencionalmente vazio na nova arquitetura
+  }, []);
+
+  const updateDeposit = useCallback(
+    async (_id: string, _patch: Partial<{ amount: number; depositDate: string }>) => {
+      toast.info(
+        "Edição direta de aporte indisponível. Use um resgate parcial ou aporte de ajuste.",
+      );
+    },
+    [],
+  );
+
+  const deleteDeposit = useCallback(async (_id: string) => {
+    toast.info(
+      "Exclusão direta de aporte indisponível. Use um resgate para retirar o valor.",
+    );
+  }, []);
+
+  const adjustBalance = useCallback(
+    async (piggyBankId: string, newBalance: number, _note?: string) => {
+      assertWritable();
+      const row = cofrinhoRows[piggyBankId];
+      if (!row) return;
+      const current = Number(row.saldo_total ?? 0);
+      const delta = Number((newBalance - current).toFixed(2));
+      if (delta === 0) {
+        toast.info("Saldo já está nesse valor");
+        return;
+      }
+      try {
+        if (delta > 0) await invokeDeposit(piggyBankId, delta);
+        else await invokeWithdraw(piggyBankId, Math.abs(delta));
+        toast.success(`Saldo ajustado em ${delta > 0 ? "+" : ""}${delta.toFixed(2)}`);
+        try {
+          window.dispatchEvent(new CustomEvent("balance:changed"));
+        } catch {
+          /* noop */
+        }
+        await reload();
+      } catch (e: any) {
+        toast.error(e?.message || "Erro ao ajustar saldo");
+      }
+    },
+    [cofrinhoRows, invokeDeposit, invokeWithdraw, reload],
+  );
+
+  const storeMoney = useCallback(
+    async (piggyBankId: string, amount: number) => {
+      const value = Number(amount.toFixed(2));
+      if (!Number.isFinite(value) || value <= 0) {
+        toast.error("Informe um valor válido");
+        return false;
+      }
+      const pb = piggyBanks.find((p) => p.id === piggyBankId);
+      try {
+        await invokeDeposit(piggyBankId, value);
+        try {
+          window.dispatchEvent(new CustomEvent("balance:changed"));
+        } catch {
+          /* noop */
+        }
+        toast.success(`Guardado ${value.toFixed(2)} em "${pb?.name ?? "cofrinho"}"`);
+        await reload();
+        return true;
+      } catch (e: any) {
+        toast.error(e?.message || "Erro ao guardar no cofrinho");
+        return false;
+      }
+    },
+    [piggyBanks, invokeDeposit, reload],
+  );
+
+  const withdrawMoney = useCallback(
+    async (piggyBankId: string, amount: number) => {
+      const value = Number(amount.toFixed(2));
+      if (!Number.isFinite(value) || value <= 0) {
+        toast.error("Informe um valor válido");
+        return false;
+      }
+      const pb = piggyBanks.find((p) => p.id === piggyBankId);
+      try {
+        await invokeWithdraw(piggyBankId, value);
+        try {
+          window.dispatchEvent(new CustomEvent("balance:changed"));
+        } catch {
+          /* noop */
+        }
+        toast.success(`Resgatado ${value.toFixed(2)} de "${pb?.name ?? "cofrinho"}"`);
+        await reload();
+        return true;
+      } catch (e: any) {
+        toast.error(e?.message || "Erro ao resgatar do cofrinho");
+        return false;
+      }
+    },
+    [piggyBanks, invokeWithdraw, reload],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Recorrências — feature ainda não disponível na nova arquitetura (stubs)
+  // ---------------------------------------------------------------------------
+  const createRecurrence = useCallback(
+    async (_input: {
+      piggyBankId: string;
+      amount: number;
+      startDate: string;
+      endDate?: string | null;
+      description?: string;
+    }) => {
+      toast.info("Aportes recorrentes serão reintroduzidos em uma próxima atualização.");
+      return null;
+    },
+    [],
+  );
+  const setRecurrenceActive = useCallback(async (_id: string, _active: boolean) => false, []);
+  const deleteRecurrence = useCallback(async (_id: string) => false, []);
+
+  // Taxa controlada automaticamente pelo backend — no-op silencioso.
+  const setPiggyRate = useCallback(
+    async (_piggyBankId: string, _newRate: number, _mode: "forward" | "recalc") => {
+      // Intencionalmente vazio: o backend recalcula via CDI.
+    },
+    [],
+  );
+
+  const refreshCdiNow = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-taxas-financeiras", {
+        body: {},
+      });
+      if (error) throw error;
+      await reload();
+      const rate = (data as any)?.cdi?.taxa_anual ?? (data as any)?.annual_rate;
+      if (typeof rate === "number") {
+        toast.success(`Taxa CDI atualizada: ${rate.toFixed(2)}% a.a.`);
+      } else {
+        toast.success("Taxas financeiras atualizadas");
+      }
+      return data;
+    } catch {
+      toast.error("Não foi possível atualizar a taxa CDI agora");
+      return null;
+    }
+  }, [reload]);
+
+  // ---------------------------------------------------------------------------
+  // Saldos derivados — leitura direta da tabela `cofrinhos`
+  // ---------------------------------------------------------------------------
+
+  const balances = useMemo(() => {
+    const map = new Map<string, { principal: number; balance: number; yield: number }>();
+    for (const pb of piggyBanks) {
+      const row = cofrinhoRows[pb.id] || {};
+      const principal = Number(row.saldo_principal ?? 0);
+      const balance = Number(row.saldo_total ?? 0);
+      const net = Number(row.saldo_rendimento_liquido ?? 0);
+      map.set(pb.id, { principal, balance, yield: net });
+    }
+    return map;
+  }, [piggyBanks, cofrinhoRows]);
+
+  const detailed = useMemo(() => {
+    const map = new Map<string, PiggyDetailed>();
+    for (const pb of piggyBanks) {
+      const row = cofrinhoRows[pb.id] || {};
+      const principal = Number(row.saldo_principal ?? 0);
+      const balance = Number(row.saldo_total ?? 0);
+      const gross = Number(row.saldo_rendimento_bruto ?? 0);
+      const net = Number(row.saldo_rendimento_liquido ?? 0);
+      const tax = Math.max(0, gross - net);
+      const cdi = cdiRate?.annualRate ?? 0;
+      const currentRate = cdi * ((pb.cdiPercent ?? 100) / 100);
+      map.set(pb.id, {
+        principal,
+        balance,
+        gross,
+        tax,
+        net,
+        projectionNetEom: net,
+        currentNet: principal + net,
+        currentRate,
+      });
+    }
+    return map;
+  }, [piggyBanks, cofrinhoRows, cdiRate]);
+
+  // Exposto para compat com qualquer consumidor que chame `periodsFor(pb)`.
+  const _periodsFor = useCallback(
+    (pb: PiggyBank): RatePeriod[] => {
+      const annual = (cdiRate?.annualRate ?? 0) * ((pb.cdiPercent ?? 100) / 100);
+      return [{ effectiveFrom: pb.createdAt?.slice(0, 10) || ymd(new Date()), annualRate: annual }];
+    },
+    [cdiRate],
+  );
+  void _periodsFor;
+
+  return {
+    piggyBanks,
+    deposits,
+    recurrences,
+    rateHistory,
+    balances,
+    detailed,
+    cdiRate,
+    loading,
+    createPiggyBank,
+    updatePiggyBank,
+    deletePiggyBank,
+    addDeposit,
+    removeDepositByExpenseId,
+    updateDeposit,
+    deleteDeposit,
+    adjustBalance,
+    storeMoney,
+    withdrawMoney,
+    createRecurrence,
+    setRecurrenceActive,
+    deleteRecurrence,
+    setPiggyRate,
+    refreshCdiNow,
+    reload,
+    /** Dados crus do cofrinho (saldo_principal, saldo_total etc.) para UIs que
+     *  queiram surface fields novos (saldo_rendimento_bruto, ultimo_rendimento,
+     *  proximo_rendimento, tipo_rendimento). */
+    cofrinhoRows,
+  };
+}

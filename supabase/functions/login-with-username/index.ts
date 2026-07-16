@@ -6,6 +6,84 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// ---------------------------------------------------------------------------
+// Rate limit (inline) — este módulo NÃO importa mais de '../_shared/rate-limit.ts'
+// porque esse arquivo compartilhado não é empacotado no deploy da Vercel/edge
+// runtime, causando "Module not found" em produção. A lógica abaixo é
+// equivalente e fica embutida diretamente nesta função: uma tabela simples de
+// contagem por bucket+chave dentro de uma janela de tempo.
+// ---------------------------------------------------------------------------
+
+interface RateLimitOptions {
+  bucket: string;
+  key: string;
+  max: number;
+  windowSecs: number;
+}
+
+function getClientIp(req: Request): string {
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) {
+    const first = forwarded.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  const realIp = req.headers.get("x-real-ip");
+  if (realIp) return realIp;
+  return "unknown";
+}
+
+async function checkRateLimit(opts: RateLimitOptions): Promise<boolean> {
+  try {
+    const supabaseUrl = Deno.env.get("EXTERNAL_SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRoleKey) {
+      // Sem configuração de banco disponível: não bloqueia a requisição
+      // (fail-open), apenas deixa de aplicar o limite.
+      return true;
+    }
+
+    const admin = createClient(supabaseUrl, serviceRoleKey);
+    const windowStart = new Date(
+      Date.now() - opts.windowSecs * 1000,
+    ).toISOString();
+    const identifier = `${opts.bucket}:${opts.key}`;
+
+    const { count, error: countError } = await admin
+      .from("rate_limits")
+      .select("id", { count: "exact", head: true })
+      .eq("identifier", identifier)
+      .gte("created_at", windowStart);
+
+    if (countError) {
+      // Tabela pode não existir ainda ou outra falha transitória: fail-open
+      // para não derrubar o login por um problema de infraestrutura auxiliar.
+      return true;
+    }
+
+    if ((count ?? 0) >= opts.max) {
+      return false;
+    }
+
+    await admin.from("rate_limits").insert({ identifier });
+    return true;
+  } catch {
+    // Qualquer erro inesperado no rate limit não deve impedir o login.
+    return true;
+  }
+}
+
+function rateLimitResponse(headers: Record<string, string>): Response {
+  return new Response(
+    JSON.stringify({
+      error: "Muitas tentativas. Aguarde um instante e tente novamente.",
+    }),
+    {
+      status: 429,
+      headers: { ...headers, "Content-Type": "application/json" },
+    },
+  );
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -29,7 +107,6 @@ Deno.serve(async (req) => {
 
     // Rate limit: 10 tentativas/min por IP
     {
-      const { checkRateLimit, rateLimitResponse, getClientIp } = await import("../_shared/rate-limit.ts");
       const ip = getClientIp(req);
       const ok = await checkRateLimit({ bucket: "login", key: ip, max: 10, windowSecs: 60 });
       if (!ok) return rateLimitResponse(corsHeaders);
