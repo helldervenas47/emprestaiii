@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateUserOwner } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,8 +8,11 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_URL =
+  Deno.env.get("EXTERNAL_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY =
+  Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ??
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -28,14 +32,24 @@ serve(async (req) => {
     if (!cofrinho_id) throw new Error("cofrinho_id é obrigatório.");
     if (!valor || valor <= 0) throw new Error("valor deve ser maior que zero.");
 
+    // Fetch cofrinho with owner column to enforce authorization.
     const { data: cofrinho, error: cofrinhoError } = await supabase
       .from("cofrinhos")
-      .select("id, ativo, percentual_cdi")
+      .select("id, ativo, percentual_cdi, usuario_id")
       .eq("id", cofrinho_id)
       .single();
 
     if (cofrinhoError || !cofrinho) {
       throw new Error("Cofrinho não encontrado.");
+    }
+
+    // Verify caller is authenticated AND owns this cofrinho (or shares owner_id).
+    const authCheck = await validateUserOwner(supabase, req, cofrinho.usuario_id);
+    if (!authCheck.ok) {
+      return new Response(
+        JSON.stringify({ success: false, error: "unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     if (!cofrinho.ativo) {

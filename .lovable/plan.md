@@ -1,67 +1,184 @@
-## Contexto
+# Bônus por Pontuação de Metas
 
-O Dashboard (`DashboardOverview`) hoje recebe `expenses` como prop vinda de `Index.tsx`, que chama `useExpenses(needsExpenses)` (full fetch) porque a mesma lista é reutilizada em várias abas (Despesas, Contador, Overdue, etc.). O hook `useDashboardMetrics` filtra despesas por **`paidDate`** dentro do range:
+Objetivo: pagar automaticamente um bônus ao funcionário quando a **Pontuação Geral Mensal** das metas atingir o mínimo configurado, lançando o valor no holerite do **mês seguinte**.
+
+---
+
+## 1. Backend (Lovable Cloud)
+
+### 1.1 Nova tabela `employee_goal_bonuses` (configuração por funcionário)
+```
+id uuid pk
+user_id uuid (dataOwner)
+employee_id uuid fk employees
+enabled boolean default true
+min_score numeric not null           -- pontuação mínima
+bonus_amount numeric not null        -- R$
+start_date date not null
+end_date date null                   -- opcional
+notes text null
+created_at / updated_at
+```
+RLS + GRANT padrão (authenticated + service_role). Sem acesso anon.
+
+### 1.2 Nova tabela `goal_bonus_awards` (histórico / snapshot imutável)
+```
+id uuid pk
+user_id uuid
+employee_id uuid fk employees
+bonus_config_id uuid fk employee_goal_bonuses (nullable — preserva se config for apagada)
+reference_month text  -- 'YYYY-MM' competência das METAS avaliadas
+payroll_month text    -- 'YYYY-MM' competência da folha onde o bônus foi lançado (reference+1)
+score_obtained numeric
+min_score_required numeric
+bonus_amount numeric
+status text check in ('gerado','pago','cancelado') default 'gerado'
+payroll_id uuid null fk payrolls
+generated_at timestamptz default now()
+```
+Unique: `(user_id, employee_id, reference_month)` — evita duplicidade.
+RLS + GRANT.
+
+### 1.3 Snapshot da pontuação
+Reusar `monthly_goal_snapshots` já existente. Ao gerar o award, gravar `score_obtained` calculado no **fechamento da competência** (a pontuação vem do mesmo cálculo de `computePeriodScore` em modo `month`).
+
+Migração inclui GRANTs, RLS por `has_role`/`get_data_owner_id`, índices em `(user_id, reference_month)`.
+
+---
+
+## 2. Frontend — Cadastro do bônus
+
+### Local
+Aba **Salários → Funcionários** (`EmployeeManager`). Dentro do formulário do funcionário adicionar uma **seção colapsável "Bônus por Metas"** com os campos:
+- Switch **Ativar bônus por metas**
+- Input numérico **Pontuação mínima (0–100)**
+- Input R$ **Valor do bônus**
+- Date **Início da vigência**
+- Date **Fim da vigência (opcional)**
+- Textarea **Observações**
+
+Novo hook: `useEmployeeGoalBonuses.ts` (CRUD + realtime).
+
+Estilo consistente com os demais blocos do form (mesmos `Card`, `Label`, `Input` já usados).
+
+---
+
+## 3. Lógica de geração do bônus
+
+Novo arquivo `src/lib/goalBonusEngine.ts`:
 
 ```ts
-expenses.filter(e => e.paid && e.paidDate && isInRange(e.paidDate, range.start, range.end))
+generateBonusAwardsForMonth(referenceMonth: 'YYYY-MM', inputs): Promise<void>
 ```
 
-Já o suporte de período em `useExpenses({ startDate, endDate })` filtra por **`due_date`**. Isso cria três problemas para uma troca direta:
+Passos:
+1. Só executa se `referenceMonth < currentMonth` (competência fechada).
+2. Calcula **Pontuação Geral Mensal** de `referenceMonth` usando **exatamente** `computePeriodScore({ mode: 'month', year, month })` com os mesmos `RealizedInputs` da aba Metas (`useMonthResultInputs` — extrair caso ainda não exista helper compartilhado). Total = soma dos pesos das metas atingidas.
+3. Para cada `employee_goal_bonuses` ativo e vigente naquele mês:
+   - se `score >= min_score` e não existir award para `(employee_id, referenceMonth)` → insert em `goal_bonus_awards` com `payroll_month = referenceMonth + 1`.
+4. Nunca sobrescreve award existente (unique key + `on conflict do nothing`).
 
-1. Despesas com `due_date` fora do período mas `paid_date` dentro (ex.: fatura vencida em jun paga em jul) seriam excluídas — perda de valor no Dashboard.
-2. Despesas com `due_date` dentro mas ainda não pagas entrariam no fetch sem impacto útil (o filtro subsequente exige `paid`).
-3. `Index.tsx` continua precisando de full fetch, então uma segunda instância period-scoped **não reduz** payload global — apenas adiciona uma segunda query.
+### Onde chamar
+- **Hook `useGoalBonusAutoRun`** montado no `SalaryTab`: ao abrir a aba, roda para todos os meses fechados dos últimos 3 meses que ainda não têm award (idempotente).
+- **`PayrollManager`**: ao abrir o modal de "Nova folha / competência X", antes de montar os itens, roda `generateBonusAwardsForMonth(X - 1 mês)` e injeta os awards `status='gerado'` como `earnings` da folha.
 
-Além disso, o Dashboard **não consome `useIncomes`** em lugar nenhum (nem em `DashboardOverview`, nem nos subcomponentes de `src/components/dashboard/`). A projeção de receitas usada no Dashboard vem de `payments` (empréstimos) + `sales` + `ledgerEntries`. Chamar `useIncomes` seria código morto.
+---
 
-## Proposta
+## 4. Integração com holerite / folha
 
-Aplicar período no Dashboard de forma **conservadora**, sem alterar regra de negócio nem tocar em `Index.tsx`:
+Em `usePayrolls.ts` (função de criar/recalcular folha) e/ou `PayrollManager`:
+1. Ao gerar holerite da competência `M` para funcionário E:
+   - Buscar `goal_bonus_awards` where `employee_id=E and payroll_month=M and status in ('gerado','pago')`.
+   - Para cada award ainda não vinculado (`payroll_id is null`), adicionar um item em `payroll.items.earnings`:
+     ```
+     { label: 'Bônus por Atingimento das Metas', amount, kind: 'goal_bonus', meta: { referenceMonth, scoreObtained, minScore, awardId } }
+     ```
+   - Atualizar `goal_bonus_awards.payroll_id = payroll.id`.
+2. Ao **recalcular** folha existente: não recriar; apenas re-vincular awards já existentes. Nunca duplica (garantido pela unique key + verificação de `payroll_id`).
+3. Se folha for excluída: setar `payroll_id=null`, manter award (não cancela).
+4. Se award for cancelado (`status='cancelado'`), remover o item da folha na próxima edição.
 
-### 1. `DashboardOverview.tsx`
-- Adicionar `useExpenses({ startDate, endDate })` internamente, usando um range **ampliado** para cobrir o gap due_date × paid_date:
-  - `startDate = range.start - 12 meses` (formatado `YYYY-MM-DD`)
-  - `endDate = range.end` (fim do período)
-  - Rationale: cobre despesas vencidas antes mas pagas dentro do período (janela típica ≤ 12 meses; documentado como limite).
-- Fazer **merge** com a prop `expenses` recebida:
-  - Preservar a prop como fallback histórico (indicadores que possam vir a precisar).
-  - Para o cálculo do Dashboard, priorizar a lista period-scoped filtrada pelo escopo `business` e sem `isVehicleExpenseForVehicles` (mesma regra que `Index.tsx` aplica).
-- Passar o resultado adiante para `useDashboardMetrics` sem alterar sua assinatura.
+Extender `SalaryItem.kind` já suporta string livre — usar `'goal_bonus'`. Renderização no holerite (`payslipPdf.ts` e visualização) mostra descrição estendida quando `kind==='goal_bonus'`, incluindo:
+- Referência: `MMMM/yyyy` do `referenceMonth`
+- Pontuação obtida: X
+- Meta mínima: Y
+- Valor
 
-### 2. `useDashboardOverviewController.ts`
-- Expor `range.start` e `range.end` já normalizados como `YYYY-MM-DD` (helpers `formatIsoDate(...)`). Sem mudança de regra de negócio — apenas conveniência para consumir period-scoped hooks.
+Ler `meta` do item para exibir.
 
-### 3. `useDashboardMetrics.ts`
-- **Sem alteração de lógica.** Mantém `filteredExpenses` por `paidDate`. Apenas passa a receber a lista já reduzida.
+---
 
-### 4. Indicadores que continuam com full fetch (documentado)
-- `payments`, `loans`, `sales`, `installmentSchedules`, `ledgerEntries` — todos vêm do `Index.tsx` / hooks próprios e são usados em janelas históricas (12 meses em `monthlyChartBase`, `interestChartBase`, `yearlyAverages`). **Não** aplicar período neles.
-- `expenses` full fetch da prop permanece disponível como fallback para futuras necessidades históricas (ex.: relatório IA que compare meses passados).
+## 5. Histórico na ficha do funcionário
 
-### 5. Testes
-Adicionar em `src/components/dashboard/__tests__/`:
-1. `DashboardExpensesPeriod.test.tsx` — monta o `DashboardOverview` mockando `useExpenses` e verifica que ele é chamado com `{ startDate, endDate }` derivados do range corrente.
-2. Ao alternar `period`/`offset`, o hook é chamado com novas datas → query key distinta / cache separado (verifica isolamento via `queryKey` capturada).
+Novo componente `EmployeeGoalBonusHistory.tsx` renderizado dentro do detalhe do funcionário (abaixo da seção "Bônus por Metas"):
 
-Manter os 102 testes existentes verdes.
+Tabela responsiva: Competência • Pontuação obtida • Mínima • Valor • Data de geração • Status (badge).
 
-## Arquivos alterados
+Fonte: `goal_bonus_awards` filtrado pelo `employee_id`.
 
-```
-src/components/DashboardOverview.tsx                          (usa useExpenses period-scoped)
-src/components/dashboard/useDashboardOverviewController.ts    (expõe rangeIso)
-src/components/dashboard/__tests__/DashboardExpensesPeriod.test.tsx  (novo)
-```
+Ações: apenas visualização + botão **Cancelar** (admin) que muda status para `'cancelado'`.
 
-## Riscos residuais
+---
 
-- Janela ampliada de 12 meses é heurística; despesas com paid_date muito distante do due_date (>12 meses) seriam perdidas. Mitigação: comentário no código explicando a janela e ponto único para ajuste.
-- Como `Index.tsx` continua carregando todas as despesas, o **payload global do app não diminui**. O ganho é isolamento de re-renders no Dashboard e cache dedicado por período. Redução real de payload exigiria mudar `Index.tsx` — fora de escopo desta fase.
-- `useIncomes` não é adotado no Dashboard porque nenhum indicador o consome. Fica registrado para futura fase caso um novo card de receitas seja adicionado.
+## 6. Relatórios
 
-## Não incluído
+Em `SalaryDashboard` adicionar bloco **"Bônus por Metas"** com:
+- Total pago no período (soma de awards `status in pago`)
+- Nº de funcionários bonificados no mês
+- Lista compacta (competência, funcionário, pontuação, valor)
 
-- Alterar `Index.tsx` (fora do escopo).
-- Alterar `useExpenses`/`useIncomes` (foram entregues na fase anterior).
-- Aplicar período globalmente.
-- Trocar filtro `paidDate` por `dueDate` no `useDashboardMetrics` (mudaria regra de negócio).
+Filtro por competência. Reaproveita `goal_bonus_awards`.
+
+---
+
+## 7. Consistência de dados
+
+- Pontuação **sempre** vem de `computePeriodScore` (mesmo cálculo dos cards e da tabela detalhada). Extraí-lo caso ainda esteja acoplado ao componente.
+- Award grava `score_obtained` no momento da geração → imutável mesmo se metas forem editadas depois.
+- Alterações em `employee_goal_bonuses` **não** afetam awards já criados.
+- Geração só ocorre para competência já fechada (`month < currentMonth`).
+
+---
+
+## 8. Responsividade
+
+- Seção de cadastro: mesma grid do form (`grid-cols-1 sm:grid-cols-2`).
+- Histórico: tabela vira card list em `< sm` (padrão do projeto).
+- Dashboard bloco: `grid-cols-1 md:grid-cols-3`.
+
+---
+
+## Detalhes técnicos (para revisão do dev)
+
+**Arquivos a criar**
+- `supabase/migrations/…_goal_bonus.sql` (2 tabelas + RLS + GRANT + índices + unique)
+- `src/hooks/useEmployeeGoalBonuses.ts`
+- `src/hooks/useGoalBonusAwards.ts`
+- `src/hooks/useGoalBonusAutoRun.ts`
+- `src/lib/goalBonusEngine.ts`
+- `src/components/salary/EmployeeGoalBonusSection.tsx` (form)
+- `src/components/salary/EmployeeGoalBonusHistory.tsx`
+- `src/components/salary/GoalBonusReportBlock.tsx`
+
+**Arquivos a editar**
+- `src/components/salary/EmployeeManager.tsx` — inserir seção no form + histórico no detalhe.
+- `src/components/salary/PayrollManager.tsx` + `src/hooks/usePayrolls.ts` — injetar awards como earning; vincular `payroll_id`.
+- `src/lib/payslipPdf.ts` e componente de visualização — renderizar bloco detalhado quando `kind==='goal_bonus'`.
+- `src/components/salary/SalaryDashboard.tsx` — bloco de relatório.
+- `src/components/metas/…` (opcional) — helper `getMonthlyScore(monthKey)` exportado para reuso pelo engine, garantindo fonte única.
+
+**Não mexer**
+- Cálculo/renderização dos cards de Metas.
+- `computePeriodScore`, `metasPeriod.ts` (usar como está).
+
+---
+
+## Fluxo end-to-end (exemplo)
+1. Admin ativa bônus para João: min 85, R$ 500, vigência 01/07/2026 – aberta.
+2. Julho/2026 fecha. Ao abrir Salários, `useGoalBonusAutoRun` roda engine para `2026-07`.
+3. Engine calcula score = 92 → cria award `reference=2026-07`, `payroll_month=2026-08`, `bonus_amount=500`, `status=gerado`.
+4. Admin gera folha de agosto/2026 do João → item **Bônus por Atingimento das Metas R$ 500** é injetado; `payroll_id` vinculado.
+5. Ao pagar folha, award vira `status='pago'`.
+6. Aparece no histórico da ficha e no relatório do Dashboard.
+
+Confirma para eu implementar?

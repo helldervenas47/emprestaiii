@@ -67,21 +67,32 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
   build: {
+    target: "esnext",
+    minify: "esbuild",
+    cssCodeSplit: true,
+    cssMinify: "esbuild",
+    reportCompressedSize: false,
+    chunkSizeWarningLimit: 1200,
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ["react", "react-dom", "react-router-dom"],
-          ui: ["@radix-ui/react-dialog", "@radix-ui/react-popover", "@radix-ui/react-select", "@radix-ui/react-tabs", "@radix-ui/react-tooltip"],
           charts: ["recharts"],
-          query: ["@tanstack/react-query"],
           pdf: ["jspdf", "jspdf-autotable", "html2pdf.js"],
           excel: ["xlsx"],
           image: ["html-to-image"],
         },
-
       },
     },
-    target: "esnext",
-    minify: "esbuild",
+  },
+  optimizeDeps: {
+    include: [
+      "react",
+      "react-dom",
+      "react-router-dom",
+      "@tanstack/react-query",
+      "@supabase/supabase-js",
+    ],
   },
 }));

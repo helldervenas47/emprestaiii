@@ -18,10 +18,13 @@ function currentMonth(): string {
 
 interface CategoryStat {
   category: string;
-  spent: number;
-  budget: number;
-  pct: number;
-  status: "ok" | "warning" | "exceeded";
+  spent: number;       // total previsto no mês (pagos + a pagar)
+  paid: number;        // efetivamente pago no mês
+  pending: number;     // ainda a pagar (não vencido)
+  overdue: number;     // vencido e não pago
+  budget: number;      // orçamento do mês (0 quando não há)
+  pct: number;         // % somente quando budget > 0
+  status: "ok" | "warning" | "exceeded" | "no_budget";
   trend?: "up" | "down" | "stable";
   prevSpent?: number;
 }
@@ -31,6 +34,7 @@ async function buildContext(supabase: any, ownerId: string, month: string) {
   const [y, m] = month.split("-").map(Number);
   const monthEndDate = new Date(y, m, 0);
   const monthEnd = `${monthEndDate.getFullYear()}-${String(monthEndDate.getMonth() + 1).padStart(2, "0")}-${String(monthEndDate.getDate()).padStart(2, "0")}`;
+  const todayStr = new Date().toISOString().slice(0, 10);
 
   const prevD = new Date(y, m - 2, 1);
   const prevMonth = `${prevD.getFullYear()}-${String(prevD.getMonth() + 1).padStart(2, "0")}`;
@@ -38,32 +42,23 @@ async function buildContext(supabase: any, ownerId: string, month: string) {
   const prevEndDate = new Date(prevD.getFullYear(), prevD.getMonth() + 1, 0);
   const prevEnd = `${prevEndDate.getFullYear()}-${String(prevEndDate.getMonth() + 1).padStart(2, "0")}-${String(prevEndDate.getDate()).padStart(2, "0")}`;
 
-  const { data: allBudgets } = await supabase
+  // Orçamentos: usar EXCLUSIVAMENTE os do mês analisado. Não fazer fallback
+  // para meses anteriores/posteriores — isso causava percentuais absurdos
+  // (ex.: 642%) ao comparar despesas do mês atual com um orçamento antigo.
+  const { data: monthBudgets } = await supabase
     .from("personal_budgets")
     .select("category, amount, month")
-    .eq("user_id", ownerId);
+    .eq("user_id", ownerId)
+    .eq("month", month);
 
-  let budgets: { category: string; amount: number }[] = [];
-  if (allBudgets && allBudgets.length > 0) {
-    const monthsAvailable = Array.from(new Set((allBudgets as any[]).map((b) => b.month as string))).sort();
-    let sourceMonth: string | null = null;
-    if (monthsAvailable.includes(month)) sourceMonth = month;
-    else {
-      const previous = [...monthsAvailable].reverse().find((mm: string) => mm < month);
-      sourceMonth = previous ?? monthsAvailable.find((mm: string) => mm > month) ?? null;
-    }
-    if (sourceMonth) {
-      budgets = (allBudgets as any[])
-        .filter((b) => b.month === sourceMonth)
-        .map((b) => ({ category: b.category, amount: Number(b.amount) }));
-    }
-  }
+  const budgets: { category: string; amount: number }[] = (monthBudgets || [])
+    .map((b: any) => ({ category: b.category, amount: Number(b.amount) || 0 }))
+    .filter((b: any) => b.amount > 0);
 
-  // IMPORTANT: include all expenses for the month (paid and unpaid) so the
-  // analysis reflects the total committed/forecasted amount, not only what was already paid.
+  // Despesas do mês (pagas e não pagas) para calcular previsto/pago/pendente/vencido.
   const { data: expenses } = await supabase
     .from("expenses")
-    .select("category, amount, type, installments, due_date, paid")
+    .select("category, amount, type, installments, due_date, paid, paid_date")
     .eq("user_id", ownerId)
     .eq("scope", "personal")
     .gte("due_date", monthStart)
@@ -77,35 +72,46 @@ async function buildContext(supabase: any, ownerId: string, month: string) {
     .gte("due_date", prevStart)
     .lte("due_date", prevEnd);
 
-  const sumByCategory = (rows: any[]) => {
-    const map = new Map<string, number>();
-    for (const e of rows || []) {
-      const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
-      const amt = isRec ? Number(e.amount) / Number(e.installments) : Number(e.amount);
-      map.set(e.category, (map.get(e.category) || 0) + amt);
-    }
-    return map;
+  const instAmount = (e: any) => {
+    const isRec = e.type === "recorrente" && e.installments && Number(e.installments) > 1;
+    return isRec ? Number(e.amount) / Number(e.installments) : Number(e.amount);
   };
 
-  const spent = sumByCategory(expenses || []);
-  const prevSpent = sumByCategory(prevExpenses || []);
+  type Bucket = { total: number; paid: number; pending: number; overdue: number };
+  const bucketByCategory = new Map<string, Bucket>();
+  for (const e of expenses || []) {
+    const amt = instAmount(e);
+    const cat = e.category as string;
+    const b = bucketByCategory.get(cat) || { total: 0, paid: 0, pending: 0, overdue: 0 };
+    b.total += amt;
+    if (e.paid) b.paid += amt;
+    else if (e.due_date < todayStr) b.overdue += amt;
+    else b.pending += amt;
+    bucketByCategory.set(cat, b);
+  }
+
+  const prevSpentByCat = new Map<string, number>();
+  for (const e of prevExpenses || []) {
+    prevSpentByCat.set(e.category, (prevSpentByCat.get(e.category) || 0) + instAmount(e));
+  }
 
   const categoriesSet = new Set<string>([
     ...budgets.map((b) => b.category),
-    ...spent.keys(),
+    ...bucketByCategory.keys(),
   ]);
 
   const stats: CategoryStat[] = [];
   for (const cat of categoriesSet) {
     const budget = budgets.find((b) => b.category === cat)?.amount ?? 0;
-    const sp = spent.get(cat) || 0;
-    const ps = prevSpent.get(cat) || 0;
+    const bucket = bucketByCategory.get(cat) || { total: 0, paid: 0, pending: 0, overdue: 0 };
+    const sp = bucket.total;
+    const ps = prevSpentByCat.get(cat) || 0;
     const pct = budget > 0 ? (sp / budget) * 100 : 0;
-    let status: "ok" | "warning" | "exceeded" = "ok";
-    if (budget > 0) {
-      if (pct > 100) status = "exceeded";
-      else if (pct >= 80) status = "warning";
-    }
+    let status: CategoryStat["status"] = "ok";
+    if (budget <= 0) status = "no_budget";
+    else if (pct > 100) status = "exceeded";
+    else if (pct >= 80) status = "warning";
+
     let trend: "up" | "down" | "stable" = "stable";
     if (ps > 0) {
       const change = (sp - ps) / ps;
@@ -113,30 +119,56 @@ async function buildContext(supabase: any, ownerId: string, month: string) {
       else if (change < -0.15) trend = "down";
     } else if (sp > 0) trend = "up";
 
-    stats.push({ category: cat, spent: sp, budget, pct, status, trend, prevSpent: ps });
+    stats.push({
+      category: cat,
+      spent: sp,
+      paid: bucket.paid,
+      pending: bucket.pending,
+      overdue: bucket.overdue,
+      budget,
+      pct,
+      status,
+      trend,
+      prevSpent: ps,
+    });
   }
 
   stats.sort((a, b) => b.spent - a.spent);
 
   const totalSpent = stats.reduce((s, x) => s + x.spent, 0);
+  const totalPaid = stats.reduce((s, x) => s + x.paid, 0);
+  const totalPending = stats.reduce((s, x) => s + x.pending, 0);
+  const totalOverdue = stats.reduce((s, x) => s + x.overdue, 0);
   const totalBudget = budgets.reduce((s, b) => s + b.amount, 0);
+  const hasAnyBudget = totalBudget > 0;
 
-  return { stats, totalSpent, totalBudget, month, prevMonth };
+  return { stats, totalSpent, totalPaid, totalPending, totalOverdue, totalBudget, hasAnyBudget, month, prevMonth };
 }
 
 function buildPrompt(ctx: any) {
   const lines: string[] = [];
   lines.push(`Mês de referência: ${ctx.month}`);
-  lines.push(`Total previsto no mês (pagos + a pagar): ${fmt(ctx.totalSpent)} | Total orçado: ${fmt(ctx.totalBudget)}`);
+  lines.push(`Total previsto no mês (pagos + a pagar): ${fmt(ctx.totalSpent)}`);
+  lines.push(`Total pago: ${fmt(ctx.totalPaid)} | Total pendente: ${fmt(ctx.totalPending)} | Total vencido: ${fmt(ctx.totalOverdue)}`);
+  lines.push(
+    ctx.hasAnyBudget
+      ? `Orçamento mensal cadastrado: ${fmt(ctx.totalBudget)}`
+      : `Orçamento mensal: NÃO cadastrado (não calcule percentuais de orçamento)`,
+  );
   lines.push("");
-  lines.push("Categorias (total previsto / orçamento / % / tendência vs mês anterior):");
+  lines.push("Categorias (previsto | pago | pendente | vencido | orçamento | tendência vs mês anterior):");
   for (const s of ctx.stats) {
     const trendLabel = s.trend === "up" ? "↑ alta" : s.trend === "down" ? "↓ queda" : "→ estável";
-    const budgetTxt = s.budget > 0 ? `${fmt(s.budget)} (${s.pct.toFixed(0)}%)` : "sem limite";
-    lines.push(`- ${s.category}: ${fmt(s.spent)} previstos / ${budgetTxt} | ${trendLabel} (anterior: ${fmt(s.prevSpent || 0)})`);
+    const budgetTxt = s.budget > 0
+      ? `orçamento ${fmt(s.budget)} (${s.pct.toFixed(0)}%)`
+      : `sem orçamento cadastrado`;
+    lines.push(
+      `- ${s.category}: previsto ${fmt(s.spent)} | pago ${fmt(s.paid)} | pendente ${fmt(s.pending)} | vencido ${fmt(s.overdue)} | ${budgetTxt} | ${trendLabel} (anterior: ${fmt(s.prevSpent || 0)})`,
+    );
   }
   return lines.join("\n");
 }
+
 
 async function callAI(systemPrompt: string, userPrompt: string) {
   const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
@@ -154,7 +186,7 @@ async function callAI(systemPrompt: string, userPrompt: string) {
         { role: "system", content: systemPrompt },
         { role: "user", content: `User Data:\n${userPrompt}` },
       ],
-      temperature: 0.7,
+      temperature: 0.2,
       max_tokens: 1000,
     }),
   });
@@ -170,58 +202,69 @@ async function callAI(systemPrompt: string, userPrompt: string) {
 }
 
 const TONE_INSTRUCTIONS: Record<string, string> = {
-  balanced: "Tom equilibrado, profissional e acolhedor — como Nathalia Arcuri ou Thiago Nigro: claro, direto e empático.",
-  strict: "Tom RIGOROSO e direto, sem rodeios. Aponte estouros e desperdícios com firmeza, use linguagem de cobrança responsável (ex.: 'isso precisa parar', 'corte agora'). Evite elogios desnecessários.",
-  motivational: "Tom MOTIVACIONAL e encorajador. Celebre conquistas (mesmo pequenas), use linguagem positiva e inspiradora ('você consegue', 'ótimo passo'), foque em progresso e potencial.",
-  technical: "Tom TÉCNICO e analítico. Use percentuais, comparativos numéricos e terminologia financeira (variação MoM, share da carteira, ticket médio). Mínimo de emojis, máximo de objetividade.",
-  friendly: "Tom AMIGÁVEL e conversacional, como um amigo próximo dando dicas. Use linguagem informal, descontraída, com analogias do dia a dia. Evite jargão.",
+  balanced: "Tom equilibrado, profissional e acolhedor. Claro, direto e empático, sem alarmismo.",
+  strict: "Tom firme e objetivo, focado em disciplina financeira. NUNCA use termos alarmistas como 'crítico', 'monumental', 'descontrolado', 'inaceitável'. Aponte apenas o que os números mostram.",
+  motivational: "Tom encorajador. Celebre o que estiver dentro do orçamento e proponha próximos passos. Sem exageros.",
+  technical: "Tom técnico e analítico. Use somente os números fornecidos (variação MoM, share da carteira). Mínimo de emojis.",
+  friendly: "Tom amigável e conversacional, sem jargão e sem exageros.",
 };
+
+const HARD_RULES = `
+REGRAS OBRIGATÓRIAS (nunca quebrar):
+1. Use APENAS os números fornecidos em "User Data". Nunca invente valores, categorias ou percentuais.
+2. Percentual do orçamento (%) só pode ser citado quando a categoria tem "orçamento" > 0 nos dados. Se estiver "sem orçamento cadastrado", NÃO cite %, apenas o valor gasto.
+3. Não use termos alarmistas: "crítico", "descontrolado", "monumental", "inaceitável", "situação crítica", "estouro monumental", "gastos descontrolados". Prefira: "acima do orçamento", "atenção", "acompanhar".
+4. Só chame de "estouro" ou "acima do orçamento" quando % > 100 e o orçamento existir. Só chame de "atenção" entre 80% e 100%.
+5. Diferencie sempre "previsto", "pago", "pendente" e "vencido" quando relevante.
+6. Recomendações devem ser prudentes e ancoradas nas maiores categorias reais. Nada de sugestões genéricas ("cancele assinaturas") sem base nos dados.
+7. Se não há orçamento nenhum cadastrado, informe isso explicitamente e não emita julgamento de estouro.
+8. Tom profissional. Sem drama.
+`;
 
 function buildSystemPrompt(tone: string): string {
   const toneInstruction = TONE_INSTRUCTIONS[tone] ?? TONE_INSTRUCTIONS.balanced;
-  return `Você é um consultor financeiro pessoal especializado em análise de gastos. Recebe um resumo mensal de gastos por categoria com orçamentos definidos pelo usuário e tendência vs o mês anterior.
+  return `Você é um consultor financeiro pessoal. Analisa um resumo mensal real de despesas por categoria, com orçamentos (quando cadastrados) e tendência vs. o mês anterior.
 
-TOM DE VOZ DESTA RESPOSTA: ${toneInstruction}
+TOM DE VOZ: ${toneInstruction}
+${HARD_RULES}
 
-Sua resposta DEVE ser em português do Brasil, em formato Markdown enxuto, sem títulos H1, com no máximo 280 palavras, organizada nestas seções (use exatamente esses títulos com ##):
+Formato da resposta (Português do Brasil, Markdown enxuto, sem H1, máximo 280 palavras, use exatamente esses títulos com ##):
 
 ## 📊 Visão geral
-1-2 frases objetivas sobre o estado geral do mês (saudável, atenção, alerta).
+1-2 frases objetivas. Cite total previsto, pago e pendente do mês. Se houver orçamento total, cite o % consumido; caso contrário, apenas informe que não há orçamento cadastrado.
 
-## ⚠️ Pontos críticos
-Liste como bullets as categorias que estouraram OU estão acima de 80%. Para cada uma: nome em **negrito**, % do orçamento e impacto. Se nenhuma, diga "Nenhum estouro detectado este mês.".
+## ⚠️ Pontos de atenção
+Bullets APENAS para categorias com orçamento cadastrado e uso ≥ 80%. Para cada uma: **categoria**, valor previsto, % do orçamento. Se nenhuma se qualifica, escreva "Nenhuma categoria acima de 80% do orçamento neste mês.". Nunca invente %.
 
 ## 💡 Oportunidades de redução
-2-3 bullets PRÁTICAS e específicas (não genéricas). Considere a tendência (↑/↓) e categorias com gasto alto sem orçamento.
+2-3 bullets práticos baseados nas MAIORES categorias por valor real. Se a categoria não tem orçamento, sugira definir um limite. Nada genérico.
 
 ## ✅ Próximas ações
-2-3 ações concretas que o usuário pode executar essa semana. Use verbos no infinitivo (ex.: "Definir limite", "Renegociar", "Revisar assinaturas").
-
-Mantenha o tom solicitado em TODAS as seções. Nunca invente categorias que não estão nos dados.`;
+2-3 ações concretas e prudentes ancoradas nos dados (ex.: "Definir orçamento para X", "Quitar despesa vencida Y"). Verbos no infinitivo.`;
 }
 
 function buildCategorySystemPrompt(tone: string, category: string): string {
   const toneInstruction = TONE_INSTRUCTIONS[tone] ?? TONE_INSTRUCTIONS.balanced;
-  return `Você é um consultor financeiro pessoal. Vai analisar UMA ÚNICA categoria de despesas pessoais: **${category}**.
+  return `Você é um consultor financeiro pessoal analisando UMA categoria: **${category}**.
 
 TOM DE VOZ: ${toneInstruction}
+${HARD_RULES}
 
-Resposta em português do Brasil, Markdown enxuto, máximo 220 palavras, sem títulos H1. Use EXATAMENTE estas seções com ##:
+Formato (Português do Brasil, Markdown enxuto, máximo 220 palavras, sem H1, use estas seções com ##):
 
 ## 📊 Análise da categoria
-Diagnóstico específico de **${category}**: total previsto no mês (somando pagos + a pagar), % comprometido do orçamento, comparação com mês anterior e share dentro do total mensal previsto. 2-3 frases.
+Diagnóstico com os números reais de **${category}**: previsto, pago, pendente e vencido. Se houver orçamento cadastrado, cite o % consumido; se não houver, diga "sem orçamento cadastrado" e não invente %.
 
-## 🚨 Problemas identificados
-Bullets curtos: estouro de orçamento, recorrência elevada, picos atípicos, ausência de limite, etc. Se nada relevante, diga "Sem problemas críticos detectados.".
+## 🚨 Pontos de atenção
+Bullets somente quando houver base numérica (ex.: uso ≥ 80% do orçamento, vencidos > 0, alta ≥ 15% vs mês anterior). Caso contrário: "Sem pontos de atenção com base nos dados.".
 
-## 💰 Sugestões práticas de redução
-2-4 bullets ESPECÍFICOS para **${category}** (não genéricos). Inclua estimativas de economia quando possível (ex.: "renegociar plano pode poupar ~R$ 40/mês").
+## 💰 Sugestões de redução
+2-4 bullets específicos para **${category}**, com estimativas somente quando derivadas dos números fornecidos.
 
 ## 🎯 Recomendações de controle
-2-3 ações concretas para manter a categoria sob controle nos próximos meses (ex.: "definir limite de R$ X", "criar alerta em 70%", "revisar assinaturas mensalmente").
-
-Foque APENAS em **${category}**. Não comente outras categorias. Nunca invente dados.`;
+2-3 ações concretas (ex.: definir orçamento, revisar recorrências). Nada genérico.`;
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -304,7 +347,16 @@ Deno.serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Reuse cached if generated within last 30 minutes and not forced
+    // Reuse cached only when recente e gerado pela versão nova do prompt.
+    // Detectamos versões antigas pelo título de seção "Pontos críticos" (agora "Pontos de atenção")
+    // ou por termos alarmistas removidos, para não servir análises falsas do cache.
+    const LEGACY_MARKERS = [
+      "Pontos críticos",
+      "estouro monumental",
+      "situação crítica",
+      "gastos descontrolados",
+    ];
+    const CACHE_TTL_MS = 30 * 60 * 1000;
     if (!force) {
       const { data: existing } = await supabase
         .from("personal_ai_insights")
@@ -314,13 +366,17 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (existing) {
         const ageMs = Date.now() - new Date((existing as any).generated_at).getTime();
-        if (ageMs < 30 * 60 * 1000) {
+        const content = String((existing as any).content || "");
+        const isLegacy = LEGACY_MARKERS.some((m) => content.toLowerCase().includes(m.toLowerCase()));
+        if (!isLegacy && ageMs < CACHE_TTL_MS) {
           return new Response(JSON.stringify({ ...existing, cached: true }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
       }
     }
+
+
 
     const ctx = await buildContext(supabase, ownerId, month);
     if (ctx.stats.length === 0) {
@@ -349,7 +405,9 @@ Deno.serve(async (req) => {
       .map((s: CategoryStat) => ({ category: s.category, prev: s.prevSpent, current: s.spent }));
 
     // Generate a one-line summary for telegram preview
-    const summary = `${exceeded.length > 0 ? `${exceeded.length} categoria(s) estourada(s)` : "Sem estouros"} • ${fmt(ctx.totalSpent)} gastos / ${fmt(ctx.totalBudget)} orçado`;
+    const summary = ctx.hasAnyBudget
+      ? `${exceeded.length > 0 ? `${exceeded.length} categoria(s) acima do orçamento` : "Sem categorias acima do orçamento"} • Previsto ${fmt(ctx.totalSpent)} / Orçado ${fmt(ctx.totalBudget)}`
+      : `Sem orçamento cadastrado • Previsto ${fmt(ctx.totalSpent)} (pago ${fmt(ctx.totalPaid)} / pendente ${fmt(ctx.totalPending)})`;
 
     await supabase
       .from("personal_ai_insights")
@@ -362,6 +420,7 @@ Deno.serve(async (req) => {
         trends,
         generated_at: new Date().toISOString(),
       }, { onConflict: "user_id,month" });
+
 
     return new Response(JSON.stringify({
       content, summary, exceeded_categories: exceeded, trends,

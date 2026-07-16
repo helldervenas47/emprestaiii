@@ -1,11 +1,15 @@
 // Auto-pays expenses whose payment method is "Débito automático" (or notes tag
 // "[Débito automático]") when due_date <= today. Mirrors useExpenses.payExpense
 // for parcelada vs simple expenses, across all scopes.
+//
+// SECURITY: gated behind the shared cron secret (`X-Cron-Secret`). Only the
+// scheduler / an operator with the shared secret may trigger this batch job.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateCronSecret } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 const AUTO_DEBIT_RE = /\[\s*D[ée]bito autom[áa]tico\s*\]/i;
@@ -18,6 +22,14 @@ Deno.serve(async (req) => {
     Deno.env.get("EXTERNAL_SUPABASE_URL")!,
     Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")!,
   );
+
+  const okCron = await validateCronSecret(supabase, req);
+  if (!okCron) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -34,7 +46,7 @@ Deno.serve(async (req) => {
   // 2. Fetch all unpaid expenses past or due today (any scope)
   const { data: candidates, error } = await supabase
     .from("expenses")
-    .select("*")
+    .select("id, user_id, description, amount, type, category, installments, paid_installments, due_date, paid, notes, scope, payment_method_id")
     .eq("paid", false)
     .lte("due_date", today);
 

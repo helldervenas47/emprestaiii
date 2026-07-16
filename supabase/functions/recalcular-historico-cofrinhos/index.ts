@@ -1,11 +1,21 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateUserOwner, validateCronSecret } from "../_shared/auth-guard.ts";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+const SUPABASE_URL =
+  Deno.env.get("EXTERNAL_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY =
+  Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ??
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error("Variáveis SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY ausentes.");
+  throw new Error("Variáveis SUPABASE_URL/EXTERNAL_SUPABASE_URL ausentes.");
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -91,15 +101,49 @@ async function syncTaxas(dataInicio: string, dataFim: string) {
 }
 
 serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
   try {
     const body = await req.json().catch(() => ({}));
 
     const cofrinhoId = body.cofrinho_id ?? null;
     const dataFim = body.data_fim ?? new Date().toISOString().slice(0, 10);
 
+    // AuthZ: cron-secret for global reset (no cofrinho_id) or when caller
+    // is running as scheduler; otherwise require authenticated owner of
+    // the specific cofrinho_id.
+    const isCron = await validateCronSecret(supabase, req);
+    if (!isCron) {
+      if (!cofrinhoId) {
+        return new Response(
+          JSON.stringify({ success: false, error: "unauthorized_global_reset" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const { data: cof, error: cofErr } = await supabase
+        .from("cofrinhos")
+        .select("usuario_id")
+        .eq("id", cofrinhoId)
+        .single();
+      if (cofErr || !cof) {
+        return new Response(
+          JSON.stringify({ success: false, error: "cofrinho_not_found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const authCheck = await validateUserOwner(supabase, req, cof.usuario_id);
+      if (!authCheck.ok) {
+        return new Response(
+          JSON.stringify({ success: false, error: "unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
     let aportesQuery = supabase
       .from("cofrinho_aportes")
-      .select("*")
+      .select("id, cofrinho_id, data_aporte, saldo_restante, percentual_cdi")
       .gt("saldo_restante", 0)
       .order("data_aporte", { ascending: true });
 
@@ -163,7 +207,7 @@ serve(async (req) => {
     for (const aporte of aportes) {
       const taxasResult = await supabase
         .from("taxa_referencia")
-        .select("*")
+        .select("data, cdi_diario")
         .gte("data", aporte.data_aporte)
         .lte("data", dataFim)
         .order("data", { ascending: true });
@@ -245,7 +289,7 @@ serve(async (req) => {
         registros_criados: registrosCriados,
         cofrinhos_recalculados: cofrinhosUnicos.length,
       }),
-      { headers: { "Content-Type": "application/json" } },
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
     return new Response(
@@ -253,7 +297,7 @@ serve(async (req) => {
         success: false,
         error: error?.message ?? String(error),
       }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });

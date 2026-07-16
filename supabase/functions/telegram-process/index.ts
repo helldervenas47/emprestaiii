@@ -945,7 +945,7 @@ async function handleSaldo(admin: any, userId: string): Promise<string> {
     return msg;
   }
   msg += `\n📂 *Por categoria:*\n`;
-  const sorted = [...byCat.entries()].sort((a, b) => b[1] - a[1]);
+  const sorted = [...byCat.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
   for (const [cat, spent] of sorted) {
     const budget = budgetMap.get(cat);
     if (budget && budget > 0) {
@@ -1329,7 +1329,7 @@ async function handleMes(admin: any, userId: string): Promise<string> {
   msg += `Média/dia: ${fmtBRL(avgPerDay)}\n`;
 
   msg += `\n📂 *Por categoria:*\n`;
-  const sorted = [...byCat.entries()].sort((a, b) => b[1] - a[1]);
+  const sorted = [...byCat.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
   for (const [cat, spent] of sorted) {
     const pct = total > 0 ? (spent / total) * 100 : 0;
     msg += `• ${cat}: ${fmtBRL(spent)} (${pct.toFixed(0)}%)\n`;
@@ -1366,7 +1366,7 @@ async function handleSemana(admin: any, userId: string): Promise<string> {
   msg += `Média/dia: ${fmtBRL(avgPerDay)}\n`;
 
   msg += `\n📂 *Por categoria:*\n`;
-  const sorted = [...byCat.entries()].sort((a, b) => b[1] - a[1]);
+  const sorted = [...byCat.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
   for (const [cat, spent] of sorted) {
     const pct = total > 0 ? (spent / total) * 100 : 0;
     msg += `• ${cat}: ${fmtBRL(spent)} (${pct.toFixed(0)}%)\n`;
@@ -1437,8 +1437,8 @@ async function handleComparar(admin: any, userId: string): Promise<string> {
     curVal: cur.byCat.get(cat) || 0,
     prevVal: prev.byCat.get(cat) || 0,
   }));
-  // Ordena pelo gasto atual (depois anterior) decrescente
-  rows.sort((a, b) => (b.curVal + b.prevVal) - (a.curVal + a.prevVal));
+  // Ordena alfabeticamente pelo nome da categoria (A–Z)
+  rows.sort((a, b) => a.cat.localeCompare(b.cat, "pt-BR"));
 
   for (const r of rows) {
     msg += `\n*${r.cat}*\n`;
@@ -2457,7 +2457,7 @@ async function answerNaturalQuery(
       const c = e.category || "Outros";
       byCat.set(c, (byCat.get(c) || 0) + (Number(e.amount) || 0));
     }
-    const sorted = [...byCat.entries()].sort((a, b) => b[1] - a[1]);
+    const sorted = [...byCat.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
     msg += `\n\n📂 *Por categoria:*\n`;
     for (const [c, v] of sorted) {
       msg += `• ${c}: ${fmtBRL(v)}\n`;
@@ -2862,7 +2862,7 @@ Deno.serve(async (req) => {
         const reportsBotIdEx = await getReportsBotId(admin);
         // Lookup expenses code only (exclui códigos do bot de relatórios)
         let codeQ = admin.from("telegram_link_codes")
-          .select("*")
+          .select("id, code, user_id, bot_id, expires_at, created_at")
           .eq("code", code)
           .order("created_at", { ascending: false })
           .limit(1);

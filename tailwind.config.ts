@@ -21,6 +21,11 @@ export default {
       "2xl": "1536px",
     },
     extend: {
+      fontFamily: {
+        sans: ["var(--app-font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["var(--app-font-display)", "var(--app-font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "monospace"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

@@ -30,13 +30,11 @@ supabase link --project-ref "$PROJECT_REF" --password "$DB_PASSWORD"
 
 # ---- Lista de functions -----------------------------------------------------
 FUNCTIONS=(
-  add-products-active
   admin-create-user
   admin-manage-user
   daily-planning-summary
   debug-telegram
   export-full-backup
-  fix-sales-product-fk
   generate-income-health-report
   generate-personal-insights
   generate-risk-reduction-report
@@ -60,7 +58,6 @@ FUNCTIONS=(
   send-webhook-report
   send-whatsapp-billing
   send-whatsapp-manager-summary
-  setup-dashboard-prefs
   sync-cdi-rate
   sync-client-analysis
   telegram-accumulated-delinquency-summary
