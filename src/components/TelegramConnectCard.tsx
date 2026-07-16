@@ -53,12 +53,25 @@ export function TelegramConnectCard() {
 
 
   useEffect(() => {
-    refresh();
-    const channel = supabase
-      .channel("telegram_links_self")
-      .on("postgres_changes", { event: "*", schema: "public", table: "telegram_links" }, () => refresh())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
+    (async () => {
+      await refresh();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+      channel = supabase
+        .channel(`telegram-links:${user.id}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "telegram_links", filter: `user_id=eq.${user.id}` },
+          () => refresh(),
+        )
+        .subscribe();
+    })();
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
@@ -66,6 +79,7 @@ export function TelegramConnectCard() {
     let stopped = false;
     const syncTelegram = async () => {
       if (stopped || syncingTelegramRef.current) return;
+      if (typeof document !== "undefined" && document.hidden) return;
       syncingTelegramRef.current = true;
       try {
         // Não chamamos telegram-poll: o cron já roda a cada minuto e duas chamadas
@@ -77,7 +91,8 @@ export function TelegramConnectCard() {
       }
     };
     syncTelegram();
-    const interval = window.setInterval(syncTelegram, 12000);
+    // Ativo apenas enquanto o card está aberto e não vinculado; pausa se aba oculta.
+    const interval = window.setInterval(syncTelegram, 30000);
     return () => { stopped = true; window.clearInterval(interval); };
   }, [loading, linked]);
 

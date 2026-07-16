@@ -77,6 +77,10 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"mes" | "semana" | "agenda" | "lista" | "geral">("mes");
+  const [showFullDay, setShowFullDay] = useState(false);
+  const [breakdownCard, setBreakdownCard] = useState<null | "hoje" | "atrasados" | "amanha" | "mes">(null);
+  const [originFilter, setOriginFilter] = useState<"todos" | "emprestimos" | "vendas" | "veiculos">("todos");
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [showPartial, setShowPartial] = useState<string | null>(null);
   const [partialAmount, setPartialAmount] = useState("");
@@ -226,6 +230,27 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
     return map;
   }, [sales]);
 
+  // Filtro por origem: aplicado sobre as fontes brutas para que TODAS as leituras
+  // (cards, calendário, semana/agenda/lista, detalhes do dia e breakdown) fiquem
+  // consistentes com a origem selecionada.
+  const filteredDueMap = useMemo(() => {
+    if (originFilter === "todos" || originFilter === "emprestimos") return dueMap;
+    return {} as typeof dueMap;
+  }, [dueMap, originFilter]);
+
+  const filteredSalesDueMap = useMemo(() => {
+    if (originFilter === "emprestimos") return {} as typeof salesDueMap;
+    if (originFilter === "todos") return salesDueMap;
+    const wanted: "sale" | "vehicle" = originFilter === "veiculos" ? "vehicle" : "sale";
+    const out: typeof salesDueMap = {};
+    Object.entries(salesDueMap).forEach(([d, arr]) => {
+      const kept = arr.filter((i) => i.kind === wanted);
+      if (kept.length) out[d] = kept;
+    });
+    return out;
+  }, [salesDueMap, originFilter]);
+
+
   // Calendar grid
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
@@ -237,6 +262,57 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
   for (let i = 1; i <= daysInMonth; i++) calendarDays.push(i);
 
   const todayStr = formatLocalDate(today);
+  const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  const tomorrowStr = formatLocalDate(tomorrow);
+
+  // Payments received per date (for green status dot)
+  const receivedByDate = useMemo(() => {
+    const m: Record<string, { total: number; count: number }> = {};
+    payments.forEach((p) => {
+      if (!p.date) return;
+      const d = String(p.date).slice(0, 10);
+      if (!m[d]) m[d] = { total: 0, count: 0 };
+      m[d].total += Number(p.amount) || 0;
+      m[d].count += 1;
+    });
+    return m;
+  }, [payments]);
+
+  // Combined pending items across loans + sales for a given date
+  const pendingForDate = useCallback(
+    (dateStr: string) => {
+      const loanItems = filteredDueMap[dateStr] || [];
+      const saleItems = filteredSalesDueMap[dateStr] || [];
+      const total = loanItems.reduce((s, i) => s + i.amount, 0) + saleItems.reduce((s, i) => s + i.amount, 0);
+      return { total, count: loanItems.length + saleItems.length };
+    },
+    [filteredDueMap, filteredSalesDueMap],
+  );
+
+  // Summary cards
+  const summary = useMemo(() => {
+    const hoje = pendingForDate(todayStr);
+    const amanha = pendingForDate(tomorrowStr);
+    let overdueTotal = 0, overdueCount = 0;
+    let monthTotal = 0, monthCount = 0;
+    const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+    const scan = (map: Record<string, { amount: number }[]> | Record<string, DueItem[]> | Record<string, SaleDueItem[]>) => {
+      Object.entries(map as any).forEach(([d, arr]: any) => {
+        if (d < todayStr) {
+          overdueTotal += arr.reduce((s: number, i: any) => s + i.amount, 0);
+          overdueCount += arr.length;
+        }
+        if (d.startsWith(monthPrefix)) {
+          monthTotal += arr.reduce((s: number, i: any) => s + i.amount, 0);
+          monthCount += arr.length;
+        }
+      });
+    };
+    scan(filteredDueMap);
+    scan(filteredSalesDueMap);
+    return { hoje, amanha, overdue: { total: overdueTotal, count: overdueCount }, month: { total: monthTotal, count: monthCount } };
+  }, [filteredDueMap, filteredSalesDueMap, todayStr, tomorrowStr, year, month, pendingForDate]);
+
 
   const goToToday = () => {
     setYear(today.getFullYear());
@@ -261,8 +337,8 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
     setShowPartial(null);
   };
 
-  const selectedItems = selectedDate ? (dueMap[selectedDate] || []) : [];
-  const selectedSaleItems = selectedDate ? (salesDueMap[selectedDate] || []) : [];
+  const selectedItems = selectedDate ? (filteredDueMap[selectedDate] || []) : [];
+  const selectedSaleItems = selectedDate ? (filteredSalesDueMap[selectedDate] || []) : [];
   const overdueSelected = selectedItems.filter((i) => i.date < todayStr);
   const upcomingSelected = selectedItems.filter((i) => i.date >= todayStr);
 
@@ -376,8 +452,17 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
             <div className={`h-8 w-8 rounded-full ${avatarBg} flex items-center justify-center`}>
               <User className={`h-4 w-4 ${avatarText}`} />
             </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">{item.borrowerName}</p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p className="text-sm font-medium text-foreground truncate">{item.borrowerName}</p>
+                {loan.tags && loan.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-0.5">
+                    {loan.tags.filter(Boolean).map((tag) => (
+                      <Badge key={tag} className="bg-primary text-primary-foreground text-[8px] px-1 py-0 max-w-[120px] truncate">{tag}</Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">
                 Parcela {item.installmentNumber}/{item.totalInstallments}
               </p>
@@ -537,25 +622,210 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
     });
   }, [selectedItems, todayStr]);
 
+  // ------------------------------------------------------------------
+  // Breakdown por card: usa exatamente as mesmas fontes (dueMap + salesDueMap)
+  // que alimentam os totais dos cards, garantindo paridade total.
+  // ------------------------------------------------------------------
+  type BreakdownRow = {
+    key: string;
+    clientName: string;
+    dueDate: string;
+    pendingAmount: number;
+    originalTotal: number;
+    received: number;
+    remaining: number;
+    status: string;
+    origin: "Empréstimo" | "Venda" | "Aluguel de veículo";
+    loanId?: string;
+    saleId?: string;
+    installmentInfo: string;
+    tags?: string[];
+  };
+
+  const breakdownLabels: Record<NonNullable<typeof breakdownCard>, string> = {
+    hoje: "Receber hoje",
+    atrasados: "Atrasados",
+    amanha: "Receber amanhã",
+    mes: `Este mês (${monthNames[month]}/${year})`,
+  };
+
+  const breakdownRows = useMemo<BreakdownRow[]>(() => {
+    if (!breakdownCard) return [];
+    const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+    const matches = (d: string) => {
+      if (breakdownCard === "hoje") return d === todayStr;
+      if (breakdownCard === "atrasados") return d < todayStr;
+      if (breakdownCard === "amanha") return d === tomorrowStr;
+      return d.startsWith(monthPrefix);
+    };
+    const rows: BreakdownRow[] = [];
+    Object.entries(filteredDueMap).forEach(([d, arr]) => {
+      if (!matches(d)) return;
+      arr.forEach((it) => {
+        const loan = it.loan;
+        const totalWithInterest = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+        const paid = payments.filter((p) => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
+        const remaining = loan.remainingAmount != null && loan.remainingAmount > 0
+          ? loan.remainingAmount
+          : Math.max(0, totalWithInterest - paid);
+        rows.push({
+          key: `loan-${loan.id}-${it.installmentNumber}-${d}`,
+          clientName: it.borrowerName,
+          dueDate: d,
+          pendingAmount: it.amount,
+          originalTotal: loan.amount,
+          received: paid,
+          remaining,
+          status: loan.status || "active",
+          origin: "Empréstimo",
+          loanId: loan.id,
+          installmentInfo: `Parcela ${it.installmentNumber}/${it.totalInstallments}`,
+          tags: Array.isArray(loan.tags) ? loan.tags.filter(Boolean) : [],
+        });
+      });
+    });
+    Object.entries(filteredSalesDueMap).forEach(([d, arr]) => {
+      if (!matches(d)) return;
+      arr.forEach((it) => {
+        const sale = sales.find((s) => s.id === it.saleId);
+        const originalTotal = sale?.total || 0;
+        let received = sale?.downPayment || 0;
+        if (sale) {
+          if (sale.installmentAmounts && sale.installmentAmounts.length > 0) {
+            for (let k = 0; k < sale.paidInstallments && k < sale.installmentAmounts.length; k++) {
+              received += Number(sale.installmentAmounts[k]) || 0;
+            }
+          } else {
+            const vp = sale.installments > 0 ? Math.max(0, sale.total - (sale.downPayment || 0)) / sale.installments : sale.total;
+            received += vp * sale.paidInstallments;
+          }
+          received += sale.partialPaid || 0;
+        }
+        const remaining = Math.max(0, originalTotal - received);
+        rows.push({
+          key: `sale-${it.saleId}-${it.installmentNumber}-${d}`,
+          clientName: it.customerName,
+          dueDate: d,
+          pendingAmount: it.amount,
+          originalTotal,
+          received,
+          remaining,
+          status: (sale as any)?.status || "pending",
+          origin: it.kind === "vehicle" ? "Aluguel de veículo" : "Venda",
+          saleId: it.saleId,
+          installmentInfo: `Parcela ${it.installmentNumber}/${it.totalInstallments}`,
+        });
+      });
+    });
+    rows.sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.clientName.localeCompare(b.clientName));
+    return rows;
+  }, [breakdownCard, filteredDueMap, filteredSalesDueMap, todayStr, tomorrowStr, year, month, payments, sales]);
+
+  const breakdownTotal = breakdownRows.reduce((s, r) => s + r.pendingAmount, 0);
+
+  const openBreakdownDetail = (row: BreakdownRow) => {
+    // Navega para o dia do vencimento e fecha o modal, revelando o painel de detalhes existente.
+    const [y, m] = row.dueDate.split("-").map(Number);
+    setYear(y);
+    setMonth(m - 1);
+    setSelectedDate(row.dueDate);
+    setViewMode("mes");
+    setBreakdownCard(null);
+  };
+
+
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <CalendarDays className="h-5 w-5" /> Calendário de Cobrança
-        </h2>
-        <Button variant="outline" size="sm" onClick={goToToday}>Hoje</Button>
+      {/* Origin filter */}
+      <div className="grid grid-cols-4 gap-1.5 md:gap-2">
+        {([
+          { v: "todos", label: "Todos" },
+          { v: "emprestimos", label: "Empréstimos" },
+          { v: "vendas", label: "Vendas" },
+          { v: "veiculos", label: "Veículos" },
+        ] as const).map((opt) => (
+          <button
+            key={opt.v}
+            type="button"
+            onClick={() => setOriginFilter(opt.v)}
+            className={cn(
+              "px-2 py-1.5 rounded-md text-[11px] md:text-xs font-medium border transition-colors whitespace-nowrap truncate",
+              originFilter === opt.v
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "bg-muted/30 text-muted-foreground border-border/60 hover:text-foreground hover:bg-background/60",
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+        {([
+          { key: "hoje", label: "Receber hoje", tone: "text-warning", bar: "bg-warning", data: summary.hoje },
+          { key: "amanha", label: "Receber amanhã", tone: "text-primary", bar: "bg-primary", data: summary.amanha },
+          { key: "atrasados", label: "Atrasados", tone: "text-destructive", bar: "bg-destructive", data: summary.overdue },
+          { key: "mes", label: "Este mês", tone: "text-foreground", bar: "bg-muted-foreground", data: summary.month },
+        ] as const).map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            onClick={() => setBreakdownCard(c.key as any)}
+            className="text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-lg"
+            aria-label={`Ver contratos: ${c.label}`}
+          >
+            <Card no3d className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="p-3">
+                <div className={`h-1 w-8 rounded-full ${c.bar} mb-2`} />
+                <p className="text-[11px] text-muted-foreground truncate">{c.label}</p>
+                <p className={`text-sm md:text-base font-bold ${c.tone} truncate`}>{formatCurrency(c.data.total)}</p>
+                <p className="text-[10px] text-muted-foreground">{c.data.count} {c.data.count === 1 ? "contrato" : "contratos"}</p>
+              </CardContent>
+            </Card>
+          </button>
+        ))}
+      </div>
+
+      {/* View selector */}
+      <div className="inline-flex rounded-lg border border-border/60 bg-muted/30 p-1 gap-1 w-full sm:w-auto overflow-x-auto">
+        {([
+          { v: "mes", label: "Mês" },
+          { v: "semana", label: "Semana" },
+          { v: "agenda", label: "Agenda" },
+          { v: "lista", label: "Lista" },
+          { v: "geral", label: "Geral" },
+        ] as const).map((opt) => (
+          <button
+            key={opt.v}
+            onClick={() => setViewMode(opt.v)}
+            className={cn(
+              "flex-1 sm:flex-none px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap",
+              viewMode === opt.v
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/60",
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      <div className={cn(
+        "grid gap-4",
+        viewMode === "mes" && "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]",
+      )}>
+      {viewMode === "mes" && (
       <Card no3d className="md:sticky md:top-4 md:self-start">
-        <CardContent className="p-4">
+        <CardContent className="p-3 md:p-4">
           {/* Month navigation */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <Button variant="ghost" size="icon" onClick={prevMonth}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <button
-              className="text-sm font-semibold text-foreground hover:text-primary transition-colors"
+              className="text-sm font-semibold text-foreground hover:text-primary transition-colors capitalize"
               onClick={() => {
                 const n = new Date();
                 setMonth(n.getMonth());
@@ -572,7 +842,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
           {/* Day headers */}
           <div className="grid grid-cols-7 gap-1 mb-1">
             {dayNames.map((d) => (
-              <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>
+              <div key={d} className="text-center text-[10px] md:text-xs font-medium text-muted-foreground py-1">{d}</div>
             ))}
           </div>
 
@@ -581,34 +851,58 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
             {calendarDays.map((day, idx) => {
               if (day === null) return <div key={`empty-${idx}`} />;
               const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-              const items = dueMap[dateStr] || [];
-              const saleItems = salesDueMap[dateStr] || [];
+              const pending = pendingForDate(dateStr);
+              const received = receivedByDate[dateStr];
               const isToday = dateStr === todayStr;
               const isSelected = dateStr === selectedDate;
-              const hasDue = items.length > 0 || saleItems.length > 0;
-              const isOverdue = dateStr < todayStr && hasDue;
-              const isUpcoming = dateStr >= todayStr && hasDue;
+              const hasPending = pending.count > 0;
+              const hasReceived = !!received;
+              const isOverdue = dateStr < todayStr && hasPending;
+              const isUpcoming = dateStr >= todayStr && hasPending;
+              // Exibir somente valores pendentes de recebimento no calendário.
+              // Contratos quitados continuam sinalizados pelo status (bolinha verde), mas não somam.
+              const dayTotal = pending.total;
 
               return (
                 <button
                   key={day}
                   onClick={() => handleDayClick(day)}
-                  className={`relative flex flex-col items-center justify-center rounded-lg p-1.5 min-h-[48px] text-sm transition-colors
-                    ${isSelected ? "bg-primary text-primary-foreground ring-2 ring-primary" : ""}
-                    ${isToday && !isSelected ? "bg-accent font-bold" : ""}
-                    ${isOverdue && !isSelected ? "bg-destructive/10" : ""}
-                    ${!isSelected && !isToday && !isOverdue ? "hover:bg-muted" : ""}
-                  `}
+                  className={cn(
+                    "relative flex flex-col items-stretch rounded-md md:rounded-lg p-1 md:p-1.5 min-h-[52px] md:min-h-[64px] text-left transition-colors border border-transparent",
+                    isSelected && "bg-primary text-primary-foreground ring-2 ring-primary",
+                    !isSelected && isToday && "bg-background ring-2 ring-primary/60 ring-inset",
+                    !isSelected && !isToday && isOverdue && "bg-destructive/10",
+                    !isSelected && !isToday && !isOverdue && !hasPending && !hasReceived && "hover:bg-muted",
+                    !isSelected && !isToday && isUpcoming && "hover:bg-warning/10",
+                  )}
                 >
-                  <span className={isSelected ? "text-primary-foreground" : "text-foreground"}>
-                    {day}
-                  </span>
-                  {hasDue && (
-                    <div className="flex gap-0.5 mt-0.5">
-                      <span className={`inline-block h-1.5 w-1.5 rounded-full ${
-                        isSelected ? "bg-primary-foreground" : isOverdue ? "bg-destructive" : "bg-warning"
-                      }`} />
+                  <div className="flex items-center justify-between">
+                    <span className={cn(
+                      "text-xs md:text-sm font-semibold",
+                      isSelected ? "text-primary-foreground" : isToday ? "text-primary" : "text-foreground",
+                    )}>
+                      {day}
+                    </span>
+                    <div className="flex gap-0.5">
+                      {hasReceived && <span className={cn("h-1.5 w-1.5 rounded-full", isSelected ? "bg-primary-foreground" : "bg-success")} />}
+                      {isUpcoming && <span className={cn("h-1.5 w-1.5 rounded-full", isSelected ? "bg-primary-foreground" : "bg-warning")} />}
+                      {isOverdue && <span className={cn("h-1.5 w-1.5 rounded-full", isSelected ? "bg-primary-foreground" : "bg-destructive")} />}
+                      {!hasPending && !hasReceived && <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30" />}
                     </div>
+                  </div>
+                  {dayTotal > 0 && (
+                    <span className={cn(
+                      "mt-auto text-[9px] md:text-[10px] font-semibold truncate leading-tight",
+                      isSelected
+                        ? "text-primary-foreground"
+                        : isOverdue
+                        ? "text-destructive"
+                        : hasReceived && !hasPending
+                        ? "text-success"
+                        : "text-warning",
+                    )}>
+                      {formatCurrency(dayTotal)}
+                    </span>
                   )}
                 </button>
               );
@@ -616,19 +910,21 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-destructive" /> Atrasado
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-warning" /> A vencer
-            </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 text-[10px] md:text-xs text-muted-foreground border-t border-border/40 pt-2">
+            <div className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success" /> Recebido</div>
+            <div className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-warning" /> A vencer</div>
+            <div className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-destructive" /> Atrasado</div>
+            <div className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-muted-foreground/30" /> Sem contratos</div>
           </div>
         </CardContent>
       </Card>
+      )}
+
 
       {/* Selected day details — split view on desktop/tablet, stacked on mobile */}
+      {viewMode === "mes" && (
       <Card no3d className="md:max-h-[calc(100vh-8rem)] md:flex md:flex-col animate-fade-in">
+
         <CardContent className="p-4 md:flex-1 md:overflow-y-auto">
           {!selectedDate ? (
             <div className="flex h-full min-h-[200px] flex-col items-center justify-center text-center">
@@ -732,13 +1028,169 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                       )}
                     </p>
                   </div>
+
+                  {/* Ver todos os contratos do dia */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-2"
+                    onClick={() => setShowFullDay(true)}
+                  >
+                    Ver todos os contratos do dia
+                  </Button>
                 </div>
               )}
             </>
           )}
         </CardContent>
       </Card>
+      )}
+
+      {/* Semana / Agenda / Lista */}
+      {viewMode !== "mes" && (
+        <Card no3d>
+          <CardContent className="p-3 md:p-4 space-y-2">
+            {(() => {
+              const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+              const startOfWeek = new Date(today);
+              startOfWeek.setDate(today.getDate() - today.getDay());
+              const endOfWeek = new Date(startOfWeek);
+              endOfWeek.setDate(startOfWeek.getDate() + 6);
+              const startStr = formatLocalDate(startOfWeek);
+              const endStr = formatLocalDate(endOfWeek);
+
+              const collect = () => {
+                const out: { date: string; kind: "loan" | "sale" | "vehicle"; name: string; subtitle: string; amount: number; status: "overdue" | "due_today" | "upcoming"; tags?: string[] }[] = [];
+                Object.entries(filteredDueMap).forEach(([d, arr]) => arr.forEach((i) => out.push({
+                  date: d, kind: "loan", name: i.borrowerName,
+                  subtitle: `Empréstimo · Parcela ${i.installmentNumber}/${i.totalInstallments}`,
+                  amount: i.amount,
+                  status: d < todayStr ? "overdue" : d === todayStr ? "due_today" : "upcoming",
+                  tags: Array.isArray(i.loan?.tags) ? i.loan.tags.filter(Boolean) : [],
+                })));
+                Object.entries(filteredSalesDueMap).forEach(([d, arr]) => arr.forEach((s) => out.push({
+                  date: d, kind: s.kind, name: s.customerName,
+                  subtitle: `${s.kind === "vehicle" ? "Veículo" : "Venda"} · ${s.description} · Parcela ${s.installmentNumber}/${s.totalInstallments}`,
+                  amount: s.amount,
+                  status: d < todayStr ? "overdue" : d === todayStr ? "due_today" : "upcoming",
+                })));
+                return out;
+              };
+
+              let items = collect();
+              if (viewMode === "semana") items = items.filter((i) => i.date >= startStr && i.date <= endStr);
+              else if (viewMode === "agenda") items = items.filter((i) => i.date >= todayStr).slice(0, 100);
+              else if (viewMode === "lista") items = items.filter((i) => i.date.startsWith(monthPrefix));
+              // "geral": sem filtro de data — todos os pendentes cronologicamente
+              items.sort((a, b) => a.date.localeCompare(b.date) || b.amount - a.amount);
+
+              if (items.length === 0) {
+                return <p className="text-sm text-muted-foreground text-center py-8">Nenhum contrato para este período.</p>;
+              }
+
+              const grouped: Record<string, typeof items> = {};
+              items.forEach((i) => {
+                if (!grouped[i.date]) grouped[i.date] = [];
+                grouped[i.date].push(i);
+              });
+
+              const originLabel = (k: "loan" | "sale" | "vehicle") => k === "loan" ? "Empréstimo" : k === "vehicle" ? "Veículo" : "Venda";
+              const statusLabel = (s: "overdue" | "due_today" | "upcoming") => s === "overdue" ? "Atrasado" : s === "due_today" ? "Vence hoje" : "A vencer";
+
+              return Object.entries(grouped).map(([d, arr]) => (
+                <div key={d} className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2 pt-2 first:pt-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-semibold text-foreground capitalize">
+                        {new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short", year: viewMode === "geral" ? "numeric" : undefined })}
+                      </p>
+                      <span className="text-[10px] text-muted-foreground">({arr.length})</span>
+                    </div>
+                    <p className={cn("text-xs font-bold", d < todayStr ? "text-destructive" : "text-success")}>
+                      {formatCurrency(arr.reduce((s, i) => s + i.amount, 0))}
+                    </p>
+                  </div>
+                  {arr.map((i, idx) => {
+                    const tone = i.status === "overdue" ? "border-destructive/30 bg-destructive/5" : i.status === "due_today" ? "border-warning/30 bg-warning/5" : "border-border/40 bg-muted/20";
+                    const Icon = i.kind === "loan" ? User : i.kind === "vehicle" ? Car : ShoppingBag;
+                    const statusTone = i.status === "overdue" ? "text-destructive border-destructive/40" : i.status === "due_today" ? "text-warning border-warning/40" : "text-muted-foreground border-border/60";
+                    return (
+                      <div key={`${d}-${idx}`} className={cn("flex items-center justify-between gap-2 rounded-lg border p-2.5", tone)}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="h-7 w-7 rounded-full bg-background/60 flex items-center justify-center shrink-0">
+                            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                              <p className="text-xs font-medium text-foreground truncate">{i.name}</p>
+                              {i.kind === "loan" && i.tags && i.tags.length > 0 && (
+                                <span className="text-[10px] font-medium text-blue-500 truncate">{i.tags.join(", ")}</span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              Vencimento: {i.date.split("-").reverse().join("/")} · {originLabel(i.kind)}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground truncate">{i.subtitle}</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <p className={cn("text-xs font-bold", i.status === "overdue" ? "text-destructive" : "text-foreground")}>{formatCurrency(i.amount)}</p>
+                          <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0", statusTone)}>{statusLabel(i.status)}</Badge>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ));
+            })()}
+          </CardContent>
+        </Card>
+      )}
       </div>
+
+      {/* Full day contracts dialog */}
+      <Dialog open={showFullDay} onOpenChange={setShowFullDay}>
+        <DialogContent className="sm:max-w-[560px] max-h-[85svh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="capitalize">
+              {selectedDate && new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-2 -mx-2 px-2">
+            {sortedSelectedItems.map((item) => (
+              <div key={`fd-l-${item.loanId}-${item.installmentNumber}`} className={cn("flex items-center justify-between gap-2 rounded-lg border p-3", item.date < todayStr ? "bg-destructive/5 border-destructive/20" : "bg-muted/30 border-border/40")}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0"><User className="h-4 w-4" /></div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{item.borrowerName}</p>
+                    <p className="text-xs text-muted-foreground truncate">Empréstimo · Parcela {item.installmentNumber}/{item.totalInstallments}</p>
+                  </div>
+                </div>
+                <p className="text-sm font-bold shrink-0 text-success">{formatCurrency(item.amount)}</p>
+              </div>
+            ))}
+            {selectedSaleItems.map((s) => {
+              const Icon = s.kind === "vehicle" ? Car : ShoppingBag;
+              return (
+                <div key={`fd-s-${s.kind}-${s.saleId}-${s.installmentNumber}`} className={cn("flex items-center justify-between gap-2 rounded-lg border p-3", s.date < todayStr ? "bg-destructive/5 border-destructive/20" : "bg-muted/30 border-border/40")}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0"><Icon className="h-4 w-4" /></div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{s.customerName}</p>
+                      <p className="text-xs text-muted-foreground truncate">{s.kind === "vehicle" ? "Veículo" : "Venda"} · {s.description} · Parcela {s.installmentNumber}/{s.totalInstallments}</p>
+                    </div>
+                  </div>
+                  <p className="text-sm font-bold shrink-0 text-success">{formatCurrency(s.amount)}</p>
+                </div>
+              );
+            })}
+            {sortedSelectedItems.length === 0 && selectedSaleItems.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-6">Nenhum contrato nesta data.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Payment confirmation dialog */}
       <Dialog open={!!paymentDialog} onOpenChange={(open) => !open && setPaymentDialog(null)}>
@@ -840,6 +1292,70 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
             <Button onClick={confirmPayment} disabled={paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)}>Confirmar</Button>
           </DialogFooter>
 
+        </DialogContent>
+      </Dialog>
+
+      {/* Breakdown do card: lista todos os registros que compõem o total exibido */}
+      <Dialog open={breakdownCard !== null} onOpenChange={(o) => !o && setBreakdownCard(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-4 md:px-6 pt-4 md:pt-6 pb-3 border-b border-border/40">
+            <DialogTitle className="text-base md:text-lg">
+              {breakdownCard ? breakdownLabels[breakdownCard] : ""}
+            </DialogTitle>
+            <div className="flex items-center justify-between pt-1 text-xs md:text-sm">
+              <span className="text-muted-foreground">
+                {breakdownRows.length} {breakdownRows.length === 1 ? "contrato" : "contratos"}
+              </span>
+              <span className="font-bold text-foreground">
+                Total: {formatCurrency(breakdownTotal)}
+              </span>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto px-3 md:px-6 py-3 space-y-2">
+            {breakdownRows.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Nenhum contrato pendente para este período.
+              </p>
+            ) : (
+              breakdownRows.map((r) => {
+                const originIcon = r.origin === "Empréstimo" ? <User className="h-5 w-5" /> : r.origin === "Aluguel de veículo" ? <Car className="h-5 w-5" /> : <ShoppingBag className="h-5 w-5" />;
+                return (
+                  <button
+                    key={r.key}
+                    type="button"
+                    onClick={() => openBreakdownDetail(r)}
+                    className="w-full text-left rounded-2xl bg-muted/40 hover:bg-muted/60 transition-colors p-3 flex items-center gap-3"
+                  >
+                    <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                      {originIcon}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{r.clientName}</p>
+                        {r.origin === "Empréstimo" && r.tags && r.tags.length > 0 && (
+                          <span className="text-xs font-medium text-blue-500 truncate">
+                            {r.tags.join(", ")}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">
+                        Vencimento: {r.dueDate.split("-").reverse().join("/")}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground/80 truncate">
+                        {r.origin} · {r.installmentInfo}
+                      </p>
+                    </div>
+                    <p className={cn("text-sm font-bold shrink-0", r.dueDate < todayStr ? "text-destructive" : "text-success")}>
+                      {formatCurrency(r.pendingAmount)}
+                    </p>
+                  </button>
+                );
+              })
+            )}
+          </div>
+          <DialogFooter className="px-4 md:px-6 py-3 border-t border-border/40">
+            <Button variant="outline" onClick={() => setBreakdownCard(null)}>Fechar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

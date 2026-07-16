@@ -17,6 +17,7 @@ import { Sale } from "@/types/loan";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useDataOwner } from "@/hooks/useDataOwner";
 import { calculateIncomeProjectedSummary } from "@/lib/incomeProjectedSummary";
+import { useFinanceComponentDebug, financeFetchStart, financeFetchSuccess, financeSetState, financeInvalidate } from "@/lib/financeDebug";
 
 /** Total efetivamente recebido de uma venda (não os lançamentos previstos). */
 function saleReceivedTotal(sale: Sale): number {
@@ -71,6 +72,7 @@ interface Props {
 };
 
 export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpenIncomes, onOpenExpenses, onOpenPendingIncomes, onOpenPendingExpenses, onOpenStatement, statementLeftSlot, monthKey: monthKeyProp }: Props) {
+  useFinanceComponentDebug("IncomeBalanceCard");
   const { hidden: hide } = useHideValues();
   const { cards } = useCreditCards();
   const { openings } = useCreditCardOpenings();
@@ -105,6 +107,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     if (!ownerId) return;
     let cancelled = false;
     const load = async () => {
+      financeFetchStart("IncomeBalanceCard", "account_ledger/cofrinhos/cofrinho_aportes", { ownerId: "present" });
       // Nova arquitetura de cofrinhos: cruza `cofrinhos` (do owner) com
       // `cofrinho_aportes` (depósitos) usando `data_aporte` como data financeira.
       // Os resgates já estão refletidos no saldo via `cofrinhos.saldo_principal`,
@@ -142,6 +145,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
         if (!mk) continue;
         cardByMonth[mk] = (cardByMonth[mk] ?? 0) + (Number(r.amount) || 0);
       }
+      financeSetState("IncomeBalanceCard", "cardInvoicePaidByMonth", { months: Object.keys(cardByMonth).length });
       setCardInvoicePaidByMonth(cardByMonth);
       const piggyByMonth: Record<string, number> = {};
       let aportesTotal = 0;
@@ -161,12 +165,21 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
         const nowMk = new Date().toISOString().slice(0, 7);
         piggyByMonth[nowMk] = (piggyByMonth[nowMk] ?? 0) - resgatesTotal;
       }
+      financeSetState("IncomeBalanceCard", "piggyNetByMonth", { months: Object.keys(piggyByMonth).length });
       setPiggyNetByMonth(piggyByMonth);
+      financeFetchSuccess("IncomeBalanceCard", "account_ledger/cofrinhos/cofrinho_aportes", {
+        ledgerRows: ((ledger as any[]) ?? []).length,
+        bankRows: ((banks as any[]) ?? []).length,
+        aporteRows: aportes.length,
+      });
 
     };
 
     load();
-    const handler = () => load();
+    const handler = (event: Event) => {
+      financeInvalidate("IncomeBalanceCard", "account_ledger/cofrinhos/cofrinho_aportes", { event: event.type });
+      load();
+    };
     window.addEventListener("ledger:changed", handler);
     window.addEventListener("balance:changed", handler);
     return () => {

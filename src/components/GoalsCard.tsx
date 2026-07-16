@@ -15,9 +15,11 @@ import { useMonthlyGoals, GoalType, formatMonthLabel } from "@/hooks/useMonthlyG
 import { useGoalSnapshots } from "@/hooks/useGoalSnapshots";
 import { useAccountSettings } from "@/hooks/useAccountSettings";
 import { Loan, Payment, Expense, Client, InstallmentSchedule, LoanRenegotiation } from "@/types/loan";
-import { todayInAppTz } from "@/lib/timezone";
+import { todayInAppTz, formatYmdInAppTz } from "@/lib/timezone";
 import { useActiveCapitalSnapshots } from "@/hooks/useActiveCapitalSnapshots";
 import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
+import { allocateInterestByPayment } from "@/lib/interestAllocation";
+import { GoalYearlyEvolutionDialog } from "@/components/GoalYearlyEvolutionDialog";
 import { assertWritable } from "@/lib/readOnlyState";
 import {
   Target, Percent, TrendingUp, Banknote, FileText,
@@ -224,7 +226,7 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
 type Unit = "%" | "R$" | "qtd";
 
 const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: Unit; color: string; bgColor: string; description: string; inverse?: boolean }> = {
-  interest_rate:      { label: "Taxa de Variação Mensal",            icon: Percent,       unit: "%",   color: "text-warning",     bgColor: "bg-warning/15",     description: "Meta da taxa média de juros aplicada nos contratos." },
+  interest_rate:      { label: "Taxa de Juros Mensal",            icon: Percent,       unit: "%",   color: "text-warning",     bgColor: "bg-warning/15",     description: "Meta da taxa média de juros aplicada nos contratos." },
   profit:             { label: "Faturamento do Período",            icon: TrendingUp,    unit: "%",   color: "text-success",     bgColor: "bg-success/15",     description: "Quanto do valor previsto foi efetivamente realizado." },
   loan_volume:        { label: "Valor Emprestado",                icon: Banknote,      unit: "R$",  color: "text-primary",     bgColor: "bg-primary/15",     description: "Soma do valor de novos empréstimos criados no mês." },
   new_loans_count:    { label: "Novos Empréstimos",                icon: FileText,      unit: "qtd", color: "text-primary",     bgColor: "bg-primary/15",     description: "Quantidade de novos contratos criados no mês." },
@@ -271,85 +273,14 @@ function fmtValue(v: number, unit: Unit, hidden: boolean): string {
 //    para o último pagamento (captura bônus/descontos na quitação).
 //  - Soma o juros alocado aos pagamentos com data no mês `m`.
 function computeProfitRealized(loans: Loan[], payments: Payment[], m: string): number {
-  const getLoanId = (p: any) => p.loanId || p.loan_id;
-  const getInstNum = (p: any) => (p.installmentNumber ?? p.installment_number);
-  const getDate = (p: any) => p.date || "";
-  const getCreatedAt = (p: any) => p.createdAt ?? p.created_at ?? "";
-
   const paymentsSorted = [...payments].sort((a: any, b: any) => {
-    const d = getDate(a).localeCompare(getDate(b));
+    const d = (a.date || "").localeCompare(b.date || "");
     if (d !== 0) return d;
-    return getCreatedAt(a).localeCompare(getCreatedAt(b));
+    return (a.createdAt ?? a.created_at ?? "").localeCompare(b.createdAt ?? b.created_at ?? "");
   });
-
-  const interestByPaymentId = new Map<string, number>();
-  const loanInterestRemaining = new Map<string, number>();
-  loans.forEach((l: any) => {
-    const principal = Number(l.amount) || 0;
-    const rate = Number(l.interestRate ?? l.interest_rate) || 0;
-    const inst = Number(l.installments) || 1;
-    const total = calculateTotalWithInterest(principal, rate, inst);
-    loanInterestRemaining.set(l.id, Math.max(0, total - principal));
-  });
-
-  paymentsSorted.forEach((p: any) => {
-    const amt = Number(p.amount) || 0;
-    if (amt <= 0) { interestByPaymentId.set(p.id, 0); return; }
-    const loanId = getLoanId(p);
-    if (getInstNum(p) === 0 || getInstNum(p) === -2) {
-      // Juros avulso / multa-encargos (late_fee): 100% juros
-      interestByPaymentId.set(p.id, amt);
-      const rem = loanInterestRemaining.get(loanId) ?? 0;
-      loanInterestRemaining.set(loanId, Math.max(0, rem - amt));
-    } else if (getInstNum(p) === -3) {
-      // Amortização: 100% principal
-      interestByPaymentId.set(p.id, 0);
-    } else if (getInstNum(p) === -1) {
-      // Pagamento parcial: juros proporcional à composição da operação
-      const loan = loans.find((l: any) => l.id === loanId);
-      const principal = Number(loan?.amount) || 0;
-      const rate = Number((loan as any)?.interestRate ?? (loan as any)?.interest_rate) || 0;
-      const inst = Number(loan?.installments) || 1;
-      const totalWithInterest = loan ? calculateTotalWithInterest(principal, rate, inst) : 0;
-      const ratio = totalWithInterest > 0 ? Math.max(0, 1 - principal / totalWithInterest) : 0;
-      const rem = loanInterestRemaining.get(loanId) ?? 0;
-      const interest = Math.min(rem, Math.max(0, amt * ratio));
-      interestByPaymentId.set(p.id, interest);
-      loanInterestRemaining.set(loanId, Math.max(0, rem - interest));
-    } else {
-      // Parcela regular: juros proporcional à composição da operação
-      const loan = loans.find((l: any) => l.id === loanId);
-      const principal = Number((loan as any)?.amount) || 0;
-      const rate = Number((loan as any)?.interestRate ?? (loan as any)?.interest_rate) || 0;
-      const inst = Number((loan as any)?.installments) || 1;
-      const totalWithInterest = loan ? calculateTotalWithInterest(principal, rate, inst) : 0;
-      const ratio = totalWithInterest > 0 ? Math.max(0, 1 - principal / totalWithInterest) : 0;
-      const rem = loanInterestRemaining.get(loanId) ?? 0;
-      const interest = Math.min(rem, Math.max(0, amt * ratio));
-      interestByPaymentId.set(p.id, interest);
-      loanInterestRemaining.set(loanId, Math.max(0, rem - interest));
-    }
-  });
-
-  const lastPaymentByLoanId = new Map<string, string>();
-  paymentsSorted.forEach((p: any) => { lastPaymentByLoanId.set(getLoanId(p), p.id); });
-
-  loans.forEach((l: any) => {
-    if (l.status !== "paid") return;
-    const lastId = lastPaymentByLoanId.get(l.id);
-    if (!lastId) return;
-    const loanPays = payments.filter((p: any) => getLoanId(p) === l.id);
-    const totalPaid = loanPays.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
-    const allocated = loanPays.reduce((s: number, p: any) => s + (interestByPaymentId.get(p.id) ?? 0), 0);
-    const principalRef = Number(l.originalAmount ?? l.original_amount ?? l.amount ?? 0);
-    const diff = (totalPaid - principalRef) - allocated;
-    if (Math.abs(diff) < 0.005) return;
-    const cur = interestByPaymentId.get(lastId) ?? 0;
-    interestByPaymentId.set(lastId, Math.max(0, cur + diff));
-  });
-
+  const interestByPaymentId = allocateInterestByPayment(loans as any, paymentsSorted as any);
   return payments
-    .filter((p: any) => inMonth(getDate(p), m))
+    .filter((p: any) => inMonth(p.date || "", m))
     .reduce((s: number, p: any) => s + (interestByPaymentId.get(p.id) ?? 0), 0);
 }
 
@@ -485,17 +416,29 @@ function computeRenegotiationRate(
 ): number {
   const [yy, mm] = m.split("-").map(Number);
   if (!yy || !mm) return 0;
-  const monthStart = new Date(yy, mm - 1, 1);
-  const monthEnd = new Date(yy, mm, 0, 23, 59, 59, 999);
 
-  // Quantidade de contratos renegociados no mês (cada contrato conta uma única vez).
+  // Quantidade de contratos renegociados no mês (cada contrato conta uma única
+  // vez, ainda que tenha múltiplas renegociações no mesmo mês). Utiliza SEMPRE
+  // a data efetiva da renegociação (`renegotiated_at`) — nunca `created_at`,
+  // vencimento ou update — e o fuso configurado do app para evitar que uma
+  // renegociação feita perto da meia-noite caia no mês vizinho (ex.: 01/jul
+  // 00:30 BRT chega como 03:30Z e, se comparada em UTC, cairia em junho).
+  // Fonte única de verdade: tabela `loan_renegotiations` persistida no banco.
   const seen = new Set<string>();
   (renegotiations || [])
     .filter((r) => {
       const ts = r.renegotiatedAt || r.createdAt;
-      if (!ts) return false;
+      if (!ts || !r.loanId) return false;
+      // `renegotiated_at` é gravado como data ISO "YYYY-MM-DD" (todayInAppTz).
+      // Não converter para Date, pois `new Date("2026-07-01")` é UTC 00:00 e,
+      // em fusos negativos (ex.: BRT-3), retornaria "2026-06-30" — jogando a
+      // renegociação para o mês anterior. Comparamos direto o prefixo AAAA-MM.
+      if (typeof ts === "string" && /^\d{4}-\d{2}-\d{2}/.test(ts)) {
+        return ts.slice(0, 7) === m;
+      }
       const d = new Date(ts);
-      return d >= monthStart && d <= monthEnd;
+      if (isNaN(d.getTime())) return false;
+      return formatYmdInAppTz(d).slice(0, 7) === m;
     })
     .forEach((r) => { seen.add(r.loanId); });
 
@@ -597,10 +540,12 @@ export function computeActual(
         }
         if (currentTotal == null) currentTotal = totalFrom(snaps[m]);
         const prevTotal = totalFrom(snaps[prevKey]);
-        if (currentTotal == null || prevTotal == null || prevTotal === 0) return 0;
+        // Sinaliza dado ausente com NaN para o auto-fechamento NÃO congelar 0
+        // indevidamente (ex.: mês encerrado sem snapshot de patrimônio salvo).
+        if (currentTotal == null || prevTotal == null || prevTotal === 0) return NaN;
         return ((currentTotal - prevTotal) / Math.abs(prevTotal)) * 100;
       } catch {
-        return 0;
+        return NaN;
       }
     }
     default:
@@ -652,8 +597,14 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
   const [editingGoalType, setEditingGoalType] = useState<GoalType | null>(null);
   const [editingValue, setEditingValue] = useState<string>("");
   const [savingGoal, setSavingGoal] = useState(false);
+  const [patrimonioSyncVersion, setPatrimonioSyncVersion] = useState(0);
   // Cancela edição ao trocar de mês
   useEffect(() => { setEditingGoalType(null); }, [selectedMonth]);
+  useEffect(() => {
+    const onPatrimonioChanged = () => setPatrimonioSyncVersion((version) => version + 1);
+    window.addEventListener("patrimonio:snapshots-changed", onPatrimonioChanged);
+    return () => window.removeEventListener("patrimonio:snapshots-changed", onPatrimonioChanged);
+  }, []);
   // Cache imediato via localStorage (evita flicker enquanto sincroniza com o backend)
   const { getSnapshot, upsertSnapshot } = useGoalSnapshots();
   const [prefs, setPrefs] = useState<{ selected: GoalType[]; order: GoalType[] }>(() => loadGoalPrefs(user?.id));
@@ -760,14 +711,29 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       // o TOTAL recebido a partir dos pagamentos (snapshots antigos podem ter sido
       // gravados como média diária, gerando divisão dupla).
       let actual: number;
+      let liveComputed: number | null = null;
       if (g.goalType === "daily_received_avg") {
         actual = computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules, renegotiations);
       } else if (monthClosed && snapshot?.finalized) {
         actual = Number(snapshot.realizedValue) || 0;
+        // Para `monthly_variation`, se o snapshot travou em 0 (dado indisponível
+        // no dia do fechamento) e agora conseguimos recomputar um valor válido,
+        // preferimos o valor recomputado — o auto-fechamento sobrescreve abaixo.
+        if (g.goalType === "monthly_variation" && Math.abs(actual) < 0.0001) {
+          const recompute = computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules, renegotiations);
+          if (Number.isFinite(recompute) && Math.abs(recompute) > 0.0001) {
+            liveComputed = recompute;
+            actual = recompute;
+          }
+        }
       } else {
-        actual = g.goalType === "active_capital"
+        const computed = g.goalType === "active_capital"
           ? (computeMonth === currentMonth ? currentActiveCapital : (getSnapshotAmount(computeMonth) ?? 0))
           : computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules, renegotiations);
+        // NaN → dado indisponível (ex.: monthly_variation sem patrimônio do mês). Trata como 0
+        // para exibição, mas não deve travar o snapshot em 0.
+        actual = Number.isFinite(computed) ? computed : 0;
+        liveComputed = Number.isFinite(computed) ? computed : null;
       }
 
       let pct = 0;
@@ -801,9 +767,9 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         monthlyPct = pct; // mantido por compat — mesmo valor (base diária)
       }
 
-      return { ...g, actual, pct, meta, expectedReceivable, targetAmount, receivedTotal, monthlyPct, isLocked: monthClosed && !!snapshot?.finalized };
+      return { ...g, actual, pct, meta, expectedReceivable, targetAmount, receivedTotal, monthlyPct, liveComputed, isLocked: monthClosed && !!snapshot?.finalized };
     });
-  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount, getSnapshot]);
+  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount, getSnapshot, patrimonioSyncVersion]);
 
   // Auto-fechamento: quando o mês já encerrou e ainda não há snapshot finalizado para
   // alguma meta visível, grava o snapshot com o valor realizado atualmente calculado.
@@ -815,16 +781,102 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       const existing = getSnapshot(g.goalType, computeMonth);
       // Para `daily_received_avg`, snapshots antigos podem ter sido salvos como média;
       // sobrescreve se o valor armazenado diferir do TOTAL recém-computado.
-      const snapshotValue = g.goalType === "daily_received_avg"
+      const rawValue = g.goalType === "daily_received_avg"
         ? (g.receivedTotal ?? 0)
-        : g.actual;
+        : g.goalType === "monthly_variation"
+          ? g.liveComputed
+          : (g.liveComputed ?? g.actual);
+      // Nunca congela dado indisponível (NaN/Infinity) — evita travar metas em 0
+      // por falta de patrimônio/snapshot no dia do encerramento.
+      if (!Number.isFinite(rawValue)) return;
+      const snapshotValue = rawValue as number;
       if (existing?.finalized) {
-        if (g.goalType !== "daily_received_avg") return;
-        if (Math.abs(Number(existing.realizedValue || 0) - snapshotValue) < 0.01) return;
+        if (g.goalType === "daily_received_avg") {
+          if (Math.abs(Number(existing.realizedValue || 0) - snapshotValue) < 0.01) return;
+        } else if (g.goalType === "monthly_variation") {
+          // Sobrescreve apenas quando o snapshot antigo travou em 0 e agora temos valor válido.
+          const prev = Number(existing.realizedValue || 0);
+          if (!(Math.abs(prev) < 0.0001 && Math.abs(snapshotValue) > 0.0001)) return;
+        } else {
+          return;
+        }
       }
-      void upsertSnapshot(g.goalType, computeMonth, snapshotValue, g.targetValue ?? null, g.pct ?? null);
+      void upsertSnapshot(
+        g.goalType,
+        computeMonth,
+        snapshotValue,
+        g.targetValue ?? null,
+        g.pct ?? null,
+        { allowFinalizedUpdate: g.goalType === "monthly_variation" },
+      );
     });
   }, [enriched, selectedMonth, getSnapshot, upsertSnapshot]);
+
+  // Auto-fechamento retroativo: percorre TODAS as metas cadastradas para meses já
+  // encerrados e grava o snapshot com o realizado calculado, garantindo que metas
+  // (ex.: junho) sejam travadas mesmo que o usuário nunca tenha aberto o Dashboard
+  // filtrando por aquele mês. Não sobrescreve snapshots já finalizados.
+  useEffect(() => {
+    if (!goals.length) return;
+    const today = todayInAppTz();
+    const currentMonthKey = today.slice(0, 7);
+
+    // Agrupa metas por tipo e monta lista de meses fechados a preencher.
+    const byType = new Map<GoalType, typeof goals>();
+    goals.forEach((g) => {
+      const arr = byType.get(g.goalType) || [];
+      arr.push(g);
+      byType.set(g.goalType, arr);
+    });
+
+    const addMonths = (ym: string, delta: number) => {
+      const [y, m] = ym.split("-").map(Number);
+      const d = new Date(y, (m - 1) + delta, 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    };
+
+    byType.forEach((list, type) => {
+      const sorted = [...list].sort((a, b) => a.month.localeCompare(b.month));
+      const earliest = sorted[0].month;
+      // Percorre do mês mais antigo até o mês anterior ao atual (inclusive).
+      let cursor = earliest;
+      while (cursor < currentMonthKey) {
+        // Meta vigente para esse mês: exato → anterior mais recente → posterior mais próximo.
+        const exact = sorted.find((g) => g.month === cursor);
+        const earlier = [...sorted].reverse().find((g) => g.month < cursor);
+        const later = sorted.find((g) => g.month > cursor);
+        const g = exact || earlier || later;
+        if (!g) { cursor = addMonths(cursor, 1); continue; }
+
+        const existing = getSnapshot(type, cursor);
+        const canWrite = !existing?.finalized || type === "monthly_variation";
+        if (canWrite) {
+          const computed = type === "active_capital"
+            ? (getSnapshotAmount(cursor) ?? 0)
+            : computeActual(type, cursor, loans, payments, expenses, clients, installmentSchedules, renegotiations);
+          if (Number.isFinite(computed)) {
+            const value = Number(computed) || 0;
+            if (existing?.finalized && type === "monthly_variation") {
+              const prev = Number(existing.realizedValue || 0);
+              if (!(Math.abs(prev) < 0.0001 && Math.abs(value) > 0.0001)) {
+                cursor = addMonths(cursor, 1);
+                continue;
+              }
+            }
+            const target = g.targetValue > 0 ? g.targetValue : null;
+            let pct: number | null = null;
+            if (target) {
+              pct = (type === "max_default_rate" || type === "renegotiation_rate")
+                ? (value <= target ? 100 : 0)
+                : Math.min(100, (value / target) * 100);
+            }
+            void upsertSnapshot(type, cursor, value, target, pct, { allowFinalizedUpdate: type === "monthly_variation" });
+          }
+        }
+        cursor = addMonths(cursor, 1);
+      }
+    });
+  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, getSnapshot, upsertSnapshot, getSnapshotAmount, patrimonioSyncVersion]);
 
   // Aplica preferências do usuário: filtra pelos tipos selecionados e ordena conforme a ordem definida.
   // Limita a no máximo MAX_VISIBLE_GOALS cards.
@@ -1071,6 +1123,9 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         payments={payments}
         loans={loans}
         installmentSchedules={installmentSchedules}
+        expenses={expenses}
+        clients={clients}
+        renegotiations={renegotiations}
       />
 
       <CustomizeGoalsDialog
@@ -1210,6 +1265,9 @@ interface DialogProps {
   payments: Payment[];
   loans: Loan[];
   installmentSchedules: InstallmentSchedule[];
+  expenses: Expense[];
+  clients: Client[];
+  renegotiations: LoanRenegotiation[];
 }
 
 // Calcula o mês de vencimento (YYYY-MM) de uma parcela específica de um empréstimo.
@@ -1236,13 +1294,14 @@ function getInstallmentDueMonth(
   return `${dueDt.getFullYear()}-${String(dueDt.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, installmentSchedules }: DialogProps) {
+function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, installmentSchedules, expenses, clients, renegotiations }: DialogProps) {
   const { hidden } = useHideValues();
   const { upsertGoal } = useMonthlyGoals();
   const { settings } = useAccountSettings();
   const [creating, setCreating] = useState(false);
   const [editingCreate, setEditingCreate] = useState(false);
   const [newTarget, setNewTarget] = useState<string>("");
+  const [showEvolution, setShowEvolution] = useState(false);
 
   // Reset edição ao trocar de meta/mês
   useMemo(() => {
@@ -1486,6 +1545,15 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
 
         <div className="flex-1 -mx-6 px-6 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
           <div className="space-y-4 pb-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-9 gap-2 border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary"
+              onClick={() => setShowEvolution(true)}
+            >
+              <BarChart3 className="h-4 w-4" />
+              Ver Evolução Anual
+            </Button>
             {/* Resumo */}
             <Card no3d className="bg-muted/30">
               <CardContent className="p-4">
@@ -1783,6 +1851,20 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
           </div>
         </div>
       </DialogContent>
+      <GoalYearlyEvolutionDialog
+        open={showEvolution}
+        onClose={() => setShowEvolution(false)}
+        goalType={goal.goalType}
+        goalLabel={goal.meta.label}
+        unit={goal.meta.unit}
+        inverse={goal.meta.inverse}
+        loans={loans}
+        payments={payments}
+        expenses={expenses}
+        clients={clients}
+        installmentSchedules={installmentSchedules}
+        renegotiations={renegotiations}
+      />
     </Dialog>
   );
 }

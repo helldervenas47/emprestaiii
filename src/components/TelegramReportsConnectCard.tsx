@@ -18,6 +18,7 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
     let stopped = false;
     const syncTelegram = async () => {
       if (stopped || syncingTelegramRef.current) return;
+      if (typeof document !== "undefined" && document.hidden) return;
       syncingTelegramRef.current = true;
       try {
         await invokeUserFunction("telegram-reports-poll").catch(() => null);
@@ -27,7 +28,8 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
       }
     };
     syncTelegram();
-    const interval = window.setInterval(syncTelegram, 12000);
+    // Ativo apenas enquanto o card está aberto e não vinculado; pausa se aba oculta.
+    const interval = window.setInterval(syncTelegram, 30000);
     return () => { stopped = true; window.clearInterval(interval); };
   }, [loading, linked, refresh]);
 

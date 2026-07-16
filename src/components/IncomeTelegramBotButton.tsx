@@ -38,17 +38,31 @@ export function IncomeTelegramBotButton() {
   };
 
   useEffect(() => {
-    refresh();
-    const channel = supabase
-      .channel("telegram_links_income_btn")
-      .on("postgres_changes", { event: "*", schema: "public", table: "telegram_links" }, () => refresh())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
+    (async () => {
+      await refresh();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+      channel = supabase
+        .channel(`telegram-links-income:${user.id}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "telegram_links", filter: `user_id=eq.${user.id}` },
+          () => refresh(),
+        )
+        .subscribe();
+    })();
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
     if (!open || !code || connected) return;
     const tick = async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       await invokeUserFunction("telegram-process").catch(() => null);
       const ok = await refresh();
       if (ok) {
@@ -58,7 +72,8 @@ export function IncomeTelegramBotButton() {
       }
     };
     tick();
-    pollRef.current = window.setInterval(tick, 5000);
+    // Polling ativo apenas com dialog aberto; pausa quando aba oculta.
+    pollRef.current = window.setInterval(tick, 8000);
     return () => { if (pollRef.current) window.clearInterval(pollRef.current); };
   }, [open, code, connected]);
 

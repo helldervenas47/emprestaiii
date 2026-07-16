@@ -1,15 +1,20 @@
-// Cliente Supabase apontando EXCLUSIVAMENTE para o projeto do usuário
-// (syyxnqzxqabeuqbuptkh). NUNCA fazer fallback para a Lovable Cloud
-// (VITE_SUPABASE_URL) — isso causaria divergência entre o app e os bots.
+// Cliente principal do backend. Usa as variáveis externas quando existirem e,
+// no preview/Lovable Cloud, cai para as variáveis nativas já configuradas.
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-export const USER_SUPABASE_URL = import.meta.env.VITE_EXTERNAL_SUPABASE_URL as string;
-export const USER_SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY as string;
+const EXTERNAL_SUPABASE_URL = import.meta.env.VITE_EXTERNAL_SUPABASE_URL as string | undefined;
+const EXTERNAL_SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY as string | undefined;
+const CLOUD_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const CLOUD_SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+
+export const USER_SUPABASE_URL = EXTERNAL_SUPABASE_URL || CLOUD_SUPABASE_URL || "";
+export const USER_SUPABASE_PUBLISHABLE_KEY =
+  EXTERNAL_SUPABASE_PUBLISHABLE_KEY || CLOUD_SUPABASE_PUBLISHABLE_KEY || "";
 
 export const MISSING_SUPABASE_ENV: string[] = [
-  !USER_SUPABASE_URL && "VITE_EXTERNAL_SUPABASE_URL",
-  !USER_SUPABASE_PUBLISHABLE_KEY && "VITE_EXTERNAL_SUPABASE_ANON_KEY",
+  !USER_SUPABASE_URL && "VITE_SUPABASE_URL ou VITE_EXTERNAL_SUPABASE_URL",
+  !USER_SUPABASE_PUBLISHABLE_KEY && "VITE_SUPABASE_PUBLISHABLE_KEY ou VITE_EXTERNAL_SUPABASE_ANON_KEY",
 ].filter(Boolean) as string[];
 
 export const IS_SUPABASE_CONFIGURED = MISSING_SUPABASE_ENV.length === 0;
@@ -19,7 +24,7 @@ if (!IS_SUPABASE_CONFIGURED && import.meta.env.DEV) {
   console.error(
     "[supabase] Variáveis de ambiente ausentes:",
     MISSING_SUPABASE_ENV.join(", "),
-    "\nDefina-as no .env (veja .env.example). Não use VITE_SUPABASE_URL (Lovable Cloud).",
+    "\nDefina-as no .env (veja .env.example) ou use as variáveis nativas do backend do projeto.",
   );
 }
 

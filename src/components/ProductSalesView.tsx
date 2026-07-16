@@ -1,11 +1,14 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Sale, BusinessType, Client, Expense } from "@/types/loan";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { VehiclePaymentHistoryView } from "@/components/product-sales/VehiclePaymentHistoryView";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { addMonths, endOfMonth, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+
 
 import { StockManager } from "@/components/StockManager";
 import { SalesLedger } from "@/components/SalesLedger";
@@ -318,6 +321,14 @@ export function ProductSalesView({
     window.dispatchEvent(new CustomEvent("products-subtab-change", { detail: currentSubTab }));
   }, [currentSubTab]);
 
+  // History dialog listener (opened from floating icon button in Index.tsx)
+  const [showVehicleHistory, setShowVehicleHistory] = useState(false);
+  useEffect(() => {
+    const handler = () => setShowVehicleHistory(true);
+    window.addEventListener("open-vehicle-history", handler);
+    return () => window.removeEventListener("open-vehicle-history", handler);
+  }, []);
+
   if (!hasSalesOrStreaming) {
     // Vehicles page - render without sub-tabs + vehicle expenses
     return (
@@ -348,9 +359,25 @@ export function ProductSalesView({
             handleVehicleDeleteExpense={handleVehicleDeleteExpense}
           />
         )}
+
+        <Dialog open={showVehicleHistory} onOpenChange={setShowVehicleHistory}>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Histórico de Pagamentos</DialogTitle>
+            </DialogHeader>
+            <VehiclePaymentHistoryView
+              sales={sales}
+              allVehicleExpenses={allVehicleExpenses}
+              registeredVehicles={registeredVehicles}
+              formatCurrency={formatCurrency}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
+
+
 
   // Sales page - show sub-tabs for venda/streaming + extrato
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { useIncomes, Income, IncomeStatus } from "@/hooks/useIncomes";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useClients } from "@/hooks/useClients";
@@ -23,7 +23,12 @@ import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { MonthTransactionsSheet } from "./MonthTransactionsSheet";
 import { FinancialStatement } from "./FinancialStatement";
 import { PiggyBanksSummaryCard } from "./PiggyBanksSummaryCard";
-import { IncomeTelegramBotButton } from "./IncomeTelegramBotButton";
+import { SilentErrorBoundary } from "./SilentErrorBoundary";
+const IncomeTelegramBotButton = lazy(() =>
+  import("./IncomeTelegramBotButton")
+    .then((m) => ({ default: m.IncomeTelegramBotButton }))
+    .catch(() => ({ default: () => null })),
+);
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Plus, Search, Copy, Pencil, Trash2, CheckCircle2, Clock, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, CalendarCheck, ChevronDown } from "lucide-react";
 import { RowActions } from "@/components/ui/row-actions";
@@ -33,6 +38,7 @@ import { validateIncomeDate } from "@/lib/paymentValidation";
 import { toast } from "sonner";
 import { EditScopeDialog } from "@/components/EditScopeDialog";
 import { applyIncomeScopedUpdate, isIncomeInSeries } from "@/lib/seriesEdit";
+import { useFinanceComponentDebug } from "@/lib/financeDebug";
 
 function fmtBRL(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -55,6 +61,7 @@ interface Props {
 }
 
 export function IncomeList({ readOnly }: Props) {
+  useFinanceComponentDebug("IncomeList");
   const { incomes, addIncome, updateIncome, deleteIncome, duplicateIncome, markReceived } = useIncomes();
   const { expenses: rawExpenses, payExpense } = useExpenses();
   const { sales: rawSales } = useProducts();
@@ -188,7 +195,13 @@ export function IncomeList({ readOnly }: Props) {
         onOpenPendingIncomes={() => { setSheetInitialFilter("pending"); setSheetType("incomes"); }}
         onOpenPendingExpenses={() => { setSheetInitialFilter("pending"); setSheetType("expenses"); }}
         onOpenStatement={() => setStatementOpen(true)}
-        statementLeftSlot={!readOnly ? <IncomeTelegramBotButton /> : undefined}
+        statementLeftSlot={!readOnly ? (
+          <SilentErrorBoundary>
+            <Suspense fallback={null}>
+              <IncomeTelegramBotButton />
+            </Suspense>
+          </SilentErrorBoundary>
+        ) : undefined}
         onAdjust={async (delta) => {
           if (!delta) return;
           const today = todayInAppTz();

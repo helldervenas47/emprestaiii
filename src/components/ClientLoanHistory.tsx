@@ -1,9 +1,10 @@
-import { useMemo, useState, useCallback, useRef, useLayoutEffect } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { Loan, Payment } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { calculateTotalWithInterest } from "@/hooks/useLoans";
+import { allocateInterestByPayment } from "@/lib/interestAllocation";
 import { Search, Users, BarChart3, ArrowUpDown, ChevronRight, ArrowLeft } from "lucide-react";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ interface ClientRow {
   name: string;
   borrowed: number;
   paid: number;
+  interestPaid: number;
   pending: number;
   total: number;
   interestRate: number;
@@ -47,32 +49,24 @@ type SortOption =
   | "total-desc"
   | "total-asc"
   | "rate-desc"
-  | "rate-asc";
+  | "rate-asc"
+  | "interest-desc"
+  | "interest-asc";
 
 export function ClientLoanHistory({ loans, payments }: Props) {
   const [search, setSearch] = useState("");
-  const [showSummary, setShowSummary] = useState(false);
+  const [showSummary, setShowSummary] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches);
   const [sortBy, setSortBy] = useState<SortOption>("name-asc");
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
-  const savedScrollRef = useRef<number | null>(null);
   const { hidden } = useHideValues();
 
   const openClient = useCallback((name: string) => {
-    savedScrollRef.current = window.scrollY;
     setSelectedClient(name);
   }, []);
 
   const closeClient = useCallback(() => {
     setSelectedClient(null);
   }, []);
-
-  useLayoutEffect(() => {
-    if (selectedClient === null && savedScrollRef.current != null) {
-      const y = savedScrollRef.current;
-      savedScrollRef.current = null;
-      requestAnimationFrame(() => window.scrollTo(0, y));
-    }
-  }, [selectedClient]);
 
   const rows = useMemo<ClientRow[]>(() => {
     const byName: Record<string, Loan[]> = {};
@@ -85,6 +79,27 @@ export function ClientLoanHistory({ loans, payments }: Props) {
       let borrowed = 0;
       let paid = 0;
       let pending = 0;
+
+      const loanIds = new Set(clientLoans.map((l) => l.id));
+      const clientPayments = payments.filter((p) => loanIds.has(p.loanId));
+      const allocated = allocateInterestByPayment(
+        clientLoans.map((l) => ({
+          id: l.id,
+          amount: l.amount || 0,
+          interestRate: l.interestRate,
+          installments: l.installments,
+          status: l.status,
+        })),
+        clientPayments.map((p) => ({
+          id: p.id,
+          loanId: p.loanId,
+          amount: p.amount,
+          date: p.date,
+          installmentNumber: p.installmentNumber,
+          createdAt: (p as any).createdAt,
+        })),
+      );
+      const interestPaid = clientPayments.reduce((s, p) => s + (allocated.get(p.id) ?? 0), 0);
 
       clientLoans.forEach((l) => {
         borrowed += l.amount || 0;
@@ -127,11 +142,14 @@ export function ClientLoanHistory({ loans, payments }: Props) {
 
       const total = paid + pending;
       const interestRate = borrowed > 0 ? ((total - borrowed) / borrowed) * 100 : 0;
+      // "Principal Pago" = total pago menos juros alocados (exclui juros, multas, mora, taxas).
+      const principalPaid = Math.max(0, paid - interestPaid);
 
       return {
         name,
         borrowed,
-        paid,
+        paid: principalPaid,
+        interestPaid,
         pending,
         total,
         interestRate,
@@ -156,6 +174,8 @@ export function ClientLoanHistory({ loans, payments }: Props) {
         case "total-asc": return a.total - b.total;
         case "rate-desc": return b.interestRate - a.interestRate;
         case "rate-asc": return a.interestRate - b.interestRate;
+        case "interest-desc": return b.interestPaid - a.interestPaid;
+        case "interest-asc": return a.interestPaid - b.interestPaid;
         default: return a.name.localeCompare(b.name, "pt-BR");
       }
     });
@@ -203,10 +223,13 @@ export function ClientLoanHistory({ loans, payments }: Props) {
     const totalPending = rows.reduce((s, r) => s + r.pending, 0);
     const totalPaid = rows.reduce((s, r) => s + r.paid, 0);
     const totalBorrowed = rows.reduce((s, r) => s + r.borrowed, 0);
-    const grandTotal = totalPaid + totalPending;
+    const totalInterestPaid = rows.reduce((s, r) => s + r.interestPaid, 0);
+    const totalPrincipalPending = Math.max(0, totalBorrowed - totalPaid);
+    const totalInterestPending = Math.max(0, totalPending - totalPrincipalPending);
+    const grandTotal = totalPrincipalPending + totalPaid + totalInterestPending + totalInterestPaid;
     const clientCount = rows.length;
     const avgInterestRate = totalBorrowed > 0 ? ((grandTotal - totalBorrowed) / totalBorrowed) * 100 : 0;
-    return { totalPending, totalPaid, totalBorrowed, grandTotal, clientCount, avgInterestRate };
+    return { totalPending, totalPaid, totalBorrowed, totalInterestPaid, totalPrincipalPending, totalInterestPending, grandTotal, clientCount, avgInterestRate };
   }, [rows]);
 
   const mask = (v: string) => (hidden ? "•••" : v);
@@ -230,37 +253,41 @@ export function ClientLoanHistory({ loans, payments }: Props) {
     const pendingTotal = summary?.pending ?? 0;
     const grandTotal = summary?.total ?? 0;
 
-    // Juros recebidos / a receber — apenas contratos da aba Empréstimos (loans)
-    // Regra: juros recebidos = total pago - amortização do principal (juros vêm primeiro).
-    //  - Pagamentos com installmentNumber === 0 (juros-only) são 100% juros.
-    //  - Demais pagamentos quitam principal proporcionalmente ao valor pago.
-    //  - Para contratos quitados, juros recebidos = juros total do contrato.
+    // Juros recebidos por cliente:
+    // Fonte única: `allocateInterestByPayment` — mesma regra do Dashboard,
+    // Contador e do diálogo de Histórico. Vale para contratos quitados E
+    // em andamento, garantindo que:
+    //   - Juros contratados de todas as parcelas pagas sejam somados;
+    //   - Juros avulsos (installment_number = 0 "interest_partial") somem 100%;
+    //   - Juros/multa de atraso (installment_number = -2) somem 100%;
+    //   - Amortizações (-3) NÃO contem como juros.
+    // Antes, contratos "paid" usavam apenas `total - principal` (juros de UM
+    // ciclo), descartando juros de extensões e mora efetivamente recebidos.
     let interestReceived = 0;
-    clientLoans.forEach((l) => {
-      const principal = l.amount || 0;
-      const totalInterest = Math.max(
-        0,
-        calculateTotalWithInterest(principal, l.interestRate, l.installments) - principal,
+    if (clientLoans.length > 0) {
+      const loanIds = new Set(clientLoans.map((l) => l.id));
+      const clientPayments = payments.filter((p) => loanIds.has(p.loanId));
+      const allocated = allocateInterestByPayment(
+        clientLoans.map((l) => ({
+          id: l.id,
+          amount: l.amount || 0,
+          interestRate: l.interestRate,
+          installments: l.installments,
+          status: l.status,
+        })),
+        clientPayments.map((p) => ({
+          id: p.id,
+          loanId: p.loanId,
+          amount: p.amount,
+          date: p.date,
+          installmentNumber: p.installmentNumber,
+          createdAt: (p as any).createdAt,
+        })),
       );
-
-      if (l.status === "paid") {
-        interestReceived += totalInterest;
-        return;
-      }
-
-      const loanPayments = payments.filter((p) => p.loanId === l.id);
-      const totalPaid = loanPayments.reduce((s, p) => s + (p.amount || 0), 0);
-      const interestOnlyPaid = loanPayments
-        .filter((p) => p.installmentNumber === 0)
-        .reduce((s, p) => s + (p.amount || 0), 0);
-
-      const principalRemaining =
-        l.remainingAmount != null && l.remainingAmount >= 0 ? l.remainingAmount : principal;
-      const principalPaid = Math.max(0, Math.min(principal, principal - principalRemaining));
-
-      const installmentInterestPaid = Math.max(0, totalPaid - interestOnlyPaid - principalPaid);
-      interestReceived += installmentInterestPaid + interestOnlyPaid;
-    });
+      clientPayments.forEach((p) => {
+        interestReceived += allocated.get(p.id) ?? 0;
+      });
+    }
 
     // Juros a receber = soma por contrato de (Pendente - Emprestado), ignorando contratos quitados.
     let interestPending = 0;
@@ -326,25 +353,9 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           </Card>
           <Card>
             <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-              <div className="text-[11px] text-muted-foreground mb-0.5">Pago</div>
+              <div className="text-[11px] text-muted-foreground mb-0.5">Principal Pago</div>
               <div className="font-bold tabular-nums text-success text-sm sm:text-base">
                 {mask(formatCurrency(paidTotal))}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-              <div className="text-[11px] text-muted-foreground mb-0.5">Pendente</div>
-              <div className="font-bold tabular-nums text-warning text-sm sm:text-base">
-                {mask(formatCurrency(pendingTotal))}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-              <div className="text-[11px] text-muted-foreground mb-0.5">Total</div>
-              <div className="font-bold tabular-nums text-primary text-sm sm:text-base">
-                {mask(formatCurrency(grandTotal))}
               </div>
             </CardContent>
           </Card>
@@ -361,6 +372,22 @@ export function ClientLoanHistory({ loans, payments }: Props) {
               <div className="text-[11px] text-muted-foreground mb-0.5">Juros a Receber</div>
               <div className="font-bold tabular-nums text-warning text-sm sm:text-base">
                 {mask(formatCurrency(interestPending))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+              <div className="text-[11px] text-muted-foreground mb-0.5">Pendente</div>
+              <div className="font-bold tabular-nums text-warning text-sm sm:text-base">
+                {mask(formatCurrency(pendingTotal))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+              <div className="text-[11px] text-muted-foreground mb-0.5">Total</div>
+              <div className="font-bold tabular-nums text-primary text-sm sm:text-base">
+                {mask(formatCurrency(grandTotal))}
               </div>
             </CardContent>
           </Card>
@@ -404,14 +431,16 @@ export function ClientLoanHistory({ loans, payments }: Props) {
               <SelectItem value="name-desc">Cliente (Z → A)</SelectItem>
               <SelectItem value="borrowed-desc">Maior valor emprestado</SelectItem>
               <SelectItem value="borrowed-asc">Menor valor emprestado</SelectItem>
-              <SelectItem value="paid-desc">Maior valor pago</SelectItem>
-              <SelectItem value="paid-asc">Menor valor pago</SelectItem>
+              <SelectItem value="paid-desc">Maior principal pago</SelectItem>
+              <SelectItem value="paid-asc">Menor principal pago</SelectItem>
               <SelectItem value="pending-desc">Maior valor pendente</SelectItem>
               <SelectItem value="pending-asc">Menor valor pendente</SelectItem>
               <SelectItem value="total-desc">Maior valor total</SelectItem>
               <SelectItem value="total-asc">Menor valor total</SelectItem>
               <SelectItem value="rate-desc">Maior taxa de variação</SelectItem>
               <SelectItem value="rate-asc">Menor taxa de variação</SelectItem>
+              <SelectItem value="interest-desc">Maior juros pago</SelectItem>
+              <SelectItem value="interest-asc">Menor juros pago</SelectItem>
             </SelectContent>
           </Select>
           <Button
@@ -427,20 +456,36 @@ export function ClientLoanHistory({ loans, payments }: Props) {
       </div>
 
       {showSummary && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
-              <div className="text-sm text-muted-foreground mb-1">Pendente</div>
+              <div className="text-sm text-muted-foreground mb-1">Principal Pendente</div>
               <div className="font-bold tabular-nums text-warning text-xl">
-                {mask(formatCurrency(totals.totalPending))}
+                {mask(formatCurrency(totals.totalPrincipalPending))}
               </div>
             </CardContent>
           </Card>
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
-              <div className="text-sm text-muted-foreground mb-1">Pago</div>
+              <div className="text-sm text-muted-foreground mb-1">Juros Pendente</div>
+              <div className="font-bold tabular-nums text-warning text-xl">
+                {mask(formatCurrency(totals.totalInterestPending))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="h-full">
+            <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
+              <div className="text-sm text-muted-foreground mb-1">Principal Pago</div>
               <div className="font-bold tabular-nums text-success text-xl">
                 {mask(formatCurrency(totals.totalPaid))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="h-full">
+            <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
+              <div className="text-sm text-muted-foreground mb-1">Juros Pago</div>
+              <div className="font-bold tabular-nums text-primary text-xl">
+                {mask(formatCurrency(totals.totalInterestPaid))}
               </div>
             </CardContent>
           </Card>
@@ -470,7 +515,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           </Card>
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
-              <div className="text-sm text-muted-foreground mb-1">Variação Média</div>
+              <div className="text-sm text-muted-foreground mb-1">Taxa de Variação</div>
               <div className="font-bold tabular-nums text-primary text-xl">
                 {hidden ? "•••" : `${totals.avgInterestRate.toFixed(2).replace(".", ",")}%`}
               </div>
@@ -491,9 +536,11 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                 <TableHead className="w-8" />
                 <TableHead>Cliente</TableHead>
                 <TableHead className="text-right">Emprestado</TableHead>
-                <TableHead className="text-right">Pago</TableHead>
+                <TableHead className="text-right">Principal Pago</TableHead>
+                <TableHead className="text-right">Juros Pago</TableHead>
                 <TableHead className="text-right">Pendente</TableHead>
-                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="text-right">Total Pago</TableHead>
+                <TableHead className="text-right">Total Geral</TableHead>
                 <TableHead className="text-right">Taxa de Variação</TableHead>
               </TableRow>
             </TableHeader>
@@ -510,7 +557,9 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                   <TableCell className="font-medium">{r.name}</TableCell>
                   <TableCell className="text-right tabular-nums">{mask(formatCurrency(r.borrowed))}</TableCell>
                   <TableCell className="text-right tabular-nums text-success">{mask(formatCurrency(r.paid))}</TableCell>
+                  <TableCell className="text-right tabular-nums text-primary">{mask(formatCurrency(r.interestPaid))}</TableCell>
                   <TableCell className="text-right tabular-nums text-warning">{mask(formatCurrency(r.pending))}</TableCell>
+                  <TableCell className="text-right tabular-nums text-success font-medium">{mask(formatCurrency(r.paid + r.interestPaid))}</TableCell>
                   <TableCell className="text-right tabular-nums font-semibold">{mask(formatCurrency(r.total))}</TableCell>
                   <TableCell className="text-right tabular-nums text-primary font-medium">
                     {hidden ? "•••" : `${r.interestRate.toFixed(2).replace(".", ",")}%`}
@@ -519,12 +568,46 @@ export function ClientLoanHistory({ loans, payments }: Props) {
               ))}
               {rows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                     Nenhum cliente encontrado
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
+            {rows.length > 0 && (
+              <tfoot className="bg-muted/60 font-bold border-t sticky bottom-0">
+                <TableRow className="hover:bg-muted/60">
+                  <TableCell className="w-8" />
+                  <TableCell className="font-bold">Subtotal ({rows.length})</TableCell>
+                  <TableCell className="text-right tabular-nums font-bold">
+                    {mask(formatCurrency(rows.reduce((s, r) => s + r.borrowed, 0)))}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums font-bold text-success">
+                    {mask(formatCurrency(rows.reduce((s, r) => s + r.paid, 0)))}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums font-bold text-primary">
+                    {mask(formatCurrency(rows.reduce((s, r) => s + r.interestPaid, 0)))}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums font-bold text-warning">
+                    {mask(formatCurrency(rows.reduce((s, r) => s + r.pending, 0)))}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums font-bold text-success">
+                    {mask(formatCurrency(rows.reduce((s, r) => s + r.paid + r.interestPaid, 0)))}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums font-bold">
+                    {mask(formatCurrency(rows.reduce((s, r) => s + r.total, 0)))}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums font-bold text-primary">
+                    {(() => {
+                      const tb = rows.reduce((s, r) => s + r.borrowed, 0);
+                      const tt = rows.reduce((s, r) => s + r.total, 0);
+                      const rate = tb > 0 ? ((tt - tb) / tb) * 100 : 0;
+                      return hidden ? "•••" : `${rate.toFixed(2).replace(".", ",")}%`;
+                    })()}
+                  </TableCell>
+                </TableRow>
+              </tfoot>
+            )}
           </Table>
         </CardContent>
       </Card>
@@ -548,15 +631,23 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                   <div className="tabular-nums font-medium">{mask(formatCurrency(r.borrowed))}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Pago</div>
+                  <div className="text-muted-foreground">Principal Pago</div>
                   <div className="tabular-nums font-medium text-success">{mask(formatCurrency(r.paid))}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Juros Pago</div>
+                  <div className="tabular-nums font-medium text-primary">{mask(formatCurrency(r.interestPaid))}</div>
                 </div>
                 <div>
                   <div className="text-muted-foreground">Pendente</div>
                   <div className="tabular-nums font-medium text-warning">{mask(formatCurrency(r.pending))}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Total</div>
+                  <div className="text-muted-foreground">Total Pago</div>
+                  <div className="tabular-nums font-medium text-success">{mask(formatCurrency(r.paid + r.interestPaid))}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Total Geral</div>
                   <div className="tabular-nums font-semibold">{mask(formatCurrency(r.total))}</div>
                 </div>
                 <div className="col-span-2 pt-1 border-t border-border/40">
@@ -671,8 +762,9 @@ function ClientLoansList({ loans, payments, paymentsByLoan, lastPaymentDateByLoa
     const isPaid = l.status === "paid";
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const due = l.dueDate ? new Date(l.dueDate) : null;
+    const due = l.dueDate ? new Date(`${l.dueDate}T00:00:00`) : null;
     if (due) due.setHours(0, 0, 0, 0);
+    // Só considera vencido a partir do dia seguinte ao vencimento.
     const isExpired = !isPaid && due != null && !isNaN(due.getTime()) && due.getTime() < today.getTime();
 
     let label: string;
@@ -680,9 +772,6 @@ function ClientLoansList({ loans, payments, paymentsByLoan, lastPaymentDateByLoa
     if (isPaid) {
       label = "Pago";
       className = "bg-success/15 text-success border-success/30";
-    } else if (l.status === "overdue") {
-      label = "Atrasado";
-      className = "bg-destructive/15 text-destructive border-destructive/30";
     } else if (isExpired) {
       label = "Vencido";
       className = "bg-destructive/15 text-destructive border-destructive/30";
@@ -824,9 +913,9 @@ function ClientLoansList({ loans, payments, paymentsByLoan, lastPaymentDateByLoa
         </table>
       </div>
 
+      {/* P0-03 (B): não passamos mais `payments` — o diálogo busca sob demanda. */}
       <LoanPaymentHistoryDialog
         loan={selectedLoan}
-        payments={payments}
         open={selectedLoan !== null}
         onOpenChange={(o) => !o && setSelectedLoan(null)}
       />

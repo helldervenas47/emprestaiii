@@ -15,6 +15,7 @@ import { AccountantAuditCard } from "@/components/AccountantAuditCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { AuditTotals } from "@/lib/accountantAudit";
 import { calculateTotalWithInterest } from "@/hooks/useLoans";
+import { allocateInterestByPayment } from "@/lib/interestAllocation";
 import { isVehicleExpenseCategory } from "@/components/VehicleExpenseForm";
 
 interface AccountantReportProps {
@@ -107,8 +108,10 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     };
     const breakdown: Breakdown[] = [];
 
-    // ===== Alocação "juros-primeiro" (paridade exata com Dashboard) =====
-    // Processa TODOS os pagamentos cronologicamente, alocando juros por contrato.
+    // ===== Alocação pró-rata por parcela (fonte única) =====
+    // Contratos parcelados distribuem juros proporcionalmente em cada parcela;
+    // parcela única mantém regra legada. Reconciliação de centavos ≤ R$ 0,02
+    // apenas no último pagamento de contratos quitados.
     const paymentsSorted = [...payments].sort((a, b) => {
       const d = (a.date || "").localeCompare(b.date || "");
       if (d !== 0) return d;
@@ -116,47 +119,24 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
         ((b.createdAt ?? (b as any).created_at) ?? "")
       );
     });
+    const allocLoans = loans.map((l: any) => ({
+      id: l.id,
+      amount: Number(l.amount) || 0,
+      interestRate: Number(l.interestRate ?? l.interest_rate) || 0,
+      installments: Number(l.installments) || 1,
+      status: l.status,
+      originalAmount: l.originalAmount ?? l.original_amount ?? null,
+    }));
+    const allocPayments = paymentsSorted.map((p: any) => ({
+      id: p.id,
+      loanId: p.loanId ?? p.loan_id ?? "",
+      amount: Number(p.amount) || 0,
+      date: p.date,
+      installmentNumber: Number(p.installmentNumber ?? p.installment_number ?? 0),
+      createdAt: p.createdAt ?? p.created_at,
+    }));
+    const interestByPaymentId = allocateInterestByPayment(allocLoans, allocPayments);
 
-    const interestByPaymentId = new Map<string, number>();
-    const loanInterestRemaining = new Map<string, number>();
-    loans.forEach((l: any) => {
-      const principal = Number(l.amount) || 0;
-      const rate = Number(l.interestRate ?? l.interest_rate) || 0;
-      const installments = Number(l.installments) || 1;
-      const total = calculateTotalWithInterest(principal, rate, installments);
-      loanInterestRemaining.set(l.id, Math.max(0, total - principal));
-    });
-
-    paymentsSorted.forEach((p) => {
-      const amt = Number(p.amount) || 0;
-      const loanId = p.loanId ?? (p as any).loan_id ?? null;
-      const inst = Number(p.installmentNumber ?? (p as any).installment_number ?? 0);
-      if (amt <= 0) { interestByPaymentId.set(p.id, 0); return; }
-
-      if (inst === 0 || inst === -2) {
-        interestByPaymentId.set(p.id, amt);
-        const rem = loanInterestRemaining.get(loanId) ?? 0;
-        loanInterestRemaining.set(loanId, Math.max(0, rem - amt));
-        return;
-      }
-      if (inst === -3) { interestByPaymentId.set(p.id, 0); return; }
-
-      const loan: any = loans.find((l) => l.id === loanId);
-      if (!loan) { interestByPaymentId.set(p.id, amt); return; }
-      const principal = Number(loan.amount) || 0;
-      const totalWithInterest = calculateTotalWithInterest(
-        principal,
-        Number(loan.interestRate ?? loan.interest_rate) || 0,
-        Number(loan.installments) || 1,
-      );
-      const ratio = totalWithInterest > 0 ? Math.max(0, 1 - principal / totalWithInterest) : 0;
-      const rem = loanInterestRemaining.get(loanId) ?? 0;
-      const interest = Math.min(rem, Math.max(0, amt * ratio));
-      interestByPaymentId.set(p.id, interest);
-      loanInterestRemaining.set(loanId, Math.max(0, rem - interest));
-    });
-
-    // Ajuste de quitação: aloca lucro/desconto residual ao último pagamento.
     const lastPaymentByLoanId = new Map<string, string>();
     paymentsSorted.forEach((p) => {
       const lid = p.loanId ?? (p as any).loan_id;
@@ -165,24 +145,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     const paidLoanIds = new Set<string>(
       loans.filter((l: any) => (l.status) === "paid").map((l: any) => l.id)
     );
-    loans.forEach((l: any) => {
-      if (l.status !== "paid") return;
-      const lastId = lastPaymentByLoanId.get(l.id);
-      if (!lastId) return;
-      const loanPays = payments.filter((pp) => (pp.loanId ?? (pp as any).loan_id) === l.id);
-      const totalPaid = loanPays.reduce((s, pp) => s + (Number(pp.amount) || 0), 0);
-      const principalRef = Number(l.originalAmount ?? l.original_amount) > 0
-        ? Number(l.originalAmount ?? l.original_amount)
-        : (Number(l.amount) || 0);
-      const allocatedInterest = loanPays.reduce(
-        (s, pp) => s + (interestByPaymentId.get(pp.id) ?? 0), 0
-      );
-      const realProfit = totalPaid - principalRef;
-      const diff = realProfit - allocatedInterest;
-      if (Math.abs(diff) < 0.005) return;
-      const cur = interestByPaymentId.get(lastId) ?? 0;
-      interestByPaymentId.set(lastId, Math.max(0, cur + diff));
-    });
+
 
     // ===== Monta breakdown do período usando o juros alocado =====
     const periodPaymentList = periodPayments;
@@ -208,7 +171,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       let reason: string;
       if (isLastOfPaid) {
         kind = "quitacao";
-        reason = `Quitação do contrato: juros alocado (juros-primeiro + ajuste de quitação) = ${interest.toFixed(2)}`;
+        reason = `Quitação do contrato: juros alocado (pró-rata por parcela) = ${interest.toFixed(2)}`;
       } else if (inst === 0 || inst === -2) {
         kind = "juros_puro";
         reason = inst === -2
@@ -222,10 +185,10 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
         reason = "Pagamento sem empréstimo vinculado → assume 100% juros";
       } else if (inst === -1) {
         kind = "quitacao";
-        reason = `Pagamento parcial: juros alocado via juros-primeiro = ${interest.toFixed(2)}`;
+        reason = `Pagamento parcial: juros alocado (juros-primeiro sobre saldo pendente) = ${interest.toFixed(2)}`;
       } else {
         kind = "parcela";
-        reason = `Parcela ${inst}: juros alocado via juros-primeiro = ${interest.toFixed(2)}`;
+        reason = `Parcela ${inst}: juros alocado pró-rata (installmentAmount × ratio) = ${interest.toFixed(2)}`;
       }
 
       const kindLabel = ({

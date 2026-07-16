@@ -26,10 +26,17 @@ import {
 } from "@/hooks/useLoans";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { useHideValues } from "@/contexts/HideValuesContext";
+import { paymentsRepository } from "@/repositories/paymentsRepository";
+import { allocateInterestByPayment } from "@/lib/interestAllocation";
 
 interface Props {
   loan: Loan | null;
-  payments: Payment[];
+  /**
+   * Lista de pagamentos. Opcional a partir do P0-03 (etapa B): quando não
+   * for informada, o diálogo busca por `loan.id` sob demanda (fetchByLoanId),
+   * evitando depender do carregamento global do useLoans.
+   */
+  payments?: Payment[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -64,9 +71,49 @@ export function LoanPaymentHistoryDialog({
   const mask = (v: string) => (hidden ? "•••" : v);
 
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [lazyPayments, setLazyPayments] = useState<Payment[] | null>(null);
+  const [lazyLoading, setLazyLoading] = useState(false);
+
   useEffect(() => {
     if (open) setVisibleCount(PAGE_SIZE);
   }, [open, loan?.id]);
+
+  // P0-03 (B): quando o caller NÃO passa `payments`, buscamos apenas os
+  // pagamentos deste empréstimo ao abrir o diálogo. Isso permite migrar
+  // detalhes sem depender do carregamento global do useLoans.
+  useEffect(() => {
+    if (!open || !loan?.id) return;
+    if (payments !== undefined) { setLazyPayments(null); return; }
+    let cancelled = false;
+    setLazyLoading(true);
+    paymentsRepository
+      .fetchByLoanId(loan.id)
+      .then((rows) => {
+        if (cancelled) return;
+        setLazyPayments(
+          rows.map((p: any) => ({
+            id: p.id,
+            loanId: p.loan_id,
+            amount: Number(p.amount),
+            date: p.date,
+            installmentNumber: p.installment_number,
+            previousDueDate: p.previous_due_date,
+            paymentMethodId: p.payment_method_id ?? null,
+            metadata: p.metadata ?? null,
+            createdAt: p.created_at ?? undefined,
+          })),
+        );
+      })
+      .catch((err) => {
+        // Em erro, deixa lista vazia — o resumo ainda exibe o loan.
+        console.warn("[LoanPaymentHistoryDialog] fetchByLoanId falhou:", err);
+        if (!cancelled) setLazyPayments([]);
+      })
+      .finally(() => { if (!cancelled) setLazyLoading(false); });
+    return () => { cancelled = true; };
+  }, [open, loan?.id, payments]);
+
+  const effectivePayments: Payment[] = payments ?? lazyPayments ?? [];
 
   const methodById = useMemo(() => {
     const map: Record<string, string> = {};
@@ -92,10 +139,34 @@ export function LoanPaymentHistoryDialog({
       loan.customInstallmentValue ||
       calculateInstallment(principal, loan.interestRate, loan.installments);
 
-    const loanPayments = payments
+    const loanPayments = effectivePayments
       .filter((p) => p.loanId === loan.id)
       .slice()
       .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+
+    // Fonte oficial de juros por pagamento — mesma regra do Dashboard/Contador.
+    // Soma todos os juros pagos ao longo da vida do contrato (parcelas
+    // integrais, parciais, antecipados, avulsos), evitando exibir apenas
+    // o juros do último pagamento.
+    const allocated = allocateInterestByPayment(
+      [
+        {
+          id: loan.id,
+          amount: principal,
+          interestRate: loan.interestRate,
+          installments: loan.installments,
+          status: loan.status,
+        },
+      ],
+      loanPayments.map((p) => ({
+        id: p.id,
+        loanId: p.loanId,
+        amount: p.amount,
+        date: p.date,
+        installmentNumber: p.installmentNumber,
+        createdAt: (p as any).createdAt,
+      })),
+    );
 
     let totalPaid = 0;
     let principalPaid = 0;
@@ -105,14 +176,23 @@ export function LoanPaymentHistoryDialog({
       const amount = p.amount || 0;
       totalPaid += amount;
 
-      let principalPart = 0;
-      let interestPart = 0;
-      if ((p.installmentNumber ?? 0) <= 0) {
-        // Pagamento de juros / parcial (sem amortização de parcela)
+      const allocInterest = allocated.get(p.id) ?? 0;
+      // Classificação oficial por tipo de lançamento:
+      // - installmentNumber === 0  → juros avulso (100% juros)
+      // - installmentNumber === -2 → multa/mora (100% juros)
+      // - installmentNumber === -3 → amortização (100% principal)
+      // - demais parcelas → usa allocator (ratio principal/juros do contrato)
+      let interestPart: number;
+      let principalPart: number;
+      if (p.installmentNumber === 0 || p.installmentNumber === -2) {
         interestPart = amount;
+        principalPart = 0;
+      } else if (p.installmentNumber === -3) {
+        interestPart = 0;
+        principalPart = amount;
       } else {
-        principalPart = amount * principalRatio;
-        interestPart = amount * interestRatio;
+        interestPart = allocInterest;
+        principalPart = Math.max(0, amount - interestPart);
       }
       principalPaid += principalPart;
       interestPaid += interestPart;
@@ -151,13 +231,13 @@ export function LoanPaymentHistoryDialog({
         original: principal,
         totalPaid,
         remaining,
-        interestPaid: isPaid ? totalInterest : interestPaid,
+        interestPaid,
         paidInstallments,
         pendingInstallments,
         isPaid,
       },
     };
-  }, [loan, payments, methodById]);
+  }, [loan, effectivePayments, methodById]);
 
   if (!loan || !data) return null;
 
@@ -171,7 +251,22 @@ export function LoanPaymentHistoryDialog({
         className: "bg-primary/15 text-primary border-primary/30",
       };
     }
-    if (installmentNumber <= 0) {
+    // Amortização (-3): abate 100% do principal — NUNCA rotular como "Juros".
+    if (installmentNumber === -3) {
+      return {
+        label: "Amortização",
+        className: "bg-primary/15 text-primary border-primary/30",
+      };
+    }
+    // Parcial (-1): pagamento parcial (juros-primeiro), pode ter principal.
+    if (installmentNumber === -1) {
+      return {
+        label: "Parcial",
+        className: "bg-warning/15 text-warning border-warning/30",
+      };
+    }
+    // Juros avulso (0) ou multa/mora (-2): 100% juros.
+    if (installmentNumber === 0 || installmentNumber === -2) {
       return {
         label: "Juros",
         className: "bg-warning/15 text-warning border-warning/30",
@@ -191,78 +286,39 @@ export function LoanPaymentHistoryDialog({
     .reverse();
   const hasMore = startIdx > 0;
 
+  const summaryItems: Array<{ label: string; value: string; valueClass?: string }> = [
+    { label: "Valor Original", value: mask(formatCurrency(data.summary.original)) },
+    { label: "Já Pago", value: mask(formatCurrency(data.summary.totalPaid)), valueClass: "text-success" },
+    { label: "Saldo Devedor", value: mask(formatCurrency(data.summary.remaining)), valueClass: "text-warning" },
+    { label: "Juros Recebidos", value: mask(formatCurrency(data.summary.interestPaid)), valueClass: "text-primary" },
+    { label: "Parcelas Pagas", value: `${data.summary.paidInstallments} / ${loan.installments}` },
+    { label: "Parcelas Pendentes", value: String(data.summary.pendingInstallments), valueClass: "text-warning" },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-5xl xl:max-w-6xl max-h-[92vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-base sm:text-lg">
             Histórico de Pagamentos — {loan.borrowerName}
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0 pr-2 -mr-2 [&>[data-radix-scroll-area-viewport]]:max-h-[calc(90vh-8rem)]">
+        <ScrollArea className="flex-1 min-h-0 pr-2 -mr-2 [&>[data-radix-scroll-area-viewport]]:max-h-[calc(92vh-8rem)]">
           {/* Resumo */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
-            <Card>
-              <CardContent className="p-3 text-center">
-                <div className="text-[11px] text-muted-foreground mb-0.5">
-                  Valor Original
-                </div>
-                <div className="font-semibold tabular-nums text-sm">
-                  {mask(formatCurrency(data.summary.original))}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <div className="text-[11px] text-muted-foreground mb-0.5">
-                  Já Pago
-                </div>
-                <div className="font-semibold tabular-nums text-sm text-success">
-                  {mask(formatCurrency(data.summary.totalPaid))}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <div className="text-[11px] text-muted-foreground mb-0.5">
-                  Saldo Devedor
-                </div>
-                <div className="font-semibold tabular-nums text-sm text-warning">
-                  {mask(formatCurrency(data.summary.remaining))}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <div className="text-[11px] text-muted-foreground mb-0.5">
-                  Juros Recebidos
-                </div>
-                <div className="font-semibold tabular-nums text-sm text-primary">
-                  {mask(formatCurrency(data.summary.interestPaid))}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <div className="text-[11px] text-muted-foreground mb-0.5">
-                  Parcelas Pagas
-                </div>
-                <div className="font-semibold tabular-nums text-sm">
-                  {data.summary.paidInstallments} / {loan.installments}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <div className="text-[11px] text-muted-foreground mb-0.5">
-                  Parcelas Pendentes
-                </div>
-                <div className="font-semibold tabular-nums text-sm text-warning">
-                  {data.summary.pendingInstallments}
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-4 auto-rows-fr">
+            {summaryItems.map((it) => (
+              <Card key={it.label}>
+                <CardContent className="p-3 text-center">
+                  <div className="text-[11px] text-muted-foreground mb-0.5 truncate">
+                    {it.label}
+                  </div>
+                  <div className={`font-semibold tabular-nums text-sm ${it.valueClass ?? ""}`}>
+                    {it.value}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           {/* Tabela desktop */}

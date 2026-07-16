@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { getPaddlePrice, PaddleApiError, type PaddleEnvironment } from "../_shared/paddle.ts";
+import { gatewayFetch, type PaddleEnv } from '../_shared/paddle.ts';
 
 const responseHeaders = {
   headers: {
@@ -22,29 +22,15 @@ serve(async (req) => {
     });
   }
 
-  try {
-    const price = await getPaddlePrice(priceId, environment as PaddleEnvironment | undefined);
+  const response = await gatewayFetch(environment as PaddleEnv, `/prices?external_id=${encodeURIComponent(priceId)}`);
+  const data = await response.json();
 
-    if (!price) {
-      return new Response(JSON.stringify({ error: "Price not found" }), {
-        status: 404,
-        ...responseHeaders,
-      });
-    }
-
-    return new Response(JSON.stringify({ paddleId: price.id }), responseHeaders);
-  } catch (err) {
-    if (err instanceof PaddleApiError) {
-      return new Response(JSON.stringify({ error: err.message }), {
-        status: err.status || 502,
-        ...responseHeaders,
-      });
-    }
-
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
+  if (!data.data?.length) {
+    return new Response(JSON.stringify({ error: "Price not found" }), {
+      status: 404,
       ...responseHeaders,
     });
   }
+
+  return new Response(JSON.stringify({ paddleId: data.data[0].id }), responseHeaders);
 });

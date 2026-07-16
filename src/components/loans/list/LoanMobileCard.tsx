@@ -37,7 +37,7 @@ import { AmortizationSimulator } from "@/components/AmortizationSimulator";
 import { RenegotiateLoanDialog } from "@/components/RenegotiateLoanDialog";
 import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
 import { useManagerCommissions } from "@/hooks/useManagerCommissions";
-// generateLoanReportPdf importado dinamicamente no handler.
+import { generateLoanReportPdf } from "@/lib/loanReportPdf";
 import type { LoanRenegotiation } from "@/types/loan";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { useWhatsappBillingMessages } from "@/hooks/useWhatsappBillingMessages";
@@ -1595,7 +1595,6 @@ export function LoanCardView({
                 className="flex-1 h-9 text-xs gap-1.5 border-primary text-primary"
                 onClick={async () => {
                   try {
-                    const { generateLoanReportPdf } = await import("@/lib/loanReportPdf");
                     await generateLoanReportPdf({
                       loan,
                       payments: allPayments,

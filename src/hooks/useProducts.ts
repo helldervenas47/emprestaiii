@@ -1,15 +1,28 @@
-import { useState, useEffect, useCallback } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useCallback, useRef, useId } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { Product, Sale, BusinessType, SalePaymentRecord } from "@/types/loan";
 import { useAuth } from "@/hooks/useAuth";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 import { assertWritable } from "@/lib/readOnlyState";
+import { cacheRows, getCachedRows } from "@/lib/offline/sync";
+import {
+  loadSharedResource,
+  invalidateSharedResource,
+  readSharedResource,
+  subscribeSharedResource,
+  writeSharedResource,
+} from "@/lib/sharedResource";
 
 const PRODUCT_COLUMNS =
-  "id, name, description, price, cost, last_purchase_price, suggested_stock, stock, active, created_at";
+  "id, user_id, name, description, price, cost, last_purchase_price, suggested_stock, stock, active, created_at";
 const SALE_COLUMNS =
-  "id, product_id, description, quantity, total, customer_name, sale_date, notes, business_type, payment_mode, installments, paid_installments, frequency, installment_value, installment_amounts, installment_dates, partial_paid, payment_history, locador_id, category";
+  "id, user_id, product_id, description, quantity, total, customer_name, sale_date, notes, business_type, payment_mode, installments, paid_installments, frequency, installment_value, installment_amounts, installment_dates, partial_paid, payment_history, locador_id, category";
+
+// P1-01: staleTime médio — produtos/vendas mudam com mutações locais que já
+// escrevem no cache; realtime invalida + refaz o fetch.
+const STALE_MS = 60_000;
+
+type Bundle = { products: Product[]; sales: Sale[] };
 
 function rowToProduct(p: any): Product {
   return {
@@ -21,8 +34,9 @@ function rowToProduct(p: any): Product {
   };
 }
 
-function rowToSale(s: any, prodMap: Map<string, string>): Sale {
-  return {
+function rowsToSales(salesRows: any[], productRows: any[]): Sale[] {
+  const prodMap = new Map((productRows || []).map((p) => [p.id, p.name]));
+  return salesRows.map((s) => ({
     id: s.id,
     productId: s.product_id || undefined,
     productName: s.product_id ? (prodMap.get(s.product_id) || "Produto removido") : (s.description || ""),
@@ -47,114 +61,127 @@ function rowToSale(s: any, prodMap: Map<string, string>): Sale {
     paymentHistory: (Array.isArray(s.payment_history) ? s.payment_history : []) as unknown as SalePaymentRecord[],
     locadorId: s.locador_id || null,
     category: (s as any).category || null,
-  };
+  }));
 }
 
-// ---------------------------------------------------------------------------
-// Fase 6 — TanStack Query shared cache para products/sales.
-// ---------------------------------------------------------------------------
-export async function fetchProductsData(): Promise<Product[]> {
-  if (import.meta.env.DEV) console.debug("[useProducts fetch:start]", { resource: "products" });
-  const startedAt = performance.now();
-  const { data } = await supabase
-    .from("products").select(PRODUCT_COLUMNS).order("created_at", { ascending: false });
-  if (import.meta.env.DEV) console.debug("[useProducts fetch:end]", { resource: "products", rows: data?.length ?? 0, ms: Math.round(performance.now() - startedAt) });
-  if (!data) return [];
-  return (data as any[]).map(rowToProduct);
-}
-
-export async function fetchSalesData(): Promise<{ sales: Sale[]; productNameMap: Record<string, string> }> {
-  if (import.meta.env.DEV) console.debug("[useProducts fetch:start]", { resource: "sales" });
-  const startedAt = performance.now();
+async function fetchProductsAndSales(): Promise<Bundle> {
   const [prodRes, salesRes] = await Promise.all([
-    supabase.from("products").select("id, name"),
+    supabase.from("products").select(PRODUCT_COLUMNS).order("created_at", { ascending: false }),
     supabase.from("sales").select(SALE_COLUMNS).order("created_at", { ascending: false }),
   ]);
-  const prodMap = new Map<string, string>(((prodRes.data as any[]) || []).map((p) => [p.id, p.name]));
-  const sales = salesRes.data ? (salesRes.data as any[]).map((s) => rowToSale(s, prodMap)) : [];
-  const productNameMap: Record<string, string> = {};
-  prodMap.forEach((v, k) => { productNameMap[k] = v; });
-  if (import.meta.env.DEV) console.debug("[useProducts fetch:end]", { resource: "sales", rows: sales.length, ms: Math.round(performance.now() - startedAt) });
-  return { sales, productNameMap };
-}
-
-export function productsQueryKey(ownerKey: string | null | undefined) {
-  return ["products", ownerKey ?? "anon"] as const;
-}
-export function salesQueryKey(ownerKey: string | null | undefined) {
-  return ["sales", ownerKey ?? "anon"] as const;
+  if (prodRes.error) throw prodRes.error;
+  if (salesRes.error) throw salesRes.error;
+  const productRows = prodRes.data ?? [];
+  const salesRows = salesRes.data ?? [];
+  cacheRows("products", productRows).catch(() => { /* noop */ });
+  cacheRows("sales", salesRows).catch(() => { /* noop */ });
+  const products = productRows.map(rowToProduct);
+  const sales = rowsToSales(salesRows, productRows);
+  return { products, sales };
 }
 
 export function useProducts(enabled = true) {
   const { user, dataOwnerId } = useAuth();
-  const queryClient = useQueryClient();
-  const ownerKey = dataOwnerId ?? user?.id ?? null;
-  const [debugInstance] = useState(() => `useProducts-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const instanceId = useId();
+  const ownerKey = dataOwnerId ?? user?.id ?? "";
+  const cacheKey = ownerKey ? `products_sales:${ownerKey}` : "";
+  const initial = readSharedResource<Bundle>(cacheKey);
+  const [products, setProducts] = useState<Product[]>(initial?.products ?? []);
+  const [sales, setSales] = useState<Sale[]>(initial?.sales ?? []);
+  const [loading, setLoading] = useState(true);
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [sales, setSales] = useState<Sale[]>([]);
+  // Refs para sempre ler o valor mais recente ao escrever no cache compartilhado.
+  const productsRef = useRef(products);
+  const salesRef = useRef(sales);
+  useEffect(() => { productsRef.current = products; }, [products]);
+  useEffect(() => { salesRef.current = sales; }, [sales]);
 
-  const productsQuery = useQuery({
-    queryKey: productsQueryKey(ownerKey),
-    queryFn: fetchProductsData,
-    enabled: !!user && enabled,
-    staleTime: 30_000,
-  });
-  const salesQuery = useQuery({
-    queryKey: salesQueryKey(ownerKey),
-    queryFn: fetchSalesData,
-    enabled: !!user && enabled,
-    staleTime: 30_000,
-  });
-
+  // Seed imediato do snapshot persistido quando o owner/cacheKey fica disponível.
+  // O fetch remoto continua acontecendo em background pelo `load()` abaixo.
   useEffect(() => {
-    if (productsQuery.data) setProducts(productsQuery.data);
-  }, [productsQuery.data]);
-  useEffect(() => {
-    if (salesQuery.data) setSales(salesQuery.data.sales);
-  }, [salesQuery.data]);
+    if (!cacheKey) return;
+    const persisted = readSharedResource<Bundle>(cacheKey);
+    setProducts(persisted?.products ?? []);
+    setSales(persisted?.sales ?? []);
+    setLoading(false);
+    if (!persisted) {
+      Promise.all([getCachedRows("products", ownerKey), getCachedRows("sales", ownerKey)])
+        .then(([productRows, salesRows]) => {
+          if (productRows.length === 0 && salesRows.length === 0) return;
+          setProducts(productRows.map(rowToProduct));
+          setSales(rowsToSales(salesRows, productRows));
+        })
+        .catch(() => { /* noop */ });
+    }
+  }, [cacheKey, ownerKey]);
 
-  const loading = productsQuery.isLoading || salesQuery.isLoading;
+  const load = useCallback(async () => {
+    if (!user || !cacheKey) return;
+    try {
+      const bundle = await loadSharedResource(cacheKey, fetchProductsAndSales, { staleTime: STALE_MS });
+      setProducts(bundle.products);
+      setSales(bundle.sales);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, cacheKey]);
 
-  const invalidateProducts = useCallback(() => {
-    if (import.meta.env.DEV) console.debug("[useProducts invalidateQueries]", { instance: debugInstance, resource: "products", ownerKey });
-    queryClient.invalidateQueries({ queryKey: productsQueryKey(ownerKey) });
-  }, [queryClient, ownerKey, debugInstance]);
-  const invalidateSales = useCallback(() => {
-    if (import.meta.env.DEV) console.debug("[useProducts invalidateQueries]", { instance: debugInstance, resource: "sales", ownerKey });
-    queryClient.invalidateQueries({ queryKey: salesQueryKey(ownerKey) });
-  }, [queryClient, ownerKey, debugInstance]);
-
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    console.debug("[useProducts lifecycle] mount/update", { instance: debugInstance, enabled, ownerKey, userId: user?.id ?? null });
-    return () => console.debug("[useProducts lifecycle] unmount", { instance: debugInstance, enabled, ownerKey, userId: user?.id ?? null });
-  }, [debugInstance, enabled, ownerKey, user?.id]);
-
-  // Realtime — invalida o cache correto por tabela
   useEffect(() => {
     if (!user || !enabled) return;
+    setLoading(true);
+    load();
+  }, [user, enabled, load]);
+
+  // Assina o cache: quando outra tela mutar produtos/vendas, esta reflete.
+  useEffect(() => {
+    if (!cacheKey) return;
+    return subscribeSharedResource(cacheKey, () => {
+      const next = readSharedResource<Bundle>(cacheKey);
+      if (next) {
+        setProducts(next.products);
+        setSales(next.sales);
+      }
+    });
+  }, [cacheKey]);
+
+  // Realtime: invalida + refetch coalescido (loadSharedResource dedup in-flight).
+  useEffect(() => {
+    if (!user || !enabled || !cacheKey || !dataOwnerId) return;
+    const handler = () => {
+      invalidateSharedResource(cacheKey);
+      load();
+    };
     const channel = supabase
-      .channel(`products-sales-realtime-${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
-        if (import.meta.env.DEV) console.debug("[useProducts realtime]", { instance: debugInstance, table: "products", ownerKey });
-        queryClient.invalidateQueries({ queryKey: productsQueryKey(ownerKey) });
-        // Sale mapping depende do nome do produto — refresca também.
-        queryClient.invalidateQueries({ queryKey: salesQueryKey(ownerKey) });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => {
-        if (import.meta.env.DEV) console.debug("[useProducts realtime]", { instance: debugInstance, table: "sales", ownerKey });
-        queryClient.invalidateQueries({ queryKey: salesQueryKey(ownerKey) });
-      })
+      .channel(`products-sales:${dataOwnerId}:${instanceId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products', filter: `user_id=eq.${dataOwnerId}` },
+        handler,
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sales', filter: `user_id=eq.${dataOwnerId}` },
+        handler,
+      )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient, ownerKey, enabled, debugInstance]);
+  }, [user, enabled, cacheKey, dataOwnerId, load, instanceId]);
+
+  // Sincroniza cache compartilhado após updates otimistas locais.
+  const syncCache = useCallback(() => {
+    if (!cacheKey) return;
+    writeSharedResource<Bundle>(cacheKey, {
+      products: productsRef.current,
+      sales: salesRef.current,
+    });
+  }, [cacheKey]);
 
   const addProduct = useCallback(async (p: Omit<Product, "id" | "createdAt">) => {
     assertWritable();
     if (!user || !dataOwnerId) return;
     const tempId = crypto.randomUUID();
     setProducts((prev) => [{ ...p, id: tempId, createdAt: new Date().toISOString() }, ...prev]);
+    syncCache();
 
     const { data, error } = await supabase.from("products").insert({
       user_id: dataOwnerId,
@@ -173,13 +200,14 @@ export function useProducts(enabled = true) {
     } else if (data) {
       setProducts((prev) => prev.map((x) => x.id === tempId ? { ...x, id: data.id, createdAt: data.created_at } : x));
     }
-    invalidateProducts();
-  }, [user, dataOwnerId, invalidateProducts]);
+    syncCache();
+  }, [user, dataOwnerId, syncCache]);
 
   const updateProduct = useCallback(async (id: string, data: Partial<Omit<Product, "id" | "createdAt">>) => {
     assertWritable();
     if (!user) return;
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...data } : p)));
+    syncCache();
     const updateData: Record<string, any> = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.description !== undefined) updateData.description = data.description;
@@ -190,8 +218,7 @@ export function useProducts(enabled = true) {
     if (data.suggestedStock !== undefined) updateData.suggested_stock = data.suggestedStock;
     if (data.active !== undefined) updateData.active = data.active;
     await supabase.from("products").update(updateData as any).eq("id", id);
-    invalidateProducts();
-  }, [user, invalidateProducts]);
+  }, [user, syncCache]);
 
   const deleteProduct = useCallback(async (id: string) => {
     assertWritable();
@@ -200,10 +227,9 @@ export function useProducts(enabled = true) {
     // Mantém as vendas associadas; o FK no banco agora é ON DELETE SET NULL,
     // então o product_id da venda fica nulo, mas o histórico de venda é preservado.
     setSales((prev) => prev.map((s) => (s.productId === id ? { ...s, productId: undefined } : s)));
+    syncCache();
     await supabase.from("products").delete().eq("id", id);
-    invalidateProducts();
-    invalidateSales();
-  }, [user, invalidateProducts, invalidateSales]);
+  }, [user, syncCache]);
 
 
   const addSale = useCallback(async (s: Omit<Sale, "id">) => {
@@ -235,6 +261,7 @@ export function useProducts(enabled = true) {
         setProducts((prev) => prev.map((p) => (p.id === s.productId ? { ...p, stock: newStock } : p)));
       }
     }
+    syncCache();
 
     const { data, error } = await supabase.from("sales").insert({
       user_id: dataOwnerId,
@@ -266,8 +293,10 @@ export function useProducts(enabled = true) {
           setProducts((prev) => prev.map((p) => (p.id === s.productId ? { ...p, stock: product.stock } : p)));
         }
       }
+      syncCache();
     } else if (data) {
       setSales((prev) => prev.map((x) => x.id === tempId ? { ...x, id: data.id } : x));
+      syncCache();
       if (s.productId) {
         const product = products.find((p) => p.id === s.productId);
         if (product) {
@@ -307,9 +336,7 @@ export function useProducts(enabled = true) {
         }
       }
     }
-    invalidateSales();
-    invalidateProducts();
-  }, [user, dataOwnerId, products, invalidateSales, invalidateProducts]);
+  }, [user, dataOwnerId, products, syncCache]);
 
 
   const updateSale = useCallback(async (id: string, data: Partial<Omit<Sale, "id">>) => {
@@ -319,6 +346,7 @@ export function useProducts(enabled = true) {
 
 
     setSales((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
+    syncCache();
     const updateData: Record<string, any> = {};
     if (data.description !== undefined) updateData.description = data.description;
     if (data.customerName !== undefined) updateData.customer_name = data.customerName;
@@ -339,8 +367,7 @@ export function useProducts(enabled = true) {
     if (data.locadorId !== undefined) updateData.locador_id = data.locadorId;
     if (data.category !== undefined) updateData.category = data.category;
     await supabase.from("sales").update(updateData as any).eq("id", id);
-    invalidateSales();
-  }, [user, sales, invalidateSales]);
+  }, [user, sales, syncCache]);
 
   const deleteSale = useCallback(async (id: string) => {
     assertWritable();
@@ -358,10 +385,9 @@ export function useProducts(enabled = true) {
         }
       }
     }
+    syncCache();
     await supabase.from("sales").delete().eq("id", id);
-    invalidateSales();
-    invalidateProducts();
-  }, [user, sales, products, invalidateSales, invalidateProducts]);
+  }, [user, sales, products, syncCache]);
 
   return { products, sales, loading, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale };
 }

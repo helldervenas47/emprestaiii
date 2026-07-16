@@ -8,15 +8,25 @@ const TEST_SITE_KEY = "1x00000000000000000000AA";
 
 const isPreviewEnv = (() => {
   if (typeof window === "undefined") return false;
-  let inIframe = false;
-  try { inIframe = window.self !== window.top; } catch { inIframe = true; }
+
+  // Apps nativos (Capacitor) rodam em localhost/capacitor:// mas são PRODUÇÃO.
+  const isNative =
+    !!(window as any).Capacitor?.isNativePlatform?.() ||
+    window.location.protocol === "capacitor:" ||
+    window.location.protocol === "ionic:";
+  if (isNative) return false;
+
+  // Usa chave de teste apenas em preview do editor Lovable, dev local
+  // e deploys .vercel.app. Publicado (.lovable.app / domínio custom) usa a real.
   const host = window.location.hostname;
-  const isPreviewHost =
+  return (
     host.includes("id-preview--") ||
+    host.includes("preview--") ||
     host.includes("lovableproject.com") ||
+    host.endsWith(".vercel.app") ||
     host === "localhost" ||
-    host === "127.0.0.1";
-  return inIframe || isPreviewHost;
+    host === "127.0.0.1"
+  );
 })();
 
 export const TURNSTILE_SITE_KEY = isPreviewEnv ? TEST_SITE_KEY : REAL_SITE_KEY;

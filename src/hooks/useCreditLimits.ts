@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { DEFAULT_INITIAL_LIMIT } from "@/lib/creditLimit";
@@ -63,6 +63,7 @@ const CREDIT_LIMIT_HISTORY_COLUMNS =
 
 export function useCreditLimits() {
   const { user, dataOwnerId } = useAuth();
+  const instanceId = useId();
   const [limits, setLimits] = useState<CreditLimit[]>([]);
 
   const fetchLimits = useCallback(async () => {
@@ -80,17 +81,17 @@ export function useCreditLimits() {
   useEffect(() => {
     if (!user) return;
     const ch = supabase
-      .channel(`credit-limits-${user.id}-${Math.random().toString(36).slice(2)}`)
+      .channel(`credit-limits:${user.id}:${instanceId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "credit_limits" },
+        { event: "*", schema: "public", table: "credit_limits", filter: `user_id=eq.${user.id}` },
         () => fetchLimits(),
       )
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [user, fetchLimits]);
+  }, [user, fetchLimits, instanceId]);
 
   const ensureLimit = useCallback(
     async (clientId: string): Promise<CreditLimit | null> => {

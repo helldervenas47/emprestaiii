@@ -1,34 +1,29 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 
 export function useDataOwner() {
-  const { user, dataOwnerId: authOwnerId } = useAuth();
-  const userId = user?.id ?? null;
-  const [dataOwnerId, setDataOwnerId] = useState<string | null>(authOwnerId ?? null);
+  const { user } = useAuth();
+  const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!userId) {
+    if (!user) {
       setDataOwnerId(null);
       return;
     }
-    // Prefer the value already resolved by useAuth to avoid a duplicate RPC.
-    if (authOwnerId) {
-      setDataOwnerId(authOwnerId);
-      return;
-    }
 
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase.rpc("get_data_owner_id", { _user_id: userId });
-      if (cancelled) return;
-      setDataOwnerId(error || !data ? userId : (data as string));
-    })();
-
-    return () => {
-      cancelled = true;
+    const fetch = async () => {
+      // Use SQL function so "view as" sessions and user_owner are both respected.
+      const { data, error } = await supabase.rpc("get_data_owner_id", { _user_id: user.id });
+      if (error || !data) {
+        setDataOwnerId(user.id);
+      } else {
+        setDataOwnerId(data as string);
+      }
     };
-  }, [userId, authOwnerId]);
+
+    fetch();
+  }, [user]);
 
   return dataOwnerId;
 }

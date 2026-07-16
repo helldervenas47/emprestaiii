@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, lazy, Suspense } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from "react";
 import {
   Plus,
   Users,
@@ -40,6 +40,7 @@ import {
   Barcode,
   UserPlus,
   Sparkles,
+  History,
 } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
@@ -62,7 +63,7 @@ import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext"
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 // Lazy load heavy components
 const HelpChat = lazy(() => import("@/components/HelpChat"));
@@ -124,8 +125,8 @@ const VehicleExpenseForm = lazy(() =>
 const NotificationSettings = lazy(() =>
   import("@/components/NotificationSettings").then((m) => ({ default: m.NotificationSettings })),
 );
-const MonthlyGoalsManager = lazy(() =>
-  import("@/components/MonthlyGoalsManager").then((m) => ({ default: m.MonthlyGoalsManager })),
+const MetasTab = lazy(() =>
+  import("@/components/metas/MetasTab").then((m) => ({ default: m.MetasTab })),
 );
 const AccountantReport = lazy(() =>
   import("@/components/AccountantReport").then((m) => ({ default: m.AccountantReport })),
@@ -186,6 +187,7 @@ import { useClients } from "@/hooks/useClients";
 import { useAutoAdjustCreditLimits } from "@/hooks/useAutoAdjustCreditLimits";
 import { useProducts } from "@/hooks/useProducts";
 import { useExpenses } from "@/hooks/useExpenses";
+import { useIncomes } from "@/hooks/useIncomes";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 
@@ -196,6 +198,7 @@ type Tab =
   | "products"
   | "vehicles"
   | "overdue"
+  | "metas"
   | "expenses"
   | "boletos"
   | "salary"
@@ -207,7 +210,7 @@ type Tab =
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
-type OverdueSubTab = "metas" | "bot-telegram" | "whatsapp-cobranca";
+type OverdueSubTab = "bot-telegram" | "whatsapp-cobranca";
 type ExpenseSubTab = "business" | "personal";
 type PersonalSubTab = "expenses" | "cards";
 type IncExpTab = "incomes" | "expenses";
@@ -225,6 +228,7 @@ const tabConfig = [
   { id: "accountant" as Tab, label: "Contador", icon: Calculator },
 
   { id: "overdue" as Tab, label: "Relatório", icon: Folders },
+  { id: "metas" as Tab, label: "Metas", icon: Target },
   { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
   { id: "system" as Tab, label: "Sistema", icon: Sliders },
   { id: "help" as Tab, label: "Assistente IA", icon: Sparkles },
@@ -315,6 +319,14 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Use para priorizar suas cobranças diárias.",
     ],
   },
+  metas: {
+    title: "Metas",
+    items: [
+      "Evolução Anual: gráfico de cada meta com barras (Realizado) e linha (Meta).",
+      "Configuração de Metas: cadastro, edição e regras de herança das metas.",
+      "Todos os cálculos usam a mesma fonte do Dashboard.",
+    ],
+  },
   salary: {
     title: "Salário",
     items: [
@@ -389,25 +401,10 @@ const Index = () => {
   const { signOut, role, allowedTabs, linkedClientIds, loading, user } = useAuth();
   const roleAllowedTabs = useMyRoleTabs(role);
   const navigate = useNavigate();
-  const location = useLocation();
   const { subscription, isActive: hasActiveSub } = useSubscription();
   const { branding: appBranding } = useAppBranding();
   const brandName = appBranding.brand_name;
   const preserveScrollYRef = useRef<number | null>(null);
-  const indexMountIdRef = useRef(`index-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  const renderCountRef = useRef(0);
-  renderCountRef.current += 1;
-
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    const mountId = indexMountIdRef.current;
-    console.debug("[Index lifecycle] mount", { mountId });
-    return () => {
-      console.debug("[Index lifecycle] unmount", { mountId });
-    };
-  }, []);
-
-  
   const [preservedPageHeight, setPreservedPageHeight] = useState<number | null>(null);
 
   // Tab state - declared early so hooks can use it for lazy loading
@@ -431,10 +428,6 @@ const Index = () => {
     setPreservedPageHeight(document.documentElement.scrollHeight || document.body.scrollHeight || null);
     setTabState(t);
   };
-
-
-
-
 
   useLayoutEffect(() => {
     const y = preserveScrollYRef.current;
@@ -468,7 +461,9 @@ const Index = () => {
       const detail = (e as CustomEvent).detail || {};
       const { tab: targetTab, subTab, scrollTo } = detail;
       if (targetTab) setTab(targetTab);
-      if (subTab && targetTab === "overdue") setOverdueSubTab(subTab);
+      if (targetTab === "overdue" && subTab) {
+        setOverdueSubTab(subTab === "whatsapp-cobranca" ? "whatsapp-cobranca" : "bot-telegram");
+      }
       if (scrollTo) {
         // Wait for tab content to mount
         setTimeout(() => {
@@ -489,13 +484,6 @@ const Index = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const initialLoanCategory = urlParams.get("filter") as any;
   const initialLoanView = urlParams.get("view") as any;
-  // Defer heavy hooks until their tabs are active. Loans/Clients são consumidos
-  // por quase todas as abas financeiras (overview, dashboard, calendar, overdue,
-  // accountant, expenses, products, vehicles, clients, salary). Só liberamos
-  // skip para abas totalmente independentes (boletos, help, system).
-  const NON_FINANCIAL_TABS = new Set<Tab>(["boletos", "help", "system"]);
-  const needsLoans = !NON_FINANCIAL_TABS.has(tab);
-  const needsClients = !NON_FINANCIAL_TABS.has(tab);
   const {
     loans,
     payments,
@@ -511,41 +499,24 @@ const Index = () => {
     deleteLoan,
     deletePayment,
     saveSchedule,
-  } = useLoans(needsLoans);
-  const { clients, addClient, deleteClient, updateClient } = useClients(needsClients);
+  } = useLoans();
+  const { clients, addClient, deleteClient, updateClient } = useClients();
 
   // Automatic credit-limit adjustment per client (auto mode only)
   useAutoAdjustCreditLimits(clients, loans, payments);
 
-  const needsProducts =
-    tab === "overview" || tab === "products" || tab === "vehicles" || tab === "calendar" || tab === "settings";
-  const needsExpenses =
-    tab === "overview" ||
-    tab === "expenses" ||
-    tab === "vehicles" ||
-    tab === "overdue" ||
-    tab === "accountant" ||
-    tab === "settings";
+  // Prefetch financeiro/veículos assim que o app abre. As telas continuam usando
+  // os mesmos hooks/caches, mas os dados já chegam antes do usuário trocar de aba.
+  const needsProducts = true;
+  const needsExpenses = true;
   const needsVehicles = tab === "clients" || tab === "vehicles";
   const needsLocadores = tab === "vehicles" || tab === "settings" || tab === "clients";
-
-  if (import.meta.env.DEV) {
-    console.debug("[Index render]", {
-      mountId: indexMountIdRef.current,
-      renderCount: renderCountRef.current,
-      tab,
-      needsLoans,
-      needsClients,
-      needsProducts,
-      needsExpenses,
-      needsVehicles,
-      needsLocadores,
-    });
-  }
 
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } =
     useProducts(needsProducts);
   const { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense } = useExpenses(needsExpenses);
+  const { incomes: prefetchedIncomes } = useIncomes(true);
+  void prefetchedIncomes;
   const {
     vehicles: registeredVehicles,
     add: addVehicle,
@@ -557,7 +528,13 @@ const Index = () => {
   const [loanSubTab, setLoanSubTab] = useState<"loans" | "history">("loans");
   const [vehicleSubTab, setVehicleSubTab] = useState<VehicleSubTab>("veiculos");
   const [planMgmtSubTab, setPlanMgmtSubTab] = useState<PlanMgmtSubTab>("subscribers");
-  const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("metas");
+  const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("whatsapp-cobranca");
+  // Ao sair da aba Relatório, reinicia o sub-tab para "Bot Telegram"
+  // (assim, na próxima vez que abrir, ela começa lá — sem sobrescrever
+  // sub-tabs definidos por deep links via app:navigate).
+  useEffect(() => {
+    if (tab !== "overdue") setOverdueSubTab("whatsapp-cobranca");
+  }, [tab]);
   const [expenseSubTab, setExpenseSubTab] = useState<ExpenseSubTab>("personal");
   const [personalSubTab, setPersonalSubTab] = useState<PersonalSubTab>("expenses");
   const [incExpTab, setIncExpTab] = useState<IncExpTab>("incomes");
@@ -691,34 +668,35 @@ const Index = () => {
     };
   }, [isMobileOrTablet]);
 
-  const visibleTabs = useMemo(() => {
-    return tabConfig.filter((t) => {
-      if (loading) return false;
-      // "Ajuda" é sempre visível para qualquer usuário logado.
-      if (t.id === "help") return !!user;
-      // Tabs marcadas como adminOnly são exclusivas para administradores
-      if ((t as any).adminOnly && role !== "admin") return false;
-      // Visualizador: aba de Configurações é ocultada por completo (apenas leitura
-      // não tem nada acionável aqui; backups, telegram, branding, etc. exigem escrita).
-      if (t.id === "settings" && role === "visualizador") return false;
-      // Admin sempre vê todas as abas (ignora plano e demais restrições).
-      if (role === "admin") return true;
-      if (!user) return false;
-      // Permissão por papel (role_tab_permissions): se a aba não está liberada
-      // para o papel do usuário, esconde.
-      if (Array.isArray(roleAllowedTabs) && !roleAllowedTabs.includes(t.id)) return false;
-      // Permissão por usuário (user_tab_permissions): se houver lista, exigir presença.
-      const isLegacyClientPlanTabs =
-        role === "cliente" &&
-        Array.isArray(allowedTabs) &&
-        allowedTabs.length > 0 &&
-        allowedTabs.every((id) => LEGACY_CLIENT_PLAN_TAB_IDS.has(id));
-      if (Array.isArray(allowedTabs) && !isLegacyClientPlanTabs) return allowedTabs.includes(t.id);
-      return true;
-    });
-  }, [loading, user, role, roleAllowedTabs, allowedTabs]);
-  const visibleTabIds = useMemo(() => visibleTabs.map((t) => t.id), [visibleTabs]);
-  const visibleTabsSignature = useMemo(() => visibleTabIds.join("|"), [visibleTabIds]);
+  const visibleTabs = React.useMemo(() => tabConfig.filter((t) => {
+    if (loading) return false;
+    // "Ajuda" é sempre visível para qualquer usuário logado.
+    if (t.id === "help") return !!user;
+    // Tabs marcadas como adminOnly são exclusivas para administradores
+    if ((t as any).adminOnly && role !== "admin") return false;
+    // Visualizador: aba de Configurações é ocultada por completo (apenas leitura
+    // não tem nada acionável aqui; backups, telegram, branding, etc. exigem escrita).
+    if (t.id === "settings" && role === "visualizador") return false;
+    // Admin sempre vê todas as abas (ignora plano e demais restrições).
+    if (role === "admin") return true;
+    if (!user) return false;
+    // Permissão por papel (role_tab_permissions): se a aba não está liberada
+    // para o papel do usuário, esconde.
+    if (Array.isArray(roleAllowedTabs) && !roleAllowedTabs.includes(t.id)) return false;
+    // Permissão por usuário (user_tab_permissions): se houver lista, exigir presença.
+    const isLegacyClientPlanTabs =
+      role === "cliente" &&
+      Array.isArray(allowedTabs) &&
+      allowedTabs.length > 0 &&
+      allowedTabs.every((id) => LEGACY_CLIENT_PLAN_TAB_IDS.has(id));
+    if (Array.isArray(allowedTabs) && !isLegacyClientPlanTabs) return allowedTabs.includes(t.id);
+    return true;
+  }), [loading, user, role, roleAllowedTabs, allowedTabs]);
+
+  const visibleTabsSignature = React.useMemo(
+    () => visibleTabs.map((t) => t.id).join(","),
+    [visibleTabs],
+  );
 
   const isAjudaAllowed = !loading && !!user;
 
@@ -727,33 +705,27 @@ const Index = () => {
   // exibimos página de "acesso negado" em vez de redirecionar silenciosamente.
   const tabAccessDenied = !loading && tabConfig.some((t) => t.id === tab) && !visibleTabs.some((t) => t.id === tab);
 
-
   // Itens da barra inferior mobile: prioriza pinnedTabs (ordem do usuário),
   // completa com as demais abas visíveis e limita a 4 (o 5º slot é "Mais").
-  const bottomItems = useMemo(() => {
+  const bottomItems = (() => {
     const pinnedVisible = pinnedTabs
       .map((id) => tabConfig.find((t) => t.id === id))
       .filter((t): t is (typeof tabConfig)[number] => !!t && visibleTabs.some((v) => v.id === t.id));
     const remaining = visibleTabs.filter((v) => !pinnedVisible.some((p) => p.id === v.id));
     return [...pinnedVisible, ...remaining].slice(0, 4);
-  }, [pinnedTabs, visibleTabs]);
-  const bottomItemIds = useMemo(() => bottomItems.map((i) => i.id), [bottomItems]);
+  })();
+  const bottomItemIds = bottomItems.map((i) => i.id);
 
   useEffect(() => {
-    // Enquanto auth/permissões estão carregando, não redirecionamos.
     if (loading) return;
     if (visibleTabs.length === 0) return;
-    // Só redireciona se a aba atual sumiu da configuração (ex: feature removida).
-    // Se existe na configuração mas o usuário não tem permissão, mantemos
-    // a aba selecionada para renderizar a tela de "acesso negado".
-    if (tabConfig.some((item) => item.id === tab)) return;
+    const currentExists = visibleTabs.some((v) => v.id === tab);
+    if (currentExists) return;
     const next = visibleTabs[0].id;
-    if (next === tab) return;
-    setTab(next);
-    // Depende apenas da assinatura estável dos ids visíveis + tab atual + loading.
+    if (next !== tab) setTab(next);
+    // visibleTabsSignature intentionally used instead of visibleTabs for stable identity
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, visibleTabsSignature, loading]);
-
+  }, [loading, tab, visibleTabsSignature]);
 
   // Extrato agora abre como dialog (não é mais aba)
   const [ledgerOpen, setLedgerOpen] = useState(false);
@@ -886,13 +858,13 @@ const Index = () => {
         <SubscriptionBanner />
         <TrialBanner />
 
-        <header
-          className="border-b border-border/30 glass sticky top-0 z-40"
-          style={{ paddingTop: "env(safe-area-inset-top)" }}
-        >
-          <div className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-3 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              {isMobileOrTablet && !isMobile && (
+        {!isMobile && (
+          <header
+            className="border-b border-border/30 glass sticky top-0 z-40"
+            style={{ paddingTop: "env(safe-area-inset-top)" }}
+          >
+            <div className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                 <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
                   <SheetTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -972,121 +944,98 @@ const Index = () => {
                     </div>
                   </SheetContent>
                 </Sheet>
-              )}
-              <AppLogo area="header" alt={brandName} className="w-auto hidden md:block" />
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-foreground tracking-tight">{brandName}</h1>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
+                <AppLogo area="header" alt={brandName} className="w-auto hidden md:block" />
+                <div className="hidden sm:block">
+                  <h1 className="text-lg font-bold text-foreground tracking-tight">{brandName}</h1>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-0.5 sm:gap-1.5 justify-end">
+                {!isMobileOrTablet && (
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 text-xs text-muted-foreground mr-1">
+                    <User className="h-3 w-3" />
+                    <span className="max-w-[120px] truncate">
+                      {user?.user_metadata?.display_name || user?.email || "—"}
+                    </span>
+                    {role && (
+                      <Badge
+                        variant={role === "admin" ? "default" : role === "visualizador" ? "outline" : "secondary"}
+                        className="text-[10px] px-1.5 py-0"
+                      >
+                        {role === "admin"
+                          ? "Admin"
+                          : role === "gerente"
+                            ? "Gerente"
+                            : role === "cliente"
+                              ? "Cliente"
+                              : "Vis."}
+                      </Badge>
+                    )}
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors border-primary/40 text-primary"
+                      onClick={() => navigate("/planos")}
+                    >
+                      {hasActiveSub && subscription
+                        ? subscription.product_id === "basico_plan"
+                          ? "Básico"
+                          : subscription.product_id === "profissional_plan"
+                            ? "Profissional"
+                            : subscription.product_id === "empresarial_plan"
+                              ? "Empresarial"
+                              : "Plano"
+                        : "Sem Plano"}
+                    </Badge>
+                  </div>
+                )}
+                <HideValuesToggle />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleHardRefresh}
+                  disabled={refreshing}
+                  className="inline-flex h-9 w-9"
+                  title="Atualizar"
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                </Button>
+                <div className="inline-flex">
+                  <NotificationsFeedButton
+                    loans={filteredLoans}
+                    payments={filteredPayments}
+                    installmentSchedules={filteredInstallments}
+                    clients={filteredClients}
+                    onSelectLoan={(loanId) => {
+                      setTab("dashboard");
+                      try {
+                        sessionStorage.setItem("highlightLoanId", loanId);
+                      } catch {}
+                    }}
+                  />
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleTheme}
+                  className="inline-flex h-9 w-9"
+                  title={dark ? "Modo claro" : "Modo escuro"}
+                >
+                  {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </Button>
+                <Button variant="ghost" size="icon" onClick={signOut} className="inline-flex h-9 w-9" title="Sair">
+                  <LogOut className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-            <div className="flex items-center gap-0.5 sm:gap-1.5 justify-end">
-              {!isMobileOrTablet && (
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 text-xs text-muted-foreground mr-1">
-                  <User className="h-3 w-3" />
-                  <span className="max-w-[120px] truncate">
-                    {user?.user_metadata?.display_name || user?.email || "—"}
-                  </span>
-                  {role && (
-                    <Badge
-                      variant={role === "admin" ? "default" : role === "visualizador" ? "outline" : "secondary"}
-                      className="text-[10px] px-1.5 py-0"
-                    >
-                      {role === "admin"
-                        ? "Admin"
-                        : role === "gerente"
-                          ? "Gerente"
-                          : role === "cliente"
-                            ? "Cliente"
-                            : "Vis."}
-                    </Badge>
-                  )}
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors border-primary/40 text-primary"
-                    onClick={() => navigate("/planos")}
-                  >
-                    {hasActiveSub && subscription
-                      ? subscription.product_id === "basico_plan"
-                        ? "Básico"
-                        : subscription.product_id === "profissional_plan"
-                          ? "Profissional"
-                          : subscription.product_id === "empresarial_plan"
-                            ? "Empresarial"
-                            : "Plano"
-                      : "Sem Plano"}
-                  </Badge>
-                </div>
-              )}
-              {/* Acessos rápidos do topo: visíveis em tablet e desktop; em mobile ficam disponíveis em "Mais" */}
-              {!isMobile && (
-                <>
-                  <HideValuesToggle />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleHardRefresh}
-                    disabled={refreshing}
-                    className="inline-flex h-9 w-9"
-                    title="Atualizar"
-                  >
-                    <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-                  </Button>
-                  <div className="inline-flex">
-                    <NotificationsFeedButton
-                      loans={filteredLoans}
-                      payments={filteredPayments}
-                      installmentSchedules={filteredInstallments}
-                      clients={filteredClients}
-                      onSelectLoan={(loanId) => {
-                        setTab("dashboard");
-                        try {
-                          sessionStorage.setItem("highlightLoanId", loanId);
-                        } catch {}
-                      }}
-                    />
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={toggleTheme}
-                    className="inline-flex h-9 w-9"
-                    title={dark ? "Modo claro" : "Modo escuro"}
-                  >
-                    {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={signOut} className="inline-flex h-9 w-9" title="Sair">
-                    <LogOut className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {!isMobileOrTablet && (
-            <div className="max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-8 pb-2">
-              <nav className="flex gap-1 overflow-x-auto scrollbar-hide bg-muted/60 p-1 rounded-xl border border-border/50">
-                {visibleTabs.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setTab(t.id)}
-                    className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-semibold rounded-lg transition-all whitespace-nowrap uppercase tracking-wide ${
-                      tab === t.id
-                        ? "bg-background !text-primary shadow-sm"
-                        : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                    }`}
-                  >
-                    <t.icon className={`h-3.5 w-3.5 shrink-0 ${tab === t.id ? "!text-primary" : ""}`} />
-                    <span className="hidden xs:inline">{t.label}</span>
-                  </button>
-                ))}
-              </nav>
-            </div>
-          )}
-        </header>
+          </header>
+        )}
 
         <main
-          className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-6 space-y-4 sm:space-y-6"
-          style={preservedPageHeight ? { minHeight: `${preservedPageHeight}px` } : undefined}
+          className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 pb-2 sm:py-6 space-y-4 sm:space-y-6"
+          style={{
+            ...(preservedPageHeight ? { minHeight: `${preservedPageHeight}px` } : {}),
+            paddingTop: isMobile ? "calc(env(safe-area-inset-top) + 0.25rem)" : undefined,
+          }}
         >
           {(() => {
             const current = tabConfig.find((t) => t.id === tab);
@@ -1410,7 +1359,6 @@ const Index = () => {
                     <div>
                       <nav className="flex gap-1 mb-4 bg-muted/60 p-1 rounded-xl border border-border/50 overflow-x-auto scrollbar-hide">
                         {([
-                          { id: "metas", label: "Metas", Icon: Target },
                           { id: "bot-telegram", label: "Bot Telegram", Icon: Send },
                           { id: "whatsapp-cobranca", label: "Cobrança WhatsApp", Icon: MessageCircle },
                         ] as const).map(({ id, label, Icon }) => {
@@ -1431,7 +1379,6 @@ const Index = () => {
                           );
                         })}
                       </nav>
-                      {overdueSubTab === "metas" && <MonthlyGoalsManager readOnly={isReadOnly} />}
                       {overdueSubTab === "bot-telegram" && <TelegramBotsHub />}
                       {overdueSubTab === "whatsapp-cobranca" && (
                         <div className="space-y-4">
@@ -1439,6 +1386,20 @@ const Index = () => {
                         </div>
                       )}
                     </div>
+                  </SubscriptionGate>
+                )}
+                {tab === "metas" && (
+                  <SubscriptionGate requiredTier={2} featureName="Metas">
+                    <Suspense fallback={<div className="py-12 text-center text-sm text-muted-foreground">Carregando…</div>}>
+                      <MetasTab
+                        loans={filteredLoans}
+                        payments={filteredPayments}
+                        expenses={expenses.filter((e) => (e.scope ?? "business") === "business" && !isVehicleExpenseForVehicles(e))}
+                        clients={clients}
+                        installmentSchedules={filteredInstallments}
+                        readOnly={isReadOnly}
+                      />
+                    </Suspense>
                   </SubscriptionGate>
                 )}
                 {tab === "calendar" && (
@@ -1596,6 +1557,24 @@ const Index = () => {
             <Receipt className="h-4 w-4 relative" strokeWidth={2.5} />
           </button>
         )}
+        {tab === "vehicles" && (
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("open-vehicle-history"))}
+            aria-label="Histórico de Pagamentos"
+            title="Histórico de Pagamentos"
+            className="fixed z-50 h-10 w-10 md:h-11 md:w-11 rounded-full flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200 hover:scale-105 active:scale-95 bg-card text-foreground border border-border shadow-md hover:shadow-lg"
+            style={{
+              right: `calc(env(safe-area-inset-right) + 16px)`,
+              bottom: isMobile
+                ? `calc(env(safe-area-inset-bottom) + 76px + 58px + 52px)`
+                : `calc(env(safe-area-inset-bottom) + 20px + 64px + 56px)`,
+            }}
+          >
+            <History className="h-4 w-4 relative" strokeWidth={2.5} />
+          </button>
+        )}
+
         {!isReadOnly && tab === "products" && productsSubTab === "estoque" && (
           <button
             type="button"

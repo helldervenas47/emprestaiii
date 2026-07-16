@@ -30,13 +30,10 @@ export function useRoleTabPermissions() {
 
   useEffect(() => {
     refresh();
-    const ch = supabase
-      .channel("role_tab_permissions_all")
-      .on("postgres_changes" as any,
-        { event: "*", schema: "public", table: "role_tab_permissions" },
-        () => refresh())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    // Realtime removido (P0-02 egress): abas mudam raramente; escuta evento local.
+    const handler = () => refresh();
+    window.addEventListener("role-tab-permissions:changed", handler);
+    return () => window.removeEventListener("role-tab-permissions:changed", handler);
   }, [refresh]);
 
   const setAllowed = useCallback(async (role: string, tabId: string, allowed: boolean) => {
@@ -54,6 +51,7 @@ export function useRoleTabPermissions() {
       if (error) throw error;
     }
     await refresh();
+    window.dispatchEvent(new CustomEvent("role-tab-permissions:changed"));
   }, [refresh]);
 
   const allowedFor = useCallback(
@@ -71,28 +69,22 @@ export function useMyRoleTabs(role: string | null) {
   useEffect(() => {
     let cancelled = false;
     if (!role) { setTabs(null); return; }
-    (async () => {
+    const loadOnce = async () => {
       const { data, error } = await supabase
         .from("role_tab_permissions" as any)
         .select("tab_id")
         .eq("role", role);
       const loadedTabs = error ? [] : ((data as any) || []).map((r: any) => r.tab_id);
       if (!cancelled) setTabs(normalizeRoleTabs(role, loadedTabs));
-    })();
-    const ch = supabase
-      .channel(`role_tabs_${role}`)
-      .on("postgres_changes" as any,
-        { event: "*", schema: "public", table: "role_tab_permissions", filter: `role=eq.${role}` },
-        async () => {
-          const { data, error } = await supabase
-            .from("role_tab_permissions" as any)
-            .select("tab_id")
-            .eq("role", role);
-          const loadedTabs = error ? [] : ((data as any) || []).map((r: any) => r.tab_id);
-          if (!cancelled) setTabs(normalizeRoleTabs(role, loadedTabs));
-        })
-      .subscribe();
-    return () => { cancelled = true; supabase.removeChannel(ch); };
+    };
+    loadOnce();
+    // Realtime removido (P0-02 egress): reage a evento local disparado por setAllowed.
+    const handler = () => loadOnce();
+    window.addEventListener("role-tab-permissions:changed", handler);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("role-tab-permissions:changed", handler);
+    };
   }, [role]);
 
   return tabs;

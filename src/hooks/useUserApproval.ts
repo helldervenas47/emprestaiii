@@ -4,42 +4,41 @@ import { useAuth } from "./useAuth";
 
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "none";
 
-const APPROVAL_TIMEOUT_MS = 6000;
-
 export function useUserApproval() {
   const { user } = useAuth();
   const [status, setStatus] = useState<ApprovalStatus>("none");
   const [loading, setLoading] = useState(true);
 
-  const userId = user?.id;
-
   useEffect(() => {
-    if (!userId) {
+    if (!user?.id) {
       setStatus("none");
       setLoading(false);
       return;
     }
 
     let mounted = true;
+    const uid = user.id;
+    const timeout = setTimeout(() => {
+      if (!mounted) return;
+      // Fallback seguro em caso de timeout: assume "none" (não bloqueia app).
+      setStatus("none");
+      setLoading(false);
+    }, 6000);
+
     const fetchStatus = async () => {
       try {
-        const query = (supabase as any)
+        const { data } = await (supabase as any)
           .from("user_approvals")
           .select("status")
-          .eq("user_id", userId)
+          .eq("user_id", uid)
           .maybeSingle();
-
-        const timeout = new Promise<{ data: null }>((resolve) =>
-          setTimeout(() => resolve({ data: null }), APPROVAL_TIMEOUT_MS),
-        );
-
-        const { data } = (await Promise.race([query, timeout])) as { data: { status?: string } | null };
         if (!mounted) return;
         setStatus((data?.status as ApprovalStatus) || "none");
-      } catch {
-        if (!mounted) return;
-        setStatus("none");
+      } catch (error) {
+        console.error("[useUserApproval] fetchStatus error:", error);
+        if (mounted) setStatus("none");
       } finally {
+        clearTimeout(timeout);
         if (mounted) setLoading(false);
       }
     };
@@ -48,10 +47,10 @@ export function useUserApproval() {
 
     // Realtime: user sees own status flip to approved
     const channel = supabase
-      .channel(`approval-self-${userId}`)
+      .channel(`approval-self:${uid}`)
       .on(
         "postgres_changes" as any,
-        { event: "*", schema: "public", table: "user_approvals", filter: `user_id=eq.${userId}` },
+        { event: "*", schema: "public", table: "user_approvals", filter: `user_id=eq.${uid}` },
         (payload: any) => {
           const newStatus = payload.new?.status as ApprovalStatus | undefined;
           if (newStatus) setStatus(newStatus);
@@ -61,9 +60,10 @@ export function useUserApproval() {
 
     return () => {
       mounted = false;
+      clearTimeout(timeout);
       supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [user?.id]);
 
   return { status, loading, isPending: status === "pending", isRejected: status === "rejected" };
 }

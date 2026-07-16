@@ -25,6 +25,7 @@ import {
   CREDIT_CARD_INVOICE_CATEGORY,
 } from "@/lib/creditCardInvoiceTotals";
 import { getAppTimezone, formatYmdInTz } from "@/lib/timezone";
+import { useFinanceComponentDebug } from "@/lib/financeDebug";
 
 type RowOrigin = "income" | "expense" | "sale-full" | "sale-partial";
 
@@ -132,6 +133,7 @@ function buildSortTs(
 const PAGE_SIZE = 30;
 
 export function FinancialStatement() {
+  useFinanceComponentDebug("FinancialStatement");
   const { incomes } = useIncomes();
   const { expenses } = useExpenses();
   const { sales } = useProducts(true);

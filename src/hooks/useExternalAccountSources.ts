@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { getBalances } from "@/lib/balance";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
@@ -15,6 +15,7 @@ import { usePiggyBanks } from "@/hooks/usePiggyBanks";
  *  - reatividade natural do hook de cofrinhos
  */
 export function useExternalAccountSources() {
+  const instanceId = useId();
   const { piggyBanks, balances: piggyBalances } = usePiggyBanks();
 
   const [dashboard, setDashboard] = useState(0);
@@ -65,7 +66,7 @@ export function useExternalAccountSources() {
   useEffect(() => {
     if (!ownerId) return;
     const channel = supabase
-      .channel(`external-balances-${ownerId}`)
+      .channel(`external-balances:${ownerId}:${instanceId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "balance", filter: `user_id=eq.${ownerId}` },
@@ -80,7 +81,7 @@ export function useExternalAccountSources() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [ownerId, reload]);
+  }, [ownerId, reload, instanceId]);
 
   const piggy = useMemo(() => {
     let sum = 0;

@@ -1,93 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { PaddleApiError, getPaddleEnvironment, type PaddleEnvironment } from '../_shared/paddle.ts';
+import { verifyWebhook, EventName, type PaddleEnv } from '../_shared/paddle.ts';
 
 const supabase = createClient(
   Deno.env.get('EXTERNAL_SUPABASE_URL')!,
   Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY')!
 );
-
-// Paddle webhook event names (kept local since the shared paddle helper
-// only exposes API client utilities — PaddleApiError, getPaddleEnvironment,
-// getPaddleBaseUrl, getPaddleApiKey, paddleFetch, getPaddlePrice,
-// listPaddlePrices, formatPaddleUnitPrice — and does NOT export an
-// `EventName` enum/type. We define the event name constants locally.
-const EventName = {
-  SubscriptionCreated: 'subscription.created',
-  SubscriptionUpdated: 'subscription.updated',
-  SubscriptionCanceled: 'subscription.canceled',
-  TransactionCompleted: 'transaction.completed',
-  TransactionPaymentFailed: 'transaction.payment_failed',
-} as const;
-
-type PaddleEnv = PaddleEnvironment;
-
-interface PaddleWebhookEvent {
-  eventType: string;
-  data: any;
-}
-
-// Minimal, dependency-free webhook signature verification + payload parsing.
-// Paddle sends a "Paddle-Signature" header in the format: ts=<timestamp>;h1=<hmac>
-// The HMAC is computed as SHA-256 of `${ts}:${rawBody}` using the webhook secret.
-async function verifyWebhook(req: Request, env: PaddleEnv): Promise<PaddleWebhookEvent> {
-  const rawBody = await req.text();
-
-  const secret = env === 'production'
-    ? Deno.env.get('PADDLE_WEBHOOK_SECRET_PRODUCTION')
-    : Deno.env.get('PADDLE_WEBHOOK_SECRET_SANDBOX') ?? Deno.env.get('PADDLE_WEBHOOK_SECRET');
-
-  const signatureHeader = req.headers.get('paddle-signature') || req.headers.get('Paddle-Signature');
-
-  if (secret && signatureHeader) {
-    const parts = Object.fromEntries(
-      signatureHeader.split(';').map((p) => {
-        const [k, v] = p.split('=');
-        return [k?.trim(), v?.trim()];
-      })
-    );
-    const ts = parts['ts'];
-    const h1 = parts['h1'];
-
-    if (!ts || !h1) {
-      throw new PaddleApiError('Invalid Paddle-Signature header', 400);
-    }
-
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-    const signatureBuffer = await crypto.subtle.sign(
-      'HMAC',
-      key,
-      encoder.encode(`${ts}:${rawBody}`)
-    );
-    const computedHex = Array.from(new Uint8Array(signatureBuffer))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
-
-    if (computedHex !== h1) {
-      throw new PaddleApiError('Webhook signature mismatch', 401);
-    }
-  } else {
-    console.warn('Paddle webhook secret or signature header missing — skipping signature verification.');
-  }
-
-  let payload: any;
-  try {
-    payload = JSON.parse(rawBody);
-  } catch {
-    throw new PaddleApiError('Invalid JSON payload', 400);
-  }
-
-  return {
-    eventType: payload.event_type ?? payload.eventType,
-    data: payload.data,
-  };
-}
 
 // Map product_id from subscription to plan name
 const PRODUCT_TO_PLAN_NAME: Record<string, string> = {
@@ -145,10 +62,7 @@ Deno.serve(async (req) => {
   }
 
   const url = new URL(req.url);
-  const envParam = url.searchParams.get('env');
-  const env: PaddleEnv = envParam === 'production' || envParam === 'sandbox'
-    ? envParam
-    : getPaddleEnvironment();
+  const env = (url.searchParams.get('env') || 'sandbox') as PaddleEnv;
 
   try {
     const event = await verifyWebhook(req, env);
@@ -180,8 +94,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error('Webhook error:', e);
-    const status = e instanceof PaddleApiError ? e.status : 400;
-    return new Response('Webhook error', { status });
+    return new Response('Webhook error', { status: 400 });
   }
 });
 

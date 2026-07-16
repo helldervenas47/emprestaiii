@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { Settings, TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle, ArrowUpRight, ArrowDownRight, PieChart, Percent, Hourglass, BarChart3, Trophy, CalendarClock, CalendarX, LineChart, Gem, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { Settings, TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle, ArrowUpRight, ArrowDownRight, PieChart, Percent, Hourglass, BarChart3, Trophy, CalendarClock, CalendarX, LineChart, Gem, ArrowUp, ArrowDown, Minus, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLoans } from "@/hooks/useLoans";
 import { useProducts } from "@/hooks/useProducts";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
@@ -16,6 +16,7 @@ import { useDashboardPrefs, DEFAULT_EXTRA as PREFS_DEFAULT_EXTRA, DEFAULT_VIS as
 import type { Sale } from "@/types/loan";
 import { PiggyBanksBreakdownDialog } from "./PiggyBanksBreakdownDialog";
 import { StockBreakdownDialog } from "./StockBreakdownDialog";
+import { useFinanceComponentDebug } from "@/lib/financeDebug";
 
 type MaosVisibility = {
   account: boolean;
@@ -85,6 +86,7 @@ function isSalePaid(s: Sale): boolean {
 }
 
 export function ConsolidatedBalanceCards() {
+  useFinanceComponentDebug("ConsolidatedBalanceCards");
   const { loans, installmentSchedules } = useLoans();
   const { sales, products } = useProducts(true);
   const { piggyBanks, deposits: piggyDeposits, balances: piggyBalances } = usePiggyBanks();
@@ -202,7 +204,7 @@ export function ConsolidatedBalanceCards() {
     return null;
   };
 
-  const [prevSnap, setPrevSnap] = useState<Snap | null>(null);
+  const [snapsMap, setSnapsMap] = useState<Record<string, any>>({});
   useEffect(() => {
     try {
       const raw = localStorage.getItem(PATRIMONIO_SNAP_KEY);
@@ -216,6 +218,15 @@ export function ConsolidatedBalanceCards() {
         localStorage.setItem(SEED_FLAG, "1");
       }
 
+      // Seed v2: valores históricos manuais fornecidos pelo usuário (imutáveis).
+      const SEED_FLAG_V2 = "patrimonio.snapshots.seed.v2";
+      if (!localStorage.getItem(SEED_FLAG_V2)) {
+        snaps["2026-05"] = { account: 0, rua: 0, total: 79235.36 };
+        snaps["2026-06"] = { account: 8848.70, rua: 78656.00, total: 87413.76 };
+        localStorage.setItem(PATRIMONIO_SNAP_KEY, JSON.stringify(snaps));
+        localStorage.setItem(SEED_FLAG_V2, "1");
+      }
+
       // Trava o snapshot do mês corrente APENAS no último dia do mês.
       if (isLastDayOfMonth(now) && snaps[currentKey] == null) {
         snaps[currentKey] = { account: contaMaisDinheiro, rua: pendingLoans, total: patrimonioTotal };
@@ -227,19 +238,51 @@ export function ConsolidatedBalanceCards() {
           "patrimonio.current.v1",
           JSON.stringify({ month: currentKey, account: contaMaisDinheiro, rua: pendingLoans, total: patrimonioTotal }),
         );
+        window.dispatchEvent(new Event("patrimonio:snapshots-changed"));
       } catch {}
-      setPrevSnap(normalizeSnap(snaps[prevKey]));
+      setSnapsMap(snaps);
     } catch {
-      setPrevSnap(null);
+      setSnapsMap({});
     }
   }, [patrimonioTotal, contaMaisDinheiro, pendingLoans, currentKey, prevKey]);
 
+  // Seletor de mês para o card "Variação Mensal" (0 = mês atual, -1 = anterior, etc.)
+  const [variacaoMonthOffset, setVariacaoMonthOffset] = useState(0);
+  const selDate = useMemo(
+    () => new Date(now.getFullYear(), now.getMonth() + variacaoMonthOffset, 1),
+    [now, variacaoMonthOffset],
+  );
+  const selKey = monthKey(selDate);
+  const selPrevKey = monthKey(new Date(selDate.getFullYear(), selDate.getMonth() - 1, 1));
+  const selLabel = selDate
+    .toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+    .replace(/^./, (c) => c.toUpperCase())
+    .replace(" de ", "/");
+
+  // "Atual" do mês selecionado: usa valores ao vivo quando é o mês corrente;
+  // caso contrário, o snapshot travado do fim daquele mês.
+  const selCurrentSnap: Snap | null = useMemo(() => {
+    if (selKey === currentKey) {
+      return { account: contaMaisDinheiro, rua: pendingLoans, total: patrimonioTotal };
+    }
+    return normalizeSnap(snapsMap[selKey]);
+  }, [selKey, currentKey, contaMaisDinheiro, pendingLoans, patrimonioTotal, snapsMap]);
+
+  const selPrevSnap: Snap | null = useMemo(() => {
+    if (selPrevKey === currentKey) {
+      return { account: contaMaisDinheiro, rua: pendingLoans, total: patrimonioTotal };
+    }
+    return normalizeSnap(snapsMap[selPrevKey]);
+  }, [selPrevKey, currentKey, contaMaisDinheiro, pendingLoans, patrimonioTotal, snapsMap]);
+
+  const prevSnap = selPrevSnap;
   const prevPatrimonio = prevSnap?.total ?? null;
+  const selTotal = selCurrentSnap?.total ?? null;
 
   const variacaoPct = useMemo(() => {
-    if (prevPatrimonio == null || prevPatrimonio === 0) return null;
-    return ((patrimonioTotal - prevPatrimonio) / Math.abs(prevPatrimonio)) * 100;
-  }, [patrimonioTotal, prevPatrimonio]);
+    if (selTotal == null || prevPatrimonio == null || prevPatrimonio === 0) return null;
+    return ((selTotal - prevPatrimonio) / Math.abs(prevPatrimonio)) * 100;
+  }, [selTotal, prevPatrimonio]);
 
   const variacaoTrend: "up" | "down" | "flat" =
     variacaoPct == null || Math.abs(variacaoPct) < 0.005 ? "flat" : variacaoPct > 0 ? "up" : "down";
@@ -350,19 +393,62 @@ export function ConsolidatedBalanceCards() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={openVariacao} onOpenChange={setOpenVariacao}>
+      <Dialog
+        open={openVariacao}
+        onOpenChange={(o) => {
+          setOpenVariacao(o);
+          if (o) setVariacaoMonthOffset(0);
+        }}
+      >
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <BarChart3 className={`h-4 w-4 ${variacaoColor}`} /> Variação Mensal
             </DialogTitle>
           </DialogHeader>
+
+          {/* Seletor de mês */}
+          <div className="flex items-center justify-center gap-1 sm:gap-2 -mt-1">
+            <button
+              type="button"
+              onClick={() => setVariacaoMonthOffset((v) => v - 1)}
+              className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-accent transition-colors"
+              aria-label="Mês anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setVariacaoMonthOffset(0)}
+              className="text-sm font-medium capitalize min-w-[140px] text-center hover:text-primary transition-colors"
+              title="Voltar ao mês atual"
+            >
+              {selLabel}
+            </button>
+            <button
+              type="button"
+              onClick={() => setVariacaoMonthOffset((v) => v + 1)}
+              className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-accent transition-colors"
+              aria-label="Próximo mês"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+
           <div className="space-y-4">
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Mês Atual</p>
-              <Row label="Saldo em Conta" value={contaMaisDinheiro} />
-              <Row label="Pendente de Empréstimos" value={pendingLoans} />
-              <Row label="Patrimônio" value={patrimonioTotal} />
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                {variacaoMonthOffset === 0 ? "Mês Atual" : "Mês Selecionado"}
+              </p>
+              {selCurrentSnap ? (
+                <>
+                  <Row label="Saldo em Conta" value={selCurrentSnap.account} />
+                  <Row label="Pendente de Empréstimos" value={selCurrentSnap.rua} />
+                  <Row label="Patrimônio" value={selCurrentSnap.total} />
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground py-2">Sem snapshot deste mês.</p>
+              )}
             </div>
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Mês Anterior</p>
@@ -379,8 +465,8 @@ export function ConsolidatedBalanceCards() {
             <div className="pt-3 border-t border-border space-y-1">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold">Diferença</span>
-                <span className={`text-sm font-bold tabular-nums ${prevPatrimonio == null ? "text-muted-foreground" : (patrimonioTotal - prevPatrimonio) >= 0 ? "text-success" : "text-destructive"}`}>
-                  {prevPatrimonio == null ? "—" : `${(patrimonioTotal - prevPatrimonio) >= 0 ? "+" : ""}${formatBRL(patrimonioTotal - prevPatrimonio)}`}
+                <span className={`text-sm font-bold tabular-nums ${selTotal == null || prevPatrimonio == null ? "text-muted-foreground" : (selTotal - prevPatrimonio) >= 0 ? "text-success" : "text-destructive"}`}>
+                  {selTotal == null || prevPatrimonio == null ? "—" : `${(selTotal - prevPatrimonio) >= 0 ? "+" : ""}${formatBRL(selTotal - prevPatrimonio)}`}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -394,6 +480,7 @@ export function ConsolidatedBalanceCards() {
           </div>
         </DialogContent>
       </Dialog>
+
 
 
 

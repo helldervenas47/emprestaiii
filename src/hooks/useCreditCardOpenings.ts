@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDataOwner } from "@/hooks/useDataOwner";
 import { toast } from "sonner";
 import { assertWritable } from "@/lib/readOnlyState";
+import { financeFetchError, financeFetchStart, financeFetchSuccess, financeInvalidate, financeSetState, useFinanceHookDebug } from "@/lib/financeDebug";
 
 export interface InvoiceOpening {
   id: string;
@@ -15,9 +16,9 @@ export interface InvoiceOpening {
 
 const fromRow = (r: any): InvoiceOpening => ({
   id: r.id,
-  cardId: r.card_id ?? r.credit_card_id,
-  cycleKey: r.cycle_key ?? r.month_label,
-  openingAmount: Number(r.opening_amount ?? r.opening_balance ?? 0),
+  cardId: r.card_id,
+  cycleKey: r.cycle_key,
+  openingAmount: Number(r.opening_amount ?? 0),
   notes: r.notes ?? null,
 });
 
@@ -66,7 +67,7 @@ export function cycleKeyFromDate(closingTo: Date): string {
 // esse evento e recarregam.
 const OPENINGS_CHANGED_EVENT = "openings:changed";
 const CREDIT_CARD_OPENING_COLUMNS =
-  "id, card_id, credit_card_id, cycle_key, month_label, opening_amount, opening_balance, notes";
+  "id, card_id, cycle_key, opening_amount, notes";
 type LedgerPaymentMeta = { amount: number; paidDate: string; isFull: boolean };
 
 function notifyOpeningsChanged() {
@@ -74,6 +75,7 @@ function notifyOpeningsChanged() {
 }
 
 export function useCreditCardOpenings() {
+  useFinanceHookDebug("useCreditCardOpenings");
   const { user } = useAuth();
   const ownerId = useDataOwner();
   const [openings, setOpenings] = useState<InvoiceOpening[]>([]);
@@ -82,6 +84,7 @@ export function useCreditCardOpenings() {
 
   const load = useCallback(async () => {
     if (!ownerId) return;
+    financeFetchStart("useCreditCardOpenings", "credit_card_invoice_openings/account_ledger", { ownerId: "present" });
     const [{ data, error }, { data: ledgerRows, error: ledgerError }] = await Promise.all([
       supabase.from("credit_card_invoice_openings").select(CREDIT_CARD_OPENING_COLUMNS),
       supabase
@@ -92,7 +95,29 @@ export function useCreditCardOpenings() {
         .eq("metadata->>kind", "credit_card_invoice_payment"),
     ]);
     if (error) {
-      toast.error("Erro ao carregar faturas iniciais");
+      const err = error as any;
+      console.error("[useCreditCardOpenings] load error (full)", {
+        code: err?.code,
+        message: err?.message,
+        details: err?.details,
+        hint: err?.hint,
+        status: err?.status,
+      });
+      financeFetchError("useCreditCardOpenings", "credit_card_invoice_openings", {
+        message: err?.message,
+        code: err?.code,
+        details: err?.details,
+        hint: err?.hint,
+      });
+      const suffix = err?.code ? ` [${err.code}]` : "";
+      toast.error(`Erro ao carregar faturas iniciais${suffix}`, {
+        description: err?.message || err?.hint || err?.details || undefined,
+      });
+      financeSetState("useCreditCardOpenings", "openings", { rows: 0, reason: "load error" });
+      setOpenings([]);
+      financeSetState("useCreditCardOpenings", "ledgerPayments", { rows: 0, reason: "load error" });
+      setLedgerPayments({});
+      financeSetState("useCreditCardOpenings", "loading", { value: false, reason: "load error" });
       setLoading(false);
       return;
     }
@@ -109,6 +134,7 @@ export function useCreditCardOpenings() {
         ledgerByCycle[key] = { amount, paidDate, isFull };
       }
     }
+    financeSetState("useCreditCardOpenings", "ledgerPayments", { rows: Object.keys(ledgerByCycle).length, ledgerError: Boolean(ledgerError) });
     setLedgerPayments(ledgerByCycle);
     const normalized = (data ?? []).map(fromRow).map((opening) => {
       const ledgerPayment = ledgerByCycle[ledgerKey(opening.cardId, opening.cycleKey)];
@@ -139,19 +165,32 @@ export function useCreditCardOpenings() {
           notes: buildLedgerNotes(null, payment.amount, payment.paidDate, payment.isFull),
         };
       });
+    financeSetState("useCreditCardOpenings", "openings", { rows: normalized.length + syntheticFromLedger.length, dbRows: normalized.length, syntheticRows: syntheticFromLedger.length });
     setOpenings([...normalized, ...syntheticFromLedger]);
     setLoading(false);
+    financeSetState("useCreditCardOpenings", "loading", { value: false });
+    financeFetchSuccess("useCreditCardOpenings", "credit_card_invoice_openings/account_ledger", {
+      openingRows: (data ?? []).length,
+      ledgerRows: ((ledgerRows as any[]) ?? []).length,
+      syntheticRows: syntheticFromLedger.length,
+    });
   }, [ownerId]);
 
   useEffect(() => {
-    if (user && ownerId) load();
+    if (user && ownerId) {
+      financeInvalidate("useCreditCardOpenings", "credit_card_invoice_openings/account_ledger", { reason: "initial effect" });
+      load();
+    }
   }, [user, ownerId, load]);
 
   // Re-sincroniza esta instância sempre que QUALQUER outra instância do
   // hook (em qualquer componente) gravar uma alteração.
   useEffect(() => {
     if (!user || !ownerId) return;
-    const handler = () => load();
+    const handler = (event: Event) => {
+      financeInvalidate("useCreditCardOpenings", "credit_card_invoice_openings/account_ledger", { event: event.type });
+      load();
+    };
     window.addEventListener(OPENINGS_CHANGED_EVENT, handler);
     window.addEventListener("ledger:changed", handler);
     return () => {
@@ -193,22 +232,20 @@ export function useCreditCardOpenings() {
         {
           user_id: ownerId,
           card_id: cardId,
-          credit_card_id: cardId,
           cycle_key: cycleKey,
-          month_label: cycleKey,
           opening_amount: amount,
-          opening_balance: amount,
           notes: notes ?? null,
-        },
+        } as any,
         { onConflict: "card_id,cycle_key" },
       )
-      .select()
+      .select(CREDIT_CARD_OPENING_COLUMNS)
       .single();
     if (error) {
       toast.error("Erro ao salvar fatura inicial");
       return;
     }
     setOpenings((prev) => {
+      financeSetState("useCreditCardOpenings", "optimistic opening upsert", { cardId, cycleKey });
       const exists = prev.some((o) => o.cardId === cardId && o.cycleKey === cycleKey);
       if (exists) {
         return prev.map((o) => (o.cardId === cardId && o.cycleKey === cycleKey ? fromRow(data) : o));
@@ -228,6 +265,7 @@ export function useCreditCardOpenings() {
       toast.error("Erro ao remover fatura inicial");
       return;
     }
+    financeSetState("useCreditCardOpenings", "optimistic opening delete", { id });
     setOpenings((prev) => prev.filter((o) => o.id !== id));
     toast.success("Fatura inicial removida");
     notifyOpeningsChanged();

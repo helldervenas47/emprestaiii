@@ -197,7 +197,8 @@ export function useLoanListController({
       if (sortBy === "dueDate") {
         const aDate = getFirstPendingDate(a, installmentSchedules).getTime();
         const bDate = getFirstPendingDate(b, installmentSchedules).getTime();
-        return aDate - bDate;
+        if (aDate !== bDate) return aDate - bDate;
+        return (a.borrowerName || "").localeCompare(b.borrowerName || "", "pt-BR", { sensitivity: "base" });
       }
       if (sortBy === "startDate") return b.startDate.localeCompare(a.startDate);
       if (sortBy === "amount") {
@@ -401,6 +402,48 @@ export function useLoanListController({
       };
     }
 
+    // Quando um card de status está selecionado, o total do topo deve usar
+    // exatamente a mesma base do card correspondente (evita divergência entre
+    // card "Atraso" e o total mostrado acima da tabela).
+    if (category === "overdue" || category === "due_today" || category === "on_track") {
+      const today = todayInAppTz();
+      const currentMonth = today.slice(0, 7);
+      const sum = activeSource.reduce((s, l) => {
+        const cat = getLoanCategory(l, payments, installmentSchedules);
+        if (category === "overdue") {
+          if (cat !== "overdue") return s;
+          return s
+            + getOverdueAmount(l, installmentSchedules, today)
+            + getLoanLateFees(l, payments, installmentSchedules).lateFees;
+        }
+        if (category === "due_today") {
+          if (cat !== "due_today") return s;
+          const isParcelado = l.installments >= 2;
+          return (
+            s +
+            (isParcelado
+              ? getInstallmentAmount(l, installmentSchedules)
+              : getLoanReceivable(l, payments, installmentSchedules))
+          );
+        }
+        // on_track
+        if (cat !== "on_track" && cat !== "paid_interest") return s;
+        const due = l.dueDate || "";
+        if (due.slice(0, 7) !== currentMonth) return s;
+        return s + getLoanReceivable(l, payments, installmentSchedules);
+      }, 0);
+      const totalInterest = source.reduce(
+        (s, l) =>
+          s + (calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - l.amount),
+        0,
+      );
+      const activeCount = source.filter((l) => l.status === "active").length;
+      const overdueCount = source.filter(
+        (l) => getDaysOverdue(l) > 0 && l.status !== "paid",
+      ).length;
+      return { totalLent: totalLentRaw, totalToReceive: sum, totalInterest, activeCount, overdueCount };
+    }
+
     const useDueDateValues = dueDateQuick && view === "rows";
     const totalToReceive = activeSource.reduce((s, l) => {
       if (useDueDateValues) {
@@ -437,11 +480,9 @@ export function useLoanListController({
           .reduce((ss, p) => ss + p.amount, 0);
         return s + Math.max(0, expected - paid);
       }
-      if (l.remainingAmount != null && l.remainingAmount > 0) return s + l.remainingAmount;
-      const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-      const loanPayments = payments.filter((p) => p.loanId === l.id);
-      const paid = loanPayments.reduce((ss, p) => ss + p.amount, 0);
-      return s + Math.max(0, expected - paid);
+      // Padrão: usa getLoanReceivable (restante + multa/juros de atraso + multa de
+      // renegociação em contratos de parcela única) — mesma base do card "Total a Receber".
+      return s + getLoanReceivable(l, payments, installmentSchedules);
     }, 0);
     const totalLent = totalLentRaw;
 
@@ -475,7 +516,11 @@ export function useLoanListController({
       totalReceivable += receivable;
       totalReceivableCount += 1;
       if (cat === "overdue") {
-        overdue += getOverdueAmount(l, installmentSchedules, today);
+        // Soma o valor de TODAS as parcelas em atraso + multas/juros de atraso
+        // (mesma base do "Restante" exibido em cada linha, para que card,
+        // topo e soma visual dos registros coincidam).
+        overdue += getOverdueAmount(l, installmentSchedules, today)
+          + getLoanLateFees(l, payments, installmentSchedules).lateFees;
         overdueCount += 1;
         continue;
       }

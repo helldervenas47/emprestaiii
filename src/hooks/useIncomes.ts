@@ -1,10 +1,17 @@
-import { useState, useCallback, useEffect, useRef } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useCallback, useEffect, useRef, useId } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { displayIncomeCategory } from "@/lib/incomeCategory";
 import { todayInAppTz } from "@/lib/timezone";
 import { assertWritable } from "@/lib/readOnlyState";
+import { cacheRows, getCachedRows } from "@/lib/offline/sync";
+import { financeFetchStart, financeFetchSuccess, financeInvalidate, financeRealtimeEvent, financeSetState, useFinanceHookDebug } from "@/lib/financeDebug";
+import {
+  loadSharedResource, readSharedResource, writeSharedResource,
+  invalidateSharedResource, subscribeSharedResource,
+} from "@/lib/sharedResource";
+
+const INCOMES_STALE_MS = 60_000;
 
 export type IncomeStatus = "pending" | "received" | "overdue";
 export type IncomeRecurrence = "once" | "weekly" | "biweekly" | "monthly" | "yearly";
@@ -24,6 +31,13 @@ export interface Income {
   recurrence: IncomeRecurrence;
   parentId: string | null;
   createdAt: string;
+}
+
+const globalRecurringBackfillLocks = new Set<string>();
+
+function recurringBackfillLockKey(dataOwnerId: string, incomeId: string) {
+  const periodKey = todayInAppTz().slice(0, 7);
+  return `${dataOwnerId}:${incomeId}:${periodKey}`;
 }
 
 function deriveStatus(persisted: IncomeStatus, receivedDate: string): IncomeStatus {
@@ -53,106 +67,142 @@ function rowToIncome(r: any): Income {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Fase 5 — TanStack Query shared cache para incomes.
-// ---------------------------------------------------------------------------
-export interface IncomesPeriod {
-  startDate?: string;
-  endDate?: string;
-  limit?: number;
-}
-
-export async function fetchIncomesData(period?: IncomesPeriod): Promise<Income[]> {
-  if (import.meta.env.DEV) console.debug("[useIncomes fetch:start]", { period });
-  const startedAt = performance.now();
-  const { startDate, endDate, limit } = period ?? {};
-  let q = supabase
-    .from("incomes" as any)
-    .select("id, description, amount, category, client_id, source, payment_method_id, received_date, actual_received_date, status, notes, recurrence, parent_id, created_at")
-    .order("received_date", { ascending: false })
-    .limit(limit ?? 5000);
-  if (startDate) q = q.gte("received_date", startDate);
-  if (endDate) q = q.lte("received_date", endDate);
-  const { data } = await q;
-  if (import.meta.env.DEV) console.debug("[useIncomes fetch:end]", { rows: data?.length ?? 0, ms: Math.round(performance.now() - startedAt), period });
-  if (!data) return [];
-  return (data as any[]).map(rowToIncome);
-}
-
-export function incomesQueryKey(
-  ownerKey: string | null | undefined,
-  period?: IncomesPeriod,
-) {
-  const owner = ownerKey ?? "anon";
-  if (!period || (!period.startDate && !period.endDate && period.limit === undefined)) {
-    return ["incomes", owner] as const;
-  }
-  return [
-    "incomes",
-    owner,
-    period.startDate ?? null,
-    period.endDate ?? null,
-    period.limit ?? null,
-  ] as const;
-}
-
-export interface UseIncomesOptions extends IncomesPeriod {
-  enabled?: boolean;
-}
-
-export function useIncomes(opts: boolean | UseIncomesOptions = true) {
-  const parsed: UseIncomesOptions = typeof opts === "boolean" ? { enabled: opts } : opts;
-  const { enabled = true, startDate, endDate, limit } = parsed;
-  const period: IncomesPeriod | undefined =
-    startDate || endDate || limit !== undefined ? { startDate, endDate, limit } : undefined;
-
+export function useIncomes(enabled = true) {
+  useFinanceHookDebug("useIncomes");
   const { user, dataOwnerId } = useAuth();
-  const queryClient = useQueryClient();
+  const instanceId = useId();
   const ownerKey = dataOwnerId ?? user?.id ?? null;
-  const [incomes, setIncomes] = useState<Income[]>([]);
-  const [debugInstance] = useState(() => `useIncomes-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-
-  const incomesQuery = useQuery({
-    queryKey: incomesQueryKey(ownerKey, period),
-    queryFn: () => fetchIncomesData(period),
-    enabled: !!user && enabled,
-    staleTime: 30_000,
-  });
-
-  useEffect(() => {
-    if (incomesQuery.data) setIncomes(incomesQuery.data);
-  }, [incomesQuery.data]);
-
-  const loading = incomesQuery.isLoading;
+  const cacheKey = ownerKey ? `incomes:${ownerKey}` : null;
+  const [incomes, setIncomes] = useState<Income[]>(() =>
+    cacheKey ? (readSharedResource<Income[]>(cacheKey) ?? []) : [],
+  );
+  const [loading, setLoading] = useState(false);
+  const selfWriteRef = useRef(false);
+  const skipInitialMirrorRef = useRef<string | null>(null);
 
   const fetch = useCallback(async () => {
-    if (!user) return;
-    if (import.meta.env.DEV) console.debug("[useIncomes invalidateQueries]", { instance: debugInstance, ownerKey });
-    await queryClient.invalidateQueries({ queryKey: incomesQueryKey(ownerKey) });
-  }, [queryClient, user, ownerKey, debugInstance]);
+    if (!user || !cacheKey) return;
+    financeFetchStart("useIncomes", "incomes", { reason: "fetch/refetch" });
+    setLoading(true);
+    try {
+      const rows = await loadSharedResource<Income[]>(
+        cacheKey,
+        async () => {
+          const { data, error } = await supabase
+            .from("incomes" as any)
+            .select("id, user_id, description, amount, category, client_id, source, payment_method_id, received_date, actual_received_date, status, notes, recurrence, parent_id, created_at")
+            .order("received_date", { ascending: false })
+            .limit(5000);
+          if (error) throw error;
+          const list = (data as any[] | null) ?? [];
+          cacheRows("incomes", list).catch(() => { /* noop */ });
+          return list.map(rowToIncome);
+        },
+        { staleTime: INCOMES_STALE_MS },
+      );
+      financeSetState("useIncomes", "incomes", { rows: rows.length });
+      setIncomes(rows);
+      financeFetchSuccess("useIncomes", "incomes", { rows: rows.length });
+    } catch (error: any) {
+      const cached = await getCachedRows("incomes", ownerKey);
+      if (cached.length > 0) {
+        const mapped = cached
+          .sort((a, b) => (b.received_date || "").localeCompare(a.received_date || ""))
+          .map(rowToIncome);
+        financeSetState("useIncomes", "incomes", { rows: mapped.length, source: "indexeddb-cache" });
+        setIncomes(mapped);
+        financeFetchSuccess("useIncomes", "incomes", { rows: mapped.length, source: "indexeddb-cache", remoteError: error?.message });
+      }
+    } finally {
+      setLoading(false);
+      financeSetState("useIncomes", "loading", { value: false });
+    }
+  }, [user, cacheKey, ownerKey]);
 
-  const invalidate = useCallback(() => {
-    if (import.meta.env.DEV) console.debug("[useIncomes invalidateQueries]", { instance: debugInstance, ownerKey, source: "invalidate" });
-    queryClient.invalidateQueries({ queryKey: incomesQueryKey(ownerKey) });
-  }, [queryClient, ownerKey, debugInstance]);
-
+  // Sync from cache when other instances update + seed inicial (cold reload)
   useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    console.debug("[useIncomes lifecycle] mount/update", { instance: debugInstance, enabled, ownerKey, userId: user?.id ?? null, period });
-    return () => console.debug("[useIncomes lifecycle] unmount", { instance: debugInstance, enabled, ownerKey, userId: user?.id ?? null, period });
-  }, [debugInstance, enabled, ownerKey, user?.id, startDate, endDate, limit]);
+    if (!cacheKey) return;
+    const persisted = readSharedResource<Income[]>(cacheKey);
+    // Evita sobrescrever o snapshot persistido com o estado inicial vazio.
+    // O fetch remoto ainda roda porque o sharedResource hidratado de localStorage
+    // fica stale (loadedAt=0); a UI pinta imediatamente com o último snapshot.
+    skipInitialMirrorRef.current = cacheKey;
+    selfWriteRef.current = true;
+    setIncomes(persisted ?? []);
+    selfWriteRef.current = false;
+    if (persisted === undefined) {
+      getCachedRows("incomes", ownerKey).then((cached) => {
+        if (cached.length === 0) return;
+        setIncomes(cached.sort((a, b) => (b.received_date || "").localeCompare(a.received_date || "")).map(rowToIncome));
+      }).catch(() => { /* noop */ });
+    }
+    return subscribeSharedResource(cacheKey, () => {
+      if (selfWriteRef.current) return;
+      const next = readSharedResource<Income[]>(cacheKey);
+      if (next) setIncomes(next);
+    });
+  }, [cacheKey, ownerKey]);
+
+  // Mirror local state to shared cache
+  useEffect(() => {
+    if (!cacheKey) return;
+    if (skipInitialMirrorRef.current === cacheKey) {
+      skipInitialMirrorRef.current = null;
+      return;
+    }
+    selfWriteRef.current = true;
+    writeSharedResource(cacheKey, incomes);
+    selfWriteRef.current = false;
+  }, [incomes, cacheKey]);
+
+  useEffect(() => { if (enabled) { fetch(); } }, [fetch, enabled]);
+
+  // Refetch after offline queue flush (invalidate cache first)
+  useEffect(() => {
+    if (!cacheKey) return;
+    const handler = (e: any) => {
+      if (e?.detail?.tables?.includes?.("incomes")) {
+        invalidateSharedResource(cacheKey);
+        financeInvalidate("useIncomes", "incomes", { reason: "offline-sync:flushed" });
+        fetch();
+      }
+    };
+    window.addEventListener("offline-sync:flushed", handler);
+    return () => window.removeEventListener("offline-sync:flushed", handler);
+  }, [fetch, cacheKey]);
 
   useEffect(() => {
     if (!user || !enabled) return;
+    const ownerId = dataOwnerId ?? user.id;
+    const safe = (fn: () => void) => {
+      try { fn(); } catch (e) {
+        console.warn("[useIncomes realtime patch failed, refetching]", e);
+        if (cacheKey) invalidateSharedResource(cacheKey);
+        financeInvalidate("useIncomes", "incomes", { reason: "realtime-fallback" });
+        fetch();
+      }
+    };
     const channel = supabase
-      .channel(`incomes-rt-${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "incomes" }, () => {
-        if (import.meta.env.DEV) console.debug("[useIncomes realtime]", { instance: debugInstance, table: "incomes", ownerKey });
-        queryClient.invalidateQueries({ queryKey: incomesQueryKey(ownerKey) });
+      .channel(`incomes:${ownerId}:${instanceId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "incomes", filter: `user_id=eq.${ownerId}` }, (payload) => {
+        financeRealtimeEvent("useIncomes", "incomes", { eventType: "INSERT" });
+        safe(() => setIncomes((prev) => {
+          const row = rowToIncome(payload.new as any);
+          if (prev.some((i) => i.id === row.id)) return prev;
+          return [row, ...prev];
+        }));
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "incomes", filter: `user_id=eq.${ownerId}` }, (payload) => {
+        financeRealtimeEvent("useIncomes", "incomes", { eventType: "UPDATE" });
+        safe(() => setIncomes((prev) => prev.map((i) => i.id === (payload.new as any).id ? rowToIncome(payload.new as any) : i)));
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "incomes" }, (payload) => {
+        financeRealtimeEvent("useIncomes", "incomes", { eventType: "DELETE" });
+        safe(() => setIncomes((prev) => prev.filter((i) => i.id !== (payload.old as any).id)));
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient, ownerKey, enabled, debugInstance]);
+  }, [user, dataOwnerId, fetch, enabled, instanceId]);
 
   const insertSingle = useCallback(async (
     input: Omit<Income, "id" | "createdAt">,
@@ -264,16 +314,18 @@ export function useIncomes(opts: boolean | UseIncomesOptions = true) {
         created.push(inc);
       }
       if (created.length > 0) {
+        financeSetState("useIncomes", "optimistic recurring incomes", { rows: created.length });
         setIncomes((prev) => [...created, ...prev]);
       }
-      invalidate();
       return parent;
     }
     const inc = await insertSingle(input);
-    if (inc) setIncomes((prev) => [inc, ...prev]);
-    invalidate();
+    if (inc) {
+      financeSetState("useIncomes", "optimistic income insert", { rows: 1 });
+      setIncomes((prev) => [inc, ...prev]);
+    }
     return inc;
-  }, [dataOwnerId, insertSingle, invalidate]);
+  }, [dataOwnerId, insertSingle]);
 
   const updateIncome = useCallback(async (id: string, patch: Partial<Income>) => {
     assertWritable();
@@ -290,10 +342,10 @@ export function useIncomes(opts: boolean | UseIncomesOptions = true) {
     if (patch.notes !== undefined) updatePayload.notes = patch.notes;
     if (patch.recurrence !== undefined) updatePayload.recurrence = patch.recurrence;
 
+    financeSetState("useIncomes", "optimistic income update", { id });
     setIncomes((arr) => arr.map((i) => i.id === id ? { ...i, ...patch, category: patch.category !== undefined ? displayIncomeCategory(patch.category) : i.category } : i));
     await supabase.from("incomes" as any).update(updatePayload).eq("id", id);
-    invalidate();
-  }, [invalidate]);
+  }, []);
 
   const deleteIncome = useCallback(async (id: string, scope: "single" | "pending" | "all" = "single") => {
     assertWritable();
@@ -301,9 +353,9 @@ export function useIncomes(opts: boolean | UseIncomesOptions = true) {
     const rootId = target?.parentId ?? id;
 
     if (scope === "single") {
+      financeSetState("useIncomes", "optimistic income delete", { id, scope });
       setIncomes((arr) => arr.filter((i) => i.id !== id));
       await supabase.from("incomes" as any).delete().eq("id", id);
-      invalidate();
       return;
     }
 
@@ -314,10 +366,10 @@ export function useIncomes(opts: boolean | UseIncomesOptions = true) {
       .map((i) => i.id);
 
     if (seriesIds.length === 0) return;
+    financeSetState("useIncomes", "optimistic income series delete", { rows: seriesIds.length, scope });
     setIncomes((arr) => arr.filter((i) => !seriesIds.includes(i.id)));
     await supabase.from("incomes" as any).delete().in("id", seriesIds);
-    invalidate();
-  }, [incomes, invalidate]);
+  }, [incomes]);
 
   const duplicateIncome = useCallback(async (id: string) => {
     const src = incomes.find((i) => i.id === id);
@@ -353,69 +405,90 @@ export function useIncomes(opts: boolean | UseIncomesOptions = true) {
   const processingRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!enabled || !dataOwnerId || incomes.length === 0) return;
-    const parents = incomes.filter((i) =>
-      (i.recurrence === "weekly" || i.recurrence === "biweekly" || i.recurrence === "monthly" || i.recurrence === "yearly")
-      && !i.parentId
-      && !((i.notes ?? "").includes("[Expanded]"))
-      && !processingRef.current.has(i.id)
-    );
+    const parents = incomes.filter((i) => {
+      if (!(i.recurrence === "weekly" || i.recurrence === "biweekly" || i.recurrence === "monthly" || i.recurrence === "yearly")) return false;
+      if (i.parentId) return false;
+      if ((i.notes ?? "").includes("[Expanded]")) return false;
+      if (processingRef.current.has(i.id)) return false;
+      if (globalRecurringBackfillLocks.has(recurringBackfillLockKey(dataOwnerId, i.id))) {
+        processingRef.current.add(i.id);
+        return false;
+      }
+      return true;
+    });
     if (parents.length === 0) return;
-    parents.forEach((p) => processingRef.current.add(p.id));
+    const lockedParents = parents.filter((p) => {
+      const lockKey = recurringBackfillLockKey(dataOwnerId, p.id);
+      if (globalRecurringBackfillLocks.has(lockKey)) return false;
+      globalRecurringBackfillLocks.add(lockKey);
+      processingRef.current.add(p.id);
+      return true;
+    });
+    if (lockedParents.length === 0) return;
     let cancelled = false;
     (async () => {
-      assertWritable();
-      for (const p of parents) {
-        if (cancelled) return;
-        // 1) Marca o pai como [Expanded] ANTES de inserir filhos para fechar a janela de corrida.
-        const baseNotes = (p.notes ?? "").trim();
-        const stamped = baseNotes ? `${baseNotes}\n[Expanded]` : "[Expanded]";
-        await supabase.from("incomes" as any).update({ notes: stamped }).eq("id", p.id);
-
-        const today = todayInAppTz();
-        let allDates: string[] = [];
-        if (p.recurrence === "weekly" || p.recurrence === "biweekly") {
-          const stepDays = p.recurrence === "weekly" ? 7 : 14;
-          const base = new Date(p.receivedDate + "T00:00:00");
-          const horizonEnd = new Date();
-          horizonEnd.setMonth(horizonEnd.getMonth() + FUTURE_MONTHS_HORIZON + 1, 0);
-          const d = new Date(base);
-          while (d <= horizonEnd) {
-            allDates.push(ymd(d));
-            d.setDate(d.getDate() + stepDays);
+      try {
+        assertWritable();
+        for (const p of lockedParents) {
+          if (cancelled) return;
+          // 1) Marca o pai como [Expanded] ANTES de inserir filhos para fechar a janela de corrida.
+          // Evita UPDATE repetido caso o registro já tenha chegado marcado por realtime/refetch.
+          if (!((p.notes ?? "").includes("[Expanded]"))) {
+            const baseNotes = (p.notes ?? "").trim();
+            const stamped = baseNotes ? `${baseNotes}\n[Expanded]` : "[Expanded]";
+            await supabase.from("incomes" as any).update({ notes: stamped }).eq("id", p.id);
           }
-        } else if (p.recurrence === "monthly") {
-          allDates = monthlyDates(p.receivedDate, FUTURE_MONTHS_HORIZON);
-        } else if (p.recurrence === "yearly") {
-          allDates = yearlyDates(p.receivedDate, FUTURE_MONTHS_HORIZON);
-        }
-        const childDates = allDates.filter((dt) => dt !== p.receivedDate);
 
-        // 2) Busca filhos já existentes direto do banco para evitar duplicatas em concorrência.
-        const { data: existingRows } = await supabase
-          .from("incomes" as any)
-          .select("received_date")
-          .eq("parent_id", p.id);
-        const existingDates = new Set(((existingRows as any[]) ?? []).map((r) => r.received_date));
+          const today = todayInAppTz();
+          let allDates: string[] = [];
+          if (p.recurrence === "weekly" || p.recurrence === "biweekly") {
+            const stepDays = p.recurrence === "weekly" ? 7 : 14;
+            const base = new Date(p.receivedDate + "T00:00:00");
+            const horizonEnd = new Date();
+            horizonEnd.setMonth(horizonEnd.getMonth() + FUTURE_MONTHS_HORIZON + 1, 0);
+            const d = new Date(base);
+            while (d <= horizonEnd) {
+              allDates.push(ymd(d));
+              d.setDate(d.getDate() + stepDays);
+            }
+          } else if (p.recurrence === "monthly") {
+            allDates = monthlyDates(p.receivedDate, FUTURE_MONTHS_HORIZON);
+          } else if (p.recurrence === "yearly") {
+            allDates = yearlyDates(p.receivedDate, FUTURE_MONTHS_HORIZON);
+          }
+          const childDates = allDates.filter((dt) => dt !== p.receivedDate);
 
-        for (const dt of childDates) {
-          if (existingDates.has(dt)) continue;
-          await insertSingle({
-            description: p.description,
-            amount: p.amount,
-            category: p.category,
-            clientId: p.clientId,
-            source: p.source,
-            paymentMethodId: p.paymentMethodId,
-            receivedDate: dt,
-            status: dt > today ? "pending" : p.status,
-            notes: p.notes,
-            recurrence: "once",
-            parentId: p.id,
-          });
-          existingDates.add(dt);
+          // 2) Busca filhos já existentes direto do banco para evitar duplicatas em concorrência.
+          const { data: existingRows } = await supabase
+            .from("incomes" as any)
+            .select("received_date")
+            .eq("parent_id", p.id);
+          const existingDates = new Set(((existingRows as any[]) ?? []).map((r) => r.received_date));
+
+          for (const dt of childDates) {
+            if (existingDates.has(dt)) continue;
+            await insertSingle({
+              description: p.description,
+              amount: p.amount,
+              category: p.category,
+              clientId: p.clientId,
+              source: p.source,
+              paymentMethodId: p.paymentMethodId,
+              receivedDate: dt,
+              status: dt > today ? "pending" : p.status,
+              notes: p.notes,
+              recurrence: "once",
+              parentId: p.id,
+            });
+            existingDates.add(dt);
+          }
         }
+        if (!cancelled) fetch();
+      } finally {
+        lockedParents.forEach((p) => {
+          globalRecurringBackfillLocks.delete(recurringBackfillLockKey(dataOwnerId, p.id));
+        });
       }
-      if (!cancelled) fetch();
     })();
     return () => { cancelled = true; };
   }, [incomes, enabled, dataOwnerId, insertSingle, fetch]);

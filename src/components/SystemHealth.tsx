@@ -245,10 +245,12 @@ export function SystemHealth() {
     refresh();
   }, [refresh]);
 
-  // Auto-refresh
+  // Auto-refresh — pausa quando aba oculta e intervalo elevado a 60s.
   useEffect(() => {
     if (!autoRefresh) return;
-    const id = window.setInterval(refresh, 30_000);
+    const id = window.setInterval(() => {
+      if (typeof document === "undefined" || !document.hidden) refresh();
+    }, 60_000);
     return () => window.clearInterval(id);
   }, [autoRefresh, refresh]);
 

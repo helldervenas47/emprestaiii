@@ -59,13 +59,25 @@ const isInIframe = (() => {
 
 const isPreviewHost =
   window.location.hostname.includes("id-preview--") ||
-  window.location.hostname.includes("lovableproject.com");
+  window.location.hostname.includes("lovableproject.com") ||
+  window.location.hostname.includes("preview--") ||
+  window.location.hostname.endsWith(".vercel.app");
 
 const isInStandaloneMode =
   window.matchMedia("(display-mode: standalone)").matches ||
   (navigator as any).standalone === true;
 
-if ((isPreviewHost || isInIframe) && !isInStandaloneMode) {
+// Kill-switch: `?sw=off` desregistra qualquer service worker + limpa caches.
+// Útil para destravar preview quando Cloudflare/SW antigo servem assets obsoletos.
+const swKillSwitch = new URLSearchParams(window.location.search).get("sw") === "off";
+if (swKillSwitch) {
+  navigator.serviceWorker?.getRegistrations().then((rs) => rs.forEach((r) => r.unregister()));
+  if ("caches" in window) {
+    caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+  }
+}
+
+if ((isPreviewHost || isInIframe || swKillSwitch) && !isInStandaloneMode) {
   navigator.serviceWorker?.getRegistrations().then((registrations) => {
     registrations.forEach((r) => r.unregister());
   });

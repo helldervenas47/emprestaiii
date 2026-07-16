@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* Fonts (Space Grotesk display + DM Sans body) are preloaded in index.html for perf */
 
 @tailwind base;
 @tailwind components;
@@ -24,105 +24,115 @@
 
 @layer base {
   :root {
-    --background: 220 35% 97%;
-    --foreground: 230 30% 12%;
+    /* ─────────────────────────────────────────
+       Midnight Indigo — Light theme
+       Base: #0a0a1a / #141432 / #1e1e5a / #4f46e5
+       Sophisticated, tech-forward, product-focused
+       ───────────────────────────────────────── */
+    --background: 240 30% 98%;
+    --foreground: 240 40% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 230 30% 12%;
+    --card-foreground: 240 40% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 230 30% 12%;
+    --popover-foreground: 240 40% 12%;
 
-    --primary: 235 85% 60%;
+    --primary: 244 76% 59%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 60% 95%;
-    --secondary-foreground: 230 35% 28%;
+    --secondary: 244 60% 96%;
+    --secondary-foreground: 244 76% 45%;
 
-    --muted: 220 30% 94%;
-    --muted-foreground: 225 12% 45%;
+    --muted: 240 20% 96%;
+    --muted-foreground: 240 10% 45%;
 
-    --accent: 172 78% 42%;
+    --accent: 244 76% 59%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 82% 60%;
+    --destructive: 0 78% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 20% 88%;
-    --input: 220 20% 88%;
-    --ring: 235 85% 60%;
+    --border: 240 20% 90%;
+    --input: 240 20% 90%;
+    --ring: 244 76% 59%;
 
-    --radius: 0.875rem;
+    --radius: 1rem;
 
-    --warning: 32 95% 55%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 32 92% 52%;
+    --warning-foreground: 240 40% 12%;
 
-    --success: 158 78% 42%;
+    --success: 152 68% 40%;
     --success-foreground: 0 0% 100%;
 
     --purple: 262 80% 62%;
     --purple-foreground: 0 0% 100%;
 
-    --sidebar-background: 220 40% 98%;
-    --sidebar-foreground: 230 25% 28%;
-    --sidebar-primary: 235 85% 60%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 25% 25%;
+    --sidebar-primary: 244 76% 59%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 60% 95%;
-    --sidebar-accent-foreground: 230 30% 12%;
-    --sidebar-border: 220 20% 88%;
-    --sidebar-ring: 235 85% 60%;
+    --sidebar-accent: 244 60% 96%;
+    --sidebar-accent-foreground: 244 76% 45%;
+    --sidebar-border: 240 20% 90%;
+    --sidebar-ring: 244 76% 59%;
   }
 
   .dark {
-    /* Deep navy base — alinhada ao gradient #0B1120 → #0F172A → #1E293B do FinancialHealthDashboard */
-    --background: 222 47% 8%;
-    --foreground: 210 40% 96%;
+    /* ─────────────────────────────────────────
+       Midnight Indigo — Dark theme (soft navy)
+       Blue-gray surfaces (never near-black), tuned
+       for long reading sessions with clear layering:
+         bg   → sidebar → card → hover
+         ~#151A24 → ~#111621 → ~#1D2331 → ~#252C3D
+       ───────────────────────────────────────── */
+    --background: 222 25% 12%;
+    --foreground: 220 20% 96%;
 
-    /* Cards / superfícies translúcidas premium */
-    --card: 222 40% 13%;
-    --card-foreground: 210 40% 96%;
+    --card: 222 22% 16%;
+    --card-foreground: 220 20% 96%;
 
-    --popover: 222 40% 13%;
-    --popover-foreground: 210 40% 96%;
+    --popover: 222 22% 16%;
+    --popover-foreground: 220 20% 96%;
 
-    --primary: 230 90% 65%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 244 90% 70%;
+    --primary-foreground: 222 30% 10%;
 
-    --secondary: 222 30% 18%;
-    --secondary-foreground: 210 30% 88%;
+    --secondary: 222 20% 22%;
+    --secondary-foreground: 220 20% 96%;
 
-    --muted: 222 30% 14%;
-    --muted-foreground: 215 20% 70%;
+    --muted: 222 20% 19%;
+    --muted-foreground: 220 14% 76%;
 
-    --accent: 188 95% 55%;
-    --accent-foreground: 222 47% 8%;
+    --accent: 244 90% 70%;
+    --accent-foreground: 222 30% 10%;
 
-    --destructive: 0 84% 62%;
-    --destructive-foreground: 210 40% 96%;
+    --destructive: 0 74% 62%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 215 25% 22%;
-    --input: 215 25% 22%;
-    --ring: 230 90% 65%;
+    --border: 222 18% 26%;
+    --input: 222 18% 26%;
+    --ring: 244 90% 70%;
 
     --radius: 1rem;
 
-    --warning: 38 92% 60%;
-    --warning-foreground: 222 47% 8%;
+    --warning: 38 92% 62%;
+    --warning-foreground: 222 30% 10%;
 
-    --success: 158 84% 45%;
-    --success-foreground: 222 47% 8%;
+    --success: 152 60% 50%;
+    --success-foreground: 222 30% 10%;
 
-    --purple: 262 83% 70%;
-    --purple-foreground: 222 47% 8%;
+    --purple: 262 83% 74%;
+    --purple-foreground: 222 30% 10%;
 
-    --sidebar-background: 222 47% 9%;
-    --sidebar-foreground: 215 20% 75%;
-    --sidebar-primary: 230 90% 65%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 40% 13%;
-    --sidebar-accent-foreground: 210 30% 90%;
-    --sidebar-border: 215 25% 22%;
-    --sidebar-ring: 230 90% 65%;
+    --sidebar-background: 222 28% 10%;
+    --sidebar-foreground: 220 16% 82%;
+    --sidebar-primary: 244 90% 70%;
+    --sidebar-primary-foreground: 222 30% 10%;
+    --sidebar-accent: 222 22% 18%;
+    --sidebar-accent-foreground: 220 20% 96%;
+    --sidebar-border: 222 18% 24%;
+    --sidebar-ring: 244 90% 70%;
   }
 }
 
@@ -178,28 +188,99 @@
     margin: 0;
     padding: 0;
     overscroll-behavior: none;
+    /* Blindagem contra scroll horizontal indesejado em qualquer viewport */
+    overflow-x: hidden;
+    max-width: 100vw;
+    /* Garante que o fundo do app se estenda até as bordas físicas da tela,
+       cobrindo qualquer faixa desenhada pelo sistema (status/nav bar) mesmo
+       quando o conteúdo ainda não carregou. */
+    background-color: hsl(var(--background));
+  }
+
+  #root {
+    /* Contém filhos que porventura ultrapassem a largura da viewport */
+    overflow-x: clip;
+    max-width: 100vw;
+    /* Preenche a área útil real do dispositivo (dvh acompanha barra de URL
+       do Chrome/Safari e teclado virtual sem deixar faixas vazias). */
+    min-height: 100vh;
+    min-height: 100svh;
+    min-height: 100dvh;
+    background-color: hsl(var(--background));
+  }
+
+  /* Mídia responsiva por padrão — evita quebrar layout com <img> largas */
+  img, video, canvas, svg, iframe {
+    max-width: 100%;
+    height: auto;
+  }
+  svg {
+    /* SVG icons com dimensões explícitas mantêm seu tamanho, o "height:auto"
+       acima só se aplica se a largura for reduzida pelo container */
+    height: auto;
+  }
+
+  /* Palavras muito longas (URLs, emails, códigos) não estouram containers */
+  p, span, dt, dd, li, td, th, label, small, strong, em, a, div {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  /* Áreas roláveis horizontais explícitas (tabelas amplas) preservam scroll */
+  .overflow-x-auto,
+  .overflow-x-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ─── Global typography tokens ─────────────────────────────
+     Toda a tipografia do app é controlada por 2 variáveis CSS
+     (body + títulos). O seletor global de fontes altera essas
+     variáveis em tempo real e a interface inteira reage.
+     ─────────────────────────────────────────────────────────── */
+  :root {
+    --app-font-sans: "DM Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --app-font-display: "Space Grotesk", var(--app-font-sans);
   }
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: var(--app-font-sans);
+    font-weight: 400;
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.005em;
     min-height: 100vh;
+    min-height: 100svh;
     min-height: 100dvh;
     background-image:
-      radial-gradient(1100px 600px at 10% -10%, hsl(188 95% 55% / 0.10), transparent 60%),
-      radial-gradient(900px 500px at 110% 5%, hsl(262 80% 65% / 0.10), transparent 60%),
-      radial-gradient(800px 600px at 50% 110%, hsl(158 84% 45% / 0.08), transparent 65%);
+      radial-gradient(1100px 600px at 10% -10%, hsl(244 76% 59% / 0.06), transparent 60%),
+      radial-gradient(900px 500px at 110% 5%, hsl(244 76% 65% / 0.04), transparent 60%);
     background-attachment: fixed;
   }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--app-font-display);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-feature-settings: "ss01", "cv11";
+  }
+  h1 { font-weight: 700; letter-spacing: -0.025em; }
+  h2 { font-weight: 700; letter-spacing: -0.02em; }
+  h3 { font-weight: 600; letter-spacing: -0.015em; }
+  h4, h5, h6 { font-weight: 600; letter-spacing: -0.01em; }
+
+  small, .text-xs, .text-\[10px\], .text-\[11px\] { letter-spacing: 0.005em; }
+
   .dark body {
-    background-color: hsl(222 47% 6%);
+    /* Mesma cor de --background para não criar faixa visível entre body e
+       barras do sistema (status/nav) no Android/iOS. */
+    background-color: hsl(var(--background));
     background-image:
-      radial-gradient(1200px 600px at 10% -10%, hsl(188 95% 50% / 0.18), transparent 60%),
-      radial-gradient(900px 500px at 110% 5%, hsl(262 70% 55% / 0.16), transparent 60%),
-      radial-gradient(900px 700px at 50% 115%, hsl(158 84% 40% / 0.14), transparent 65%);
+      radial-gradient(1200px 600px at 10% -10%, hsl(244 90% 62% / 0.14), transparent 60%),
+      radial-gradient(900px 500px at 110% 5%, hsl(262 80% 62% / 0.08), transparent 60%),
+      radial-gradient(900px 700px at 50% 115%, hsl(244 76% 45% / 0.06), transparent 65%);
   }
 
   /* Imersivo: quando rodando como PWA instalado, ocupa tela inteira sem chrome do browser */
@@ -210,6 +291,7 @@
       width: 100%;
       max-width: 100%;
       height: 100vh;
+      height: 100svh;
       height: 100dvh;
       overflow-x: hidden;
       position: relative;
@@ -225,6 +307,7 @@
     }
     #root {
       min-height: 100vh;
+      min-height: 100svh;
       min-height: 100dvh;
     }
   }
@@ -255,12 +338,11 @@
     min-height: 100vh;
     min-height: 100dvh;
   }
-  /* Apply lateral & bottom safe insets globally so nothing sits under home indicator / curved edges */
-  body {
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
+  /* Não aplicamos safe-area insets como padding no body — isso criava faixas
+     "vazias" nas laterais/rodapé e o PWA não parecia ocupar a tela toda.
+     O fundo agora se estende de ponta a ponta; use as utilities .pl-safe /
+     .pr-safe / .pb-safe nos containers internos que precisam respeitar o
+     notch ou o home indicator. */
 
   /* Touch-action: only on clickable elements; inputs keep default behavior */
   button, [role="button"], a {
@@ -268,29 +350,6 @@
   }
   input, textarea, select {
     touch-action: auto;
-  }
-
-  /* Translucent bar behind iOS status bar — matches background, blurs scrolled content */
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: env(safe-area-inset-top);
-    background: hsl(var(--background) / 0.55);
-    backdrop-filter: blur(12px) saturate(180%);
-    -webkit-backdrop-filter: blur(12px) saturate(180%);
-    z-index: 100;
-    pointer-events: none;
-    transition: background-color 0.25s ease, backdrop-filter 0.25s ease;
-  }
-  /* Deepen the tint once the user has scrolled past the header */
-  body[data-scrolled="true"]::before {
-    background: hsl(var(--background) / 0.92);
-    backdrop-filter: blur(20px) saturate(200%);
-    -webkit-backdrop-filter: blur(20px) saturate(200%);
-    box-shadow: 0 1px 0 0 hsl(var(--border) / 0.5);
   }
 
   ::-webkit-scrollbar {
@@ -311,36 +370,42 @@
 
 @layer utilities {
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(225 100% 62%), hsl(262 80% 58%));
+    background: linear-gradient(135deg, hsl(244 76% 55%), hsl(262 80% 62%));
+  }
+  .gradient-premium {
+    background: linear-gradient(135deg, hsl(240 51% 24%), hsl(244 76% 59%));
+  }
+  .gradient-progress {
+    background: linear-gradient(90deg, hsl(244 76% 59%), hsl(262 80% 68%));
   }
   .gradient-success {
-    background: linear-gradient(135deg, hsl(160 75% 42%), hsl(170 65% 38%));
+    background: linear-gradient(135deg, hsl(152 68% 40%), hsl(170 65% 38%));
   }
   .gradient-warning {
-    background: linear-gradient(135deg, hsl(32 90% 54%), hsl(20 85% 50%));
+    background: linear-gradient(135deg, hsl(32 92% 52%), hsl(20 85% 50%));
   }
   .gradient-card {
-    background: linear-gradient(145deg, hsl(220 12% 15%), hsl(220 14% 10%));
+    background: linear-gradient(145deg, hsl(240 43% 14%), hsl(240 43% 10%));
   }
   .glass {
-    background: hsl(0 0% 100% / 0.65);
+    background: hsl(0 0% 100% / 0.72);
     backdrop-filter: blur(24px) saturate(200%);
     -webkit-backdrop-filter: blur(24px) saturate(200%);
-    border: 1px solid hsl(0 0% 0% / 0.05);
+    border: 1px solid hsl(214 32% 91% / 0.8);
   }
   .dark .glass {
-    background: hsl(230 16% 8% / 0.65);
+    background: hsl(222 44% 10% / 0.65);
     border: 1px solid hsl(0 0% 100% / 0.06);
   }
   .glow-primary {
-    box-shadow: 0 0 20px -8px hsl(225 100% 62% / 0.15),
-                0 0 40px -16px hsl(262 80% 58% / 0.06);
+    box-shadow: 0 0 20px -8px hsl(217 91% 60% / 0.22),
+                0 0 40px -16px hsl(213 94% 68% / 0.10);
   }
   .glow-success {
-    box-shadow: 0 0 20px -8px hsl(160 75% 42% / 0.15);
+    box-shadow: 0 0 20px -8px hsl(152 68% 42% / 0.18);
   }
   .glow-purple {
-    box-shadow: 0 0 20px -8px hsl(262 80% 62% / 0.15);
+    box-shadow: 0 0 20px -8px hsl(217 91% 60% / 0.18);
   }
 
   /* Reusable glassmorphism surface */
@@ -386,7 +451,7 @@
     opacity: 1;
   }
   .btn-gradient-hover--primary::before {
-    background: linear-gradient(90deg, hsl(var(--primary)), hsl(262 80% 58%));
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(213 94% 68%));
   }
   .btn-gradient-hover--destructive::before {
     background: linear-gradient(90deg, hsl(var(--destructive)), hsl(20 85% 50%));
@@ -438,14 +503,20 @@
     perspective: none;
   }
   .card-3d-inner {
-    transition: box-shadow 0.3s ease;
+    transition: box-shadow 0.35s ease, border-color 0.25s ease, transform 0.25s ease;
     transform-style: flat;
   }
   .card-3d-inner:hover {
-    transform: none;
+    transform: translateY(-1px);
+    border-color: hsl(var(--border));
     box-shadow:
-      0 2px 6px -2px hsl(0 0% 0% / 0.06),
-      0 0 6px -3px hsl(var(--primary) / 0.05);
+      0 2px 4px hsl(220 30% 10% / 0.06),
+      0 12px 32px -20px hsl(var(--primary) / 0.18);
+  }
+  .dark .card-3d-inner:hover {
+    box-shadow:
+      0 2px 4px hsl(220 60% 2% / 0.5),
+      0 20px 48px -24px hsl(var(--accent) / 0.25);
   }
 }
 
@@ -511,10 +582,6 @@
       0 0 12px -6px hsl(var(--primary) / 0.10);
   }
 
-  /* Body status-bar overlay — sombra inferior mais discreta no dark */
-  .dark body[data-scrolled="true"]::before {
-    box-shadow: 0 1px 0 0 hsl(var(--border) / 0.35);
-  }
 }
 
 /* ──────────────────────────────────────────────────────────────────────────

@@ -80,9 +80,9 @@ export function DashboardMainCards({
   formatCurrency,
 }: Props) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-5 items-stretch">
       {/* Saldo em Conta */}
-      <Card no3d className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
+      <Card no3d className="animate-fade-in h-full" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
         <CardContent className="p-4 h-full relative flex flex-col">
           {!readOnly && (
             <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
@@ -105,31 +105,31 @@ export function DashboardMainCards({
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditBalance}><X className="h-3.5 w-3.5 text-destructive" /></Button>
                 </div>
               ) : (
-                <p className={`text-lg font-bold ${accountBalance < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance)}</p>
+                <p className={`font-bold tabular-nums whitespace-nowrap tracking-tight ${accountBalance < 0 ? "text-destructive" : "text-foreground"}`} style={{ fontSize: "clamp(0.95rem, 1.6vw, 1.25rem)" }}>{formatCurrency(accountBalance)}</p>
               )}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 mt-3 flex-1">
-            <div className="bg-muted/50 rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center">
+            <div className="bg-muted/50 rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center min-h-[72px] md:min-h-[88px] md:h-[88px]">
               <div className="flex items-center gap-1.5 mb-1">
                 <Calendar className="h-3 w-3 text-primary" />
                 <p className="text-[10px] text-muted-foreground">Domingo</p>
               </div>
-              <p className={`text-sm font-semibold ${(accountBalance + portfolio.forecastSunday) < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance + portfolio.forecastSunday)}</p>
+              <p className={`text-sm font-semibold tabular-nums whitespace-nowrap ${(accountBalance + portfolio.forecastSunday) < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance + portfolio.forecastSunday)}</p>
             </div>
-            <div className="bg-muted/50 rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center">
+            <div className="bg-muted/50 rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center min-h-[72px] md:min-h-[88px] md:h-[88px]">
               <div className="flex items-center gap-1.5 mb-1">
                 <Calendar className="h-3 w-3 text-primary" />
                 <p className="text-[10px] text-muted-foreground">Fim do Mês</p>
               </div>
-              <p className={`text-sm font-semibold ${(accountBalance + portfolio.forecastEndMonth) < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance + portfolio.forecastEndMonth)}</p>
+              <p className={`text-sm font-semibold tabular-nums whitespace-nowrap ${(accountBalance + portfolio.forecastEndMonth) < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance + portfolio.forecastEndMonth)}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Valores Recebidos — dinâmico conforme filtro de período */}
-      <Card no3d className="animate-fade-in" style={{ animationDelay: '120ms', animationFillMode: 'backwards' }}>
+      <Card no3d className="animate-fade-in h-full" style={{ animationDelay: '120ms', animationFillMode: 'backwards' }}>
         <CardContent className="p-4 h-full relative flex flex-col">
           <div className="flex items-center justify-center">
             <div className="text-center flex-col flex items-center justify-center">
@@ -137,8 +137,8 @@ export function DashboardMainCards({
                 <ArrowDownToLine className="h-5 w-5 text-success" />
               </div>
               <p className="text-xs text-muted-foreground">Valores Recebidos</p>
-              <p className="text-lg font-bold text-success">{formatCurrency(receivedByMethod.total)}</p>
-              <p className="text-[10px] text-muted-foreground">{range.label}</p>
+              <p className="font-bold tabular-nums text-success whitespace-nowrap tracking-tight" style={{ fontSize: "clamp(0.95rem, 1.6vw, 1.25rem)" }}>{formatCurrency(receivedByMethod.total)}</p>
+              
             </div>
           </div>
           <div className="mt-3 flex-1">
@@ -161,13 +161,13 @@ export function DashboardMainCards({
                       key={it.id}
                       type="button"
                       onClick={() => { window.scrollTo({ top: 0, behavior: "smooth" }); setReceivedDetailMethodId(it.id); }}
-                      className="bg-muted/50 hover:bg-muted/80 transition-colors rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center cursor-pointer"
+                      className="bg-muted/50 hover:bg-muted/80 transition-colors rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center cursor-pointer min-h-[72px] md:min-h-[88px] md:h-[88px]"
                     >
                       <div className="flex items-center gap-1.5 mb-1">
                         <Icon className="h-3 w-3 text-success" />
                         <p className="text-[10px] text-muted-foreground">{displayName}</p>
                       </div>
-                      <p className="text-sm font-semibold text-foreground">{formatCurrency(it.amount)}</p>
+                      <p className="text-sm font-semibold tabular-nums whitespace-nowrap text-foreground">{formatCurrency(it.amount)}</p>
                     </button>
                   );
                 })}
@@ -175,13 +175,13 @@ export function DashboardMainCards({
                   <button
                     type="button"
                     onClick={() => { window.scrollTo({ top: 0, behavior: "smooth" }); setReceivedDetailMethodId("__unassigned__"); }}
-                    className="bg-muted/50 hover:bg-muted/80 transition-colors rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center cursor-pointer"
+                    className="bg-muted/50 hover:bg-muted/80 transition-colors rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center cursor-pointer min-h-[72px] md:min-h-[88px] md:h-[88px]"
                   >
                     <div className="flex items-center gap-1.5 mb-1">
                       <DollarSign className="h-3 w-3 text-muted-foreground" />
                       <p className="text-[10px] text-muted-foreground">Sem forma</p>
                     </div>
-                    <p className="text-sm font-semibold text-foreground">{formatCurrency(receivedByMethod.unassigned)}</p>
+                    <p className="text-sm font-semibold tabular-nums whitespace-nowrap text-foreground">{formatCurrency(receivedByMethod.unassigned)}</p>
                   </button>
                 )}
               </div>
@@ -191,7 +191,7 @@ export function DashboardMainCards({
       </Card>
 
       {/* Taxa de Juros Mensal */}
-      <Card no3d className="animate-fade-in cursor-pointer" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }} onClick={() => setExpandedBreakdown(expandedBreakdown === "interest-rate" ? null : "interest-rate")}>
+      <Card no3d className="animate-fade-in cursor-pointer h-full" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }} onClick={() => setExpandedBreakdown(expandedBreakdown === "interest-rate" ? null : "interest-rate")}>
         <CardContent className="p-4 h-full relative flex flex-col">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
@@ -199,7 +199,7 @@ export function DashboardMainCards({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-muted-foreground">Taxa de Juros Mensal</p>
-              <p className="text-lg font-bold text-foreground">{data.monthlyInterestRate.hasData && data.monthlyInterestRate.rate !== null ? `${data.monthlyInterestRate.rate.toFixed(2)}%` : "Sem dados no período"}</p>
+              <p className="text-lg md:text-xl font-bold tabular-nums text-foreground">{data.monthlyInterestRate.hasData && data.monthlyInterestRate.rate !== null ? `${data.monthlyInterestRate.rate.toFixed(2)}%` : "Sem dados no período"}</p>
               <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
                 <span>{data.loanCount} no período</span>
                 <span>Geral: <span className="font-bold text-warning">{portfolio.globalInterestRate.toFixed(1)}%</span></span>
@@ -297,7 +297,7 @@ export function DashboardMainCards({
       </Card>
 
       {/* Profit Card — Faturamento do Período */}
-      <Card no3d className="animate-fade-in" style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}>
+      <Card no3d className="animate-fade-in h-full" style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}>
         <CardContent className="p-4">
           <div className="flex items-center gap-3 mb-3">
             <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
@@ -328,13 +328,13 @@ export function DashboardMainCards({
                   </PopoverContent>
                 </Popover>
               </div>
-              <span className="text-sm font-bold text-foreground">{formatCurrency(
+              <span className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(
                 data.periodProfitRealized + data.periodProfitExpected
               )}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Realizado</span>
-              <span className="text-sm font-bold text-success">{formatCurrency(data.periodProfitRealized)}</span>
+              <span className="text-sm font-bold tabular-nums text-success">{formatCurrency(data.periodProfitRealized)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">% lucro realizado</span>

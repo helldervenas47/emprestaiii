@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useId } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 import { assertWritable } from "@/lib/readOnlyState";
@@ -80,6 +80,7 @@ async function removeLedgerByMetadata(key: string, value: string) {
 
 export function usePayrolls(enabled = true) {
   const { user, dataOwnerId } = useAuth();
+  const instanceId = useId();
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -98,12 +99,28 @@ export function usePayrolls(enabled = true) {
 
   useEffect(() => {
     if (!user || !enabled) return;
+    const ownerId = dataOwnerId ?? user.id;
+    const safe = (fn: () => void) => {
+      try { fn(); } catch (e) { console.warn("[usePayrolls realtime patch failed, refetching]", e); fetchAll(); }
+    };
     const ch = supabase
-      .channel(`payrolls-${crypto.randomUUID()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "payrolls" }, () => fetchAll())
+      .channel(`payrolls:${ownerId}:${instanceId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "payrolls", filter: `user_id=eq.${ownerId}` }, (payload) => {
+        safe(() => setPayrolls((prev) => {
+          const row = rowToPayroll(payload.new as any);
+          if (prev.some((p) => p.id === row.id)) return prev;
+          return [row, ...prev];
+        }));
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "payrolls", filter: `user_id=eq.${ownerId}` }, (payload) => {
+        safe(() => setPayrolls((prev) => prev.map((p) => p.id === (payload.new as any).id ? rowToPayroll(payload.new as any) : p)));
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "payrolls" }, (payload) => {
+        safe(() => setPayrolls((prev) => prev.filter((p) => p.id !== (payload.old as any).id)));
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user, enabled, fetchAll]);
+  }, [user, dataOwnerId, enabled, fetchAll, instanceId]);
 
   /**
    * Garante que exista uma despesa vinculada a esta folha (1:1).

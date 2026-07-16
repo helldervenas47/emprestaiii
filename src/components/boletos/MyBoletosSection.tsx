@@ -130,7 +130,7 @@ export function MyBoletosSection({ readOnly }: Props) {
     uploadAttachment, getAttachmentUrl,
   } = useMyBoletos();
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"todos" | MyBoletoStatus>("todos");
+  const [statusFilter, setStatusFilter] = useState<"todos" | MyBoletoStatus>("pendente");
   const [categoryFilter, setCategoryFilter] = useState<string>("todas");
   const [sortBy, setSortBy] = useState<"due" | "amount" | "status">("due");
   const [open, setOpen] = useState(false);
@@ -353,13 +353,17 @@ export function MyBoletosSection({ readOnly }: Props) {
       {/* Resumo */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         <SummaryTile icon={<FileText className="h-4 w-4" />} label="Total"
-          value={BRL(summary.totalPending + summary.totalPaid + summary.totalOverdue)} sub={`${summary.total} boletos`} tone="primary" delay={0} />
+          value={BRL(summary.totalPending + summary.totalPaid + summary.totalOverdue)} sub={`${summary.total} boletos`} tone="primary" delay={0}
+          active={statusFilter === "todos"} onClick={() => setStatusFilter("todos")} />
         <SummaryTile icon={<CheckCircle2 className="h-4 w-4" />} label="Pagos"
-          value={BRL(summary.totalPaid)} sub={`${summary.paid} boletos`} tone="emerald" delay={80} />
+          value={BRL(summary.totalPaid)} sub={`${summary.paid} boletos`} tone="emerald" delay={80}
+          active={statusFilter === "pago"} onClick={() => setStatusFilter(statusFilter === "pago" ? "todos" : "pago")} />
         <SummaryTile icon={<Clock className="h-4 w-4" />} label="Pendentes"
-          value={BRL(summary.totalPending)} sub={`${summary.pending} boletos`} tone="amber" delay={160} />
+          value={BRL(summary.totalPending)} sub={`${summary.pending} boletos`} tone="amber" delay={160}
+          active={statusFilter === "pendente"} onClick={() => setStatusFilter(statusFilter === "pendente" ? "todos" : "pendente")} />
         <SummaryTile icon={<AlertTriangle className="h-4 w-4" />} label="Vencidos"
-          value={BRL(summary.totalOverdue)} sub={`${summary.overdue} boletos`} tone="rose" delay={240} />
+          value={BRL(summary.totalOverdue)} sub={`${summary.overdue} boletos`} tone="rose" delay={240}
+          active={statusFilter === "vencido"} onClick={() => setStatusFilter(statusFilter === "vencido" ? "todos" : "vencido")} />
       </div>
 
       {/* Toolbar */}
@@ -421,19 +425,7 @@ export function MyBoletosSection({ readOnly }: Props) {
               : g.pending > 0
               ? "border-l-amber-500"
               : "border-l-emerald-500";
-            const isOpen = expanded[g.key] ?? single;
-
-            if (single) {
-              return <BoletoCard key={g.key} b={g.items[0]} readOnly={readOnly}
-                onPay={() => setPayTarget(g.items[0])}
-                onEdit={() => openEdit(g.items[0])}
-                onDelete={() => setDeleteId(g.items[0].id)}
-                onHistory={() => setHistoryTarget(g.items[0])}
-                onUnlink={async () => { await unlinkExpense(g.items[0].id); toast.success("Despesa desvinculada"); }}
-                linkedExpenseDescription={g.items[0].expense_id ? expenseMap[g.items[0].expense_id] : undefined}
-                onAttach={openAttachment} />;
-
-            }
+            const isOpen = expanded[g.key] ?? false;
 
             return (
               <Card key={g.key} className={cn("border-l-4", groupTone)}>
@@ -703,20 +695,27 @@ function StatusBadge({ status }: { status: MyBoletoStatus }) {
   </Badge>;
 }
 
-function SummaryTile({ icon, label, value, sub, tone, delay = 0 }: {
+function SummaryTile({ icon, label, value, sub, tone, delay = 0, active, onClick }: {
   icon: React.ReactNode; label: string; value: string; sub?: string;
   tone: "amber" | "rose" | "emerald" | "primary";
   delay?: number;
+  active?: boolean;
+  onClick?: () => void;
 }) {
   const toneMap = {
-    amber: { text: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10" },
-    rose: { text: "text-rose-600 dark:text-rose-400", bg: "bg-rose-500/10" },
-    emerald: { text: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10" },
-    primary: { text: "text-primary", bg: "bg-primary/10" },
+    amber: { text: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10", ring: "ring-amber-500/50" },
+    rose: { text: "text-rose-600 dark:text-rose-400", bg: "bg-rose-500/10", ring: "ring-rose-500/50" },
+    emerald: { text: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10", ring: "ring-emerald-500/50" },
+    primary: { text: "text-primary", bg: "bg-primary/10", ring: "ring-primary/50" },
   }[tone];
   return (
-    <div
-      className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm animate-fade-in flex flex-col items-center text-center"
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm animate-fade-in flex flex-col items-center text-center transition-all hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        active && `ring-2 ${toneMap.ring}`,
+      )}
       style={{ animationDelay: `${delay}ms`, animationFillMode: 'backwards' }}
     >
       <div className={`h-8 w-8 rounded-lg ${toneMap.bg} flex items-center justify-center mb-2`}>
@@ -725,6 +724,6 @@ function SummaryTile({ icon, label, value, sub, tone, delay = 0 }: {
       <p className="text-[10px] sm:text-xs text-muted-foreground">{label}</p>
       <p className={`text-sm sm:text-xl font-bold mt-0.5 ${toneMap.text}`}>{value}</p>
       {sub && <p className="text-[10px] text-muted-foreground mt-1 truncate max-w-full">{sub}</p>}
-    </div>
+    </button>
   );
 }

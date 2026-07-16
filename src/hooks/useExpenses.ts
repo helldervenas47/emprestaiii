@@ -1,5 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useCallback, useEffect, useRef, useId } from "react";
 import { todayInAppTz } from "@/lib/timezone";
 import { Expense } from "@/types/loan";
 import { supabase } from "@/integrations/supabase/userClient";
@@ -9,12 +8,19 @@ import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 import { recordLedger, removeLedgerByRef } from "@/lib/ledger";
 import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
 import { adjustVehicleBalance } from "@/lib/vehicleBalance";
+import { financeFetchError, financeFetchStart, financeFetchSuccess, financeInvalidate, financeRealtimeEvent, financeSetState, useFinanceHookDebug } from "@/lib/financeDebug";
 import {
   cacheRows, getCachedRows, upsertCachedRow, removeCachedRow,
   enqueueMutation, rewritePendingRecordId,
 } from "@/lib/offline/sync";
 import { isOnline } from "@/lib/offline/status";
 import { assertWritable } from "@/lib/readOnlyState";
+import {
+  loadSharedResource, readSharedResource, writeSharedResource,
+  invalidateSharedResource, subscribeSharedResource,
+} from "@/lib/sharedResource";
+
+const EXPENSES_STALE_MS = 60_000;
 
 async function syncLinkedBoletoPaid(expenseId: string, paid: boolean, paidDate: string | null, amount: number) {
   assertWritable();
@@ -201,133 +207,141 @@ async function syncPayrollOnExpensePaid(opts: {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Fase 4 — TanStack Query shared cache para expenses.
-// Fetcher puro consumido por `useExpenses` via `useQuery`, permitindo que
-// múltiplos componentes compartilhem uma única request por queryKey.
-// ---------------------------------------------------------------------------
-export interface ExpensesPeriod {
-  startDate?: string;
-  endDate?: string;
-  limit?: number;
-}
-
-export async function fetchExpensesData(period?: ExpensesPeriod): Promise<Expense[]> {
-  if (import.meta.env.DEV) console.debug("[useExpenses fetch:start]", { period });
-  const startedAt = performance.now();
-  const { startDate, endDate, limit } = period ?? {};
-  const hasPeriod = !!(startDate || endDate);
-  const effectiveLimit = limit ?? 5000;
-  if (isOnline()) {
-    let q = supabase
-      .from("expenses")
-      .select("id, description, amount, type, category, installments, paid_installments, due_date, paid, paid_date, notes, created_at, parent_expense_id, scope, payment_method_id, generate_income_on_pay, generated_income_id")
-      .order("created_at", { ascending: false })
-      .limit(effectiveLimit);
-    if (startDate) q = q.gte("due_date", startDate);
-    if (endDate) q = q.lte("due_date", endDate);
-    const { data, error } = await q;
-    if (!error && data) {
-      if (!hasPeriod) cacheRows("expenses", data).catch(() => { /* noop */ });
-      if (import.meta.env.DEV) console.debug("[useExpenses fetch:end]", { rows: data.length, ms: Math.round(performance.now() - startedAt), source: "remote", period });
-      return data.map(rowToExpense);
-    }
-  }
-  const cached = await getCachedRows("expenses");
-  let rows = cached;
-  if (startDate) rows = rows.filter((r: any) => (r.due_date ?? "") >= startDate);
-  if (endDate) rows = rows.filter((r: any) => (r.due_date ?? "") <= endDate);
-  if (import.meta.env.DEV) console.debug("[useExpenses fetch:end]", { rows: rows.length, ms: Math.round(performance.now() - startedAt), source: "cache", period });
-  return rows
-    .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
-    .slice(0, effectiveLimit)
-    .map(rowToExpense);
-}
-
-export function expensesQueryKey(
-  ownerKey: string | null | undefined,
-  period?: ExpensesPeriod,
-) {
-  const owner = ownerKey ?? "anon";
-  if (!period || (!period.startDate && !period.endDate && period.limit === undefined)) {
-    return ["expenses", owner] as const;
-  }
-  return [
-    "expenses",
-    owner,
-    period.startDate ?? null,
-    period.endDate ?? null,
-    period.limit ?? null,
-  ] as const;
-}
-
-export interface UseExpensesOptions extends ExpensesPeriod {
-  enabled?: boolean;
-}
-
-export function useExpenses(opts: boolean | UseExpensesOptions = true) {
-  const parsed: UseExpensesOptions = typeof opts === "boolean" ? { enabled: opts } : opts;
-  const { enabled = true, startDate, endDate, limit } = parsed;
-  const period: ExpensesPeriod | undefined =
-    startDate || endDate || limit !== undefined ? { startDate, endDate, limit } : undefined;
-
+export function useExpenses(enabled = true) {
+  useFinanceHookDebug("useExpenses");
   const { user, dataOwnerId } = useAuth();
-  const queryClient = useQueryClient();
+  const instanceId = useId();
   const ownerKey = dataOwnerId ?? user?.id ?? null;
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [debugInstance] = useState(() => `useExpenses-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-
-  const expensesQuery = useQuery({
-    queryKey: expensesQueryKey(ownerKey, period),
-    queryFn: () => fetchExpensesData(period),
-    enabled: !!user && enabled,
-    staleTime: 30_000,
-  });
-
-  // Sync query cache -> local state para manter setters otimistas usados
-  // pelas mutações abaixo sem alterar a API pública.
-  useEffect(() => {
-    if (expensesQuery.data) setExpenses(expensesQuery.data);
-  }, [expensesQuery.data]);
+  const cacheKey = ownerKey ? `expenses:${ownerKey}` : null;
+  const [expenses, setExpenses] = useState<Expense[]>(() =>
+    cacheKey ? (readSharedResource<Expense[]>(cacheKey) ?? []) : [],
+  );
+  const selfWriteRef = useRef(false);
+  const skipInitialMirrorRef = useRef<string | null>(null);
 
   const fetchExpenses = useCallback(async () => {
-    if (!user) return;
-    if (import.meta.env.DEV) console.debug("[useExpenses invalidateQueries]", { instance: debugInstance, ownerKey });
-    await queryClient.invalidateQueries({ queryKey: expensesQueryKey(ownerKey) });
-  }, [queryClient, user, ownerKey, debugInstance]);
+    if (!user || !cacheKey) return;
+    financeFetchStart("useExpenses", "expenses", { source: isOnline() ? "remote" : "cache" });
+    if (isOnline()) {
+      try {
+        const rows = await loadSharedResource<Expense[]>(
+          cacheKey,
+          async () => {
+            const { data, error } = await supabase
+              .from("expenses")
+              .select("id, user_id, description, amount, type, category, installments, paid_installments, due_date, paid, paid_date, notes, created_at, parent_expense_id, scope, payment_method_id, generate_income_on_pay, generated_income_id")
+              .order("created_at", { ascending: false })
+              .limit(5000);
+            if (error) throw error;
+            const list = data ?? [];
+            cacheRows("expenses", list).catch(() => { /* noop */ });
+            return list.map(rowToExpense);
+          },
+          { staleTime: EXPENSES_STALE_MS },
+        );
+        financeSetState("useExpenses", "expenses", { rows: rows.length, source: "remote" });
+        setExpenses(rows);
+        financeFetchSuccess("useExpenses", "expenses", { rows: rows.length, source: "remote" });
+        return;
+      } catch (error: any) {
+        financeFetchError("useExpenses", "expenses", { message: error?.message });
+      }
+    }
+    const cached = await getCachedRows("expenses", ownerKey);
+    if (cached.length > 0) {
+      const mapped = cached
+        .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
+        .map(rowToExpense);
+      financeSetState("useExpenses", "expenses", { rows: mapped.length, source: "cache" });
+      setExpenses(mapped);
+      financeFetchSuccess("useExpenses", "expenses", { rows: mapped.length, source: "cache" });
+    }
+  }, [user, cacheKey, ownerKey]);
 
-  const invalidate = useCallback(() => {
-    if (import.meta.env.DEV) console.debug("[useExpenses invalidateQueries]", { instance: debugInstance, ownerKey, source: "invalidate" });
-    queryClient.invalidateQueries({ queryKey: expensesQueryKey(ownerKey) });
-  }, [queryClient, ownerKey, debugInstance]);
-
+  // Cross-instance sync + seed inicial a partir do cache persistido.
   useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    console.debug("[useExpenses lifecycle] mount/update", { instance: debugInstance, enabled, ownerKey, userId: user?.id ?? null, period });
-    return () => console.debug("[useExpenses lifecycle] unmount", { instance: debugInstance, enabled, ownerKey, userId: user?.id ?? null, period });
-  }, [debugInstance, enabled, ownerKey, user?.id, startDate, endDate, limit]);
+    if (!cacheKey) return;
+    const persisted = readSharedResource<Expense[]>(cacheKey);
+    // Evita sobrescrever o snapshot persistido com o estado inicial vazio.
+    // O fetch remoto ainda roda porque o sharedResource hidratado de localStorage
+    // fica stale (loadedAt=0); a UI pinta imediatamente com o último snapshot.
+    skipInitialMirrorRef.current = cacheKey;
+    selfWriteRef.current = true;
+    setExpenses(persisted ?? []);
+    selfWriteRef.current = false;
+    if (persisted === undefined) {
+      getCachedRows("expenses", ownerKey).then((cached) => {
+        if (cached.length === 0) return;
+        setExpenses(cached.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || "")).map(rowToExpense));
+      }).catch(() => { /* noop */ });
+    }
+    return subscribeSharedResource(cacheKey, () => {
+      if (selfWriteRef.current) return;
+      const next = readSharedResource<Expense[]>(cacheKey);
+      if (next) setExpenses(next);
+    });
+  }, [cacheKey, ownerKey]);
 
-  // Realtime subscription — invalida o cache compartilhado
+  // Mirror local state to shared cache
+  useEffect(() => {
+    if (!cacheKey) return;
+    if (skipInitialMirrorRef.current === cacheKey) {
+      skipInitialMirrorRef.current = null;
+      return;
+    }
+    selfWriteRef.current = true;
+    writeSharedResource(cacheKey, expenses);
+    selfWriteRef.current = false;
+  }, [expenses, cacheKey]);
+
+  useEffect(() => { if (enabled) { fetchExpenses(); } }, [fetchExpenses, enabled]);
+
+  // Realtime subscription com patch local (evita SELECT completo por evento — P0 egress)
   useEffect(() => {
     if (!user || !enabled) return;
+    const ownerId = dataOwnerId ?? user.id;
+    const safe = (fn: () => void) => {
+      try { fn(); } catch (e) {
+        console.warn("[useExpenses realtime patch failed, refetching]", e);
+        if (cacheKey) invalidateSharedResource(cacheKey);
+        financeInvalidate("useExpenses", "expenses", { reason: "realtime-fallback" });
+        fetchExpenses();
+      }
+    };
     const channel = supabase
-      .channel(`expenses-realtime-${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => {
-        if (import.meta.env.DEV) console.debug("[useExpenses realtime]", { instance: debugInstance, table: "expenses", ownerKey });
-        queryClient.invalidateQueries({ queryKey: expensesQueryKey(ownerKey) });
+      .channel(`expenses:${ownerId}:${instanceId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'expenses', filter: `user_id=eq.${ownerId}` }, (payload) => {
+        financeRealtimeEvent("useExpenses", "expenses", { eventType: "INSERT" });
+        safe(() => setExpenses((prev) => {
+          const row = rowToExpense(payload.new as any);
+          if (prev.some((e) => e.id === row.id)) return prev;
+          return [row, ...prev];
+        }));
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'expenses', filter: `user_id=eq.${ownerId}` }, (payload) => {
+        financeRealtimeEvent("useExpenses", "expenses", { eventType: "UPDATE" });
+        safe(() => setExpenses((prev) => prev.map((e) => e.id === (payload.new as any).id ? rowToExpense(payload.new as any) : e)));
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'expenses' }, (payload) => {
+        financeRealtimeEvent("useExpenses", "expenses", { eventType: "DELETE" });
+        safe(() => setExpenses((prev) => prev.filter((e) => e.id !== (payload.old as any).id)));
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient, ownerKey, enabled, debugInstance]);
+  }, [user, dataOwnerId, fetchExpenses, enabled, cacheKey, instanceId]);
 
-  // Refetch after offline queue flush
+  // Refetch after offline queue flush (invalidate cache first)
   useEffect(() => {
     const handler = (e: any) => {
-      if (e.detail?.tables?.includes("expenses")) fetchExpenses();
+      if (e.detail?.tables?.includes("expenses")) {
+        if (cacheKey) invalidateSharedResource(cacheKey);
+        financeInvalidate("useExpenses", "expenses", { reason: "offline-sync:flushed" });
+        fetchExpenses();
+      }
     };
     window.addEventListener("offline-sync:flushed", handler);
     return () => window.removeEventListener("offline-sync:flushed", handler);
-  }, [fetchExpenses]);
+  }, [fetchExpenses, cacheKey]);
 
   const addExpense = useCallback(async (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">): Promise<string | null> => {
     assertWritable();
@@ -338,6 +352,7 @@ export function useExpenses(opts: boolean | UseExpensesOptions = true) {
       paidInstallments: 0, createdAt: new Date().toISOString(),
       scope: expense.scope ?? "business",
     };
+    financeSetState("useExpenses", "optimistic expense insert", { rows: 1 });
     setExpenses((prev) => [optimistic, ...prev]);
 
     const insertPayload = {
@@ -365,11 +380,13 @@ export function useExpenses(opts: boolean | UseExpensesOptions = true) {
         await enqueueMutation({ table: "expenses", op: "insert", recordId: tempId, payload: insertPayload });
         return tempId;
       } else {
-        setExpenses((prev) => prev.filter((e) => e.id !== tempId));
+          financeSetState("useExpenses", "rollback expense insert", { id: tempId });
+          setExpenses((prev) => prev.filter((e) => e.id !== tempId));
         await removeCachedRow("expenses", tempId);
         return null;
       }
     } else if (data) {
+      financeSetState("useExpenses", "confirm expense insert", { id: data.id });
       setExpenses((prev) => prev.map((e) => e.id === tempId ? { ...e, id: data.id, createdAt: data.created_at } : e));
       await removeCachedRow("expenses", tempId);
       await upsertCachedRow("expenses", data);
@@ -377,11 +394,10 @@ export function useExpenses(opts: boolean | UseExpensesOptions = true) {
       if ((expense.scope ?? "business") === "personal") {
         supabase.functions.invoke("notify-budget-overrun").catch(() => { /* silent */ });
       }
-      invalidate();
       return (data as any).id as string;
     }
     return tempId;
-  }, [user, dataOwnerId, invalidate]);
+  }, [user, dataOwnerId]);
 
   const payExpense = useCallback(async (id: string, skipBalanceAdjust = false, payDate?: string, paidAmount?: number) => {
     assertWritable();
@@ -410,6 +426,7 @@ export function useExpenses(opts: boolean | UseExpensesOptions = true) {
         : (baseNotesRec ? `${baseNotesRec}\n${prevDueStash}` : prevDueStash);
 
       // Optimistic: update parent
+      financeSetState("useExpenses", "optimistic recurring expense payment", { id, installment: newPaid });
       setExpenses((prev) => prev.map((e) => e.id === id ? {
         ...e,
         paidInstallments: newPaid,
@@ -495,6 +512,7 @@ export function useExpenses(opts: boolean | UseExpensesOptions = true) {
         ? (baseNotes ? `${baseNotes}\n[Original: ${expense.amount.toFixed(2)}]` : `[Original: ${expense.amount.toFixed(2)}]`)
         : expense.notes ?? null;
 
+      financeSetState("useExpenses", "optimistic expense payment", { id, amount: finalAmount });
       setExpenses((prev) => prev.map((e) => e.id === id ? {
         ...e, paid: true, paidDate: today, amount: finalAmount, notes: finalNotes,
       } : e));
@@ -581,8 +599,7 @@ export function useExpenses(opts: boolean | UseExpensesOptions = true) {
     if (expense.scope === "personal" && online) {
       supabase.functions.invoke("notify-budget-overrun").catch(() => { /* silent */ });
     }
-    invalidate();
-  }, [expenses, dataOwnerId, invalidate]);
+  }, [expenses, dataOwnerId]);
 
   const unpayExpense = useCallback(async (id: string) => {
     assertWritable();
@@ -718,8 +735,7 @@ export function useExpenses(opts: boolean | UseExpensesOptions = true) {
       if (extractPiggyId(expense.notes)) { /* no-op */ }
 
     }
-    invalidate();
-  }, [expenses, dataOwnerId, invalidate]);
+  }, [expenses, dataOwnerId]);
 
   const deleteExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
     assertWritable();
@@ -749,8 +765,7 @@ export function useExpenses(opts: boolean | UseExpensesOptions = true) {
 
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) await enqueueMutation({ table: "expenses", op: "delete", recordId: id });
-    invalidate();
-  }, [expenses, dataOwnerId, invalidate]);
+  }, [expenses, dataOwnerId]);
 
   const updateExpense = useCallback(async (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => {
     assertWritable();
@@ -770,8 +785,7 @@ export function useExpenses(opts: boolean | UseExpensesOptions = true) {
     }
     const { error } = await supabase.from("expenses").update(updatePayload).eq("id", id);
     if (error) await enqueueMutation({ table: "expenses", op: "update", recordId: id, payload: updatePayload });
-    invalidate();
-  }, [invalidate]);
+  }, []);
 
 
   return { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense };

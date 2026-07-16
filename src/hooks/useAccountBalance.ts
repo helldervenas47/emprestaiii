@@ -9,12 +9,17 @@ import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { creditCardInvoiceExtraPaid, creditCardLedgerHandled, cycleKeyForDate, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
 import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
 import type { Sale } from "@/types/loan";
+import { financeSetState, useFinanceHookDebug } from "@/lib/financeDebug";
 
 /**
  * Fonte oficial e única do "Saldo em Conta" do app.
  * Espelha exatamente o cálculo exibido na tela inicial da aba Receitas e Despesas
  * (IncomeBalanceCard). Todos os módulos (Dashboard, Cofrinhos, Cards consolidados,
  * indicadores, etc.) devem consumir este hook para garantir consistência.
+ * @deprecated P0-01 — fonte oficial migrou para `src/lib/accountLedgerBalance.ts`
+ * (`useOfficialAccountBalance`). Este hook permanece como legado enquanto o
+ * ledger não é backfilled (ver docs/finance-balance-source.md). Não usar em
+ * código novo.
  */
 function saleReceivedTotal(sale: Sale): number {
   const historyTotal = (sale.paymentHistory || []).reduce(
@@ -32,6 +37,7 @@ function saleReceivedTotal(sale: Sale): number {
 }
 
 export function useAccountBalance() {
+  useFinanceHookDebug("useAccountBalance");
   const { incomes } = useIncomes(true);
   const { expenses } = useExpenses(true);
   const { sales } = useProducts(true);
@@ -91,7 +97,9 @@ export function useAccountBalance() {
       totalPiggyManualDeposits -
       ccExtra;
     // Soma saldos externos (Dashboard conta+dinheiro, Cofrinhos, Veículos)
-    return base + external.total;
+    const total = base + external.total;
+    financeSetState("useAccountBalance", "derived balance", { total, table: "composite", queryKey: null });
+    return total;
   }, [incomes, sales, expenses, piggyDeposits, external.total, cards, openings]);
 
   return balance;

@@ -13,9 +13,8 @@ import { isOnline } from "./status";
 // ---------- Cache helpers ----------
 
 export async function cacheRows(table: OfflineTable, rows: any[]) {
-  if (!rows || rows.length === 0) return;
   const now = Date.now();
-  const entries = rows.map((r) => ({
+  const entries = (rows ?? []).map((r) => ({
     id: r.id as string,
     user_id: r.user_id,
     data: r,
@@ -28,9 +27,11 @@ export async function cacheRows(table: OfflineTable, rows: any[]) {
   });
 }
 
-export async function getCachedRows(table: OfflineTable): Promise<any[]> {
+export async function getCachedRows(table: OfflineTable, userId?: string | null): Promise<any[]> {
   const all = await offlineDB[table].toArray();
-  return all.map((r) => r.data);
+  return all
+    .filter((r) => !userId || r.user_id === userId)
+    .map((r) => r.data);
 }
 
 export async function upsertCachedRow(table: OfflineTable, row: any) {
@@ -110,7 +111,10 @@ export function usePendingCount() {
     };
     refresh();
     pendingListeners.add(refresh);
-    const interval = setInterval(refresh, 5000);
+    // Poll local (IndexedDB) — pausa quando aba oculta e sobe para 15s.
+    const interval = setInterval(() => {
+      if (typeof document === "undefined" || !document.hidden) refresh();
+    }, 15000);
     return () => {
       alive = false;
       pendingListeners.delete(refresh);
@@ -290,8 +294,9 @@ export function wireAutoSync() {
 
   window.addEventListener("online", tryFlush);
   window.addEventListener("focus", tryFlush);
-  // Light periodic retry for cases where browser misses the online event
+  // Retry periódico leve — pausa quando aba oculta e sobe para 60s.
   setInterval(() => {
+    if (typeof document !== "undefined" && document.hidden) return;
     if (isOnline()) {
       Promise.all([
         offlineDB.pending_mutations.count(),
@@ -300,7 +305,7 @@ export function wireAutoSync() {
         if (c > 0 || bd !== 0) flushQueue().catch(() => { /* noop */ });
       });
     }
-  }, 30000);
+  }, 60000);
 
   // Initial attempt at app boot
   setTimeout(tryFlush, 2000);

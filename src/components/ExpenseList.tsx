@@ -17,14 +17,15 @@ import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import {
-  Search, Trash2, CheckCircle, Receipt, Calendar, Tag,
-  CircleDollarSign, ChevronLeft, ChevronRight, Undo2, Pencil, Check, CalendarCheck,
+  Search, Trash2, CheckCircle, CheckCircle2, Clock, Receipt, Calendar, Tag,
+  CircleDollarSign, ChevronLeft, ChevronRight, ChevronDown, Undo2, Pencil, Check, CalendarCheck,
 } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ExpenseBoletoLinkButton } from "@/components/ExpenseBoletoLinkButton";
 import { EditScopeDialog } from "@/components/EditScopeDialog";
 import { CategoryDetailsSheet, CategoryEntry } from "@/components/CategoryDetailsSheet";
 import { applyExpenseScopedUpdate, isExpenseInSeries } from "@/lib/seriesEdit";
+import { useFinanceComponentDebug } from "@/lib/financeDebug";
 
 const categories = [
   "Aluguel", "Energia", "Água", "Internet", "Telefone",
@@ -248,6 +249,7 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
 
 
 export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, readOnly = false }: Props) {
+  useFinanceComponentDebug("ExpenseList");
   const { mask } = useHideValues();
   const { celebrate } = usePaymentCelebration();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -259,6 +261,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [viewPaymentsExpenseId, setViewPaymentsExpenseId] = useState<string | null>(null);
   const [showClearPayments, setShowClearPayments] = useState(false);
+  const [expensesExpanded, setExpensesExpanded] = useState(false);
   const [deleteExpenseId, setDeleteExpenseId] = useState<string | null>(null);
   const [payingExpenseId, setPayingExpenseId] = useState<string | null>(null);
   const [payDate, setPayDate] = useState<string>("");
@@ -306,7 +309,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
       .filter((e) => e.description.toLowerCase().includes(q) || e.category.toLowerCase().includes(q))
       .filter((e) => {
         const recFullyPaid = e.type === "recorrente" && e.installments && e.installments > 1 && e.paid;
-        if (filter === "pending") return !e.paid && !isOverdue(e);
+        if (filter === "pending") return !e.paid;
         if (filter === "paid") return e.paid && !recFullyPaid;
         if (filter === "overdue") return isOverdue(e);
         return !recFullyPaid;
@@ -341,12 +344,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
     };
   }, [visibleMonth, getInstallmentAmount]);
 
-  const filters: { id: Filter; label: string; count: number }[] = useMemo(() => ([
-    { id: "all", label: "Todas", count: visibleMonth.length },
-    { id: "pending", label: "Pendentes", count: countPending },
-    { id: "overdue", label: "Atrasadas", count: countOverdue },
-    { id: "paid", label: "Pagas", count: countPaid },
-  ]), [visibleMonth.length, countPending, countOverdue, countPaid]);
+  void countOverdue;
 
 
   type SummaryView = "pending" | "paid" | "overdue";
@@ -449,40 +447,92 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
         </Button>
       </div>
 
-      {/* Search + filters + clear payments */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-          <Input placeholder="Buscar despesa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-        </div>
-        <div className="grid grid-cols-2 sm:flex gap-1">
-          {filters.map((f) => (
-            <Button
-              key={f.id}
-              variant="outline"
-              size="sm"
-              onClick={() => setFilter(f.id)}
-              className={`rounded-xl transition-all duration-200 ${filter === f.id ? "bg-primary text-primary-foreground border-primary" : ""}`}
-            >
-              {f.label} ({f.count})
-            </Button>
-          ))}
-        </div>
-      </div>
+      {/* Collapsible quick filter card (mirrors Receitas) */}
+      <Card no3d className="p-4">
+        <button
+          type="button"
+          onClick={() => setExpensesExpanded((v) => !v)}
+          className="w-full flex items-center justify-between gap-2 flex-wrap text-left rounded-lg -m-1 p-1 hover:bg-muted/40 active:bg-muted/60 transition-colors"
+          aria-expanded={expensesExpanded}
+          aria-controls="despesas-content"
+        >
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">Despesas ({filtered.length})</h2>
+            <ChevronDown
+              className={`h-4 w-4 text-muted-foreground transition-transform duration-300 ${expensesExpanded ? "rotate-180" : ""}`}
+            />
+          </div>
+          <div className="text-right">
+            <div className="text-[11px] text-muted-foreground leading-none">
+              {!expensesExpanded
+                ? "Pendente"
+                : filter === "all" ? "Total"
+                : filter === "paid" ? "Total pago"
+                : filter === "pending" ? "Total a pagar"
+                : "Total"}
+            </div>
+            <div className={`text-base font-bold ${
+              !expensesExpanded ? "text-amber-600 dark:text-amber-400" :
+              filter === "paid" ? "text-emerald-600 dark:text-emerald-400" :
+              filter === "pending" ? "text-amber-600 dark:text-amber-400" :
+              "text-foreground"
+            }`}>
+              {formatCurrency(
+                !expensesExpanded
+                  ? totalPending
+                  : filtered.reduce((s, e) => s + getInstallmentAmount(e), 0)
+              )}
+            </div>
+          </div>
+        </button>
 
-      {!readOnly && hasPaidExpenses && onUnpay && (
-        <div className="flex justify-end">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10 text-xs gap-1"
-            onClick={() => setShowClearPayments(true)}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Limpar Pagamentos
-          </Button>
+        <div
+          id="despesas-content"
+          className={`grid transition-all duration-300 ease-in-out ${expensesExpanded ? "grid-rows-[1fr] opacity-100 mt-3" : "grid-rows-[0fr] opacity-0"}`}
+        >
+          <div className="overflow-hidden min-h-0">
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              <Button
+                type="button"
+                size="sm"
+                variant={filter === "all" ? "default" : "outline"}
+                className="h-9 rounded-full min-w-0"
+                onClick={() => setFilter("all")}
+              >
+                Todas
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={filter === "pending" ? "default" : "outline"}
+                className="h-9 rounded-full min-w-0 gap-1.5"
+                onClick={() => setFilter("pending")}
+              >
+                <Clock className="h-3.5 w-3.5" /> Pendentes
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={filter === "paid" ? "default" : "outline"}
+                className="h-9 rounded-full min-w-0 gap-1.5"
+                onClick={() => setFilter("paid")}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" /> Pagas
+              </Button>
+            </div>
+
+            <div className="mb-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 w-full" />
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+      </Card>
+
+
+
 
       {/* Dialog limpar pagamentos */}
       <Dialog open={showClearPayments} onOpenChange={setShowClearPayments}>
@@ -541,7 +591,15 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                 }`}
               >
                 <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-start gap-3 sm:items-center sm:gap-4">
+                  <div
+                    className={`flex items-start gap-3 sm:items-center sm:gap-4 ${!readOnly && onUpdate ? "cursor-pointer" : ""}`}
+                    onClick={(e) => {
+                      if (readOnly || !onUpdate) return;
+                      const target = e.target as HTMLElement;
+                      if (target.closest("[data-actions-row]") || target.closest("button") || target.closest("a")) return;
+                      setEditingExpenseId(expense.id);
+                    }}
+                  >
                     <div className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center shrink-0 ${
                       expense.paid ? "bg-success/10" : overdue ? "bg-destructive/10" : "bg-warning/10"
                     }`}>
@@ -583,7 +641,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                       )}
                       <div className="mt-2 pt-2 border-t border-border/40 space-y-2">
                         <p className="text-base sm:text-lg font-bold text-foreground">{formatCurrency(installmentAmount)}</p>
-                        <div className="flex items-center justify-between gap-1">
+                        <div data-actions-row className="flex items-center justify-between gap-1">
                           <Button variant="ghost" onClick={() => setViewDateExpenseId(expense.id)} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Ver data de pagamento" aria-label="Ver data de pagamento">
                             <CalendarCheck className="h-4 w-4" />
                             <span className="hidden md:inline">Data</span>

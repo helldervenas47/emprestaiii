@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { supabase } from "@/integrations/supabase/userClient";
 import { useAuth } from "./useAuth";
 
@@ -66,6 +66,7 @@ function readLocalVis(): MaosVisibility {
  */
 export function useDashboardPrefs() {
   const { user } = useAuth();
+  const instanceId = useId();
   const [extraCards, setExtraCardsState] = useState<ExtraCardKey[]>(readLocalExtra);
   const [visibility, setVisibilityState] = useState<MaosVisibility>(readLocalVis);
   const [loaded, setLoaded] = useState(false);
@@ -101,7 +102,7 @@ export function useDashboardPrefs() {
   // Realtime entre dispositivos
   useEffect(() => {
     if (!user) return;
-    const ch = supabase.channel(`dashboard-prefs-${user.id}`);
+    const ch = supabase.channel(`dashboard-prefs-${user.id}:${instanceId}`);
     ch.on(
       "postgres_changes" as any,
       { event: "*", schema: "public", table: "user_dashboard_prefs", filter: `user_id=eq.${user.id}` },
@@ -118,7 +119,7 @@ export function useDashboardPrefs() {
     );
     ch.subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user]);
+  }, [user, instanceId]);
 
   const persistExtra = useCallback(async (ec: ExtraCardKey[]) => {
     try { localStorage.setItem(LS_EXTRA, JSON.stringify(ec)); } catch {}

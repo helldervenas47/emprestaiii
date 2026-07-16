@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FileText, Search, Download } from "lucide-react";
-// generatePayslipPdf importado dinamicamente no handler.
+import { generatePayslipPdf } from "@/lib/payslipPdf";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -49,11 +49,7 @@ export function PayslipHistory() {
                   {format(parseISO(p.competence + "-01"), "MMMM 'de' yyyy", { locale: ptBR })} · Líquido {BRL(p.netSalary)}
                 </p>
               </div>
-              <Button size="sm" variant="outline" onClick={async () => {
-                if (!emp) return;
-                const { generatePayslipPdf } = await import("@/lib/payslipPdf");
-                await generatePayslipPdf(p, emp, { brandName: branding.brand_name });
-              }}>
+              <Button size="sm" variant="outline" onClick={() => emp && generatePayslipPdf(p, emp, { brandName: branding.brand_name })}>
                 <Download className="h-3 w-3" /> PDF
               </Button>
             </CardContent>

@@ -1,5 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useCallback, useEffect, useId } from "react";
 import { todayInAppTz } from "@/lib/timezone";
 import { Loan, Payment, InstallmentSchedule, PaymentSplit } from "@/types/loan";
 import { adjustBalance, adjustBalanceOffline } from "@/lib/balance";
@@ -15,6 +14,7 @@ import {
 } from "@/lib/offline/sync";
 import { isOnline } from "@/lib/offline/status";
 import { assertWritable } from "@/lib/readOnlyState";
+import { computeInstallmentInterest } from "@/lib/interestAllocation";
 
 async function resolveWalletKind(paymentMethodId: string | null): Promise<"account" | "cash"> {
   if (!paymentMethodId) return "account";
@@ -202,155 +202,81 @@ async function recordPaymentLedgerSplit(args: {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Fase 3 — TanStack Query shared cache
-//
-// Reusable fetchers below. Consumed by `useLoans` via `useQuery`, so multiple
-// components mounting `useLoans` share a single network request per key.
-// ---------------------------------------------------------------------------
-export async function fetchLoansData(): Promise<Loan[]> {
-  if (import.meta.env.DEV) console.debug("[useLoans fetch:start]", { resource: "loans" });
-  const startedAt = performance.now();
-  if (isOnline()) {
-    const { data, error } = await supabase
-      .from("loans").select("id, borrower_name, borrower_id, amount, original_amount, interest_rate, interest_type, payment_type, start_date, due_date, original_due_date, installments, paid_installments, status, remaining_amount, custom_installment_value, custom_interest_value, tags, notes, created_at, late_interest_type, late_interest_value, penalty_value, has_manager, manager_id, manager_commission_rate, auto_billing_enabled, renegotiation_penalty_total, is_sale, payment_method_split")
-      .order("created_at", { ascending: false })
-      .limit(2000);
-    if (!error && data) {
-      cacheRows("loans", data).catch(() => { /* noop */ });
-      if (import.meta.env.DEV) console.debug("[useLoans fetch:end]", { resource: "loans", rows: data.length, ms: Math.round(performance.now() - startedAt), source: "remote" });
-      return data.map(rowToLoan);
-    }
-  }
-  const cached = await getCachedRows("loans");
-  if (import.meta.env.DEV) console.debug("[useLoans fetch:end]", { resource: "loans", rows: cached.length, ms: Math.round(performance.now() - startedAt), source: "cache" });
-  return cached
-    .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
-    .map(rowToLoan);
-}
-
-export async function fetchPaymentsData(): Promise<Payment[]> {
-  if (import.meta.env.DEV) console.debug("[useLoans fetch:start]", { resource: "payments" });
-  const startedAt = performance.now();
-  if (isOnline()) {
-    const { data, error } = await supabase
-      .from("payments").select("id, loan_id, amount, date, installment_number, previous_due_date, payment_method_id, metadata, created_at")
-      .order("created_at", { ascending: false })
-      .limit(5000);
-    if (!error && data) {
-      cacheRows("payments", data).catch(() => { /* noop */ });
-      if (import.meta.env.DEV) console.debug("[useLoans fetch:end]", { resource: "payments", rows: data.length, ms: Math.round(performance.now() - startedAt), source: "remote" });
-      return data.map(rowToPayment);
-    }
-  }
-  const cached = await getCachedRows("payments");
-  if (import.meta.env.DEV) console.debug("[useLoans fetch:end]", { resource: "payments", rows: cached.length, ms: Math.round(performance.now() - startedAt), source: "cache" });
-  return cached
-    .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
-    .map(rowToPayment);
-}
-
-export async function fetchSchedulesData(): Promise<InstallmentSchedule[]> {
-  if (import.meta.env.DEV) console.debug("[useLoans fetch:start]", { resource: "loan_installments" });
-  const startedAt = performance.now();
-  if (isOnline()) {
-    const { data, error } = await supabase
-      .from("loan_installments").select("id, loan_id, installment_number, due_date, amount")
-      .order("installment_number", { ascending: true })
-      .limit(10000);
-    if (!error && data) {
-      cacheRows("loan_installments", data).catch(() => { /* noop */ });
-      if (import.meta.env.DEV) console.debug("[useLoans fetch:end]", { resource: "loan_installments", rows: data.length, ms: Math.round(performance.now() - startedAt), source: "remote" });
-      return data.map((s: any) => ({
-        id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number,
-        dueDate: s.due_date, amount: Number(s.amount),
-      }));
-    }
-  }
-  const cached = await getCachedRows("loan_installments");
-  if (import.meta.env.DEV) console.debug("[useLoans fetch:end]", { resource: "loan_installments", rows: cached.length, ms: Math.round(performance.now() - startedAt), source: "cache" });
-  return cached.map((s: any) => ({
-    id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number,
-    dueDate: s.due_date, amount: Number(s.amount),
-  }));
-}
-
-export function loansQueryKey(ownerKey: string | null | undefined) {
-  return ["loans", ownerKey ?? "anon"] as const;
-}
-export function paymentsQueryKey(ownerKey: string | null | undefined) {
-  return ["payments", ownerKey ?? "anon"] as const;
-}
-export function schedulesQueryKey(ownerKey: string | null | undefined) {
-  return ["loan_installments", ownerKey ?? "anon"] as const;
-}
-
-export function useLoans(enabled: boolean = true) {
+export function useLoans() {
   const { user, dataOwnerId } = useAuth();
-  const queryClient = useQueryClient();
-  const ownerKey = dataOwnerId ?? user?.id ?? null;
-  const debugInstanceRef = useState(() => `useLoans-${Date.now()}-${Math.random().toString(36).slice(2)}`)[0];
-
+  const instanceId = useId();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [installmentSchedules, setInstallmentSchedules] = useState<InstallmentSchedule[]>([]);
 
-  const loansQuery = useQuery({
-    queryKey: loansQueryKey(ownerKey),
-    queryFn: fetchLoansData,
-    enabled: !!user && enabled,
-    staleTime: 30_000,
-  });
-  const paymentsQuery = useQuery({
-    queryKey: paymentsQueryKey(ownerKey),
-    queryFn: fetchPaymentsData,
-    enabled: !!user && enabled,
-    staleTime: 30_000,
-  });
-  const schedulesQuery = useQuery({
-    queryKey: schedulesQueryKey(ownerKey),
-    queryFn: fetchSchedulesData,
-    enabled: !!user && enabled,
-    staleTime: 30_000,
-  });
-
-  // Sync query cache -> local state so optimistic setters (setLoans/setPayments/
-  // setInstallmentSchedules) used by mutations abaixo continuam funcionando sem
-  // alteração de API.
-  useEffect(() => {
-    if (loansQuery.data) setLoans(loansQuery.data);
-  }, [loansQuery.data]);
-  useEffect(() => {
-    if (paymentsQuery.data) setPayments(paymentsQuery.data);
-  }, [paymentsQuery.data]);
-  useEffect(() => {
-    if (schedulesQuery.data) setInstallmentSchedules(schedulesQuery.data);
-  }, [schedulesQuery.data]);
-
-  // Compatibilidade: mantém a assinatura existente (async () => void). Dispara
-  // refetch via TanStack Query — múltiplos consumidores compartilham o mesmo
-  // request in-flight.
   const fetchLoans = useCallback(async () => {
     if (!user) return;
-    if (import.meta.env.DEV) console.debug("[useLoans invalidateQueries]", { instance: debugInstanceRef, resource: "loans", ownerKey });
-    await queryClient.invalidateQueries({ queryKey: loansQueryKey(ownerKey) });
-  }, [queryClient, user, ownerKey, debugInstanceRef]);
+    if (isOnline()) {
+      const { data, error } = await supabase
+        .from("loans").select("id, borrower_name, borrower_id, amount, original_amount, interest_rate, interest_type, payment_type, start_date, due_date, original_due_date, installments, paid_installments, status, remaining_amount, custom_installment_value, custom_interest_value, tags, notes, created_at, late_interest_type, late_interest_value, penalty_value, has_manager, manager_id, manager_commission_rate, auto_billing_enabled, renegotiation_penalty_total, is_sale, payment_method_split")
+        .order("created_at", { ascending: false })
+        .limit(2000); // safety cap — paginação por página será adicionada com UI de "carregar mais"
+      if (!error && data) {
+        setLoans(data.map(rowToLoan));
+        cacheRows("loans", data).catch(() => { /* noop */ });
+        return;
+      }
+    }
+    const cached = await getCachedRows("loans");
+    if (cached.length > 0) {
+      setLoans(cached
+        .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
+        .map(rowToLoan));
+    }
+  }, [user]);
+
   const fetchPayments = useCallback(async () => {
     if (!user) return;
-    if (import.meta.env.DEV) console.debug("[useLoans invalidateQueries]", { instance: debugInstanceRef, resource: "payments", ownerKey });
-    await queryClient.invalidateQueries({ queryKey: paymentsQueryKey(ownerKey) });
-  }, [queryClient, user, ownerKey, debugInstanceRef]);
+    if (isOnline()) {
+      const { data, error } = await supabase
+        .from("payments").select("id, loan_id, amount, date, installment_number, previous_due_date, payment_method_id, metadata, created_at")
+        .order("created_at", { ascending: false })
+        .limit(5000); // safety cap
+      if (!error && data) {
+        setPayments(data.map(rowToPayment));
+        cacheRows("payments", data).catch(() => { /* noop */ });
+        return;
+      }
+    }
+    const cached = await getCachedRows("payments");
+    if (cached.length > 0) {
+      setPayments(cached
+        .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
+        .map(rowToPayment));
+    }
+  }, [user]);
+
   const fetchSchedules = useCallback(async () => {
     if (!user) return;
-    if (import.meta.env.DEV) console.debug("[useLoans invalidateQueries]", { instance: debugInstanceRef, resource: "loan_installments", ownerKey });
-    await queryClient.invalidateQueries({ queryKey: schedulesQueryKey(ownerKey) });
-  }, [queryClient, user, ownerKey, debugInstanceRef]);
+    if (isOnline()) {
+      const { data, error } = await supabase
+        .from("loan_installments").select("id, loan_id, installment_number, due_date, amount")
+        .order("installment_number", { ascending: true })
+        .limit(10000); // safety cap
+      if (!error && data) {
+        setInstallmentSchedules(data.map((s: any) => ({
+          id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number,
+          dueDate: s.due_date, amount: Number(s.amount),
+        })));
+        cacheRows("loan_installments", data).catch(() => { /* noop */ });
+        return;
+      }
+    }
+    const cached = await getCachedRows("loan_installments");
+    if (cached.length > 0) {
+      setInstallmentSchedules(cached.map((s: any) => ({
+        id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number,
+        dueDate: s.due_date, amount: Number(s.amount),
+      })));
+    }
+  }, [user]);
 
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    console.debug("[useLoans lifecycle] mount/update", { instance: debugInstanceRef, enabled, ownerKey, userId: user?.id ?? null });
-    return () => console.debug("[useLoans lifecycle] unmount", { instance: debugInstanceRef, enabled, ownerKey, userId: user?.id ?? null });
-  }, [debugInstanceRef, enabled, ownerKey, user?.id]);
+  useEffect(() => { fetchLoans(); fetchPayments(); fetchSchedules(); }, [fetchLoans, fetchPayments, fetchSchedules]);
 
   // Refetch after offline queue flush
   useEffect(() => {
@@ -364,26 +290,60 @@ export function useLoans(enabled: boolean = true) {
     return () => window.removeEventListener("offline-sync:flushed", handler);
   }, [fetchLoans, fetchPayments, fetchSchedules]);
 
-  // Realtime subscriptions — invalidam o cache compartilhado.
+  // Realtime subscriptions com patch local (evita SELECT completo por evento — P0 egress)
   useEffect(() => {
     if (!user) return;
+    const ownerId = dataOwnerId ?? user.id;
+    const safe = <T,>(fn: () => T, fallback: () => void) => {
+      try { fn(); } catch (e) { console.warn("[useLoans realtime patch failed, refetching]", e); fallback(); }
+    };
     const channel = supabase
-      .channel(`loans-realtime-${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, () => {
-        if (import.meta.env.DEV) console.debug("[useLoans realtime]", { instance: debugInstanceRef, table: "loans", ownerKey });
-        queryClient.invalidateQueries({ queryKey: loansQueryKey(ownerKey) });
+      .channel(`loans:${ownerId}:${instanceId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'loans', filter: `user_id=eq.${ownerId}` }, (payload) => {
+        safe(() => setLoans((prev) => {
+          const row = rowToLoan(payload.new as any);
+          if (prev.some((l) => l.id === row.id)) return prev;
+          return [row, ...prev];
+        }), fetchLoans);
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
-        if (import.meta.env.DEV) console.debug("[useLoans realtime]", { instance: debugInstanceRef, table: "payments", ownerKey });
-        queryClient.invalidateQueries({ queryKey: paymentsQueryKey(ownerKey) });
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'loans', filter: `user_id=eq.${ownerId}` }, (payload) => {
+        safe(() => setLoans((prev) => prev.map((l) => l.id === (payload.new as any).id ? rowToLoan(payload.new as any) : l)), fetchLoans);
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'loan_installments' }, () => {
-        if (import.meta.env.DEV) console.debug("[useLoans realtime]", { instance: debugInstanceRef, table: "loan_installments", ownerKey });
-        queryClient.invalidateQueries({ queryKey: schedulesQueryKey(ownerKey) });
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'loans' }, (payload) => {
+        safe(() => setLoans((prev) => prev.filter((l) => l.id !== (payload.old as any).id)), fetchLoans);
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payments' }, (payload) => {
+        safe(() => setPayments((prev) => {
+          const row = rowToPayment(payload.new as any);
+          if (prev.some((p) => p.id === row.id)) return prev;
+          return [row, ...prev];
+        }), fetchPayments);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'payments' }, (payload) => {
+        safe(() => setPayments((prev) => prev.map((p) => p.id === (payload.new as any).id ? rowToPayment(payload.new as any) : p)), fetchPayments);
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'payments' }, (payload) => {
+        safe(() => setPayments((prev) => prev.filter((p) => p.id !== (payload.old as any).id)), fetchPayments);
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'loan_installments' }, (payload) => {
+        safe(() => setInstallmentSchedules((prev) => {
+          const s: any = payload.new;
+          if (prev.some((x) => x.id === s.id)) return prev;
+          return [...prev, { id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number, dueDate: s.due_date, amount: Number(s.amount) }];
+        }), fetchSchedules);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'loan_installments' }, (payload) => {
+        safe(() => setInstallmentSchedules((prev) => prev.map((x) => {
+          const s: any = payload.new;
+          return x.id === s.id ? { id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number, dueDate: s.due_date, amount: Number(s.amount) } : x;
+        })), fetchSchedules);
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'loan_installments' }, (payload) => {
+        safe(() => setInstallmentSchedules((prev) => prev.filter((x) => x.id !== (payload.old as any).id)), fetchSchedules);
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient, ownerKey, debugInstanceRef]);
+  }, [user, dataOwnerId, fetchLoans, fetchPayments, fetchSchedules, instanceId]);
 
   const saveSchedule = useCallback(async (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => {
     assertWritable();
@@ -730,12 +690,37 @@ export function useLoans(enabled: boolean = true) {
 
     try {
       await applyPaymentBalance(installmentAmount, paymentMethodId ?? null, normalizedSplit);
+      // Aloca a fração de juros/principal desta parcela pró-rata (contratos
+      // parcelados) ou 100% juros no excedente (parcela única).
+      const priorInterest = payments
+        .filter((p) => p.loanId === loanId && p.installmentNumber >= 1 && p.installmentNumber < newPaid)
+        .reduce((s, p) => {
+          const parcelAmt = Number(p.amount) || 0;
+          const { interestPart } = computeInstallmentInterest({
+            principal: loan.amount,
+            rate: loan.interestRate,
+            installments: loan.installments,
+            installmentAmount: parcelAmt,
+            installmentNumber: p.installmentNumber,
+            priorInterestAllocated: s,
+          });
+          return s + interestPart;
+        }, 0);
+      const { interestPart, principalPart } = computeInstallmentInterest({
+        principal: loan.amount,
+        rate: loan.interestRate,
+        installments: loan.installments,
+        installmentAmount,
+        installmentNumber: newPaid,
+        priorInterestAllocated: priorInterest,
+      });
       await recordPaymentLedgerSplit({
         amount: installmentAmount,
         description: `Parcela ${newPaid}/${loan.installments} recebida - ${loan.borrowerName}`,
         occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId,
         paymentMethodId: paymentMethodId ?? null,
         split: normalizedSplit,
+        extraMetadata: { interest_amount: interestPart, principal_amount: principalPart },
       });
     } catch (balanceError: any) {
       console.error("[addPayment] adjust balance failed:", balanceError);
@@ -763,7 +748,18 @@ export function useLoans(enabled: boolean = true) {
     const dateStr = paymentDate || todayInAppTz();
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) throw new Error("Empréstimo não encontrado");
-    const newRemaining = Math.max(0, getLoanRemainingAmount(loan, payments) - amount);
+    // Aplica pagamento primeiro sobre o saldo base (principal + juros contratuais);
+    // o excedente abate a multa/penalidade em aberto (loan.penaltyValue) para que
+    // pagamentos maiores que o saldo base não sejam silenciosamente descartados.
+    const currentBase = getLoanRemainingAmount(loan, payments);
+    const appliedToBase = Math.min(currentBase, amount);
+    const newRemaining = Math.max(0, currentBase - appliedToBase);
+    let overflow = amount - appliedToBase;
+    const currentPenalty = Number(loan.penaltyValue ?? 0);
+    const appliedToPenalty = Math.min(Math.max(0, currentPenalty), Math.max(0, overflow));
+    overflow -= appliedToPenalty;
+    const newPenalty = Math.max(0, currentPenalty - appliedToPenalty);
+    const penaltyChanged = appliedToPenalty > 0;
     const online = isOnline();
 
     const tempPaymentId = crypto.randomUUID();
@@ -775,13 +771,14 @@ export function useLoans(enabled: boolean = true) {
       payment_method_id: paymentMethodId ?? null,
     };
     if (splitMetadata) paymentPayload.metadata = splitMetadata;
-    const loanUpdate = { remaining_amount: newRemaining };
+    const loanUpdate: any = { remaining_amount: newRemaining };
+    if (penaltyChanged) loanUpdate.penalty_value = newPenalty;
 
     setPayments((prev) => [
       { id: tempPaymentId, loanId, amount, date: dateStr, installmentNumber: -1, paymentMethodId: paymentMethodId ?? null, metadata: (splitMetadata as any) ?? null },
       ...prev,
     ]);
-    setLoans((prev) => prev.map((l) => l.id === loanId ? { ...l, remainingAmount: newRemaining } : l));
+    setLoans((prev) => prev.map((l) => l.id === loanId ? { ...l, remainingAmount: newRemaining, ...(penaltyChanged ? { penaltyValue: newPenalty } : {}) } : l));
     await upsertCachedRow("payments", { ...paymentPayload, created_at: new Date().toISOString() });
 
     if (!online) {
@@ -840,6 +837,18 @@ export function useLoans(enabled: boolean = true) {
         await supabase.from("payments").delete().eq("id", tempPaymentId);
         await revertOptimisticState();
         throw new Error(loanError?.message ?? "Falha ao atualizar o empréstimo");
+      }
+    }
+
+    // Persiste a redução da multa (penalty_value) quando o pagamento excedeu o saldo base.
+    // A RPC atômica só atualiza remaining_amount, então aplicamos aqui em passo separado.
+    if (penaltyChanged) {
+      const { error: penaltyError } = await supabase
+        .from("loans")
+        .update({ penalty_value: newPenalty } as any)
+        .eq("id", loanId);
+      if (penaltyError) {
+        console.error("[addPartialPayment] update penalty_value failed:", penaltyError);
       }
     }
 
@@ -973,13 +982,45 @@ export function useLoans(enabled: boolean = true) {
 
     try {
       await applyPaymentBalance(payAmount, paymentMethodId ?? null, normalizedSplit);
-      // Lança o valor total recebido (principal + juros/multa) em uma única linha no extrato.
-      // O índice único uq_account_ledger_payment exige um único lançamento por payment_id.
-      const principalPaidBefore = payments
-        .filter((p) => p.loanId === loanId)
-        .reduce((sum, p) => sum + Math.min(Number(p.amount) || 0, Math.max(0, loan.amount - sum)), 0);
-      const principalPortion = Math.min(payAmount, Math.max(0, loan.amount - principalPaidBefore));
-      const interestPortion = Math.max(0, Math.round((payAmount - principalPortion) * 100) / 100);
+      // Alocação de juros/principal:
+      // - Contrato de parcela única: excedente sobre o principal remanescente é juros (legado).
+      // - Contrato parcelado: usa a fórmula pró-rata; juros da última parcela fecha
+      //   `totalInterest`, e QUALQUER excedente por acordo/bônus fica em principal
+      //   (não infla o card de "Juros Recebidos").
+      let interestPortion = 0;
+      let principalPortion = payAmount;
+      if (loan.installments <= 1) {
+        const principalPaidBefore = payments
+          .filter((p) => p.loanId === loanId)
+          .reduce((sum, p) => sum + Math.min(Number(p.amount) || 0, Math.max(0, loan.amount - sum)), 0);
+        principalPortion = Math.min(payAmount, Math.max(0, loan.amount - principalPaidBefore));
+        interestPortion = Math.max(0, Math.round((payAmount - principalPortion) * 100) / 100);
+      } else {
+        const priorInterest = payments
+          .filter((p) => p.loanId === loanId && p.installmentNumber >= 1 && p.installmentNumber < loan.installments)
+          .reduce((s, p) => {
+            const parcelAmt = Number(p.amount) || 0;
+            const { interestPart } = computeInstallmentInterest({
+              principal: loan.amount,
+              rate: loan.interestRate,
+              installments: loan.installments,
+              installmentAmount: parcelAmt,
+              installmentNumber: p.installmentNumber,
+              priorInterestAllocated: s,
+            });
+            return s + interestPart;
+          }, 0);
+        const finalAlloc = computeInstallmentInterest({
+          principal: loan.amount,
+          rate: loan.interestRate,
+          installments: loan.installments,
+          installmentAmount: payAmount,
+          installmentNumber: loan.installments,
+          priorInterestAllocated: priorInterest,
+        });
+        interestPortion = finalAlloc.interestPart;
+        principalPortion = Math.max(0, Math.round((payAmount - interestPortion) * 100) / 100);
+      }
       await recordPaymentLedgerSplit({
         amount: payAmount,
         description: `Quitação - ${loan.borrowerName}`,
@@ -988,7 +1029,7 @@ export function useLoans(enabled: boolean = true) {
         split: normalizedSplit,
         extraMetadata: {
           principal_amount: Math.round(principalPortion * 100) / 100,
-          interest_amount: interestPortion,
+          interest_amount: Math.round(interestPortion * 100) / 100,
         },
       });
     } catch (balanceError: any) {

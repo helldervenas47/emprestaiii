@@ -7,6 +7,7 @@ import { useProducts } from "@/hooks/useProducts";
 import { isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
 import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
 import type { Sale } from "@/types/loan";
+import { financeFetchStart, financeFetchSuccess, financeInvalidate, financeSetState, useFinanceHookDebug } from "@/lib/financeDebug";
 
 function saleReceivedTotal(sale: Sale): number {
   const historyTotal = (sale.paymentHistory || []).reduce(
@@ -19,6 +20,9 @@ function saleReceivedTotal(sale: Sale): number {
 }
 
 /**
+ * @deprecated P0-01 — usar `useOfficialAccountBalance` (src/lib/accountLedgerBalance.ts).
+ * Mantido como legado até o backfill do `account_ledger`.
+ *
  * Saldo em Conta unificado — exatamente a mesma base usada pelo
  * card "Saldo em Conta" da aba Receitas (IncomeBalanceCard):
  *
@@ -29,6 +33,7 @@ function saleReceivedTotal(sale: Sale): number {
  * − aportes líquidos nos cofrinhos
  */
 export function useUnifiedAccountBalance(): number {
+  useFinanceHookDebug("useUnifiedAccountBalance");
   const ownerId = useDataOwner();
   const { incomes } = useIncomes(true);
   const { expenses } = useExpenses(true);
@@ -41,6 +46,7 @@ export function useUnifiedAccountBalance(): number {
     if (!ownerId) return;
     let cancelled = false;
     const load = async () => {
+      financeFetchStart("useUnifiedAccountBalance", "account_ledger/cofrinhos", { ownerId: "present" });
       const [{ data: ledger }, { data: cofrinhos }] = await Promise.all([
         supabase
           .from("account_ledger")
@@ -56,17 +62,26 @@ export function useUnifiedAccountBalance(): number {
           .eq("usuario_id", ownerId),
       ]);
       if (cancelled) return;
+      financeSetState("useUnifiedAccountBalance", "cardInvoicePaidTotal", { rows: ((ledger as any[]) ?? []).length });
       setCardInvoicePaidTotal(
         ((ledger as any[]) ?? []).reduce((s, r) => s + (Number(r.amount) || 0), 0),
       );
+      financeSetState("useUnifiedAccountBalance", "piggyNetTotal", { rows: ((cofrinhos as any[]) ?? []).length });
       setPiggyNetTotal(
         ((cofrinhos as any[]) ?? [])
           .filter((r) => r.ativo !== false)
           .reduce((s, r) => s + (Number(r.saldo_principal) || 0), 0),
       );
+      financeFetchSuccess("useUnifiedAccountBalance", "account_ledger/cofrinhos", {
+        ledgerRows: ((ledger as any[]) ?? []).length,
+        cofrinhoRows: ((cofrinhos as any[]) ?? []).length,
+      });
     };
     load();
-    const handler = () => load();
+    const handler = (event: Event) => {
+      financeInvalidate("useUnifiedAccountBalance", "account_ledger/cofrinhos", { event: event.type });
+      load();
+    };
     window.addEventListener("ledger:changed", handler);
     window.addEventListener("balance:changed", handler);
     return () => {

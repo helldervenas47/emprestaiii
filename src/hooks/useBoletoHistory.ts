@@ -78,8 +78,12 @@ export function useBoletoHistory() {
     }
     fetchItems();
     const ch = supabase
-      .channel("boleto_lookups_changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "boleto_lookups" }, () => fetchItems())
+      .channel(`boleto-lookups:${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "boleto_lookups", filter: `user_id=eq.${user.id}` },
+        () => fetchItems(),
+      )
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user, fetchItems]);
